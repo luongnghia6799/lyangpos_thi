@@ -1,0 +1,46 @@
+# Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+
+# Database & Binaries
+*.db
+*.db.bak*
+*.sqlite3
+*.exe
+*.msi
+*.lib
+*.rlib
+*.pdb
+*.rmeta
+*.glb
+*.bin
+easypos.db*
+backups/
+recycle/
+instance/
+tts_cache/
+uploads/
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+build/
+.vercel/
+
+# Tauri, Rust & Native
+frontend/src-tauri/
+android-native/
+target/
+
+# IDE & System
+.idea/
+.vscode/
+*.log
+.DS_Store
+.brain/

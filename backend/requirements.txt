@@ -1,0 +1,9 @@
+openpyxl
+flask
+flask-sqlalchemy
+flask-cors
+sqlalchemy
+requests
+Pillow
+pyinstaller
+edge-tts

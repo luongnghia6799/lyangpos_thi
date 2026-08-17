@@ -200,19 +200,30 @@ const ProductAutocomplete = React.forwardRef(({
                                         </div>
 
                                         <div className="flex items-center gap-8 relative z-10">
-                                            {/* Stock Level Badge */}
-                                            <div
-                                                className={cn(
-                                                    "px-4 py-2 rounded-2xl text-[13px] font-black border-2 transition-all flex items-center gap-2.5",
-                                                    p.stock <= 0
-                                                        ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
-                                                        : p.stock < 10
-                                                            ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
-                                                            : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                                                )}
-                                            >
-                                                {p.stock <= 0 ? <PackageX size={16} strokeWidth={3} /> : p.stock < 10 ? <AlertTriangle size={16} strokeWidth={3} /> : <Package size={16} strokeWidth={3} />}
-                                                <span className="tabular-nums">{p.stock}</span>
+                                            {/* Stock Level Badge & Accounting Stock */}
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div
+                                                    className={cn(
+                                                        "px-4 py-2 rounded-2xl text-[13px] font-black border-2 transition-all flex items-center gap-2.5",
+                                                        p.stock <= 0
+                                                            ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                                                            : p.stock < 10
+                                                                ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
+                                                                : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                                    )}
+                                                >
+                                                    {p.stock <= 0 ? <PackageX size={16} strokeWidth={3} /> : p.stock < 10 ? <AlertTriangle size={16} strokeWidth={3} /> : <Package size={16} strokeWidth={3} />}
+                                                    <span className="tabular-nums">{p.stock}</span>
+                                                </div>
+                                                <div className={cn(
+                                                    "text-[10px] font-black tracking-tight px-2 py-0.5 rounded-md border flex items-center gap-1 tabular-nums",
+                                                    index === highlightedIndex
+                                                        ? "bg-white/20 text-white border-white/30"
+                                                        : "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20"
+                                                )}>
+                                                    <span>KT:</span>
+                                                    <span>{p.accounting_stock || 0}</span>
+                                                </div>
                                             </div>
 
                                             <div className="flex flex-col items-end gap-1">

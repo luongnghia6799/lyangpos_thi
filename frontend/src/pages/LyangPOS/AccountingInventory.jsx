@@ -26,7 +26,8 @@ import {
     HelpCircle,
     ArrowLeft,
     TrendingUp,
-    TrendingDown
+    TrendingDown,
+    Eye
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,6 +55,9 @@ export default function AccountingInventory() {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
     // Import State
+    const [rawMatrix, setRawMatrix] = useState([]);
+    const [headerRowIndex, setHeaderRowIndex] = useState(0);
+    const [showSheetPreview, setShowSheetPreview] = useState(false);
     const [fileData, setFileData] = useState([]);
     const [headers, setHeaders] = useState([]);
     const [uploadedFileName, setUploadedFileName] = useState('');
@@ -105,6 +109,84 @@ export default function AccountingInventory() {
         }
     };
 
+    const applyHeaderRow = (matrix, rowIdx) => {
+        if (!matrix || matrix.length <= rowIdx) return;
+        setHeaderRowIndex(rowIdx);
+
+        const rawHead = matrix[rowIdx] || [];
+        const head = rawHead.map((h, i) => {
+            const val = (h !== undefined && h !== null && h !== '') ? h.toString().trim() : `Cột_${i + 1}`;
+            return val;
+        });
+        setHeaders(head);
+
+        const dataRows = matrix.slice(rowIdx + 1).map((rowArr) => {
+            const obj = {};
+            head.forEach((h, colIdx) => {
+                obj[h] = rowArr[colIdx] !== undefined && rowArr[colIdx] !== null ? rowArr[colIdx] : '';
+            });
+            return obj;
+        }).filter(rowObj => {
+            return Object.values(rowObj).some(val => val !== '' && val !== null && val !== undefined);
+        });
+
+        setFileData(dataRows);
+
+        // Smart mapping suggestion with comprehensive pattern detection
+        const suggest = { code: '', name: '', stock: '', price: '', unit: '' };
+        head.forEach(h => {
+            const norm = h.toLowerCase().trim();
+            // Code
+            if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'barcode' || norm === 'sku' || norm.includes('mã hàng') || norm.includes('mã sp'))) {
+                suggest.code = h;
+            }
+            // Name
+            if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm' || norm.includes('tên hàng') || norm.includes('tên sp') || norm.includes('tên sản phẩm'))) {
+                suggest.name = h;
+            }
+            // Stock
+            if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'tồn cuối' || norm === 'sl cuối kỳ' || norm === 'stock' || norm.includes('tồn cuối') || norm.includes('tồn kho'))) {
+                suggest.stock = h;
+            }
+            // Price
+            if (!suggest.price && (norm === 'giá kế toán' || norm === 'giá vốn' || norm === 'giá nhập' || norm === 'giá bán' || norm === 'đơn giá' || norm === 'price' || norm === 'cost' || norm.includes('đơn giá') || norm.includes('giá vốn'))) {
+                suggest.price = h;
+            }
+            // Unit
+            if (!suggest.unit && (norm === 'đơn vị' || norm === 'đvt' || norm === 'đơn vị tính' || norm === 'unit' || norm.includes('đvt') || norm.includes('đơn vị'))) {
+                suggest.unit = h;
+            }
+        });
+
+        // Fallbacks if not exact match
+        if (!suggest.code) {
+            head.forEach(h => {
+                const norm = h.toLowerCase();
+                if (norm.includes('mã') || norm.includes('code')) suggest.code = h;
+            });
+        }
+        if (!suggest.name) {
+            head.forEach(h => {
+                const norm = h.toLowerCase();
+                if (norm.includes('tên') || norm.includes('name')) suggest.name = h;
+            });
+        }
+        if (!suggest.stock) {
+            head.forEach(h => {
+                const norm = h.toLowerCase();
+                if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('stock')) suggest.stock = h;
+            });
+        }
+        if (!suggest.price) {
+            head.forEach(h => {
+                const norm = h.toLowerCase();
+                if (norm.includes('giá') || norm.includes('price')) suggest.price = h;
+            });
+        }
+
+        setMapping(suggest);
+    };
+
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -126,65 +208,34 @@ export default function AccountingInventory() {
                     return;
                 }
 
-                const head = data[0].map(h => (h || '').toString().trim());
-                setHeaders(head);
+                setRawMatrix(data);
 
-                const rows = XLSX.utils.sheet_to_json(ws);
-                setFileData(rows);
+                // Auto-detect best candidate header row within first 15 rows
+                let bestRowIdx = 0;
+                let maxScore = -1;
+                const keywords = ['mã', 'tên', 'tồn', 'kho', 'đvt', 'đơn vị', 'đơn giá', 'giá', 'số lượng', 'sl', 'stt', 'code', 'name', 'stock', 'price', 'unit'];
 
-                // Smart mapping suggestion with comprehensive pattern detection
-                const suggest = { code: '', name: '', stock: '', price: '', unit: '' };
-                head.forEach(h => {
-                    const norm = h.toLowerCase().trim();
-                    // Code
-                    if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'barcode' || norm === 'sku')) {
-                        suggest.code = h;
-                    }
-                    // Name
-                    if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm')) {
-                        suggest.name = h;
-                    }
-                    // Stock
-                    if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'stock')) {
-                        suggest.stock = h;
-                    }
-                    // Price
-                    if (!suggest.price && (norm === 'giá kế toán' || norm === 'giá vốn' || norm === 'giá nhập' || norm === 'giá bán' || norm === 'đơn giá' || norm === 'price' || norm === 'cost')) {
-                        suggest.price = h;
-                    }
-                    // Unit
-                    if (!suggest.unit && (norm === 'đơn vị' || norm === 'đvt' || norm === 'đơn vị tính' || norm === 'unit')) {
-                        suggest.unit = h;
-                    }
-                });
+                for (let r = 0; r < Math.min(15, data.length); r++) {
+                    const row = data[r];
+                    if (!Array.isArray(row)) continue;
+                    const nonEmptyCells = row.filter(cell => cell !== undefined && cell !== null && cell.toString().trim() !== '');
+                    if (nonEmptyCells.length < 2) continue;
 
-                // Fallbacks if not exact match
-                if (!suggest.code) {
-                    head.forEach(h => {
-                        const norm = h.toLowerCase();
-                        if (norm.includes('mã') || norm.includes('code')) suggest.code = h;
+                    let score = nonEmptyCells.length;
+                    nonEmptyCells.forEach(cell => {
+                        const text = cell.toString().toLowerCase().trim();
+                        if (keywords.some(k => text.includes(k))) {
+                            score += 5;
+                        }
                     });
-                }
-                if (!suggest.name) {
-                    head.forEach(h => {
-                        const norm = h.toLowerCase();
-                        if (norm.includes('tên') || norm.includes('name')) suggest.name = h;
-                    });
-                }
-                if (!suggest.stock) {
-                    head.forEach(h => {
-                        const norm = h.toLowerCase();
-                        if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('stock')) suggest.stock = h;
-                    });
-                }
-                if (!suggest.price) {
-                    head.forEach(h => {
-                        const norm = h.toLowerCase();
-                        if (norm.includes('giá') || norm.includes('price')) suggest.price = h;
-                    });
+
+                    if (score > maxScore) {
+                        maxScore = score;
+                        bestRowIdx = r;
+                    }
                 }
 
-                setMapping(suggest);
+                applyHeaderRow(data, bestRowIdx);
                 setStep(2);
             } catch (err) {
                 console.error(err);
@@ -956,22 +1007,146 @@ export default function AccountingInventory() {
                         )}
 
                         {/* STEP 2: COLUMN MAPPING */}
+                        {/* STEP 2: COLUMN MAPPING */}
                         {step === 2 && (
                             <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl max-w-3xl mx-auto">
                                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
                                     <Columns className="text-emerald-600 dark:text-emerald-400" size={24} />
                                     <div>
                                         <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Khớp Cột Dữ Liệu Excel</h2>
-                                        <p className="text-xs text-slate-400 font-medium">Tệp: <span className="text-emerald-600 font-bold">{uploadedFileName}</span> ({fileData.length} dòng)</p>
+                                        <p className="text-xs text-slate-400 font-medium">Tệp: <span className="text-emerald-600 font-bold">{uploadedFileName}</span> ({fileData.length} dòng dữ liệu)</p>
                                     </div>
                                 </div>
 
+                                {/* CHỌN DÒNG TIÊU ĐỀ (HEADER ROW) */}
+                                <div className="mb-6 p-5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border-2 border-emerald-500/30">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider">Bước 1</span>
+                                                <label className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase">
+                                                    Chọn Dòng Tiêu Đề Cột (Header Row)
+                                                </label>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                Chọn đúng dòng chứa tên cột trong Excel (Mã hàng, Tên sản phẩm, Tồn kho...). Các dòng phía trên sẽ được bỏ qua.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSheetPreview(!showSheetPreview)}
+                                            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30 shadow-xs hover:bg-emerald-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 whitespace-nowrap self-start sm:self-auto cursor-pointer"
+                                        >
+                                            <Eye size={14} />
+                                            <span>{showSheetPreview ? "Ẩn bảng tính" : "Xem trước bảng tính"}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Dropdown Selector for Header Row */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                                        <div className="sm:col-span-2">
+                                            <select
+                                                value={headerRowIndex}
+                                                onChange={(e) => applyHeaderRow(rawMatrix, parseInt(e.target.value))}
+                                                className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500/40 rounded-xl px-4 py-2.5 font-black text-slate-800 dark:text-slate-100 text-sm focus:border-emerald-600 outline-none shadow-sm cursor-pointer"
+                                            >
+                                                {rawMatrix.slice(0, 15).map((row, idx) => {
+                                                    const rowCells = Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join(' | ') : '';
+                                                    return (
+                                                        <option key={idx} value={idx}>
+                                                            Dòng {idx + 1}: {rowCells ? (rowCells.length > 65 ? rowCells.substring(0, 65) + '...' : rowCells) : '(Dòng trống)'}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                        </div>
+                                        <div className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                            📊 Tải được: <span className="text-emerald-600 dark:text-emerald-400 font-black">{fileData.length}</span> dòng dữ liệu
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Sheet Preview Table */}
+                                    {showSheetPreview && (
+                                        <div className="mt-4 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto max-h-72 custom-scrollbar">
+                                            <p className="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-wider">
+                                                Bấm vào một dòng bên dưới để chọn làm dòng tiêu đề:
+                                            </p>
+                                            <table className="w-full text-left text-xs border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
+                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-24">Vị trí</th>
+                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700">Nội dung dòng</th>
+                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-32 text-right">Trạng thái</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                    {rawMatrix.slice(0, 12).map((row, rIdx) => {
+                                                        const isSelected = rIdx === headerRowIndex;
+                                                        const isBefore = rIdx < headerRowIndex;
+                                                        return (
+                                                            <tr
+                                                                key={rIdx}
+                                                                onClick={() => applyHeaderRow(rawMatrix, rIdx)}
+                                                                className={cn(
+                                                                    "cursor-pointer transition-colors",
+                                                                    isSelected
+                                                                        ? "bg-emerald-500/15 dark:bg-emerald-500/25 font-bold"
+                                                                        : isBefore
+                                                                            ? "opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                                            : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
+                                                                )}
+                                                            >
+                                                                <td className="py-2.5 px-3">
+                                                                    <span className={cn(
+                                                                        "px-2 py-0.5 rounded text-[11px] font-black",
+                                                                        isSelected ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                                                    )}>
+                                                                        Dòng {rIdx + 1}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 max-w-xl truncate">
+                                                                    {Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join('  |  ') : '(Trống)'}
+                                                                </td>
+                                                                <td className="py-2.5 px-3 text-right">
+                                                                    {isSelected ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+                                                                            <Check size={14} /> TIÊU ĐỀ
+                                                                        </span>
+                                                                    ) : isBefore ? (
+                                                                        <span className="text-[10px] text-slate-400 font-bold">
+                                                                            Bỏ qua
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-slate-400 font-bold hover:text-emerald-600">
+                                                                            Chọn dòng này
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="space-y-5">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-800 dark:bg-slate-700 text-white text-[10px] font-black uppercase tracking-wider">Bước 2</span>
+                                        <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase">Khớp Các Cột Cần Nhập</span>
+                                    </div>
+
                                     {/* Cột Mã hàng */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                         <div>
                                             <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Mã Hàng / Mã SP</label>
                                             <p className="text-[11px] text-slate-400">Dùng để so khớp chính xác mã với sản phẩm trong kho.</p>
+                                            {mapping.code && fileData[0] && (
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
+                                                    Ví dụ dòng 1: "{fileData[0][mapping.code] || '(Trống)'}"
+                                                </p>
+                                            )}
                                         </div>
                                         <select
                                             value={mapping.code}
@@ -988,6 +1163,11 @@ export default function AccountingInventory() {
                                         <div>
                                             <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tên Sản Phẩm</label>
                                             <p className="text-[11px] text-slate-400">Dùng để so khớp theo tên khi mã không trùng khớp.</p>
+                                            {mapping.name && fileData[0] && (
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
+                                                    Ví dụ dòng 1: "{fileData[0][mapping.name] || '(Trống)'}"
+                                                </p>
+                                            )}
                                         </div>
                                         <select
                                             value={mapping.name}
@@ -1003,7 +1183,12 @@ export default function AccountingInventory() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                         <div>
                                             <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tồn Kho / Số Lượng <span className="text-rose-500">*</span></label>
-                                            <p className="text-[11px] text-slate-400">Số lượng tồn kho theo số sách hoặc file kế toán.</p>
+                                            <p className="text-[11px] text-slate-400">Số lượng tồn kho theo sổ sách hoặc file kế toán.</p>
+                                            {mapping.stock && fileData[0] && (
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
+                                                    Ví dụ dòng 1: "{fileData[0][mapping.stock] || '0'}"
+                                                </p>
+                                            )}
                                         </div>
                                         <select
                                             value={mapping.stock}
@@ -1020,6 +1205,11 @@ export default function AccountingInventory() {
                                         <div>
                                             <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Đơn Giá Kế Toán</label>
                                             <p className="text-[11px] text-slate-400">Đơn giá kế toán để tính giá trị tồn kho.</p>
+                                            {mapping.price && fileData[0] && (
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
+                                                    Ví dụ dòng 1: "{fileData[0][mapping.price] || '0'}"
+                                                </p>
+                                            )}
                                         </div>
                                         <select
                                             value={mapping.price}

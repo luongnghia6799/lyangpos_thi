@@ -8207,6 +8207,70 @@ def batch_invoice_partner(partner_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@app.route('/api/accounting/partners/bulk-batch-invoice', methods=['POST'])
+def bulk_batch_invoice_partners():
+    try:
+        data = request.json or {}
+        partner_ids = data.get('partner_ids', [])
+        date_str = data.get('date')
+        is_invoiced = data.get('is_invoiced', True)
+        invoice_no = data.get('invoice_no', '')
+        invoice_note = data.get('invoice_note', '')
+        
+        if not partner_ids:
+            return jsonify({'message': 'Không có khách hàng nào được chọn', 'updated_count': 0})
+            
+        has_null_partner = 0 in partner_ids or None in partner_ids
+        valid_ids = [pid for pid in partner_ids if pid and pid > 0]
+        
+        conditions = []
+        if valid_ids:
+            conditions.append(Order.partner_id.in_(valid_ids))
+        if has_null_partner:
+            conditions.append(Order.partner_id.is_(None))
+            
+        if not conditions:
+            return jsonify({'message': 'Không có đối tác hợp lệ', 'updated_count': 0})
+            
+        query = Order.query.filter(
+            Order.type == 'Sale',
+            Order.display_id.notin_(['NODAU', '#NODAU']),
+            db.or_(*conditions)
+        )
+        
+        if date_str:
+            start_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999)
+            query = query.filter(Order.date >= start_dt, Order.date <= end_dt)
+            
+        orders = query.all()
+        
+        for o in orders:
+            o.is_invoiced = is_invoiced
+            if is_invoiced:
+                if invoice_no: o.invoice_no = invoice_no
+                if invoice_note: o.invoice_note = invoice_note
+                o.invoice_date = get_vn_time()
+            else:
+                o.invoice_no = ''
+                o.invoice_note = ''
+                o.invoice_date = None
+                
+            for d in o.details:
+                d.is_invoiced = is_invoiced
+                if is_invoiced:
+                    d.invoiced_quantity = d.quantity
+                    if invoice_no: d.invoice_no = invoice_no
+                else:
+                    d.invoiced_quantity = 0.0
+                    d.invoice_no = ''
+                    
+        db.session.commit()
+        return jsonify({'message': f'Đã xuất đủ hóa đơn cho {len(partner_ids)} khách hàng ({len(orders)} đơn hàng)!', 'updated_count': len(orders)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/api/accounting/partners/<int:partner_id>/update-items-invoice', methods=['POST'])
 def update_partner_items_invoice(partner_id):
     try:

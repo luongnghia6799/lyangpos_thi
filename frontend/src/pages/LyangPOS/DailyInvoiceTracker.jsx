@@ -93,9 +93,22 @@ export default function DailyInvoiceTracker() {
         isInvoiced: true
     });
 
-    // Fetch invoice tracking data
-    const fetchInvoiceData = async (currentScope = scope, date = selectedDate) => {
-        setLoading(true);
+    const [selectedPartnerIds, setSelectedPartnerIds] = useState([]);
+    const [bulkInvoiceNo, setBulkInvoiceNo] = useState('');
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+
+    // Clear selections when scope or filters change
+    useEffect(() => {
+        setSelectedPartnerIds([]);
+    }, [scope, selectedDate, statusFilter]);
+
+    // Fetch invoice tracking data (silent mode keeps list mounted without jumping)
+    const fetchInvoiceData = async (currentScope = scope, date = selectedDate, silent = false) => {
+        if (!silent && (!data.partners || data.partners.length === 0)) {
+            setLoading(true);
+        }
+        setIsFetching(true);
         try {
             const res = await axios.get('/api/accounting/daily-invoices', {
                 params: {
@@ -111,6 +124,7 @@ export default function DailyInvoiceTracker() {
             toast.error("Không thể tải danh sách hóa đơn theo dõi");
         } finally {
             setLoading(false);
+            setIsFetching(false);
         }
     };
 
@@ -121,7 +135,7 @@ export default function DailyInvoiceTracker() {
     // Debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
@@ -131,6 +145,45 @@ export default function DailyInvoiceTracker() {
             ...prev,
             [partnerId]: !prev[partnerId]
         }));
+    };
+
+    const toggleSelectPartner = (partnerId) => {
+        setSelectedPartnerIds(prev =>
+            prev.includes(partnerId)
+                ? prev.filter(id => id !== partnerId)
+                : [...prev, partnerId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedPartnerIds.length === partners.length) {
+            setSelectedPartnerIds([]);
+        } else {
+            setSelectedPartnerIds(partners.map(p => p.partner_id));
+        }
+    };
+
+    const handleBulkBatchInvoice = async (isInvoiced = true) => {
+        if (selectedPartnerIds.length === 0) return;
+        setIsBulkUpdating(true);
+        try {
+            const res = await axios.post('/api/accounting/partners/bulk-batch-invoice', {
+                partner_ids: selectedPartnerIds,
+                date: scope === 'daily' ? selectedDate : null,
+                is_invoiced: isInvoiced,
+                invoice_no: bulkInvoiceNo,
+                invoice_note: ''
+            });
+            toast.success(res.data.message || `Đã xuất đủ hóa đơn cho ${selectedPartnerIds.length} khách!`);
+            setSelectedPartnerIds([]);
+            setBulkInvoiceNo('');
+            fetchInvoiceData(scope, selectedDate, true);
+        } catch (err) {
+            console.error(err);
+            toast.error("Lỗi khi cập nhật hóa đơn hàng loạt");
+        } finally {
+            setIsBulkUpdating(false);
+        }
     };
 
     // Open Partner Items Modal to view and track all items
@@ -229,7 +282,7 @@ export default function DailyInvoiceTracker() {
             }
 
             setPartnerItemsModal({ ...partnerItemsModal, isOpen: false });
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Lỗi khi lưu trạng thái món hàng");
@@ -246,7 +299,7 @@ export default function DailyInvoiceTracker() {
             };
             await axios.post(`/api/accounting/order-details/${item.id}/invoice-status`, payload);
             toast.success(`Đã lưu riêng món "${item.product_name}" thành công!`);
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Lỗi khi lưu dòng món hàng này");
@@ -262,7 +315,7 @@ export default function DailyInvoiceTracker() {
                 invoice_no: targetStatus ? (item.invoice_no || '') : ''
             });
             toast.success(targetStatus ? `Đã đánh dấu xuất HĐ cho món "${item.product_name}"` : `Đã bỏ xuất HĐ món "${item.product_name}"`);
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Không thể cập nhật dòng món hàng");
@@ -278,14 +331,12 @@ export default function DailyInvoiceTracker() {
                 invoice_note: targetStatus ? (order.invoice_note || '') : ''
             });
             toast.success(targetStatus ? `Đã đánh dấu xuất HĐ đơn ${order.display_id}` : `Đã bỏ đánh dấu đơn ${order.display_id}`);
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Không thể cập nhật trạng thái hóa đơn");
         }
     };
-
-
 
     // Save Single Order Modal
     const handleSaveOrderModal = async (e) => {
@@ -298,15 +349,34 @@ export default function DailyInvoiceTracker() {
             });
             toast.success("Đã cập nhật thông tin hóa đơn đơn hàng!");
             setEditOrderModal({ ...editOrderModal, isOpen: false });
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Lỗi khi lưu thông tin");
         }
     };
 
-    // Batch mark all orders of partner
+    // Batch mark all orders of partner with optimistic update (NO RELOAD / JUMP)
     const handleBatchPartnerInvoice = async (partnerId, isInvoiced) => {
+        // Optimistic local state update so user stays in place with instant feedback
+        setData(prev => {
+            if (!prev || !prev.partners) return prev;
+            const nextPartners = prev.partners.map(p => {
+                if (p.partner_id === partnerId) {
+                    return {
+                        ...p,
+                        is_fully_invoiced: isInvoiced,
+                        pending_items_count: isInvoiced ? 0 : (p.total_items_count || 0),
+                        invoiced_items_count: isInvoiced ? (p.total_items_count || 0) : 0,
+                        invoiced_orders_count: isInvoiced ? (p.total_orders_count || 0) : 0,
+                        uninvoiced_orders_count: isInvoiced ? 0 : (p.total_orders_count || 0)
+                    };
+                }
+                return p;
+            });
+            return { ...prev, partners: nextPartners };
+        });
+
         try {
             const res = await axios.post(`/api/accounting/partners/${partnerId}/batch-invoice`, {
                 date: scope === 'daily' ? selectedDate : null,
@@ -315,10 +385,11 @@ export default function DailyInvoiceTracker() {
                 invoice_note: ''
             });
             toast.success(res.data.message || "Đã cập nhật hóa đơn cho khách hàng!");
-            fetchInvoiceData(scope, selectedDate);
+            fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
             toast.error("Không thể cập nhật toàn bộ đơn của khách");
+            fetchInvoiceData(scope, selectedDate, true);
         }
     };
 
@@ -584,8 +655,66 @@ export default function DailyInvoiceTracker() {
                 </div>
             </div>
 
+            {/* Multi-Select & Batch Action Toolbar */}
+            {partners.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-2 py-1 bg-transparent">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={toggleSelectAll}
+                            className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-black text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                        >
+                            <div className={cn(
+                                "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
+                                selectedPartnerIds.length === partners.length && partners.length > 0
+                                    ? "bg-emerald-600 border-emerald-600 text-white"
+                                    : "border-slate-400"
+                            )}>
+                                {selectedPartnerIds.length === partners.length && partners.length > 0 && <Check size={12} className="stroke-[3]" />}
+                            </div>
+                            <span>{selectedPartnerIds.length === partners.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'} ({partners.length} khách)</span>
+                        </button>
+
+                        {selectedPartnerIds.length > 0 && (
+                            <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                                Đã chọn {selectedPartnerIds.length} khách
+                            </span>
+                        )}
+                    </div>
+
+                    {selectedPartnerIds.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-md"
+                        >
+                            <input
+                                type="text"
+                                placeholder="Số HĐ chung (tùy chọn)..."
+                                value={bulkInvoiceNo}
+                                onChange={(e) => setBulkInvoiceNo(e.target.value)}
+                                className="px-3 py-1.5 bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 w-44 placeholder:text-slate-500"
+                            />
+                            <button
+                                onClick={() => handleBulkBatchInvoice(true)}
+                                disabled={isBulkUpdating}
+                                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                            >
+                                <Check size={14} className="stroke-[3]" />
+                                <span>{isBulkUpdating ? 'Đang xuất...' : `Xuất Đủ (${selectedPartnerIds.length} khách)`}</span>
+                            </button>
+                            <button
+                                onClick={() => setSelectedPartnerIds([])}
+                                className="px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
+                            >
+                                Hủy chọn
+                            </button>
+                        </motion.div>
+                    )}
+                </div>
+            )}
+
             {/* List of Partners and their Items / Orders */}
-            {loading ? (
+            {loading && partners.length === 0 ? (
                 <div className="py-20 text-center">
                     <RefreshCw className="animate-spin text-emerald-600 mx-auto mb-3" size={36} />
                     <p className="text-sm font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Đang tải dữ liệu theo dõi hóa đơn...</p>
@@ -609,22 +738,43 @@ export default function DailyInvoiceTracker() {
                         const isFullyInvoiced = partner.is_fully_invoiced;
                         const pendingItemsCount = partner.pending_items_count || 0;
                         const totalItemsCount = partner.total_items_count || 0;
+                        const isSelected = selectedPartnerIds.includes(partner.partner_id);
 
                         return (
                             <div
                                 key={partner.partner_id}
                                 className={cn(
                                     "bg-transparent rounded-3xl border transition-all duration-200 overflow-hidden shadow-sm",
-                                    isFullyInvoiced
-                                        ? "border-emerald-300 dark:border-emerald-500/40 hover:border-emerald-500"
-                                        : "border-rose-300 dark:border-rose-500/50 hover:border-rose-500"
+                                    isSelected
+                                        ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/5"
+                                        : (isFullyInvoiced
+                                            ? "border-emerald-300 dark:border-emerald-500/40 hover:border-emerald-500"
+                                            : "border-rose-300 dark:border-rose-500/50 hover:border-rose-500")
                                 )}
                             >
                                 {/* Partner Card Header */}
-                                <div className="p-5 md:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => openPartnerItemsModal(partner)}>
+                                <div className="p-4 md:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3.5 flex-1 cursor-pointer min-w-0" onClick={() => openPartnerItemsModal(partner)}>
+                                        {/* Multi-select checkbox */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleSelectPartner(partner.partner_id);
+                                            }}
+                                            className={cn(
+                                                "w-7 h-7 rounded-xl border flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90 shadow-sm",
+                                                isSelected
+                                                    ? "bg-emerald-600 border-emerald-600 text-white"
+                                                    : "border-slate-300 dark:border-slate-700 bg-transparent hover:border-emerald-500 text-transparent"
+                                            )}
+                                            title={isSelected ? "Bỏ chọn" : "Chọn khách này"}
+                                        >
+                                            <Check size={14} className={isSelected ? "opacity-100 stroke-[3]" : "opacity-0"} />
+                                        </button>
+
                                         <div className={cn(
-                                            "w-13 h-13 rounded-2xl flex items-center justify-center font-black text-xl border shrink-0 shadow-inner",
+                                            "w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg border shrink-0 shadow-inner",
                                             isFullyInvoiced
                                                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40"
                                                 : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/40"
@@ -632,32 +782,32 @@ export default function DailyInvoiceTracker() {
                                             {partner.partner_name.charAt(0).toUpperCase()}
                                         </div>
 
-                                        <div>
+                                        <div className="min-w-0">
                                             <div className="flex items-center gap-2.5 flex-wrap">
-                                                <h3 className="text-lg font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                                <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5 truncate">
                                                     <span>{partner.partner_name}</span>
-                                                    <ArrowUpRight size={15} className="text-slate-400" />
+                                                    <ArrowUpRight size={15} className="text-slate-400 shrink-0" />
                                                 </h3>
                                                 
                                                 {/* Status Badge */}
                                                 {isFullyInvoiced ? (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
-                                                        <Check size={12} /> ĐÃ XUẤT ĐỦ (XONG) - {totalItemsCount} MÓN
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
+                                                        <Check size={11} className="stroke-[3]" /> ĐÃ XUẤT ĐỦ (XONG) - {totalItemsCount} MÓN
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
-                                                        <AlertCircle size={12} /> CHƯA ĐỦ - CẦN XUẤT {pendingItemsCount}/{totalItemsCount} MÓN
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
+                                                        <AlertCircle size={11} /> CHƯA ĐỦ - CẦN XUẤT {pendingItemsCount}/{totalItemsCount} MÓN
                                                     </span>
                                                 )}
 
                                                 {partner.invoice_numbers && partner.invoice_numbers.length > 0 && (
-                                                    <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
+                                                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                                                         Số HĐ: {partner.invoice_numbers.join(', ')}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400 mt-1.5 flex-wrap font-semibold">
+                                            <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-1 flex-wrap font-semibold">
                                                 {partner.partner_phone && (
                                                     <span className="flex items-center gap-1">
                                                         <Phone size={12} className="text-slate-400" /> {partner.partner_phone}
@@ -670,7 +820,7 @@ export default function DailyInvoiceTracker() {
                                                 )}
                                                 {partner.partner_debt !== 0 && (
                                                     <span className="text-amber-800 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-500/30">
-                                                        Nợ hiện tại: {partner.partner_debt.toLocaleString()}đ
+                                                        Nợ: {partner.partner_debt.toLocaleString()}đ
                                                     </span>
                                                 )}
                                             </div>

@@ -66,6 +66,9 @@ def ensure_schema(engine):
             ('product_name_override', 'VARCHAR(200)', 'NULL'),
             ('shipped_quantity', 'FLOAT', '0'),
             ('cost_price', 'FLOAT', 'NULL'),
+            ('is_invoiced', 'BOOLEAN', '0'),
+            ('invoiced_quantity', 'FLOAT', '0'),
+            ('invoice_no', 'VARCHAR(100)', 'NULL'),
         ],
         'cash_voucher': [
             ('source', 'VARCHAR(50)', "'manual'"),

@@ -315,6 +315,9 @@ class OrderDetail(db.Model):
     shipped_quantity = db.Column(db.Float, default=0)
     price = db.Column(db.Float, nullable=False)
     cost_price = db.Column(db.Float) # Locked average cost at sale time
+    is_invoiced = db.Column(db.Boolean, default=False)
+    invoiced_quantity = db.Column(db.Float, default=0.0)
+    invoice_no = db.Column(db.String(100))
 
     product = db.relationship('Product', lazy='selectin')
 
@@ -324,6 +327,7 @@ class OrderDetail(db.Model):
             'id': self.id,
             'product_id': self.product_id,
             'product_name': self.product_name_override or (self.product.name if self.product else 'Sản phẩm đã xóa'),
+            'product_code': p_dict.get('code', ''),
             'unit': self.product.unit if self.product else 'ĐV',
             'product_unit': self.product.unit if self.product else 'ĐV',
             'secondary_unit': self.product.secondary_unit if self.product else '',
@@ -339,7 +343,10 @@ class OrderDetail(db.Model):
             'active_ingredient': p_dict.get('active_ingredient', ''),
             'specification': p_dict.get('specification', ''),
             'is_combo': self.product.is_combo if self.product else False,
-            'combo_items': [ci.to_dict() for ci in self.product.combo_items] if (self.product and self.product.is_combo) else []
+            'combo_items': [ci.to_dict() for ci in self.product.combo_items] if (self.product and self.product.is_combo) else [],
+            'is_invoiced': bool(self.is_invoiced),
+            'invoiced_quantity': self.invoiced_quantity if self.invoiced_quantity is not None else (self.quantity if self.is_invoiced else 0.0),
+            'invoice_no': self.invoice_no or ''
         }
 
 class StockBatch(db.Model):

@@ -821,7 +821,7 @@ export default function DailyInvoiceTracker() {
                                 initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.95, opacity: 0 }}
-                                className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6 max-h-[90vh] flex flex-col"
+                                className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 md:p-8 max-w-7xl w-[96vw] max-h-[94vh] h-[94vh] shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 flex flex-col"
                             >
                                 {/* Modal Header */}
                                 <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">

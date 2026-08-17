@@ -156,6 +156,7 @@ export default function AccountingInventory() {
 
         setHeaders(head);
 
+        const totalKeywords = ['tổng cộng', 'tổng số', 'tổng:', 'cộng:', 'cộng', 'grand total', 'total'];
         const dataRows = matrix.slice(dataStartIndex).map((rowArr) => {
             const obj = {};
             head.forEach((h, colIdx) => {
@@ -163,7 +164,17 @@ export default function AccountingInventory() {
             });
             return obj;
         }).filter(rowObj => {
-            return Object.values(rowObj).some(val => val !== '' && val !== null && val !== undefined);
+            const values = Object.values(rowObj).filter(val => val !== '' && val !== null && val !== undefined);
+            if (values.length === 0) return false;
+
+            // Check if any cell matches a total/summary row keyword
+            const isTotalRow = values.some(val => {
+                const text = val.toString().toLowerCase().trim().normalize('NFC');
+                return text === 'tổng cộng' || text === 'cộng' || text === 'tổng' || text === 'total' || text === 'grand total' ||
+                       totalKeywords.some(k => text === k || text.startsWith(k + ' ') || text.startsWith(k + ':'));
+            });
+
+            return !isTotalRow;
         });
 
         setFileData(dataRows);
@@ -359,6 +370,11 @@ export default function AccountingInventory() {
             const normCode = rawCode.toLowerCase().normalize('NFC');
             const normName = rawName.toLowerCase().normalize('NFC');
 
+            // Skip total rows
+            if (normCode === 'tổng cộng' || normName === 'tổng cộng' || normCode === 'cộng' || normName === 'cộng' || normCode.startsWith('tổng cộng') || normName.startsWith('tổng cộng')) {
+                return null;
+            }
+
             // Intelligent 4-stage matching
             let matched = null;
             // Stage 1: Exact code match
@@ -389,7 +405,7 @@ export default function AccountingInventory() {
                 matchedProduct: matched || null,
                 status: matched ? 'matched' : 'unmatched'
             };
-        });
+        }).filter(Boolean);
 
         setMatchedData(result);
         setStep(3);

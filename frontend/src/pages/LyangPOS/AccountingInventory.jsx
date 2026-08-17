@@ -3,6 +3,7 @@ import {
     Landmark,
     FileSpreadsheet,
     Upload,
+    CheckCircle,
     CheckCircle2,
     AlertCircle,
     Package,

@@ -900,76 +900,78 @@ export default function AccountingInventory() {
                 {/* VIEW 1: DASHBOARD / SỔ SÁCH HIỆN TẠI */}
                 {view === 'list' && (
                     <div className="space-y-6">
-                        {/* KPI Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-transparent p-6 rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm group hover:-translate-y-1 transition-all">
-                                <div className="flex items-start justify-between">
-                                    <div className="w-12 h-12 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 group-hover:scale-105 transition-transform">
-                                        <Package size={24} />
+                        {/* KPI Cards (Compact & Sleek) */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                            {/* Tổng danh mục */}
+                            <div className="bg-transparent p-3.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-400 rounded-xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 shrink-0">
+                                        <Package size={18} />
                                     </div>
-                                    <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{globalStats.total}</p>
-                                </div>
-                                <div className="mt-4">
-                                    <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Tổng Danh Mục</p>
-                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-slate-500 w-full" />
+                                    <div className="truncate">
+                                        <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Tổng Danh Mục</p>
+                                        <div className="h-1 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-slate-500 w-full" />
+                                        </div>
                                     </div>
                                 </div>
+                                <p className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tabular-nums shrink-0">{globalStats.total}</p>
                             </div>
 
-                            <div className="bg-transparent p-6 rounded-[2rem] border border-emerald-300 dark:border-emerald-500/40 shadow-sm group hover:-translate-y-1 transition-all">
-                                <div className="flex items-start justify-between">
-                                    <div className="w-12 h-12 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 group-hover:scale-105 transition-transform">
-                                        <Database size={24} />
+                            {/* Có tồn kho */}
+                            <div className="bg-transparent p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 shrink-0">
+                                        <Database size={18} />
                                     </div>
-                                    <p className="text-3xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">{globalStats.withStock}</p>
-                                </div>
-                                <div className="mt-4">
-                                    <p className="text-[11px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">Mặt Hàng Có Tồn Kho</p>
-                                    <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-950 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
+                                    <div className="truncate">
+                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider truncate">Có Tồn Kho</p>
+                                        <div className="h-1 w-16 bg-emerald-100 dark:bg-emerald-950 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
+                                        </div>
                                     </div>
                                 </div>
+                                <p className="text-xl md:text-2xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">{globalStats.withStock}</p>
                             </div>
 
+                            {/* Lệch tồn */}
                             <div className={cn(
-                                "p-6 rounded-[2rem] border shadow-sm transition-all group hover:-translate-y-1 bg-transparent",
-                                globalStats.discrepancy > 0
-                                    ? "border-rose-300 dark:border-rose-500/50"
-                                    : "border-slate-300 dark:border-slate-800"
+                                "p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5 bg-transparent",
+                                globalStats.discrepancy > 0 ? "border-rose-300 dark:border-rose-500/50" : "border-slate-300 dark:border-slate-800"
                             )}>
-                                <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
                                     <div className={cn(
-                                        "w-12 h-12 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-105",
+                                        "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",
                                         globalStats.discrepancy > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                                     )}>
-                                        <AlertTriangle size={24} className={cn(globalStats.discrepancy > 0 && "animate-pulse")} />
+                                        <AlertTriangle size={18} className={cn(globalStats.discrepancy > 0 && "animate-pulse")} />
                                     </div>
-                                    <p className={cn("text-3xl font-black tabular-nums", globalStats.discrepancy > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
-                                        {globalStats.discrepancy}
-                                    </p>
-                                </div>
-                                <div className="mt-4">
-                                    <p className="text-[11px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-widest">Mặt Hàng Lệch Tồn (Thực tế ≠ Sổ sách)</p>
-                                    <div className="h-1.5 w-full bg-rose-100 dark:bg-rose-950 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-rose-600 dark:bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
+                                    <div className="truncate">
+                                        <p className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider truncate">Lệch Tồn Kho</p>
+                                        <div className="h-1 w-16 bg-rose-100 dark:bg-rose-950 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-rose-600 dark:bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
+                                        </div>
                                     </div>
                                 </div>
+                                <p className={cn("text-xl md:text-2xl font-black tabular-nums shrink-0", globalStats.discrepancy > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                                    {globalStats.discrepancy}
+                                </p>
                             </div>
 
-                            <div className="bg-transparent p-6 rounded-[2rem] border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
-                                <div className="flex items-start justify-between relative z-10">
-                                    <div className="w-12 h-12 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 group-hover:scale-105 transition-transform">
-                                        <Calculator size={24} />
+                            {/* Tổng trị giá */}
+                            <div className="bg-transparent p-3.5 rounded-2xl border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 rounded-xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 shrink-0">
+                                        <Calculator size={18} />
                                     </div>
-                                    <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">{globalStats.totalValue.toLocaleString()}đ</p>
-                                </div>
-                                <div className="mt-4 relative z-10">
-                                    <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Tổng Trị Giá Kho Sổ Sách</p>
-                                    <div className="h-1.5 w-full bg-amber-100 dark:bg-amber-950/40 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-amber-600 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
+                                    <div className="truncate">
+                                        <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">Trị Giá Sổ Sách</p>
+                                        <div className="h-1 w-16 bg-amber-100 dark:bg-amber-950/40 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-amber-600 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
+                                        </div>
                                     </div>
                                 </div>
+                                <p className="text-lg md:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight shrink-0">{globalStats.totalValue.toLocaleString()}đ</p>
                             </div>
                         </div>
 

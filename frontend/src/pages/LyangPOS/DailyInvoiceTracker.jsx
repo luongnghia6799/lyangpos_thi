@@ -476,81 +476,76 @@ export default function DailyInvoiceTracker() {
                 </div>
             </div>
 
-            {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPI Summary Cards (Compact & Sleek) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
                 {/* Tổng đối tác */}
-                <div className="bg-transparent p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 group-hover:scale-105 transition-transform shadow-inner">
-                            <Users size={24} />
+                <div className="bg-transparent p-3.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-400 rounded-xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 shrink-0">
+                            <Users size={18} />
                         </div>
-                        <div>
-                            <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                                {scope === 'pending' ? 'Đối Tác Cần Xuất Thêm' : 'Tổng Đối Tác'}
+                        <div className="truncate">
+                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+                                {scope === 'pending' ? 'Cần Xuất Thêm' : 'Tổng Đối Tác'}
                             </p>
-                            <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{summary.total_partners_count}</span>
-                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">khách ({summary.total_orders_count} đơn)</span>
-                            </div>
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{summary.total_orders_count} đơn</span>
                         </div>
                     </div>
+                    <p className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tabular-nums shrink-0">{summary.total_partners_count}</p>
                 </div>
 
                 {/* Đã xuất đủ */}
-                <div className="bg-transparent p-5 rounded-3xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 group-hover:scale-105 transition-transform shadow-inner">
-                            <CheckCircle2 size={24} />
+                <div className="bg-transparent p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 shrink-0">
+                            <CheckCircle2 size={18} />
                         </div>
-                        <div>
-                            <p className="text-[11px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
+                        <div className="truncate">
+                            <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider truncate">
                                 Đã Xuất Đủ ({summary.total_partners_count ? Math.round((summary.invoiced_partners_count / summary.total_partners_count) * 100) : 0}%)
                             </p>
-                            <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">{summary.invoiced_partners_count}</span>
-                                <span className="text-xs font-bold text-emerald-800/80 dark:text-emerald-400/80">khách ({summary.invoiced_amount.toLocaleString()}đ)</span>
-                            </div>
+                            <span className="text-[11px] font-bold text-emerald-800/80 dark:text-emerald-400/80">{summary.invoiced_amount.toLocaleString()}đ</span>
                         </div>
                     </div>
+                    <p className="text-xl md:text-2xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">{summary.invoiced_partners_count}</p>
                 </div>
 
                 {/* Chưa xuất đủ / Cần xuất thêm */}
                 <div className={cn(
-                    "p-5 rounded-3xl border shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all bg-transparent",
+                    "p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5 bg-transparent",
                     summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-500/50" : "border-slate-300 dark:border-slate-800"
                 )}>
-                    <div className="flex items-center gap-4 relative z-10">
+                    <div className="flex items-center gap-2.5 min-w-0">
                         <div className={cn(
-                            "w-13 h-13 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform shadow-inner",
+                            "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",
                             summary.uninvoiced_partners_count > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                         )}>
-                            <AlertCircle size={24} className={cn(summary.uninvoiced_partners_count > 0 && "animate-pulse")} />
+                            <AlertCircle size={18} className={cn(summary.uninvoiced_partners_count > 0 && "animate-pulse")} />
                         </div>
-                        <div>
-                            <p className="text-[11px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider">Cần Xuất Thêm / Nợ HĐ</p>
-                            <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className={cn("text-3xl font-black tabular-nums", summary.uninvoiced_partners_count > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
-                                    {summary.uninvoiced_partners_count}
-                                </span>
-                                <span className="text-xs font-bold text-rose-800/80 dark:text-rose-400/80">khách ({summary.uninvoiced_amount.toLocaleString()}đ)</span>
-                            </div>
+                        <div className="truncate">
+                            <p className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider truncate">Nợ HĐ / Chưa Đủ</p>
+                            <span className="text-[11px] font-bold text-rose-800/80 dark:text-rose-400/80">{summary.uninvoiced_amount.toLocaleString()}đ</span>
                         </div>
                     </div>
+                    <p className={cn("text-xl md:text-2xl font-black tabular-nums shrink-0", summary.uninvoiced_partners_count > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                        {summary.uninvoiced_partners_count}
+                    </p>
                 </div>
 
                 {/* Tổng Giá Trị Đơn Hàng */}
-                <div className="bg-transparent p-5 rounded-3xl border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 group-hover:scale-105 transition-transform shadow-inner">
-                            <DollarSign size={24} />
+                <div className="bg-transparent p-3.5 rounded-2xl border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 rounded-xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 shrink-0">
+                            <DollarSign size={18} />
                         </div>
-                        <div>
-                            <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tổng Giá Trị Đơn Hàng</p>
-                            <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums mt-0.5">
-                                {summary.total_sales_amount.toLocaleString()}đ
-                            </p>
+                        <div className="truncate">
+                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Tổng Doanh Thu</p>
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{summary.total_orders_count} đơn hàng</span>
                         </div>
                     </div>
+                    <p className="text-lg md:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight shrink-0">
+                        {summary.total_sales_amount.toLocaleString()}đ
+                    </p>
                 </div>
             </div>
 

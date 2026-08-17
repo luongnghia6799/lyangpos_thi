@@ -57,6 +57,10 @@ def ensure_schema(engine):
             ('created_by', 'VARCHAR(100)', 'NULL'),
             ('is_duplicate_checked', 'BOOLEAN', '0'),
             ('is_consignment', 'BOOLEAN', '0'),
+            ('is_invoiced', 'BOOLEAN', '0'),
+            ('invoice_no', 'VARCHAR(100)', 'NULL'),
+            ('invoice_date', 'DATETIME', 'NULL'),
+            ('invoice_note', 'VARCHAR(500)', 'NULL'),
         ],
         'order_detail': [
             ('product_name_override', 'VARCHAR(200)', 'NULL'),

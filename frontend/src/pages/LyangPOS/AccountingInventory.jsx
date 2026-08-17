@@ -28,7 +28,8 @@ import {
     TrendingUp,
     TrendingDown,
     Eye,
-    Sparkles
+    Sparkles,
+    Receipt
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +40,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import SearchableSelect from '../../components/SearchableSelect';
 import { createPortal } from 'react-dom';
+import DailyInvoiceTracker from './DailyInvoiceTracker';
 
 export default function AccountingInventory() {
     const [view, setView] = useState('list'); // 'list' or 'import'
@@ -702,30 +704,36 @@ export default function AccountingInventory() {
         <div className="pt-2 px-4 pb-20 w-full transition-colors">
             <div className="max-w-[1800px] mx-auto space-y-8 pb-32">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4 px-4 md:px-0">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-2 px-4 md:px-0">
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-14 h-14 bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-inner">
-                            <Scale size={30} />
+                            {view === 'invoices' ? <Receipt size={30} /> : <Scale size={30} />}
                         </div>
                         <div>
                             <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
-                                Sổ Kế Toán & Đối Soát Kho
+                                {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Trong Ngày' : 'Sổ Kế Toán & Đối Soát Kho'}
                             </h1>
                             <div className="flex items-center gap-2 mt-1.5">
                                 <span className={cn(
                                     "px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest",
-                                    view === 'list' ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                                    view === 'invoices'
+                                        ? "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300"
+                                        : view === 'list'
+                                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                            : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                 )}>
-                                    {view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel'}
+                                    {view === 'invoices' ? 'Hóa Đơn Theo Khách Hàng' : (view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel')}
                                 </span>
                                 <p className="text-xs font-bold text-slate-400">
-                                    {view === 'list' ? 'So sánh chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán)' : 'Quy trình kiểm tra mã khớp & đối soát tồn kho từ file Excel'}
+                                    {view === 'invoices'
+                                        ? 'Theo dõi và đánh dấu khách hàng / đơn hàng đã được xuất hóa đơn VAT, điện tử trong ngày'
+                                        : (view === 'list' ? 'So sánh chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán)' : 'Quy trình kiểm tra mã khớp & đối soát tồn kho từ file Excel')}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Action buttons */}
+                    {/* Action buttons for Inventory */}
                     <div className="flex items-center gap-3 relative z-10">
                         {view === 'list' && (
                             <>
@@ -733,7 +741,7 @@ export default function AccountingInventory() {
                                     whileHover={{ scale: 1.03, y: -2 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={handleExportDashboardData}
-                                    className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider"
+                                    className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                 >
                                     <FileSpreadsheet size={18} className="text-emerald-600" />
                                     <span>Xuất Sổ Excel</span>
@@ -743,7 +751,7 @@ export default function AccountingInventory() {
                                     whileHover={{ scale: 1.03, y: -2 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => { setView('import'); setStep(1); }}
-                                    className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl shadow-emerald-600/20 transition-all text-xs uppercase tracking-wider group"
+                                    className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl shadow-emerald-600/20 transition-all text-xs uppercase tracking-wider group cursor-pointer"
                                 >
                                     <Upload size={18} className="group-hover:-translate-y-0.5 transition-transform" />
                                     <span>Đối Soát Excel Mới</span>
@@ -759,7 +767,7 @@ export default function AccountingInventory() {
                                             whileHover={{ scale: 1.03, y: -2 }}
                                             whileTap={{ scale: 0.97 }}
                                             onClick={handleExportImportData}
-                                            className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider"
+                                            className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                         >
                                             <FileSpreadsheet size={18} className="text-emerald-600" />
                                             <span>Xuất Báo Cáo Đối Soát</span>
@@ -771,7 +779,7 @@ export default function AccountingInventory() {
                                             onClick={handleUpdate}
                                             disabled={updating || isUpdateSuccess}
                                             className={cn(
-                                                "px-6 py-3.5 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider",
+                                                "px-6 py-3.5 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer",
                                                 isUpdateSuccess ? "bg-slate-500" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
                                             )}
                                         >
@@ -796,7 +804,7 @@ export default function AccountingInventory() {
                                             setView('list');
                                         }
                                     }}
-                                    className="px-5 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-black hover:bg-slate-300 dark:hover:bg-slate-700 transition-all text-xs uppercase tracking-wider flex items-center gap-2"
+                                    className="px-5 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-black hover:bg-slate-300 dark:hover:bg-slate-700 transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                                 >
                                     <ArrowLeft size={16} />
                                     {isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}
@@ -805,6 +813,39 @@ export default function AccountingInventory() {
                         )}
                     </div>
                 </div>
+
+                {/* PRIMARY MODULE TABS */}
+                <div className="flex items-center gap-2 p-1.5 bg-slate-200/60 dark:bg-slate-800/80 rounded-2xl w-fit shadow-inner border border-slate-300/40 dark:border-slate-700/60">
+                    <button
+                        onClick={() => setView('list')}
+                        className={cn(
+                            "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                            (view === 'list' || view === 'import')
+                                ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-md"
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        )}
+                    >
+                        <Scale size={16} />
+                        <span>Sổ Kế Toán & Đối Soát Kho</span>
+                    </button>
+                    <button
+                        onClick={() => setView('invoices')}
+                        className={cn(
+                            "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                            view === 'invoices'
+                                ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-md"
+                                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        )}
+                    >
+                        <Receipt size={16} />
+                        <span>Theo Dõi Xuất Hóa Đơn Trong Ngày</span>
+                    </button>
+                </div>
+
+                {/* VIEW 3: THEO DÕI XUẤT HÓA ĐƠN TRONG NGÀY */}
+                {view === 'invoices' && (
+                    <DailyInvoiceTracker />
+                )}
 
                 {/* VIEW 1: DASHBOARD / SỔ SÁCH HIỆN TẠI */}
                 {view === 'list' && (

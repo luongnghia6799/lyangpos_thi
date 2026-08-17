@@ -7927,6 +7927,202 @@ def get_tts():
             
     return send_file(output_path, mimetype="audio/mpeg")
 
+# --- Daily Invoice Tracking (Theo Dõi Xuất Hóa Đơn Trong Ngày) ---
+@app.route('/api/accounting/daily-invoices', methods=['GET'])
+def get_daily_invoices():
+    try:
+        date_str = request.args.get('date') # YYYY-MM-DD
+        if not date_str:
+            date_str = get_vn_time().strftime('%Y-%m-%d')
+            
+        search = (request.args.get('search') or '').strip().lower()
+        filter_status = request.args.get('status', 'all') # 'all', 'invoiced', 'uninvoiced'
+        
+        # Calculate start and end of day in VN time
+        start_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        # Get all Sale orders on that day (excluding opening balance orders)
+        query = Order.query.filter(
+            Order.type == 'Sale',
+            Order.display_id.notin_(['NODAU', '#NODAU']),
+            Order.date >= start_dt,
+            Order.date <= end_dt
+        ).order_by(Order.date.desc())
+        
+        orders = query.all()
+        
+        # Group by partner
+        partners_map = {}
+        total_sales_amount = 0
+        invoiced_amount = 0
+        uninvoiced_amount = 0
+        total_orders_count = len(orders)
+        invoiced_orders_count = 0
+        uninvoiced_orders_count = 0
+        
+        for o in orders:
+            p_id = o.partner_id or 0
+            p_name = o.partner.name if o.partner else 'Khách Lẻ'
+            p_phone = o.partner.phone if o.partner else ''
+            p_address = o.partner.address if o.partner else ''
+            p_debt = o.partner.debt_balance if o.partner else 0
+            
+            is_inv = bool(o.is_invoiced)
+            total_sales_amount += (o.total_amount or 0)
+            if is_inv:
+                invoiced_amount += (o.total_amount or 0)
+                invoiced_orders_count += 1
+            else:
+                uninvoiced_amount += (o.total_amount or 0)
+                uninvoiced_orders_count += 1
+                
+            if p_id not in partners_map:
+                partners_map[p_id] = {
+                    'partner_id': p_id,
+                    'partner_name': p_name,
+                    'partner_phone': p_phone,
+                    'partner_address': p_address,
+                    'partner_debt': p_debt,
+                    'total_amount': 0,
+                    'amount_paid': 0,
+                    'invoiced_orders_count': 0,
+                    'uninvoiced_orders_count': 0,
+                    'orders': [],
+                    'invoice_numbers': []
+                }
+                
+            partners_map[p_id]['total_amount'] += (o.total_amount or 0)
+            partners_map[p_id]['amount_paid'] += (o.amount_paid or 0)
+            if is_inv:
+                partners_map[p_id]['invoiced_orders_count'] += 1
+                if o.invoice_no and o.invoice_no not in partners_map[p_id]['invoice_numbers']:
+                    partners_map[p_id]['invoice_numbers'].append(o.invoice_no)
+            else:
+                partners_map[p_id]['uninvoiced_orders_count'] += 1
+                
+            partners_map[p_id]['orders'].append({
+                'id': o.id,
+                'display_id': o.display_id or f"HD{o.id}",
+                'date': o.date.isoformat(),
+                'total_amount': o.total_amount or 0,
+                'amount_paid': o.amount_paid or 0,
+                'payment_method': o.payment_method or '',
+                'is_invoiced': is_inv,
+                'invoice_no': o.invoice_no or '',
+                'invoice_date': o.invoice_date.isoformat() if o.invoice_date else None,
+                'invoice_note': o.invoice_note or '',
+                'details_count': len(o.details),
+                'details': [d.to_dict() for d in o.details]
+            })
+            
+        partners_list = []
+        for p in partners_map.values():
+            p['total_orders_count'] = len(p['orders'])
+            p['is_fully_invoiced'] = (p['uninvoiced_orders_count'] == 0)
+            
+            # Filter search
+            if search:
+                name_match = search in p['partner_name'].lower()
+                phone_match = search in p['partner_phone'].lower()
+                order_match = any(search in (ord['display_id'] or '').lower() or search in (ord['invoice_no'] or '').lower() for ord in p['orders'])
+                if not (name_match or phone_match or order_match):
+                    continue
+                    
+            # Filter status
+            if filter_status == 'invoiced' and not p['is_fully_invoiced']:
+                continue
+            if filter_status == 'uninvoiced' and p['is_fully_invoiced']:
+                continue
+                
+            partners_list.append(p)
+            
+        # Sort: uninvoiced first, then by total_amount desc
+        partners_list.sort(key=lambda x: (x['is_fully_invoiced'], -x['total_amount']))
+        
+        invoiced_partners = sum(1 for p in partners_map.values() if p['is_fully_invoiced'])
+        uninvoiced_partners = len(partners_map) - invoiced_partners
+        
+        return jsonify({
+            'date': date_str,
+            'summary': {
+                'total_partners_count': len(partners_map),
+                'invoiced_partners_count': invoiced_partners,
+                'uninvoiced_partners_count': uninvoiced_partners,
+                'total_sales_amount': total_sales_amount,
+                'invoiced_amount': invoiced_amount,
+                'uninvoiced_amount': uninvoiced_amount,
+                'total_orders_count': total_orders_count,
+                'invoiced_orders_count': invoiced_orders_count,
+                'uninvoiced_orders_count': uninvoiced_orders_count
+            },
+            'partners': partners_list
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/accounting/orders/<int:order_id>/invoice-status', methods=['POST'])
+def update_order_invoice_status(order_id):
+    try:
+        order = Order.query.get_or_404(order_id)
+        data = request.json or {}
+        
+        is_invoiced = data.get('is_invoiced', True)
+        order.is_invoiced = is_invoiced
+        if is_invoiced:
+            order.invoice_no = data.get('invoice_no', order.invoice_no or '')
+            order.invoice_note = data.get('invoice_note', order.invoice_note or '')
+            order.invoice_date = get_vn_time()
+        else:
+            order.invoice_no = ''
+            order.invoice_note = ''
+            order.invoice_date = None
+            
+        db.session.commit()
+        return jsonify(order.to_dict())
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/accounting/partners/<int:partner_id>/batch-invoice', methods=['POST'])
+def batch_invoice_partner(partner_id):
+    try:
+        data = request.json or {}
+        date_str = data.get('date') or get_vn_time().strftime('%Y-%m-%d')
+        is_invoiced = data.get('is_invoiced', True)
+        invoice_no = data.get('invoice_no', '')
+        invoice_note = data.get('invoice_note', '')
+        
+        start_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = datetime.strptime(date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59, microsecond=999999)
+        
+        p_filter = (Order.partner_id == partner_id) if partner_id > 0 else (Order.partner_id.is_(None))
+        
+        orders = Order.query.filter(
+            Order.type == 'Sale',
+            Order.display_id.notin_(['NODAU', '#NODAU']),
+            Order.date >= start_dt,
+            Order.date <= end_dt,
+            p_filter
+        ).all()
+        
+        for o in orders:
+            o.is_invoiced = is_invoiced
+            if is_invoiced:
+                if invoice_no: o.invoice_no = invoice_no
+                if invoice_note: o.invoice_note = invoice_note
+                o.invoice_date = get_vn_time()
+            else:
+                o.invoice_no = ''
+                o.invoice_note = ''
+                o.invoice_date = None
+                
+        db.session.commit()
+        return jsonify({'message': f'Đã cập nhật {len(orders)} đơn hàng thành công!', 'updated_count': len(orders)})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()

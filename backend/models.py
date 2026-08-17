@@ -257,6 +257,10 @@ class Order(db.Model):
     created_by = db.Column(db.String(100), nullable=True) # ID/Name of person who created this order
     is_duplicate_checked = db.Column(db.Boolean, default=False) # Mark as manually verified
     is_consignment = db.Column(db.Boolean, default=False) # New column
+    is_invoiced = db.Column(db.Boolean, default=False, index=True) # Whether electronic/VAT invoice was issued
+    invoice_no = db.Column(db.String(100), nullable=True) # Invoice number (Số hóa đơn)
+    invoice_date = db.Column(db.DateTime, nullable=True) # Date invoice was issued
+    invoice_note = db.Column(db.String(500), nullable=True) # Note regarding invoice
     
     partner = db.relationship('Partner', backref=db.backref('orders', lazy='selectin'))
     details = db.relationship('OrderDetail', backref='order', cascade='all, delete-orphan', lazy='selectin')
@@ -295,6 +299,10 @@ class Order(db.Model):
             'cash_given': self.cash_given or 0,
             'created_by': self.created_by,
             'is_consignment': self.is_consignment,
+            'is_invoiced': bool(self.is_invoiced),
+            'invoice_no': self.invoice_no or '',
+            'invoice_date': self.invoice_date.isoformat() if self.invoice_date else None,
+            'invoice_note': self.invoice_note or '',
             'details': [d.to_dict() for d in self.details]
         }
 

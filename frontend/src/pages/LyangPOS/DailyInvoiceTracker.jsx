@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { cn } from '../../lib/utils';
+import { createPortal } from 'react-dom';
 
 export default function DailyInvoiceTracker() {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -799,7 +800,7 @@ export default function DailyInvoiceTracker() {
 
             {/* MODAL: CHI TIẾT & TRACK MÓN CẦN XUẤT HÓA ĐƠN CỦA ĐỐI TÁC */}
             <AnimatePresence>
-                {partnerItemsModal.isOpen && partnerItemsModal.partner && (
+                {partnerItemsModal.isOpen && partnerItemsModal.partner && createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
@@ -988,13 +989,14 @@ export default function DailyInvoiceTracker() {
                                 </div>
                             </div>
                         </motion.div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </AnimatePresence>
 
             {/* Modal Edit Single Order */}
             <AnimatePresence>
-                {editOrderModal.isOpen && editOrderModal.order && (
+                {editOrderModal.isOpen && editOrderModal.order && createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
@@ -1080,7 +1082,8 @@ export default function DailyInvoiceTracker() {
                                 </div>
                             </form>
                         </motion.div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </AnimatePresence>
         </div>

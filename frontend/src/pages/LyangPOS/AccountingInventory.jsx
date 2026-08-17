@@ -181,7 +181,6 @@ export default function AccountingInventory() {
 
         // Smart mapping suggestion with comprehensive pattern detection
         const suggest = { code: '', name: '', stock: '', price: '', unit: '' };
-        let autoDivide = true;
 
         // 1. Stock: Prioritize finding "Cuối kỳ - Số lượng" or "Tồn cuối"
         head.forEach(h => {
@@ -191,16 +190,7 @@ export default function AccountingInventory() {
             }
         });
 
-        // 2. Price/Value: Prioritize finding "Cuối kỳ - Giá trị" or "Cuối kỳ - Thành tiền"
-        head.forEach(h => {
-            const norm = h.toLowerCase().trim();
-            if (!suggest.price && (norm.includes('cuối kỳ') && (norm.includes('giá trị') || norm.includes('thành tiền') || norm.includes('tiền')))) {
-                suggest.price = h;
-                autoDivide = true;
-            }
-        });
-
-        // 3. Fallback standard detections for all fields
+        // 2. Fallback standard detections for all fields
         head.forEach(h => {
             const norm = h.toLowerCase().trim();
             // Code
@@ -215,21 +205,13 @@ export default function AccountingInventory() {
             if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'tồn cuối' || norm === 'sl cuối kỳ' || norm === 'stock' || norm.includes('tồn cuối') || norm.includes('tồn kho') || norm.includes('số lượng'))) {
                 suggest.stock = h;
             }
-            // Price / Total Value fallback
-            if (!suggest.price && (norm.includes('giá trị') || norm.includes('thành tiền') || norm.includes('trị giá') || norm.includes('tt tồn') || norm.includes('giá trị tồn') || norm.includes('tiền tồn'))) {
-                suggest.price = h;
-                autoDivide = true;
-            } else if (!suggest.price && (norm === 'giá kế toán' || norm === 'giá vốn' || norm === 'giá nhập' || norm === 'giá bán' || norm === 'đơn giá' || norm === 'price' || norm === 'cost' || norm.includes('đơn giá') || norm.includes('giá vốn'))) {
-                suggest.price = h;
-                autoDivide = false;
-            }
             // Unit
             if (!suggest.unit && (norm === 'đơn vị' || norm === 'đvt' || norm === 'đơn vị tính' || norm === 'unit' || norm.includes('đvt') || norm.includes('đơn vị'))) {
                 suggest.unit = h;
             }
         });
 
-        // 4. Broadest fallbacks
+        // 3. Broadest fallbacks
         if (!suggest.code) {
             head.forEach(h => {
                 const norm = h.toLowerCase();
@@ -248,19 +230,7 @@ export default function AccountingInventory() {
                 if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('số lượng') || norm.includes('stock')) suggest.stock = h;
             });
         }
-        if (!suggest.price) {
-            head.forEach(h => {
-                const norm = h.toLowerCase();
-                if (norm.includes('thành tiền') || norm.includes('giá trị') || norm.includes('tiền')) {
-                    suggest.price = h;
-                    autoDivide = true;
-                } else if (norm.includes('giá') || norm.includes('price')) {
-                    suggest.price = h;
-                }
-            });
-        }
 
-        setCalcPriceFromTotal(autoDivide);
         setMapping(suggest);
     };
 
@@ -1353,61 +1323,25 @@ export default function AccountingInventory() {
                                         </select>
                                     </div>
 
-                                    {/* Cột Đơn giá / Giá trị tồn kho */}
-                                    <div className="p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                            <div>
-                                                <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">
-                                                    Cột Giá Trị Tồn / Đơn Giá Kế Toán
-                                                </label>
-                                                <p className="text-[11px] text-slate-400">
-                                                    Chọn cột Tổng Giá Trị Tồn (Thành tiền) hoặc Cột Đơn Giá từ file kế toán.
+                                    {/* Cột Đơn vị tính (Tùy chọn) */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Đơn Vị Tính (ĐVT)</label>
+                                            <p className="text-[11px] text-slate-400">Đơn vị tính như Cái, Hộp, Kg, Thùng... (Tùy chọn).</p>
+                                            {mapping.unit && fileData[0] && (
+                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
+                                                    Ví dụ dòng 1: "{fileData[0][mapping.unit] || '(Trống)'}"
                                                 </p>
-                                                {mapping.price && fileData[0] && (
-                                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1.5 font-bold space-y-0.5">
-                                                        <p>Dữ liệu dòng 1: {Number(fileData[0][mapping.price] || 0).toLocaleString()}đ</p>
-                                                        {calcPriceFromTotal && mapping.stock && (
-                                                            <p className="text-blue-600 dark:text-blue-400 font-black">
-                                                                👉 Đơn giá tự tính = {(parseFloat(fileData[0][mapping.stock]) > 0 ? Math.round(parseFloat(fileData[0][mapping.price]) / parseFloat(fileData[0][mapping.stock])) : 0).toLocaleString()}đ / cái
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <select
-                                                value={mapping.price}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    setMapping({ ...mapping, price: val });
-                                                    const norm = val.toLowerCase();
-                                                    if (norm.includes('giá trị') || norm.includes('thành tiền') || norm.includes('trị giá') || norm.includes('tiền')) {
-                                                        setCalcPriceFromTotal(true);
-                                                    }
-                                                }}
-                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
-                                            >
-                                                <option value="">-- Bỏ qua / Mặc định 0 --</option>
-                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                            </select>
+                                            )}
                                         </div>
-
-                                        {/* Toggle: Tự tính Đơn giá = Giá trị / Tồn kho */}
-                                        <div className="pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={calcPriceFromTotal}
-                                                    onChange={(e) => setCalcPriceFromTotal(e.target.checked)}
-                                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 dark:border-slate-600 cursor-pointer"
-                                                />
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                                                    Tự tính lại <span className="text-emerald-600 dark:text-emerald-400 font-black">Đơn giá = Tổng Giá Trị chia cho Tồn kho</span>
-                                                </span>
-                                            </label>
-                                            <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 w-fit">
-                                                Khuyên dùng cho file Nhập Xuất Tồn
-                                            </span>
-                                        </div>
+                                        <select
+                                            value={mapping.unit}
+                                            onChange={(e) => setMapping({ ...mapping, unit: e.target.value })}
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                        >
+                                            <option value="">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
                                     </div>
                                 </div>
 

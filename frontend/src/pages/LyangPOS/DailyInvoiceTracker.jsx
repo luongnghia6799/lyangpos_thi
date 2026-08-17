@@ -370,17 +370,17 @@ export default function DailyInvoiceTracker() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 text-slate-900 dark:text-white">
             {/* SUB-TABS (DAILY vs PENDING NEED MORE vs COMPLETED) */}
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-transparent p-4 md:p-5 rounded-3xl border border-slate-800/80 text-white">
-                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-800/80">
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white/40 dark:bg-slate-900/40 p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
+                <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-950/80 rounded-2xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
                     <button
                         onClick={() => setScope('daily')}
                         className={cn(
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                             scope === 'daily'
                                 ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
                         )}
                     >
                         <Calendar size={15} />
@@ -393,10 +393,10 @@ export default function DailyInvoiceTracker() {
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer relative",
                             scope === 'pending'
                                 ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 ring-1 ring-white/10"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
                         )}
                     >
-                        <Hourglass size={15} className="text-rose-400 animate-pulse" />
+                        <Hourglass size={15} className="text-rose-500 animate-pulse" />
                         <span>Cần Xuất Thêm / Nợ HĐ</span>
                         {scope === 'daily' && summary.uninvoiced_partners_count > 0 && (
                             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-4 ring-rose-500/20" />
@@ -409,7 +409,7 @@ export default function DailyInvoiceTracker() {
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                             scope === 'completed'
                                 ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
                         )}
                     >
                         <CheckCheck size={15} />
@@ -420,13 +420,13 @@ export default function DailyInvoiceTracker() {
                 {/* Date Controls (only for daily scope) */}
                 <div className="flex flex-wrap items-center gap-3">
                     {scope === 'daily' && (
-                        <div className="flex items-center gap-2 bg-transparent p-1.5 rounded-2xl border border-slate-800/80">
-                            <Calendar size={16} className="text-emerald-400 ml-2" />
+                        <div className="flex items-center gap-2 bg-slate-100/90 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
+                            <Calendar size={16} className="text-emerald-600 dark:text-emerald-400 ml-2" />
                             <input
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="bg-transparent font-black text-slate-100 text-xs outline-none px-2 py-1 cursor-pointer"
+                                className="bg-transparent font-black text-slate-900 dark:text-slate-100 text-xs outline-none px-2 py-1 cursor-pointer"
                             />
                             <button
                                 onClick={() => handleQuickDate(0)}
@@ -434,14 +434,14 @@ export default function DailyInvoiceTracker() {
                                     "px-3 py-1 rounded-xl font-black text-[11px] transition-all cursor-pointer",
                                     selectedDate === todayStr
                                         ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
-                                        : "bg-transparent border border-slate-800 hover:bg-slate-800/40 text-slate-300"
+                                        : "bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                                 )}
                             >
                                 Hôm nay
                             </button>
                             <button
                                 onClick={() => handleQuickDate(-1)}
-                                className="px-3 py-1 bg-transparent border border-slate-800 hover:bg-slate-800/40 text-slate-300 rounded-xl font-bold text-[11px] transition-all cursor-pointer"
+                                className="px-3 py-1 bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-[11px] transition-all cursor-pointer"
                             >
                                 Hôm qua
                             </button>
@@ -452,10 +452,10 @@ export default function DailyInvoiceTracker() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => fetchInvoiceData(scope, selectedDate)}
-                        className="p-3 bg-transparent hover:bg-slate-800/40 text-slate-200 rounded-2xl border border-slate-800/80 transition-all cursor-pointer"
+                        className="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
                         title="Làm mới dữ liệu"
                     >
-                        <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-400")} />
+                        <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-600 dark:text-emerald-400")} />
                     </motion.button>
 
                     <motion.button
@@ -473,36 +473,36 @@ export default function DailyInvoiceTracker() {
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Tổng đối tác */}
-                <div className="bg-transparent p-5 rounded-3xl border border-slate-800/80 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-white/50 dark:bg-slate-900/40 p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-transparent text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-500/30 group-hover:scale-105 transition-transform">
+                        <div className="w-13 h-13 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 group-hover:scale-105 transition-transform shadow-inner">
                             <Users size={24} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                                 {scope === 'pending' ? 'Đối Tác Cần Xuất Thêm' : 'Tổng Đối Tác'}
                             </p>
                             <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className="text-2xl font-black text-white tabular-nums">{summary.total_partners_count}</span>
-                                <span className="text-xs font-bold text-slate-400">khách ({summary.total_orders_count} đơn)</span>
+                                <span className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{summary.total_partners_count}</span>
+                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">khách ({summary.total_orders_count} đơn)</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Đã xuất đủ */}
-                <div className="bg-transparent p-5 rounded-3xl border border-emerald-500/40 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-5 rounded-3xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-transparent text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/40 group-hover:scale-105 transition-transform">
+                        <div className="w-13 h-13 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 group-hover:scale-105 transition-transform shadow-inner">
                             <CheckCircle2 size={24} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                            <p className="text-[11px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
                                 Đã Xuất Đủ ({summary.total_partners_count ? Math.round((summary.invoiced_partners_count / summary.total_partners_count) * 100) : 0}%)
                             </p>
                             <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className="text-2xl font-black text-emerald-400 tabular-nums">{summary.invoiced_partners_count}</span>
-                                <span className="text-xs font-bold text-emerald-400/70">khách ({summary.invoiced_amount.toLocaleString()}đ)</span>
+                                <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">{summary.invoiced_partners_count}</span>
+                                <span className="text-xs font-bold text-emerald-800/80 dark:text-emerald-400/80">khách ({summary.invoiced_amount.toLocaleString()}đ)</span>
                             </div>
                         </div>
                     </div>
@@ -510,37 +510,37 @@ export default function DailyInvoiceTracker() {
 
                 {/* Chưa xuất đủ / Cần xuất thêm */}
                 <div className={cn(
-                    "bg-transparent p-5 rounded-3xl border relative overflow-hidden group hover:-translate-y-1 transition-all",
-                    summary.uninvoiced_partners_count > 0 ? "border-rose-500/50" : "border-slate-800/80"
+                    "p-5 rounded-3xl border shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all",
+                    summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-500/50 bg-rose-50/50 dark:bg-rose-950/20" : "border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/40"
                 )}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={cn(
-                            "w-13 h-13 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform bg-transparent",
-                            summary.uninvoiced_partners_count > 0 ? "text-rose-400 border-rose-500/50" : "text-slate-400 border-slate-700"
+                            "w-13 h-13 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform shadow-inner",
+                            summary.uninvoiced_partners_count > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                         )}>
                             <AlertCircle size={24} className={cn(summary.uninvoiced_partners_count > 0 && "animate-pulse")} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Cần Xuất Thêm / Nợ HĐ</p>
+                            <p className="text-[11px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider">Cần Xuất Thêm / Nợ HĐ</p>
                             <div className="flex items-baseline gap-2 mt-0.5">
-                                <span className={cn("text-2xl font-black tabular-nums", summary.uninvoiced_partners_count > 0 ? "text-rose-400" : "text-white")}>
+                                <span className={cn("text-3xl font-black tabular-nums", summary.uninvoiced_partners_count > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
                                     {summary.uninvoiced_partners_count}
                                 </span>
-                                <span className="text-xs font-bold text-rose-400/80">khách ({summary.uninvoiced_amount.toLocaleString()}đ)</span>
+                                <span className="text-xs font-bold text-rose-800/80 dark:text-rose-400/80">khách ({summary.uninvoiced_amount.toLocaleString()}đ)</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Tổng Giá Trị Đơn Hàng */}
-                <div className="bg-transparent p-5 rounded-3xl border border-slate-800/80 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-amber-50/30 dark:bg-amber-950/15 p-5 rounded-3xl border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-13 h-13 bg-transparent text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform">
+                        <div className="w-13 h-13 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 group-hover:scale-105 transition-transform shadow-inner">
                             <DollarSign size={24} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Giá Trị Đơn Hàng</p>
-                            <p className="text-2xl font-black text-white tabular-nums mt-0.5">
+                            <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tổng Giá Trị Đơn Hàng</p>
+                            <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums mt-0.5">
                                 {summary.total_sales_amount.toLocaleString()}đ
                             </p>
                         </div>
@@ -549,19 +549,19 @@ export default function DailyInvoiceTracker() {
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="bg-transparent p-4 md:p-5 rounded-3xl border border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-white/40 dark:bg-slate-900/40 p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="relative flex-1 w-full group">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-400 transition-colors" />
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                     <input
                         type="text"
                         placeholder="Tìm kiếm đối tác, SĐT, tên sản phẩm, mã đơn (HD...)..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-transparent border border-slate-800 focus:border-emerald-500/50 rounded-2xl outline-none font-bold text-sm text-white transition-all placeholder:text-slate-500"
+                        className="w-full pl-11 pr-4 py-3 bg-white/80 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500 shadow-inner"
                     />
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-800/80 w-full md:w-auto">
+                <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-950/80 rounded-2xl border border-slate-300 dark:border-slate-800/80 w-full md:w-auto shadow-sm">
                     {[
                         { id: 'all', label: `Tất cả (${summary.total_partners_count})` },
                         { id: 'uninvoiced', label: `🔴 Chưa đủ (${summary.uninvoiced_partners_count})` },
@@ -573,8 +573,8 @@ export default function DailyInvoiceTracker() {
                             className={cn(
                                 "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
                                 statusFilter === f.id
-                                    ? "bg-slate-800 text-white shadow-md ring-1 ring-white/10"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/30"
+                                    ? "bg-slate-900 text-white dark:bg-slate-800 dark:text-white shadow-md ring-1 ring-white/10"
+                                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/40"
                             )}
                         >
                             {f.label}
@@ -587,15 +587,15 @@ export default function DailyInvoiceTracker() {
             {loading ? (
                 <div className="py-20 text-center">
                     <RefreshCw className="animate-spin text-emerald-600 mx-auto mb-3" size={36} />
-                    <p className="text-sm font-black text-slate-500 uppercase tracking-wider">Đang tải dữ liệu theo dõi hóa đơn...</p>
+                    <p className="text-sm font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Đang tải dữ liệu theo dõi hóa đơn...</p>
                 </div>
             ) : partners.length === 0 ? (
-                <div className="py-20 text-center bg-transparent rounded-3xl border border-dashed border-slate-800 p-12">
-                    <Receipt className="mx-auto mb-4 text-slate-600" size={56} />
-                    <h3 className="text-lg font-black text-slate-300 uppercase">
+                <div className="py-20 text-center bg-white/40 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12">
+                    <Receipt className="mx-auto mb-4 text-slate-400 dark:text-slate-600" size={56} />
+                    <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">
                         {scope === 'pending' ? 'Tuyệt Vời! Không Có Khách Nào Cần Xuất Thêm Hóa Đơn' : 'Không Có Dữ Liệu Phù Hợp'}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-md mx-auto font-medium">
                         {scope === 'pending'
                             ? 'Tất cả các đối tác và đơn hàng đã được xuất đủ hóa đơn hoàn tất.'
                             : 'Không tìm thấy phát sinh đơn bán hàng nào trong phạm vi đã chọn.'}
@@ -613,62 +613,62 @@ export default function DailyInvoiceTracker() {
                             <div
                                 key={partner.partner_id}
                                 className={cn(
-                                    "bg-transparent rounded-3xl border transition-all duration-200 overflow-hidden text-white",
+                                    "bg-white/50 dark:bg-slate-900/40 rounded-3xl border transition-all duration-200 overflow-hidden shadow-sm",
                                     isFullyInvoiced
-                                        ? "border-emerald-500/30 hover:border-emerald-500/60"
-                                        : "border-rose-500/40 hover:border-rose-500/70"
+                                        ? "border-emerald-300 dark:border-emerald-500/40 hover:border-emerald-500"
+                                        : "border-rose-300 dark:border-rose-500/50 hover:border-rose-500"
                                 )}
                             >
                                 {/* Partner Card Header */}
                                 <div className="p-5 md:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => openPartnerItemsModal(partner)}>
                                         <div className={cn(
-                                            "w-13 h-13 rounded-2xl flex items-center justify-center font-black text-lg ring-1 shrink-0 bg-transparent",
+                                            "w-13 h-13 rounded-2xl flex items-center justify-center font-black text-xl border shrink-0 shadow-inner",
                                             isFullyInvoiced
-                                                ? "text-emerald-400 ring-emerald-500/30"
-                                                : "text-rose-400 ring-rose-500/30"
+                                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40"
+                                                : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/40"
                                         )}>
                                             {partner.partner_name.charAt(0).toUpperCase()}
                                         </div>
 
                                         <div>
                                             <div className="flex items-center gap-2.5 flex-wrap">
-                                                <h3 className="text-base font-black text-white hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                                                <h3 className="text-lg font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
                                                     <span>{partner.partner_name}</span>
-                                                    <ArrowUpRight size={14} className="text-slate-500" />
+                                                    <ArrowUpRight size={15} className="text-slate-400" />
                                                 </h3>
                                                 
                                                 {/* Status Badge */}
                                                 {isFullyInvoiced ? (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-transparent text-emerald-400 border border-emerald-500/30">
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
                                                         <Check size={12} /> ĐÃ XUẤT ĐỦ (XONG) - {totalItemsCount} MÓN
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-transparent text-rose-400 border border-rose-500/30 animate-pulse">
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
                                                         <AlertCircle size={12} /> CHƯA ĐỦ - CẦN XUẤT {pendingItemsCount}/{totalItemsCount} MÓN
                                                     </span>
                                                 )}
 
                                                 {partner.invoice_numbers && partner.invoice_numbers.length > 0 && (
-                                                    <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-transparent text-slate-300 border border-slate-700">
+                                                    <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                                                         Số HĐ: {partner.invoice_numbers.join(', ')}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-4 text-xs text-slate-400 mt-1.5 flex-wrap font-medium">
+                                            <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400 mt-1.5 flex-wrap font-semibold">
                                                 {partner.partner_phone && (
                                                     <span className="flex items-center gap-1">
-                                                        <Phone size={12} className="text-slate-500" /> {partner.partner_phone}
+                                                        <Phone size={12} className="text-slate-400" /> {partner.partner_phone}
                                                     </span>
                                                 )}
                                                 {partner.partner_address && (
                                                     <span className="flex items-center gap-1 truncate max-w-xs">
-                                                        <MapPin size={12} className="text-slate-500" /> {partner.partner_address}
+                                                        <MapPin size={12} className="text-slate-400" /> {partner.partner_address}
                                                     </span>
                                                 )}
                                                 {partner.partner_debt !== 0 && (
-                                                    <span className="text-amber-400 font-bold">
+                                                    <span className="text-amber-800 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-500/30">
                                                         Nợ hiện tại: {partner.partner_debt.toLocaleString()}đ
                                                     </span>
                                                 )}
@@ -677,10 +677,10 @@ export default function DailyInvoiceTracker() {
                                     </div>
 
                                     {/* Partner Totals & Quick Actions */}
-                                    <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                                    <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
                                         <div className="text-right">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Mua ({partner.total_orders_count} đơn)</p>
-                                            <p className="text-xl font-black text-white tabular-nums">
+                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tổng Mua ({partner.total_orders_count} đơn)</p>
+                                            <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                                                 {partner.total_amount.toLocaleString()}đ
                                             </p>
                                         </div>
@@ -691,7 +691,7 @@ export default function DailyInvoiceTracker() {
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => openPartnerItemsModal(partner)}
-                                                className="px-4 py-2.5 rounded-2xl text-xs font-black bg-transparent text-cyan-300 hover:bg-cyan-500/10 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap border border-cyan-500/30"
+                                                className="px-4 py-2.5 rounded-2xl text-xs font-black bg-cyan-100 hover:bg-cyan-200 text-cyan-900 dark:bg-cyan-500/15 dark:hover:bg-cyan-500/25 dark:text-cyan-300 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap border border-cyan-300 dark:border-cyan-500/30"
                                             >
                                                 <Package size={14} />
                                                 <span>Xem Món Cần Xuất ({partner.items?.length || 0})</span>
@@ -701,7 +701,7 @@ export default function DailyInvoiceTracker() {
                                             {isFullyInvoiced ? (
                                                 <button
                                                     onClick={() => handleBatchPartnerInvoice(partner.partner_id, false)}
-                                                    className="px-3.5 py-2.5 rounded-2xl text-xs font-black bg-transparent hover:bg-rose-950/30 text-slate-300 hover:text-rose-400 border border-slate-700 transition-all cursor-pointer whitespace-nowrap"
+                                                    className="px-3.5 py-2.5 rounded-2xl text-xs font-black bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-800 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-300 dark:hover:text-rose-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer whitespace-nowrap"
                                                 >
                                                     Bỏ đánh dấu
                                                 </button>
@@ -719,7 +719,7 @@ export default function DailyInvoiceTracker() {
 
                                             <button
                                                 onClick={() => toggleExpand(partner.partner_id)}
-                                                className="p-2.5 rounded-2xl text-slate-400 hover:text-white hover:bg-slate-800/40 transition-all cursor-pointer border border-slate-800"
+                                                className="p-2.5 rounded-2xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-300 dark:border-slate-700"
                                             >
                                                 {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                             </button>
@@ -734,25 +734,25 @@ export default function DailyInvoiceTracker() {
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
                                             exit={{ height: 0, opacity: 0 }}
-                                            className="border-t border-slate-800 bg-transparent p-4 md:p-6"
+                                            className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 md:p-6"
                                         >
                                             <div className="flex items-center justify-between mb-3">
-                                                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                                <p className="text-[11px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest">
                                                     Danh Sách Các Món Hàng Cần Xuất Hóa Đơn ({partner.items?.length || 0} món):
                                                 </p>
                                                 <button
                                                     onClick={() => openPartnerItemsModal(partner)}
-                                                    className="text-xs font-black text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer"
+                                                    className="text-xs font-black text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer"
                                                 >
                                                     <span>Mở bảng chỉnh sửa & track chi tiết</span>
                                                     <ArrowRight size={12} />
                                                 </button>
                                             </div>
 
-                                            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-transparent">
+                                            <div className="overflow-x-auto rounded-2xl border border-slate-300 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 shadow-sm">
                                                 <table className="w-full text-left text-xs border-collapse">
                                                     <thead>
-                                                        <tr className="bg-transparent text-slate-400 font-black border-b border-slate-800">
+                                                        <tr className="bg-slate-100/90 dark:bg-slate-950/90 text-slate-800 dark:text-slate-300 font-black border-b border-slate-300 dark:border-slate-800">
                                                             <th className="py-3 px-3.5 w-12 text-center">Xuất HĐ</th>
                                                             <th className="py-3 px-3.5 w-10 text-center">STT</th>
                                                             <th className="py-3 px-3.5">Mã đơn</th>
@@ -766,7 +766,7 @@ export default function DailyInvoiceTracker() {
                                                             <th className="py-3 px-3.5 text-center">Thao tác</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y divide-slate-800/80 font-medium text-slate-200">
+                                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
                                                         {(partner.items || []).map((item, idx) => {
                                                             const isItemInvoiced = item.is_invoiced || item.invoiced_quantity >= item.quantity;
 
@@ -776,8 +776,8 @@ export default function DailyInvoiceTracker() {
                                                                     className={cn(
                                                                         "transition-colors",
                                                                         isItemInvoiced
-                                                                            ? "hover:bg-slate-800/30"
-                                                                            : "bg-rose-950/10 hover:bg-rose-950/20"
+                                                                            ? "hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
+                                                                            : "bg-rose-50/40 hover:bg-rose-50/70 dark:bg-rose-950/15 dark:hover:bg-rose-950/25"
                                                                     )}
                                                                 >
                                                                     <td className="py-3 px-3.5 text-center">
@@ -785,40 +785,40 @@ export default function DailyInvoiceTracker() {
                                                                             type="checkbox"
                                                                             checked={Boolean(isItemInvoiced)}
                                                                             onChange={() => handleQuickToggleItem(item, !isItemInvoiced)}
-                                                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-500"
+                                                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
                                                                             title="Đánh dấu riêng dòng này"
                                                                         />
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 text-center text-slate-500 font-mono">
+                                                                    <td className="py-3 px-3.5 text-center text-slate-500 font-mono font-bold">
                                                                         {idx + 1}
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 font-bold text-slate-300 font-mono">
+                                                                    <td className="py-3 px-3.5 font-bold text-slate-700 dark:text-slate-300 font-mono">
                                                                         {item.order_display_id}
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 font-black text-white">
+                                                                    <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
                                                                         <span>{item.product_name}</span>
                                                                         {item.product_code && (
-                                                                            <span className="text-[10px] text-slate-400 ml-2 font-mono">({item.product_code})</span>
+                                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2 font-mono">({item.product_code})</span>
                                                                         )}
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 text-center text-slate-400">
+                                                                    <td className="py-3 px-3.5 text-center text-slate-600 dark:text-slate-400 font-semibold">
                                                                         {item.unit || 'ĐV'}
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 text-center font-black text-white">
+                                                                    <td className="py-3 px-3.5 text-center font-black text-slate-900 dark:text-white">
                                                                         {item.quantity}
                                                                     </td>
                                                                     <td className="py-3 px-3.5 text-center font-black">
                                                                         <span className={cn(
                                                                             "px-2.5 py-0.5 rounded-lg text-[11px] font-mono",
-                                                                            isItemInvoiced ? "bg-transparent text-emerald-300 border border-emerald-500/30" : "bg-transparent text-rose-300 border border-rose-500/30"
+                                                                            isItemInvoiced ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30" : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30"
                                                                         )}>
                                                                             {item.invoiced_quantity || (item.is_invoiced ? item.quantity : 0)} / {item.quantity}
                                                                         </span>
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 text-right text-slate-300 tabular-nums font-mono">
+                                                                    <td className="py-3 px-3.5 text-right text-slate-700 dark:text-slate-300 tabular-nums font-mono font-bold">
                                                                         {item.price?.toLocaleString()}đ
                                                                     </td>
-                                                                    <td className="py-3 px-3.5 text-right font-black text-white tabular-nums font-mono">
+                                                                    <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums font-mono">
                                                                         {item.total_price?.toLocaleString()}đ
                                                                     </td>
                                                                     <td className="py-3 px-3.5 text-center">
@@ -828,11 +828,11 @@ export default function DailyInvoiceTracker() {
                                                                             className="cursor-pointer"
                                                                         >
                                                                             {isItemInvoiced ? (
-                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-transparent text-emerald-300 border border-emerald-500/30 hover:scale-105 transition-transform">
+                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 hover:scale-105 transition-transform">
                                                                                     <Check size={10} /> ĐÃ XUẤT ĐỦ
                                                                                 </span>
                                                                             ) : (
-                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-transparent text-rose-300 border border-rose-500/30 hover:scale-105 transition-transform">
+                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 hover:scale-105 transition-transform">
                                                                                     <AlertCircle size={10} /> CẦN XUẤT
                                                                                 </span>
                                                                             )}
@@ -841,7 +841,7 @@ export default function DailyInvoiceTracker() {
                                                                     <td className="py-3 px-3.5 text-center">
                                                                         <button
                                                                             onClick={() => openPartnerItemsModal(partner)}
-                                                                            className="p-1.5 hover:bg-slate-800/40 rounded-xl text-cyan-400 font-bold transition-all cursor-pointer inline-flex items-center gap-1 text-[11px] border border-slate-700"
+                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-cyan-700 dark:text-cyan-400 font-bold transition-all cursor-pointer inline-flex items-center gap-1 text-[11px] border border-slate-300 dark:border-slate-700"
                                                                             title="Mở bảng chi tiết"
                                                                         >
                                                                             <Edit3 size={13} />

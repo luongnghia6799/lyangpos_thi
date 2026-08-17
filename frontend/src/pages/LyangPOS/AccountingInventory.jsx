@@ -704,7 +704,7 @@ export default function AccountingInventory() {
         <div className="pt-2 px-3 md:px-6 pb-20 w-full min-h-screen transition-colors">
             <div className="max-w-[1800px] mx-auto space-y-6 pb-32">
                 {/* Master Header Card */}
-                <div className="relative overflow-hidden rounded-3xl bg-transparent text-white p-6 md:p-8 border border-slate-800/80">
+                <div className="relative overflow-hidden rounded-3xl bg-white/40 dark:bg-slate-900/40 p-6 md:p-8 border border-slate-300 dark:border-slate-800/80 shadow-sm">
                     <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 ring-1 ring-white/20 shrink-0">
@@ -712,21 +712,21 @@ export default function AccountingInventory() {
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white flex items-center gap-3">
+                                    <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
                                         {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Trong Ngày' : 'Sổ Kế Toán & Đối Soát Kho'}
                                     </h1>
                                     <span className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-transparent",
+                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
                                         view === 'invoices'
-                                            ? "text-purple-300 border-purple-500/40"
+                                            ? "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 dark:border-purple-500/40"
                                             : view === 'list'
-                                                ? "text-emerald-300 border-emerald-500/40"
-                                                : "text-blue-300 border-blue-500/40"
+                                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40"
+                                                : "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 dark:border-blue-500/40"
                                     )}>
                                         {view === 'invoices' ? 'Theo Dõi Hóa Đơn' : (view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel')}
                                     </span>
                                 </div>
-                                <p className="text-xs font-semibold text-slate-400 mt-1.5 max-w-3xl leading-relaxed">
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 max-w-3xl leading-relaxed">
                                     {view === 'invoices'
                                         ? 'Theo dõi chi tiết món hàng, trạng thái xuất hóa đơn VAT theo từng khách hàng trong ngày và nợ hóa đơn cần xuất tiếp.'
                                         : (view === 'list' ? 'Đối soát chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán), hỗ trợ xuất file Excel và kiểm kê nhanh.' : 'Quy trình kiểm tra mã khớp, chênh lệch số lượng & đối soát tồn kho từ file Excel kế toán.')}
@@ -742,9 +742,9 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={handleExportDashboardData}
-                                        className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-200 border border-slate-800 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                     >
-                                        <FileSpreadsheet size={16} className="text-emerald-400" />
+                                        <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                         <span>Xuất Sổ Excel</span>
                                     </motion.button>
 
@@ -768,9 +768,9 @@ export default function AccountingInventory() {
                                                 whileHover={{ scale: 1.02, y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleExportImportData}
-                                                className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-200 border border-slate-800 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                             >
-                                                <FileSpreadsheet size={16} className="text-emerald-400" />
+                                                <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                                 <span>Xuất Báo Cáo</span>
                                             </motion.button>
 
@@ -782,7 +782,7 @@ export default function AccountingInventory() {
                                                 className={cn(
                                                     "px-5 py-3 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer border",
                                                     isUpdateSuccess
-                                                        ? "bg-transparent text-slate-400 border-slate-700"
+                                                        ? "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                                                         : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/25 border-emerald-400/20"
                                                 )}
                                             >
@@ -805,7 +805,7 @@ export default function AccountingInventory() {
                                                 setView('list');
                                             }
                                         }}
-                                        className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-300 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-800"
+                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>{isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}</span>

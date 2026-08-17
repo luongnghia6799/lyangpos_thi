@@ -781,13 +781,22 @@ export default function DailyInvoiceTracker() {
                                                                     )}
                                                                 >
                                                                     <td className="py-3 px-3.5 text-center">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={Boolean(isItemInvoiced)}
-                                                                            onChange={() => handleQuickToggleItem(item, !isItemInvoiced)}
-                                                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
-                                                                            title="Đánh dấu riêng dòng này"
-                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleQuickToggleItem(item, !isItemInvoiced);
+                                                                            }}
+                                                                            className={cn(
+                                                                                "w-7 h-7 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 cursor-pointer border shadow-sm",
+                                                                                isItemInvoiced
+                                                                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/25 active:scale-90"
+                                                                                    : "bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-transparent border-slate-300 dark:border-slate-600 hover:border-emerald-500 active:scale-90"
+                                                                            )}
+                                                                            title={isItemInvoiced ? "Đã xuất HĐ (Bấm để bỏ chọn)" : "Chưa xuất HĐ (Bấm để chọn)"}
+                                                                        >
+                                                                            <Check size={16} strokeWidth={3.5} className={cn("transition-transform duration-150", isItemInvoiced ? "scale-100 text-white" : "scale-0")} />
+                                                                        </button>
                                                                     </td>
                                                                     <td className="py-3 px-3.5 text-center text-slate-500 font-mono font-bold">
                                                                         {idx + 1}
@@ -964,19 +973,23 @@ export default function DailyInvoiceTracker() {
                                             : "bg-rose-950/15 hover:bg-rose-950/25"
                                     )}
                                 >
-                                    <td 
-                                        className="py-3 px-3.5 text-center cursor-pointer select-none"
-                                        onClick={() => handleToggleItemStatus(idx)}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={Boolean(item.temp_is_invoiced)}
-                                            onChange={(e) => {
+                                    <td className="py-3 px-3.5 text-center">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleToggleItemStatus(idx);
                                             }}
-                                            className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-500"
-                                        />
+                                            className={cn(
+                                                "w-7 h-7 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 cursor-pointer border shadow-sm",
+                                                item.temp_is_invoiced
+                                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/25 active:scale-90"
+                                                    : "bg-slate-800 hover:bg-slate-700 text-transparent border-slate-700 hover:border-emerald-500 active:scale-90"
+                                            )}
+                                            title={item.temp_is_invoiced ? "Đã xuất HĐ (Bấm để bỏ chọn)" : "Chưa xuất HĐ (Bấm để chọn)"}
+                                        >
+                                            <Check size={16} strokeWidth={3.5} className={cn("transition-transform duration-150", item.temp_is_invoiced ? "scale-100 text-white" : "scale-0")} />
+                                        </button>
                                     </td>
                                     <td className="py-3 px-3.5 font-bold font-mono text-slate-400">
                                         {item.order_display_id}

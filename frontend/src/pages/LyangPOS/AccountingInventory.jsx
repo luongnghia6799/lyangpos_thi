@@ -997,9 +997,6 @@ export default function AccountingInventory() {
                                             <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('diff')}>
                                                 <div className="flex items-center justify-end gap-2 text-rose-400">Chênh lệch <SortIcon columnKey="diff" /></div>
                                             </th>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('accounting_price')}>
-                                                <div className="flex items-center justify-end gap-2 text-amber-400">Giá Kế Toán <SortIcon columnKey="accounting_price" /></div>
-                                            </th>
                                             <th className="px-6 py-4 uppercase font-black tracking-wider text-center">Trạng thái đối soát</th>
                                         </tr>
                                     </thead>
@@ -1034,9 +1031,6 @@ export default function AccountingInventory() {
                                                         ) : (
                                                             <span className="text-rose-700 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
                                                         )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-900 dark:text-slate-300">
-                                                        {(p.accounting_price || 0).toLocaleString()}đ
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
                                                         {diff === 0 ? (

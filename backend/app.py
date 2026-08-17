@@ -8065,6 +8065,18 @@ def get_daily_invoices():
             if filter_status == 'uninvoiced' and p['is_fully_invoiced']:
                 continue
                 
+            # In 'daily' scope: hide already invoiced partners (they move to 'completed' tab)
+            if scope == 'daily' and filter_status != 'invoiced' and p['is_fully_invoiced']:
+                continue
+                
+            # In 'pending' scope: only show partners needing additional invoices
+            if scope == 'pending' and p['is_fully_invoiced']:
+                continue
+                
+            # In 'completed' scope: only show fully invoiced partners
+            if scope == 'completed' and not p['is_fully_invoiced']:
+                continue
+                
             partners_list.append(p)
             
         # Sort: pending/uninvoiced first, then by total_amount desc

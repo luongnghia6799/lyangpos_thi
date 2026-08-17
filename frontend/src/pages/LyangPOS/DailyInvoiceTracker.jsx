@@ -723,12 +723,18 @@ export default function DailyInvoiceTracker() {
                 <div className="py-20 text-center bg-transparent rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12">
                     <Receipt className="mx-auto mb-4 text-slate-400 dark:text-slate-600" size={56} />
                     <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">
-                        {scope === 'pending' ? 'Tuyệt Vời! Không Có Khách Nào Cần Xuất Thêm Hóa Đơn' : 'Không Có Dữ Liệu Phù Hợp'}
+                        {scope === 'daily'
+                            ? (summary.invoiced_partners_count > 0 ? 'Đã Xuất Đủ Toàn Bộ Khách Hàng Trong Ngày!' : 'Không Có Đơn Hàng Nào Trong Ngày Đã Chọn')
+                            : scope === 'pending'
+                                ? 'Tuyệt Vời! Không Có Khách Nào Cần Xuất Thêm Hóa Đơn'
+                                : 'Chưa Có Hóa Đơn Nào Hoàn Tất Trong Ngày Này'}
                     </h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-md mx-auto font-medium">
-                        {scope === 'pending'
-                            ? 'Tất cả các đối tác và đơn hàng đã được xuất đủ hóa đơn hoàn tất.'
-                            : 'Không tìm thấy phát sinh đơn bán hàng nào trong phạm vi đã chọn.'}
+                        {scope === 'daily'
+                            ? (summary.invoiced_partners_count > 0 ? 'Tất cả khách xuất đủ đã được chuyển sang tab "Đã hoàn tất".' : 'Chưa có phát sinh đơn bán hàng nào trong ngày này.')
+                            : scope === 'pending'
+                                ? 'Tất cả các đối tác và đơn hàng đã được xuất đủ hóa đơn hoàn tất.'
+                                : 'Các khách hàng và đơn hàng xuất đủ sẽ hiển thị tại đây.'}
                     </p>
                 </div>
             ) : (

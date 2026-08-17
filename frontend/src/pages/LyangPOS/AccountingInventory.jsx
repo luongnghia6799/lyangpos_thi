@@ -27,7 +27,8 @@ import {
     ArrowLeft,
     TrendingUp,
     TrendingDown,
-    Eye
+    Eye,
+    Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,6 +58,7 @@ export default function AccountingInventory() {
     // Import State
     const [rawMatrix, setRawMatrix] = useState([]);
     const [headerRowIndex, setHeaderRowIndex] = useState(0);
+    const [headerMode, setHeaderMode] = useState('merged_two_rows'); // 'single' or 'merged_two_rows'
     const [showSheetPreview, setShowSheetPreview] = useState(false);
     const [fileData, setFileData] = useState([]);
     const [headers, setHeaders] = useState([]);
@@ -110,18 +112,51 @@ export default function AccountingInventory() {
         }
     };
 
-    const applyHeaderRow = (matrix, rowIdx) => {
+    const applyHeaderRow = (matrix, rowIdx, mode = headerMode) => {
         if (!matrix || matrix.length <= rowIdx) return;
         setHeaderRowIndex(rowIdx);
+        setHeaderMode(mode);
 
-        const rawHead = matrix[rowIdx] || [];
-        const head = rawHead.map((h, i) => {
-            const val = (h !== undefined && h !== null && h !== '') ? h.toString().trim() : `Cột_${i + 1}`;
-            return val;
-        });
+        let head = [];
+        let dataStartIndex = rowIdx + 1;
+
+        if (mode === 'merged_two_rows' && rowIdx + 1 < matrix.length) {
+            dataStartIndex = rowIdx + 2;
+            const rowA = matrix[rowIdx] || [];
+            const rowB = matrix[rowIdx + 1] || [];
+            const colCount = Math.max(rowA.length, rowB.length);
+            let currentParent = '';
+
+            for (let col = 0; col < colCount; col++) {
+                const topVal = (rowA[col] !== undefined && rowA[col] !== null) ? rowA[col].toString().trim() : '';
+                const subVal = (rowB[col] !== undefined && rowB[col] !== null) ? rowB[col].toString().trim() : '';
+
+                if (topVal) {
+                    currentParent = topVal;
+                }
+
+                let combinedName = '';
+                if (topVal && !subVal) {
+                    combinedName = topVal;
+                } else if (!topVal && subVal) {
+                    combinedName = currentParent ? `${currentParent} - ${subVal}` : subVal;
+                } else if (topVal && subVal) {
+                    combinedName = (topVal === subVal) ? topVal : `${topVal} - ${subVal}`;
+                } else {
+                    combinedName = currentParent ? `${currentParent} - Cột_${col + 1}` : `Cột_${col + 1}`;
+                }
+                head.push(combinedName);
+            }
+        } else {
+            const rawHead = matrix[rowIdx] || [];
+            head = rawHead.map((h, i) => {
+                return (h !== undefined && h !== null && h !== '') ? h.toString().trim() : `Cột_${i + 1}`;
+            });
+        }
+
         setHeaders(head);
 
-        const dataRows = matrix.slice(rowIdx + 1).map((rowArr) => {
+        const dataRows = matrix.slice(dataStartIndex).map((rowArr) => {
             const obj = {};
             head.forEach((h, colIdx) => {
                 obj[h] = rowArr[colIdx] !== undefined && rowArr[colIdx] !== null ? rowArr[colIdx] : '';
@@ -137,21 +172,39 @@ export default function AccountingInventory() {
         const suggest = { code: '', name: '', stock: '', price: '', unit: '' };
         let autoDivide = true;
 
+        // 1. Stock: Prioritize finding "Cuối kỳ - Số lượng" or "Tồn cuối"
+        head.forEach(h => {
+            const norm = h.toLowerCase().trim();
+            if (!suggest.stock && (norm.includes('cuối kỳ') && (norm.includes('số lượng') || norm.includes('sl') || norm.includes('tồn')))) {
+                suggest.stock = h;
+            }
+        });
+
+        // 2. Price/Value: Prioritize finding "Cuối kỳ - Giá trị" or "Cuối kỳ - Thành tiền"
+        head.forEach(h => {
+            const norm = h.toLowerCase().trim();
+            if (!suggest.price && (norm.includes('cuối kỳ') && (norm.includes('giá trị') || norm.includes('thành tiền') || norm.includes('tiền')))) {
+                suggest.price = h;
+                autoDivide = true;
+            }
+        });
+
+        // 3. Fallback standard detections for all fields
         head.forEach(h => {
             const norm = h.toLowerCase().trim();
             // Code
-            if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'barcode' || norm === 'sku' || norm.includes('mã hàng') || norm.includes('mã sp'))) {
+            if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'sku' || norm.includes('mã hàng') || norm.includes('mã sp'))) {
                 suggest.code = h;
             }
             // Name
             if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm' || norm.includes('tên hàng') || norm.includes('tên sp') || norm.includes('tên sản phẩm'))) {
                 suggest.name = h;
             }
-            // Stock
-            if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'tồn cuối' || norm === 'sl cuối kỳ' || norm === 'stock' || norm.includes('tồn cuối') || norm.includes('tồn kho'))) {
+            // Stock fallback
+            if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'tồn cuối' || norm === 'sl cuối kỳ' || norm === 'stock' || norm.includes('tồn cuối') || norm.includes('tồn kho') || norm.includes('số lượng'))) {
                 suggest.stock = h;
             }
-            // Price / Total Value
+            // Price / Total Value fallback
             if (!suggest.price && (norm.includes('giá trị') || norm.includes('thành tiền') || norm.includes('trị giá') || norm.includes('tt tồn') || norm.includes('giá trị tồn') || norm.includes('tiền tồn'))) {
                 suggest.price = h;
                 autoDivide = true;
@@ -165,7 +218,7 @@ export default function AccountingInventory() {
             }
         });
 
-        // Fallbacks if not exact match
+        // 4. Broadest fallbacks
         if (!suggest.code) {
             head.forEach(h => {
                 const norm = h.toLowerCase();
@@ -181,7 +234,7 @@ export default function AccountingInventory() {
         if (!suggest.stock) {
             head.forEach(h => {
                 const norm = h.toLowerCase();
-                if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('stock')) suggest.stock = h;
+                if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('số lượng') || norm.includes('stock')) suggest.stock = h;
             });
         }
         if (!suggest.price) {
@@ -223,10 +276,12 @@ export default function AccountingInventory() {
 
                 setRawMatrix(data);
 
-                // Auto-detect best candidate header row within first 15 rows
+                // Auto-detect best candidate header row and mode within first 15 rows
                 let bestRowIdx = 0;
                 let maxScore = -1;
-                const keywords = ['mã', 'tên', 'tồn', 'kho', 'đvt', 'đơn vị', 'đơn giá', 'giá', 'số lượng', 'sl', 'stt', 'code', 'name', 'stock', 'price', 'unit'];
+                let detectedMode = 'single';
+                const groupKeywords = ['đầu kỳ', 'nhập kho', 'xuất kho', 'cuối kỳ', 'tồn đầu', 'tồn cuối', 'trong kỳ'];
+                const keywords = ['mã', 'tên', 'tồn', 'kho', 'đvt', 'đơn vị', 'đơn giá', 'giá', 'số lượng', 'sl', 'stt', 'code', 'name', 'stock', 'price', 'unit', 'thành tiền', 'giá trị'];
 
                 for (let r = 0; r < Math.min(15, data.length); r++) {
                     const row = data[r];
@@ -235,20 +290,36 @@ export default function AccountingInventory() {
                     if (nonEmptyCells.length < 2) continue;
 
                     let score = nonEmptyCells.length;
+                    let hasGroupKeywords = false;
+
                     nonEmptyCells.forEach(cell => {
                         const text = cell.toString().toLowerCase().trim();
+                        if (groupKeywords.some(k => text.includes(k))) {
+                            hasGroupKeywords = true;
+                            score += 10;
+                        }
                         if (keywords.some(k => text.includes(k))) {
                             score += 5;
                         }
                     });
 
+                    // Check if next row has subheaders like "Số lượng", "Giá trị"
+                    if (r + 1 < data.length && Array.isArray(data[r + 1])) {
+                        const nextRowText = data[r + 1].map(c => (c || '').toString().toLowerCase()).join(' ');
+                        if (nextRowText.includes('số lượng') || nextRowText.includes('giá trị') || nextRowText.includes('thành tiền') || hasGroupKeywords) {
+                            score += 15;
+                            hasGroupKeywords = true;
+                        }
+                    }
+
                     if (score > maxScore) {
                         maxScore = score;
                         bestRowIdx = r;
+                        detectedMode = hasGroupKeywords ? 'merged_two_rows' : 'single';
                     }
                 }
 
-                applyHeaderRow(data, bestRowIdx);
+                applyHeaderRow(data, bestRowIdx, detectedMode);
                 setStep(2);
             } catch (err) {
                 console.error(err);
@@ -1041,7 +1112,7 @@ export default function AccountingInventory() {
 
                                 {/* CHỌN DÒNG TIÊU ĐỀ (HEADER ROW) */}
                                 <div className="mb-6 p-5 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border-2 border-emerald-500/30">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider">Bước 1</span>
@@ -1050,7 +1121,7 @@ export default function AccountingInventory() {
                                                 </label>
                                             </div>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                                Chọn đúng dòng chứa tên cột trong Excel (Mã hàng, Tên sản phẩm, Tồn kho...). Các dòng phía trên sẽ được bỏ qua.
+                                                Hệ thống tự động hỗ trợ <span className="text-emerald-600 dark:text-emerald-400 font-bold">ghép 2 dòng tiêu đề đã merge ô</span> (như bảng Nhập - Xuất - Tồn của kế toán MISA, FAST...).
                                             </p>
                                         </div>
                                         <button
@@ -1063,19 +1134,53 @@ export default function AccountingInventory() {
                                         </button>
                                     </div>
 
+                                    {/* Header Mode Switcher */}
+                                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Kiểu tiêu đề:</span>
+                                        <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 dark:bg-slate-800 rounded-xl">
+                                            <button
+                                                type="button"
+                                                onClick={() => applyHeaderRow(rawMatrix, headerRowIndex, 'merged_two_rows')}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                                                    headerMode === 'merged_two_rows'
+                                                        ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                )}
+                                            >
+                                                <Sparkles size={13} />
+                                                <span>Ghép 2 dòng (Dòng Merge)</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyHeaderRow(rawMatrix, headerRowIndex, 'single')}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
+                                                    headerMode === 'single'
+                                                        ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm"
+                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                )}
+                                            >
+                                                <span>1 dòng tiêu đề đơn</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     {/* Dropdown Selector for Header Row */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
                                         <div className="sm:col-span-2">
                                             <select
                                                 value={headerRowIndex}
-                                                onChange={(e) => applyHeaderRow(rawMatrix, parseInt(e.target.value))}
+                                                onChange={(e) => applyHeaderRow(rawMatrix, parseInt(e.target.value), headerMode)}
                                                 className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500/40 rounded-xl px-4 py-2.5 font-black text-slate-800 dark:text-slate-100 text-sm focus:border-emerald-600 outline-none shadow-sm cursor-pointer"
                                             >
                                                 {rawMatrix.slice(0, 15).map((row, idx) => {
                                                     const rowCells = Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join(' | ') : '';
                                                     return (
                                                         <option key={idx} value={idx}>
-                                                            Dòng {idx + 1}: {rowCells ? (rowCells.length > 65 ? rowCells.substring(0, 65) + '...' : rowCells) : '(Dòng trống)'}
+                                                            {headerMode === 'merged_two_rows'
+                                                                ? `Dòng ${idx + 1} & ${idx + 2}: ${rowCells ? (rowCells.length > 55 ? rowCells.substring(0, 55) + '...' : rowCells) : '(Dòng trống)'}`
+                                                                : `Dòng ${idx + 1}: ${rowCells ? (rowCells.length > 60 ? rowCells.substring(0, 60) + '...' : rowCells) : '(Dòng trống)'}`}
                                                         </option>
                                                     );
                                                 })}
@@ -1097,30 +1202,37 @@ export default function AccountingInventory() {
                                                     <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
                                                         <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-24">Vị trí</th>
                                                         <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700">Nội dung dòng</th>
-                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-32 text-right">Trạng thái</th>
+                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-36 text-right">Trạng thái</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                                     {rawMatrix.slice(0, 12).map((row, rIdx) => {
-                                                        const isSelected = rIdx === headerRowIndex;
+                                                        const isHeader1 = rIdx === headerRowIndex;
+                                                        const isHeader2 = headerMode === 'merged_two_rows' && rIdx === headerRowIndex + 1;
                                                         const isBefore = rIdx < headerRowIndex;
                                                         return (
                                                             <tr
                                                                 key={rIdx}
-                                                                onClick={() => applyHeaderRow(rawMatrix, rIdx)}
+                                                                onClick={() => applyHeaderRow(rawMatrix, rIdx, headerMode)}
                                                                 className={cn(
                                                                     "cursor-pointer transition-colors",
-                                                                    isSelected
+                                                                    isHeader1
                                                                         ? "bg-emerald-500/15 dark:bg-emerald-500/25 font-bold"
-                                                                        : isBefore
-                                                                            ? "opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                                                                            : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
+                                                                        : isHeader2
+                                                                            ? "bg-blue-500/15 dark:bg-blue-500/25 font-bold"
+                                                                            : isBefore
+                                                                                ? "opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                                                : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
                                                                 )}
                                                             >
                                                                 <td className="py-2.5 px-3">
                                                                     <span className={cn(
                                                                         "px-2 py-0.5 rounded text-[11px] font-black",
-                                                                        isSelected ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                                                        isHeader1
+                                                                            ? "bg-emerald-600 text-white"
+                                                                            : isHeader2
+                                                                                ? "bg-blue-600 text-white"
+                                                                                : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                                                                     )}>
                                                                         Dòng {rIdx + 1}
                                                                     </span>
@@ -1129,9 +1241,13 @@ export default function AccountingInventory() {
                                                                     {Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join('  |  ') : '(Trống)'}
                                                                 </td>
                                                                 <td className="py-2.5 px-3 text-right">
-                                                                    {isSelected ? (
+                                                                    {isHeader1 ? (
                                                                         <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400">
-                                                                            <Check size={14} /> TIÊU ĐỀ
+                                                                            <Check size={14} /> TIÊU ĐỀ 1
+                                                                        </span>
+                                                                    ) : isHeader2 ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
+                                                                            <Check size={14} /> TIÊU ĐỀ 2 (CHI TIẾT)
                                                                         </span>
                                                                     ) : isBefore ? (
                                                                         <span className="text-[10px] text-slate-400 font-bold">
@@ -1139,7 +1255,7 @@ export default function AccountingInventory() {
                                                                         </span>
                                                                     ) : (
                                                                         <span className="text-[10px] text-slate-400 font-bold hover:text-emerald-600">
-                                                                            Chọn dòng này
+                                                                            Chọn làm đầu
                                                                         </span>
                                                                     )}
                                                                 </td>

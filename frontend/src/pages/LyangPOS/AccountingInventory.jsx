@@ -757,45 +757,38 @@ export default function AccountingInventory() {
         <div className="pt-2 px-3 md:px-6 pb-20 w-full min-h-screen transition-colors">
             <div className="max-w-[1800px] mx-auto space-y-6 pb-32">
                 {/* Master Header Card */}
-                <div className="relative overflow-hidden rounded-3xl bg-white/40 dark:bg-slate-900/40 p-6 md:p-8 border border-slate-300 dark:border-slate-800/80 shadow-sm">
-                    <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                        <div className="flex items-center gap-5">
-                            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 ring-1 ring-white/20 shrink-0">
-                                {view === 'invoices' ? <Receipt size={32} /> : <Scale size={32} />}
+                <div className="relative overflow-hidden rounded-3xl bg-transparent p-6 md:p-8 border border-slate-300 dark:border-slate-800 shadow-sm">
+                    <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                <Scale size={32} />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-                                        {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Trong Ngày' : 'Sổ Kế Toán & Đối Soát Kho'}
+                                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+                                        {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Khách Hàng' : 'Sổ Kế Toán & Đối Soát Kho'}
                                     </h1>
-                                    <span className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                        view === 'invoices'
-                                            ? "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-300 dark:border-purple-500/40"
-                                            : view === 'list'
-                                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40"
-                                                : "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-300 dark:border-blue-500/40"
-                                    )}>
-                                        {view === 'invoices' ? 'Theo Dõi Hóa Đơn' : (view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel')}
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700">
+                                        {view === 'invoices' ? 'Theo Ngày & Nợ HĐ' : (view === 'import' ? `Đối Soát Bước ${step}/3` : 'Sổ Sách Hiện Tại')}
                                     </span>
                                 </div>
-                                <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-1.5 max-w-3xl leading-relaxed">
+                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
                                     {view === 'invoices'
-                                        ? 'Theo dõi chi tiết món hàng, trạng thái xuất hóa đơn VAT theo từng khách hàng trong ngày và nợ hóa đơn cần xuất tiếp.'
-                                        : (view === 'list' ? 'Đối soát chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán), hỗ trợ xuất file Excel và kiểm kê nhanh.' : 'Quy trình kiểm tra mã khớp, chênh lệch số lượng & đối soát tồn kho từ file Excel kế toán.')}
+                                        ? 'Theo dõi hóa đơn đã xuất hoặc cần xuất thêm theo từng khách hàng, từng đơn hàng trong ngày và nợ HĐ.'
+                                        : 'Đối soát chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán), hỗ trợ xuất file Excel và kiểm kê nhanh.'}
                                 </p>
                             </div>
                         </div>
 
                         {/* Top Action Buttons */}
-                        <div className="flex items-center gap-3 self-end lg:self-center">
+                        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
                             {view === 'list' && (
                                 <>
                                     <motion.button
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={handleExportDashboardData}
-                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                        className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
                                     >
                                         <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                         <span>Xuất Sổ Excel</span>
@@ -805,9 +798,9 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => { setView('import'); setStep(1); }}
-                                        className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl shadow-emerald-500/25 border border-emerald-400/20 transition-all text-xs uppercase tracking-wider group cursor-pointer"
+                                        className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl shadow-emerald-500/25 border border-emerald-400/20 transition-all cursor-pointer"
                                     >
-                                        <Upload size={16} className="group-hover:-translate-y-0.5 transition-transform" />
+                                        <Upload size={16} />
                                         <span>Đối Soát Excel Mới</span>
                                     </motion.button>
                                 </>
@@ -821,7 +814,7 @@ export default function AccountingInventory() {
                                                 whileHover={{ scale: 1.02, y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleExportImportData}
-                                                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                                className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
                                             >
                                                 <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                                 <span>Xuất Báo Cáo</span>
@@ -858,7 +851,7 @@ export default function AccountingInventory() {
                                                 setView('list');
                                             }
                                         }}
-                                        className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700"
+                                        className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>{isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}</span>
@@ -869,15 +862,15 @@ export default function AccountingInventory() {
                     </div>
 
                     {/* Navigation Tabs Bar inside Master Header (POS Theme) */}
-                    <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-slate-800/80 shadow-inner">
+                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
                             <button
                                 onClick={() => setView('list')}
                                 className={cn(
                                     "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                                     (view === 'list' || view === 'import')
                                         ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                                 )}
                             >
                                 <Scale size={15} />
@@ -889,7 +882,7 @@ export default function AccountingInventory() {
                                     "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                                     view === 'invoices'
                                         ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                                 )}
                             >
                                 <Receipt size={15} />
@@ -1033,22 +1026,22 @@ export default function AccountingInventory() {
                         <div className="bg-transparent rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-900 text-white text-xs">
+                                    <thead className="bg-transparent text-slate-800 dark:text-slate-200 border-b border-slate-300 dark:border-slate-800 text-xs">
                                         <tr>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('code')}>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors" onClick={() => handleSort('code')}>
                                                 <div className="flex items-center gap-2">Mã hàng <SortIcon columnKey="code" /></div>
                                             </th>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('name')}>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors" onClick={() => handleSort('name')}>
                                                 <div className="flex items-center gap-2">Tên sản phẩm <SortIcon columnKey="name" /></div>
                                             </th>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('stock')}>
-                                                <div className="flex items-center justify-end gap-2 text-emerald-400">Kho Thực Tế (POS) <SortIcon columnKey="stock" /></div>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors" onClick={() => handleSort('stock')}>
+                                                <div className="flex items-center justify-end gap-2 text-emerald-600 dark:text-emerald-400">Kho Thực Tế (POS) <SortIcon columnKey="stock" /></div>
                                             </th>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('accounting_stock')}>
-                                                <div className="flex items-center justify-end gap-2 text-blue-400">Kho Sổ Sách (KT) <SortIcon columnKey="accounting_stock" /></div>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors" onClick={() => handleSort('accounting_stock')}>
+                                                <div className="flex items-center justify-end gap-2 text-blue-600 dark:text-blue-400">Kho Sổ Sách (KT) <SortIcon columnKey="accounting_stock" /></div>
                                             </th>
-                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('diff')}>
-                                                <div className="flex items-center justify-end gap-2 text-rose-400">Chênh lệch <SortIcon columnKey="diff" /></div>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors" onClick={() => handleSort('diff')}>
+                                                <div className="flex items-center justify-end gap-2 text-rose-600 dark:text-rose-400">Chênh lệch <SortIcon columnKey="diff" /></div>
                                             </th>
                                             <th className="px-6 py-4 uppercase font-black tracking-wider text-center">Trạng thái đối soát</th>
                                         </tr>
@@ -1548,7 +1541,7 @@ export default function AccountingInventory() {
                                     </div>
 
                                     {/* Filter Segmented Control */}
-                                    <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-300 dark:border-slate-700">
+                                    <div className="flex flex-wrap items-center gap-2 bg-transparent p-1.5 rounded-xl border border-slate-300 dark:border-slate-800">
                                         {[
                                             { id: 'all', label: `Tất cả (${stats.total})` },
                                             { id: 'matched', label: `🟢 Khớp mã (${stats.matched})` },
@@ -1562,8 +1555,8 @@ export default function AccountingInventory() {
                                                 className={cn(
                                                     "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                                                     importFilter === f.id
-                                                        ? "bg-slate-900 text-white dark:bg-slate-900 dark:text-white shadow-sm"
-                                                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                                                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
+                                                        : "text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/40"
                                                 )}
                                             >
                                                 {f.label}
@@ -1576,18 +1569,18 @@ export default function AccountingInventory() {
                                 <div className="bg-transparent rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
-                                            <thead className="bg-slate-900 text-white text-xs">
+                                            <thead className="bg-transparent text-slate-800 dark:text-slate-200 border-b border-slate-300 dark:border-slate-800 text-xs">
                                                 <tr>
-                                                    <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'excelCode', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40" onClick={() => setImportSort({ key: 'excelCode', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
                                                         Sản Phẩm (Từ File Excel)
                                                     </th>
-                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'posStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40" onClick={() => setImportSort({ key: 'posStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
                                                         Kho Thực Tế (POS)
                                                     </th>
-                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'excelStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40" onClick={() => setImportSort({ key: 'excelStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
                                                         Kho Sổ Sách (Excel)
                                                     </th>
-                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'diff', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40" onClick={() => setImportSort({ key: 'diff', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
                                                         Chênh lệch
                                                     </th>
                                                     <th className="px-6 py-4 uppercase font-black tracking-wider text-center">

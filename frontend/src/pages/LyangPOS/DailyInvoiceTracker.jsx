@@ -378,15 +378,15 @@ export default function DailyInvoiceTracker() {
     return (
         <div className="space-y-6 text-slate-900 dark:text-white">
             {/* SUB-TABS (DAILY vs PENDING NEED MORE vs COMPLETED) */}
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-white/40 dark:bg-slate-900/40 p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
-                <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-950/80 rounded-2xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-transparent p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm">
+                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
                     <button
                         onClick={() => setScope('daily')}
                         className={cn(
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                             scope === 'daily'
                                 ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                         )}
                     >
                         <Calendar size={15} />
@@ -399,7 +399,7 @@ export default function DailyInvoiceTracker() {
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer relative",
                             scope === 'pending'
                                 ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                         )}
                     >
                         <Hourglass size={15} className="text-rose-500 animate-pulse" />
@@ -415,7 +415,7 @@ export default function DailyInvoiceTracker() {
                             "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                             scope === 'completed'
                                 ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/50"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                         )}
                     >
                         <CheckCheck size={15} />
@@ -426,7 +426,7 @@ export default function DailyInvoiceTracker() {
                 {/* Date Controls (for daily and completed scope) */}
                 <div className="flex flex-wrap items-center gap-3">
                     {(scope === 'daily' || scope === 'completed') && (
-                        <div className="flex items-center gap-2 bg-slate-100/90 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
+                        <div className="flex items-center gap-2 bg-transparent p-1.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
                             <Calendar size={16} className="text-emerald-600 dark:text-emerald-400 ml-2" />
                             <input
                                 type="date"
@@ -440,14 +440,14 @@ export default function DailyInvoiceTracker() {
                                     "px-3 py-1 rounded-xl font-black text-[11px] transition-all cursor-pointer",
                                     selectedDate === todayStr
                                         ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
-                                        : "bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                        : "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
                                 )}
                             >
                                 Hôm nay
                             </button>
                             <button
                                 onClick={() => handleQuickDate(-1)}
-                                className="px-3 py-1 bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-[11px] transition-all cursor-pointer"
+                                className="px-3 py-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-[11px] transition-all cursor-pointer border border-slate-300 dark:border-slate-700"
                             >
                                 Hôm qua
                             </button>
@@ -458,7 +458,7 @@ export default function DailyInvoiceTracker() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => fetchInvoiceData(scope, selectedDate)}
-                        className="p-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+                        className="p-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
                         title="Làm mới dữ liệu"
                     >
                         <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-600 dark:text-emerald-400")} />
@@ -479,7 +479,7 @@ export default function DailyInvoiceTracker() {
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Tổng đối tác */}
-                <div className="bg-white/50 dark:bg-slate-900/40 p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-transparent p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-13 h-13 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 group-hover:scale-105 transition-transform shadow-inner">
                             <Users size={24} />
@@ -497,7 +497,7 @@ export default function DailyInvoiceTracker() {
                 </div>
 
                 {/* Đã xuất đủ */}
-                <div className="bg-emerald-50/40 dark:bg-emerald-950/20 p-5 rounded-3xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-transparent p-5 rounded-3xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-13 h-13 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 group-hover:scale-105 transition-transform shadow-inner">
                             <CheckCircle2 size={24} />
@@ -516,8 +516,8 @@ export default function DailyInvoiceTracker() {
 
                 {/* Chưa xuất đủ / Cần xuất thêm */}
                 <div className={cn(
-                    "p-5 rounded-3xl border shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all",
-                    summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-500/50 bg-rose-50/50 dark:bg-rose-950/20" : "border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/40"
+                    "p-5 rounded-3xl border shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all bg-transparent",
+                    summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-500/50" : "border-slate-300 dark:border-slate-800"
                 )}>
                     <div className="flex items-center gap-4 relative z-10">
                         <div className={cn(
@@ -539,7 +539,7 @@ export default function DailyInvoiceTracker() {
                 </div>
 
                 {/* Tổng Giá Trị Đơn Hàng */}
-                <div className="bg-amber-50/30 dark:bg-amber-950/15 p-5 rounded-3xl border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
+                <div className="bg-transparent p-5 rounded-3xl border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-13 h-13 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 group-hover:scale-105 transition-transform shadow-inner">
                             <DollarSign size={24} />
@@ -555,7 +555,7 @@ export default function DailyInvoiceTracker() {
             </div>
 
             {/* Search & Filter Bar */}
-            <div className="bg-white/40 dark:bg-slate-900/40 p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-transparent p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="relative flex-1 w-full group">
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                     <input
@@ -563,11 +563,11 @@ export default function DailyInvoiceTracker() {
                         placeholder="Tìm kiếm đối tác, SĐT, tên sản phẩm, mã đơn (HD...)..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-white/80 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500 shadow-inner"
+                        className="w-full pl-11 pr-4 py-3 bg-transparent border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500"
                     />
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1.5 bg-slate-100/90 dark:bg-slate-950/80 rounded-2xl border border-slate-300 dark:border-slate-800/80 w-full md:w-auto shadow-sm">
+                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 w-full md:w-auto shadow-sm">
                     {[
                         { id: 'all', label: `Tất cả (${summary.total_partners_count})` },
                         { id: 'uninvoiced', label: `🔴 Chưa đủ (${summary.uninvoiced_partners_count})` },
@@ -579,8 +579,8 @@ export default function DailyInvoiceTracker() {
                             className={cn(
                                 "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
                                 statusFilter === f.id
-                                    ? "bg-slate-900 text-white dark:bg-slate-800 dark:text-white shadow-md ring-1 ring-white/10"
-                                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800/40"
+                                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
+                                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
                             )}
                         >
                             {f.label}
@@ -596,7 +596,7 @@ export default function DailyInvoiceTracker() {
                     <p className="text-sm font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Đang tải dữ liệu theo dõi hóa đơn...</p>
                 </div>
             ) : partners.length === 0 ? (
-                <div className="py-20 text-center bg-white/40 dark:bg-slate-900/40 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12">
+                <div className="py-20 text-center bg-transparent rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-12">
                     <Receipt className="mx-auto mb-4 text-slate-400 dark:text-slate-600" size={56} />
                     <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">
                         {scope === 'pending' ? 'Tuyệt Vời! Không Có Khách Nào Cần Xuất Thêm Hóa Đơn' : 'Không Có Dữ Liệu Phù Hợp'}
@@ -619,7 +619,7 @@ export default function DailyInvoiceTracker() {
                             <div
                                 key={partner.partner_id}
                                 className={cn(
-                                    "bg-white/50 dark:bg-slate-900/40 rounded-3xl border transition-all duration-200 overflow-hidden shadow-sm",
+                                    "bg-transparent rounded-3xl border transition-all duration-200 overflow-hidden shadow-sm",
                                     isFullyInvoiced
                                         ? "border-emerald-300 dark:border-emerald-500/40 hover:border-emerald-500"
                                         : "border-rose-300 dark:border-rose-500/50 hover:border-rose-500"

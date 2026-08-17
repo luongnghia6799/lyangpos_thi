@@ -956,7 +956,6 @@ export default function DailyInvoiceTracker() {
                             <th className="py-3 px-3.5 text-right">Đơn giá</th>
                             <th className="py-3 px-3.5 text-right">Thành tiền</th>
                             <th className="py-3 px-3.5 text-center">Trạng thái</th>
-                            <th className="py-3 px-3.5 text-center">Lưu Dòng</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
@@ -1073,17 +1072,6 @@ export default function DailyInvoiceTracker() {
                                                     <Hourglass size={11} /> CẦN XUẤT THÊM
                                                 </span>
                                             )}
-                                        </button>
-                                    </td>
-                                    <td className="py-3 px-3.5 text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSaveSingleModalItem(item)}
-                                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl font-black text-xs transition-all cursor-pointer inline-flex items-center gap-1 border border-emerald-300 dark:border-emerald-500/30"
-                                            title="Lưu riêng dòng này"
-                                        >
-                                            <Check size={12} />
-                                            <span>Lưu Dòng</span>
                                         </button>
                                     </td>
                                 </tr>

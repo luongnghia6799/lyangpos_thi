@@ -38,24 +38,29 @@ export default function DailyInvoiceTracker() {
     const todayStr = new Date().toISOString().split('T')[0];
     const [scope, setScope] = useState('daily'); // 'daily', 'pending', 'completed'
     const [selectedDate, setSelectedDate] = useState(todayStr);
+    const defaultSummary = {
+        total_partners_count: 0,
+        invoiced_partners_count: 0,
+        uninvoiced_partners_count: 0,
+        total_sales_amount: 0,
+        invoiced_amount: 0,
+        uninvoiced_amount: 0,
+        total_orders_count: 0,
+        invoiced_orders_count: 0,
+        uninvoiced_orders_count: 0
+    };
+
     const [data, setData] = useState({
-        summary: {
-            total_partners_count: 0,
-            invoiced_partners_count: 0,
-            uninvoiced_partners_count: 0,
-            total_sales_amount: 0,
-            invoiced_amount: 0,
-            uninvoiced_amount: 0,
-            total_orders_count: 0,
-            invoiced_orders_count: 0,
-            uninvoiced_orders_count: 0
-        },
+        summary: defaultSummary,
         partners: []
     });
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'uninvoiced', 'invoiced'
     const [expandedPartners, setExpandedPartners] = useState({});
+
+    const summary = (data && data.summary) ? data.summary : defaultSummary;
+    const partners = (data && Array.isArray(data.partners)) ? data.partners : [];
 
     // Modal state for viewing & tracking items of a partner
     const [partnerItemsModal, setPartnerItemsModal] = useState({
@@ -88,10 +93,19 @@ export default function DailyInvoiceTracker() {
                     status: statusFilter
                 }
             });
-            setData(res.data);
+            if (res.data && res.data.summary && Array.isArray(res.data.partners)) {
+                setData(res.data);
+            } else if (res.data && Array.isArray(res.data.partners)) {
+                setData({
+                    summary: res.data.summary || defaultSummary,
+                    partners: res.data.partners
+                });
+            } else {
+                setData({ summary: defaultSummary, partners: [] });
+            }
             
             // Auto expand partners initially if count <= 5
-            if (res.data.partners && res.data.partners.length <= 5) {
+            if (res.data && res.data.partners && res.data.partners.length <= 5) {
                 const initialExpanded = {};
                 res.data.partners.forEach(p => {
                     initialExpanded[p.partner_id] = true;
@@ -100,7 +114,7 @@ export default function DailyInvoiceTracker() {
             }
         } catch (error) {
             console.error("Error fetching daily invoices:", error);
-            toast.error("Không thể tải dữ liệu xuất hóa đơn");
+            setData({ summary: defaultSummary, partners: [] });
         } finally {
             setLoading(false);
         }
@@ -347,7 +361,7 @@ export default function DailyInvoiceTracker() {
                     >
                         <Hourglass size={15} className="text-rose-500 animate-pulse" />
                         <span>Cần Xuất Thêm / Nợ HĐ</span>
-                        {scope === 'daily' && data.summary.uninvoiced_partners_count > 0 && (
+                        {scope === 'daily' && summary.uninvoiced_partners_count > 0 && (
                             <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-2 right-2 ring-4 ring-rose-500/20" />
                         )}
                     </button>
@@ -430,8 +444,8 @@ export default function DailyInvoiceTracker() {
                                 {scope === 'pending' ? 'Đối Tác Cần Xuất Thêm HĐ' : 'Tổng Đối Tác'}
                             </p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{data.summary.total_partners_count}</span>
-                                <span className="text-xs font-bold text-slate-400">khách ({data.summary.total_orders_count} đơn)</span>
+                                <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{summary.total_partners_count}</span>
+                                <span className="text-xs font-bold text-slate-400">khách ({summary.total_orders_count} đơn)</span>
                             </div>
                         </div>
                     </div>
@@ -445,11 +459,11 @@ export default function DailyInvoiceTracker() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
-                                Đã Xuất Đủ ({data.summary.total_partners_count ? Math.round((data.summary.invoiced_partners_count / data.summary.total_partners_count) * 100) : 0}%)
+                                Đã Xuất Đủ ({summary.total_partners_count ? Math.round((summary.invoiced_partners_count / summary.total_partners_count) * 100) : 0}%)
                             </p>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{data.summary.invoiced_partners_count}</span>
-                                <span className="text-xs font-bold text-emerald-600/70">khách ({data.summary.invoiced_amount.toLocaleString()}đ)</span>
+                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{summary.invoiced_partners_count}</span>
+                                <span className="text-xs font-bold text-emerald-600/70">khách ({summary.invoiced_amount.toLocaleString()}đ)</span>
                             </div>
                         </div>
                     </div>
@@ -458,22 +472,22 @@ export default function DailyInvoiceTracker() {
                 {/* Chưa xuất đủ / Cần xuất thêm */}
                 <div className={cn(
                     "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border shadow-sm relative overflow-hidden",
-                    data.summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-900/80 bg-rose-50/20" : "border-slate-200 dark:border-slate-800"
+                    summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-900/80 bg-rose-50/20" : "border-slate-200 dark:border-slate-800"
                 )}>
                     <div className="flex items-center gap-3 relative z-10">
                         <div className={cn(
                             "w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner",
-                            data.summary.uninvoiced_partners_count > 0 ? "bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400" : "bg-slate-100 text-slate-400"
+                            summary.uninvoiced_partners_count > 0 ? "bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400" : "bg-slate-100 text-slate-400"
                         )}>
                             <AlertCircle size={24} />
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Chưa Xuất Đủ / Nợ HĐ</p>
                             <div className="flex items-baseline gap-2">
-                                <span className={cn("text-2xl font-black tabular-nums", data.summary.uninvoiced_partners_count > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
-                                    {data.summary.uninvoiced_partners_count}
+                                <span className={cn("text-2xl font-black tabular-nums", summary.uninvoiced_partners_count > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                                    {summary.uninvoiced_partners_count}
                                 </span>
-                                <span className="text-xs font-bold text-rose-500/80">khách ({data.summary.uninvoiced_amount.toLocaleString()}đ)</span>
+                                <span className="text-xs font-bold text-rose-500/80">khách ({summary.uninvoiced_amount.toLocaleString()}đ)</span>
                             </div>
                         </div>
                     </div>
@@ -488,7 +502,7 @@ export default function DailyInvoiceTracker() {
                         <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tổng Giá Trị Đơn Hàng</p>
                             <p className="text-xl font-black text-white tabular-nums">
-                                {data.summary.total_sales_amount.toLocaleString()}đ
+                                {summary.total_sales_amount.toLocaleString()}đ
                             </p>
                         </div>
                     </div>
@@ -510,9 +524,9 @@ export default function DailyInvoiceTracker() {
 
                 <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full md:w-auto">
                     {[
-                        { id: 'all', label: `Tất cả (${data.summary.total_partners_count})` },
-                        { id: 'uninvoiced', label: `🔴 Chưa đủ (${data.summary.uninvoiced_partners_count})` },
-                        { id: 'invoiced', label: `🟢 Xuất đủ (${data.summary.invoiced_partners_count})` }
+                        { id: 'all', label: `Tất cả (${summary.total_partners_count})` },
+                        { id: 'uninvoiced', label: `🔴 Chưa đủ (${summary.uninvoiced_partners_count})` },
+                        { id: 'invoiced', label: `🟢 Xuất đủ (${summary.invoiced_partners_count})` }
                     ].map(f => (
                         <button
                             key={f.id}
@@ -536,7 +550,7 @@ export default function DailyInvoiceTracker() {
                     <RefreshCw className="animate-spin text-emerald-600 mx-auto mb-3" size={36} />
                     <p className="text-sm font-black text-slate-500 uppercase tracking-wider">Đang tải dữ liệu theo dõi hóa đơn...</p>
                 </div>
-            ) : data.partners.length === 0 ? (
+            ) : partners.length === 0 ? (
                 <div className="py-20 text-center bg-white/60 dark:bg-slate-900/60 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 p-12">
                     <Receipt className="mx-auto mb-4 text-slate-300 dark:text-slate-600" size={56} />
                     <h3 className="text-lg font-black text-slate-700 dark:text-slate-300 uppercase">
@@ -550,7 +564,7 @@ export default function DailyInvoiceTracker() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {data.partners.map((partner) => {
+                    {partners.map((partner) => {
                         const isExpanded = !!expandedPartners[partner.partner_id];
                         const isFullyInvoiced = partner.is_fully_invoiced;
                         const pendingItemsCount = partner.pending_items_count || 0;

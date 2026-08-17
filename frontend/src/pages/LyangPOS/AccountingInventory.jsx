@@ -196,12 +196,18 @@ export default function AccountingInventory() {
         // 2. Fallback standard detections for all fields
         head.forEach(h => {
             const norm = h.toLowerCase().trim();
-            // Code
-            if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'sku' || norm.includes('mã hàng') || norm.includes('mã sp'))) {
+            // Code (Mã hàng / Mã SP / Mã vật tư / Mã hàng hóa / SKU / Code...)
+            if (!suggest.code && (
+                norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'sku' ||
+                norm === 'mã vật tư' || norm === 'mã vt' || norm === 'mã hàng hóa' || norm === 'mã hh' || norm === 'mã nvl' ||
+                norm.includes('mã hàng') || norm.includes('mã sp') || norm.includes('mã vật tư') || norm.includes('mã vt') ||
+                norm.includes('mã hàng hóa') || norm.includes('mã hh') || norm.includes('mã sản phẩm') || norm.includes('mã đối tượng') ||
+                norm.includes('item code') || norm.includes('product code') || norm.includes('sku') || norm.includes('mã code')
+            )) {
                 suggest.code = h;
             }
             // Name
-            if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm' || norm.includes('tên hàng') || norm.includes('tên sp') || norm.includes('tên sản phẩm'))) {
+            if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên vật tư' || norm === 'tên vt' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm' || norm.includes('tên hàng') || norm.includes('tên sp') || norm.includes('tên sản phẩm') || norm.includes('tên vật tư') || norm.includes('tên hàng hóa'))) {
                 suggest.name = h;
             }
             // Stock fallback
@@ -218,7 +224,7 @@ export default function AccountingInventory() {
         if (!suggest.code) {
             head.forEach(h => {
                 const norm = h.toLowerCase();
-                if (norm.includes('mã') || norm.includes('code')) suggest.code = h;
+                if (norm.includes('mã') || norm.includes('code') || norm.includes('sku')) suggest.code = h;
             });
         }
         if (!suggest.name) {
@@ -326,11 +332,11 @@ export default function AccountingInventory() {
         }
 
         const result = fileData.map((row, idx) => {
-            const rawCode = mapping.code ? (row[mapping.code] || '').toString().trim() : '';
-            const rawName = mapping.name ? (row[mapping.name] || '').toString().trim() : '';
+            const rawCode = mapping.code ? (row[mapping.code] !== undefined && row[mapping.code] !== null ? row[mapping.code].toString().trim() : '') : '';
+            const rawName = mapping.name ? (row[mapping.name] !== undefined && row[mapping.name] !== null ? row[mapping.name].toString().trim() : '') : '';
             const excelStock = parseFloat(row[mapping.stock]) || 0;
             const rawPriceVal = mapping.price ? (parseFloat(row[mapping.price]) || 0) : 0;
-            const excelUnit = mapping.unit ? (row[mapping.unit] || '').toString().trim() : '';
+            const excelUnit = mapping.unit ? (row[mapping.unit] !== undefined && row[mapping.unit] !== null ? row[mapping.unit].toString().trim() : '') : '';
 
             // Calculate accounting unit price
             let excelPrice = 0;
@@ -340,36 +346,44 @@ export default function AccountingInventory() {
                 excelPrice = Math.round(rawPriceVal);
             }
 
-            const normCode = rawCode.toLowerCase().normalize('NFC');
-            const normName = rawName.toLowerCase().normalize('NFC');
+            const cleanStr = (s) => (s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase().normalize('NFC');
+            const normCode = cleanStr(rawCode);
+            const normName = cleanStr(rawName);
 
             // Skip total rows
             if (normCode === 'tổng cộng' || normName === 'tổng cộng' || normCode === 'cộng' || normName === 'cộng' || normCode.startsWith('tổng cộng') || normName.startsWith('tổng cộng')) {
                 return null;
             }
 
-            // Intelligent 4-stage matching
+            // Intelligent 5-stage matching
             let matched = null;
             // Stage 1: Exact code match
             if (normCode) {
-                matched = products.find(p => (p.code || '').trim().toLowerCase().normalize('NFC') === normCode);
+                matched = products.find(p => cleanStr(p.code) === normCode);
             }
             // Stage 2: Exact name match
             if (!matched && normName) {
-                matched = products.find(p => (p.name || '').trim().toLowerCase().normalize('NFC') === normName);
+                matched = products.find(p => cleanStr(p.name) === normName);
             }
             // Stage 3: Match Excel code with product name
             if (!matched && normCode) {
-                matched = products.find(p => (p.name || '').trim().toLowerCase().normalize('NFC') === normCode);
+                matched = products.find(p => cleanStr(p.name) === normCode);
             }
             // Stage 4: Match Excel name with product code
             if (!matched && normName) {
-                matched = products.find(p => (p.code || '').trim().toLowerCase().normalize('NFC') === normName);
+                matched = products.find(p => cleanStr(p.code) === normName);
+            }
+            // Stage 5: Match alias
+            if (!matched && (normCode || normName)) {
+                matched = products.find(p => {
+                    const normAlias = cleanStr(p.alias);
+                    return normAlias && (normAlias === normCode || normAlias === normName);
+                });
             }
 
             return {
                 id: idx,
-                excelCode: rawCode || rawName || `SP_${idx + 1}`,
+                excelCode: rawCode || (matched ? matched.code : '') || `SP_${idx + 1}`,
                 excelName: rawName || rawCode,
                 excelStock,
                 excelPrice,
@@ -481,11 +495,22 @@ export default function AccountingInventory() {
     const handleUpdate = async () => {
         const updateList = matchedData
             .filter(item => item.matchedProduct)
-            .map(item => ({
-                id: item.matchedProduct.id,
-                accounting_price: item.excelPrice,
-                accounting_stock: item.excelStock
-            }));
+            .map(item => {
+                const payload = {
+                    id: item.matchedProduct.id,
+                    accounting_price: item.excelPrice || 0,
+                    accounting_stock: item.excelStock || 0
+                };
+                // If user selected Code column in mapping, update product code in database
+                if (mapping.code && item.excelCode && !item.excelCode.startsWith('SP_')) {
+                    payload.code = item.excelCode;
+                }
+                // If user selected Unit column in mapping, update product unit
+                if (mapping.unit && item.excelUnit) {
+                    payload.unit = item.excelUnit;
+                }
+                return payload;
+            });
 
         if (updateList.length === 0) {
             toast.error("Chưa có sản phẩm nào được khớp mã để cập nhật!");

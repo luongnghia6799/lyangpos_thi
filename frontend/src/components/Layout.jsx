@@ -45,7 +45,8 @@ import {
     Globe,
     ArrowRight,
     FileText,
-    Tv
+    Tv,
+    Scale
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 
@@ -583,7 +584,7 @@ export default function Layout({ children }) {
             { path: "/reports", icon: LayoutDashboard },
             { path: "/detailed-reports", icon: Download },
             { path: "/accounting/mapping", icon: SettingsIcon },
-            { path: "/accounting/inventory", icon: Landmark },
+            { path: "/accounting/inventory", icon: Scale },
             { path: "/products", icon: Sprout },
             { path: "/partners", icon: Droplets },
             { path: "/partner-profile", icon: Users },
@@ -1088,12 +1089,12 @@ export default function Layout({ children }) {
             },
             {
                 label: "Kế toán",
-                icon: Calculator,
+                icon: Scale,
                 roles: ['admin', 'accountant', 'user'],
                 children: [
                     { icon: Download, label: "Xuất Báo Cáo Kế Toán", path: "/detailed-reports", roles: ['admin', 'accountant', 'user'] },
                     { icon: SettingsIcon, label: "Cấu hình Mẫu Excel", path: "/accounting/mapping", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Landmark, label: "Sổ kế toán", path: "/accounting/inventory", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Scale, label: "Sổ kế toán", path: "/accounting/inventory", roles: ['admin', 'accountant', 'user'] },
                 ]
             },
             {

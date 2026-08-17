@@ -22,7 +22,8 @@ import {
     ShoppingBag,
     Sparkles,
     Store,
-    Zap
+    Zap,
+    Scale
 } from 'lucide-react';
 
 export const DEFAULT_NAV_SECTIONS = [
@@ -60,13 +61,13 @@ export const DEFAULT_NAV_SECTIONS = [
     {
         id: 'accounting',
         label: 'Kế toán',
-        icon: Calculator,
+        icon: Scale,
         isAccounting: true,
         roles: ['admin', 'accountant', 'user'],
         items: [
             { id: 'detailed_reports', path: '/detailed-reports', label: 'Xuất Báo Cáo Kế Toán', icon: Download, roles: ['admin', 'accountant', 'user'], desc: 'Xuất file dữ liệu chi tiết cho kế toán' },
             { id: 'accounting_mapping', path: '/accounting/mapping', label: 'Cấu hình Mẫu Excel', icon: SettingsIcon, roles: ['admin', 'accountant', 'user'], desc: 'Ánh xạ cột dữ liệu theo biểu mẫu riêng' },
-            { id: 'accounting_inventory', path: '/accounting/inventory', label: 'Kho kế toán', icon: Landmark, roles: ['admin', 'accountant', 'user'], desc: 'Đối soát hàng hóa & giá vốn kế toán' },
+            { id: 'accounting_inventory', path: '/accounting/inventory', label: 'Kho kế toán', icon: Scale, roles: ['admin', 'accountant', 'user'], desc: 'Đối soát hàng hóa & giá vốn kế toán' },
         ]
     },
     {

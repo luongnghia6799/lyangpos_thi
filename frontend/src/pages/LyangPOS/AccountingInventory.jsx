@@ -703,12 +703,8 @@ export default function AccountingInventory() {
     return (
         <div className="pt-2 px-3 md:px-6 pb-20 w-full min-h-screen transition-colors">
             <div className="max-w-[1800px] mx-auto space-y-6 pb-32">
-                {/* Master Header Card (POS Theme) */}
-                <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-900/95 text-white p-6 md:p-8 border border-slate-800/90 shadow-2xl backdrop-blur-xl">
-                    {/* Glowing background accent */}
-                    <div className="absolute -right-20 -top-20 w-96 h-96 bg-gradient-to-br from-emerald-500/15 to-teal-500/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-gradient-to-tr from-cyan-500/10 to-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-
+                {/* Master Header Card */}
+                <div className="relative overflow-hidden rounded-3xl bg-transparent text-white p-6 md:p-8 border border-slate-800/80">
                     <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         <div className="flex items-center gap-5">
                             <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 ring-1 ring-white/20 shrink-0">
@@ -720,12 +716,12 @@ export default function AccountingInventory() {
                                         {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Trong Ngày' : 'Sổ Kế Toán & Đối Soát Kho'}
                                     </h1>
                                     <span className={cn(
-                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
+                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-transparent",
                                         view === 'invoices'
-                                            ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
+                                            ? "text-purple-300 border-purple-500/40"
                                             : view === 'list'
-                                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                                                : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                                                ? "text-emerald-300 border-emerald-500/40"
+                                                : "text-blue-300 border-blue-500/40"
                                     )}>
                                         {view === 'invoices' ? 'Theo Dõi Hóa Đơn' : (view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel')}
                                     </span>
@@ -738,7 +734,7 @@ export default function AccountingInventory() {
                             </div>
                         </div>
 
-                        {/* Top Action Buttons (POS Theme) */}
+                        {/* Top Action Buttons */}
                         <div className="flex items-center gap-3 self-end lg:self-center">
                             {view === 'list' && (
                                 <>
@@ -746,7 +742,7 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={handleExportDashboardData}
-                                        className="px-5 py-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 rounded-2xl font-black flex items-center gap-2.5 shadow-lg shadow-black/20 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                        className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-200 border border-slate-800 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                     >
                                         <FileSpreadsheet size={16} className="text-emerald-400" />
                                         <span>Xuất Sổ Excel</span>
@@ -772,7 +768,7 @@ export default function AccountingInventory() {
                                                 whileHover={{ scale: 1.02, y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleExportImportData}
-                                                className="px-5 py-3 bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 rounded-2xl font-black flex items-center gap-2.5 shadow-lg shadow-black/20 transition-all text-xs uppercase tracking-wider cursor-pointer"
+                                                className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-200 border border-slate-800 rounded-2xl font-black flex items-center gap-2.5 transition-all text-xs uppercase tracking-wider cursor-pointer"
                                             >
                                                 <FileSpreadsheet size={16} className="text-emerald-400" />
                                                 <span>Xuất Báo Cáo</span>
@@ -786,14 +782,12 @@ export default function AccountingInventory() {
                                                 className={cn(
                                                     "px-5 py-3 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer border",
                                                     isUpdateSuccess
-                                                        ? "bg-slate-800 text-slate-400 border-slate-700"
+                                                        ? "bg-transparent text-slate-400 border-slate-700"
                                                         : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/25 border-emerald-400/20"
                                                 )}
                                             >
-                                                {updating ? <RefreshCw className="animate-spin" size={16} /> : (isUpdateSuccess ? <CheckCircle2 size={16} /> : <Save size={16} />)}
-                                                <span>
-                                                    {isUpdateSuccess ? 'Đã lưu sổ sách' : `Cập nhật ${stats.matched} mặt hàng`}
-                                                </span>
+                                                <CheckCircle size={16} />
+                                                <span>{updating ? 'Đang cập nhật...' : (isUpdateSuccess ? 'Đã Cập Nhật' : 'Cập Nhật Vào Hệ Thống')}</span>
                                             </motion.button>
                                         </>
                                     )}
@@ -811,7 +805,7 @@ export default function AccountingInventory() {
                                                 setView('list');
                                             }
                                         }}
-                                        className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-700"
+                                        className="px-5 py-3 bg-transparent hover:bg-slate-800/40 text-slate-300 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-800"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>{isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}</span>

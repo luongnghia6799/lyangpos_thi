@@ -37,8 +37,14 @@ import { createPortal } from 'react-dom';
 
 export default function DailyInvoiceTracker() {
     const todayStr = new Date().toISOString().split('T')[0];
-    const [scope, setScope] = useState('daily'); // 'daily', 'pending', 'completed'
+    const [scope, setScope] = useState(() => localStorage.getItem('daily_invoice_tracker_scope') || 'daily'); // 'daily', 'pending', 'completed'
     const [selectedDate, setSelectedDate] = useState(todayStr);
+
+    useEffect(() => {
+        if (scope) {
+            localStorage.setItem('daily_invoice_tracker_scope', scope);
+        }
+    }, [scope]);
     const defaultSummary = {
         total_partners_count: 0,
         invoiced_partners_count: 0,
@@ -94,7 +100,7 @@ export default function DailyInvoiceTracker() {
             const res = await axios.get('/api/accounting/daily-invoices', {
                 params: {
                     scope: currentScope,
-                    date: currentScope === 'daily' ? date : undefined,
+                    date: (currentScope === 'daily' || currentScope === 'completed') ? date : undefined,
                     search: searchQuery || undefined,
                     status: statusFilter !== 'all' ? statusFilter : undefined
                 }
@@ -417,9 +423,9 @@ export default function DailyInvoiceTracker() {
                     </button>
                 </div>
 
-                {/* Date Controls (only for daily scope) */}
+                {/* Date Controls (for daily and completed scope) */}
                 <div className="flex flex-wrap items-center gap-3">
-                    {scope === 'daily' && (
+                    {(scope === 'daily' || scope === 'completed') && (
                         <div className="flex items-center gap-2 bg-slate-100/90 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-300 dark:border-slate-800/80 shadow-sm">
                             <Calendar size={16} className="text-emerald-600 dark:text-emerald-400 ml-2" />
                             <input

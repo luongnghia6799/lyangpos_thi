@@ -44,16 +44,43 @@ import { createPortal } from 'react-dom';
 import DailyInvoiceTracker from './DailyInvoiceTracker';
 
 export default function AccountingInventory() {
-    const [view, setView] = useState('list'); // 'list' or 'import'
+    const [view, setView] = useState(() => localStorage.getItem('accounting_inventory_view') || 'list'); // 'list', 'import', or 'invoices'
     const [step, setStep] = useState(1); // 1: Upload, 2: Mapping, 3: Pre-check & Preview
     const [products, setProducts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
-    const [showOnlyCoded, setShowOnlyCoded] = useState(false);
+    const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(() => localStorage.getItem('accounting_inventory_discrepancy') === 'true');
+    const [showOnlyCoded, setShowOnlyCoded] = useState(() => localStorage.getItem('accounting_inventory_coded') === 'true');
 
     // Pagination Dashboard
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [currentPage, setCurrentPage] = useState(() => {
+        const p = parseInt(localStorage.getItem('accounting_inventory_page') || '1', 10);
+        return isNaN(p) || p < 1 ? 1 : p;
+    });
+    const [itemsPerPage, setItemsPerPage] = useState(() => {
+        const pp = parseInt(localStorage.getItem('accounting_inventory_per_page') || '20', 10);
+        return isNaN(pp) || pp < 1 ? 20 : pp;
+    });
+
+    // Save states to localStorage
+    useEffect(() => {
+        if (view) localStorage.setItem('accounting_inventory_view', view);
+    }, [view]);
+
+    useEffect(() => {
+        localStorage.setItem('accounting_inventory_discrepancy', String(showDiscrepancyOnly));
+    }, [showDiscrepancyOnly]);
+
+    useEffect(() => {
+        localStorage.setItem('accounting_inventory_coded', String(showOnlyCoded));
+    }, [showOnlyCoded]);
+
+    useEffect(() => {
+        localStorage.setItem('accounting_inventory_page', String(currentPage));
+    }, [currentPage]);
+
+    useEffect(() => {
+        localStorage.setItem('accounting_inventory_per_page', String(itemsPerPage));
+    }, [itemsPerPage]);
 
     // Sorting Dashboard
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });

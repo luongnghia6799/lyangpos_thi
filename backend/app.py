@@ -8247,7 +8247,7 @@ def bulk_batch_invoice_partners():
         query = Order.query.filter(
             Order.type == 'Sale',
             Order.display_id.notin_(['NODAU', '#NODAU']),
-            db.or_(*conditions)
+            or_(*conditions)
         )
         
         if date_str:

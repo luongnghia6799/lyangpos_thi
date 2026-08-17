@@ -166,21 +166,43 @@ export default function DailyInvoiceTracker() {
     const handleBulkBatchInvoice = async (isInvoiced = true) => {
         if (selectedPartnerIds.length === 0) return;
         setIsBulkUpdating(true);
+        const idsToUpdate = [...selectedPartnerIds];
+
+        // Optimistic update
+        setData(prev => {
+            if (!prev || !prev.partners) return prev;
+            const nextPartners = prev.partners.map(p => {
+                if (idsToUpdate.includes(p.partner_id)) {
+                    return {
+                        ...p,
+                        is_fully_invoiced: isInvoiced,
+                        pending_items_count: isInvoiced ? 0 : (p.total_items_count || 0),
+                        invoiced_items_count: isInvoiced ? (p.total_items_count || 0) : 0,
+                        invoiced_orders_count: isInvoiced ? (p.total_orders_count || 0) : 0,
+                        uninvoiced_orders_count: isInvoiced ? 0 : (p.total_orders_count || 0)
+                    };
+                }
+                return p;
+            });
+            return { ...prev, partners: nextPartners };
+        });
+
         try {
             const res = await axios.post('/api/accounting/partners/bulk-batch-invoice', {
-                partner_ids: selectedPartnerIds,
-                date: scope === 'daily' ? selectedDate : null,
+                partner_ids: idsToUpdate,
+                date: (scope === 'daily' || scope === 'completed') ? selectedDate : null,
                 is_invoiced: isInvoiced,
                 invoice_no: bulkInvoiceNo,
                 invoice_note: ''
             });
-            toast.success(res.data.message || `Đã xuất đủ hóa đơn cho ${selectedPartnerIds.length} khách!`);
+            toast.success(res.data.message || `Đã xuất đủ hóa đơn cho ${idsToUpdate.length} khách!`);
             setSelectedPartnerIds([]);
             setBulkInvoiceNo('');
             fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
             console.error(err);
-            toast.error("Lỗi khi cập nhật hóa đơn hàng loạt");
+            toast.error(err.response?.data?.error || "Lỗi khi cập nhật hóa đơn hàng loạt");
+            fetchInvoiceData(scope, selectedDate, true);
         } finally {
             setIsBulkUpdating(false);
         }

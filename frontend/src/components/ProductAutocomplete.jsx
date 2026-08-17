@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Search, X, AlertTriangle, Package, PackageX } from 'lucide-react';
 import { cn, removeAccents, formatNumber, normalizeUOM } from '../lib/utils';
+import MarqueeText from './MarqueeText';
 
 const ProductAutocomplete = React.forwardRef(({
     allProducts,
@@ -156,20 +157,25 @@ const ProductAutocomplete = React.forwardRef(({
                                             index === highlightedIndex && "active"
                                         )}
                                     >
-                                        <div className="flex-1 flex flex-col gap-1.5 relative z-10">
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-black uppercase tracking-tight transition-all duration-300" style={{
-                                                    paddingLeft: index === highlightedIndex ? '12px' : '0px'
-                                                }}>
-                                                    {p.name}
-                                                </span>
+                                        <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="min-w-0 flex-1 overflow-hidden">
+                                                    <MarqueeText
+                                                        text={p.name}
+                                                        isActive={index === highlightedIndex}
+                                                        className="font-black uppercase tracking-tight transition-all duration-300"
+                                                        style={{
+                                                            paddingLeft: index === highlightedIndex ? '12px' : '0px'
+                                                        }}
+                                                    />
+                                                </div>
                                                 {p.code && (
-                                                    <span className="px-2.5 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-[10px] font-black tabular-nums text-slate-500 dark:text-slate-400">
+                                                    <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-[10px] font-black tabular-nums text-slate-500 dark:text-slate-400">
                                                         {p.code}
                                                     </span>
                                                 )}
                                                 {p.is_combo && (
-                                                    <span className="px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest ">COMBO</span>
+                                                    <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest ">COMBO</span>
                                                 )}
                                             </div>
 

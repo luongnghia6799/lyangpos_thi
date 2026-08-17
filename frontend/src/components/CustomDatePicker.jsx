@@ -8,6 +8,7 @@ export default function CustomDatePicker({
     value,
     onChange,
     className,
+    inputClassName,
     dropdownClassName,
     placeholder = "Chọn ngày...",
     disabled = false,
@@ -128,15 +129,15 @@ export default function CustomDatePicker({
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const daysInMonth = getDaysInMonth(year, month);
-    const firstDayIndex = getFirstDayOfMonth(year, month); // Day index for grid offset (0 = Sunday, 1 = Monday...)
-    
-    // Adjust offset for Monday start
-    const offset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    const firstDay = getFirstDayOfMonth(year, month);
 
-    const daysArray = [];
+    // Adjust for Monday start (0: Mon, ..., 6: Sun)
+    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
     // Previous month padding days
-    const prevMonthDays = getDaysInMonth(year, month - 1);
-    for (let i = offset; i > 0; i--) {
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    const daysArray = [];
+    for (let i = startOffset; i > 0; i--) {
         daysArray.push({ day: prevMonthDays - i + 1, current: false, monthOffset: -1 });
     }
     // Current month days
@@ -153,24 +154,30 @@ export default function CustomDatePicker({
     const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
     return (
-        <div ref={containerRef} className={cn("relative inline-block text-left min-w-[130px]", className)}>
+        <div ref={containerRef} className={cn("relative inline-block text-left w-full", className)}>
             <div
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 className={cn(
-                    "flex items-center justify-between gap-2 px-3 py-1.5 bg-transparent border border-border rounded-xl text-sm font-bold text-primary dark:text-white transition-all cursor-pointer hover:border-primary/50",
-                    isOpen && "border-primary/50",
-                    disabled && "opacity-50 cursor-not-allowed"
+                    "flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-border/80 rounded-xl text-xs font-bold text-foreground transition-all cursor-pointer hover:border-primary/50 shadow-xs select-none",
+                    isOpen && "border-primary ring-2 ring-primary/10",
+                    disabled && "opacity-50 cursor-not-allowed",
+                    inputClassName
                 )}
             >
-                <div className="flex items-center gap-1.5 overflow-hidden">
-                    <CalendarIcon size={14} className="text-muted shrink-0" />
-                    <span className="truncate text-xs font-black">
+                <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                    <CalendarIcon size={14} className="text-primary/70 dark:text-emerald-400/70 shrink-0" />
+                    <span className={cn("truncate text-xs font-bold font-mono", !selectedDate && "text-muted-foreground font-sans font-medium")}>
                         {displayFormat(selectedDate)}
                     </span>
                 </div>
                 {value && !disabled ? (
-                    <button onClick={handleClear} className="p-0.5 text-gray-400 hover:text-rose-500 rounded-md transition-colors shrink-0">
-                        <X size={12} />
+                    <button 
+                        type="button"
+                        onClick={handleClear} 
+                        className="p-0.5 text-muted-foreground hover:text-rose-500 rounded-md transition-colors shrink-0"
+                        title="Xóa ngày"
+                    >
+                        <X size={13} />
                     </button>
                 ) : null}
             </div>

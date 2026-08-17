@@ -34,6 +34,7 @@ def ensure_schema(engine):
             ('bulk_quantity', 'FLOAT', 'NULL'),
             ('bulk_price', 'FLOAT', 'NULL'),
             ('alias', 'VARCHAR(100)', 'NULL'),
+            ('min_stock', 'FLOAT', '0'),
         ],
         'partner': [
             ('is_customer', 'BOOLEAN', '1'),

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import CustomSelect from '../../components/CustomSelect';
 import { m, AnimatePresence } from 'framer-motion';
-import { Search, Eye, TrendingUp, TrendingDown, Calendar, X, FileText, Trash2, Edit, ChevronUp, ChevronDown, ArrowUpDown, Wheat, Droplets, Leaf, Sprout, Coins, User, Clock, Package, History as HistoryIcon, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Search, Eye, TrendingUp, TrendingDown, Calendar, X, FileText, Trash2, Edit, ChevronUp, ChevronDown, ArrowUpDown, Wheat, Droplets, Leaf, Sprout, Coins, User, Clock, Package, History as HistoryIcon, AlertTriangle, CheckCircle, Warehouse } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -670,10 +670,17 @@ export default function History() {
                                                         </td>
                                                         <td className="p-4 text-[#8b6f47] dark:text-gray-400 text-[11px] font-black whitespace-nowrap tabular-nums">
                                                             {formatDate(o.date)}
-                                                            {o.created_by && <div className="text-[10px] text-[#4a7c59] mt-0.5 flex items-center gap-1 opacity-60"><User size={10} /> {o.created_by}</div>}
+                                                            <div className="text-[10px] text-[#4a7c59] mt-0.5 flex items-center gap-1 opacity-70"><User size={10} /> {o.created_by || 'Admin'}</div>
                                                         </td>
                                                         <td className="p-4 py-5 min-w-[240px]">
-                                                            <div className="font-black text-[#2d5016] dark:text-gray-100 uppercase text-xs tracking-tight mb-2 truncate max-w-[200px]">{o.partner_name}</div>
+                                                            <div className="flex items-center gap-2 mb-2 py-0.5">
+                                                                <span className="font-black text-[#2d5016] dark:text-gray-100 uppercase text-xs tracking-tight truncate max-w-[200px] py-0.5 leading-normal">{o.partner_name}</span>
+                                                                {o.is_consignment && (
+                                                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[8px] font-black uppercase flex items-center gap-0.5 shrink-0">
+                                                                        <Warehouse size={9} /> GỬI KHO
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             {o.details && o.details.length > 0 && (
                                                                 <div className="flex flex-wrap gap-1.5 cursor-default" onClick={e => e.stopPropagation()}>
                                                                     {o.details.slice(0, 5).map((d, dIdx) => (
@@ -713,12 +720,19 @@ export default function History() {
                                                                     {o.payment_method === 'Debt' ? 'TRỪ CÔNG NỢ' : o.payment_method === 'Cash' ? 'HOÀN TIỀN' : 'CHỜ XỬ LÝ'}
                                                                 </span>
                                                             ) : (
-                                                                <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                                                                    o.payment_method === 'Cash' ? "bg-[#2d5016]/10 text-[#2d5016]" :
-                                                                        (o.amount_paid >= o.total_amount ? "bg-blue-100 text-blue-600" : "bg-rose-100 text-rose-600")
-                                                                )}>
-                                                                    {o.payment_method === 'Cash' ? 'TIỀN MẶT' : (o.amount_paid >= o.total_amount ? 'TẤT TOÁN' : 'CÔNG NỢ')}
-                                                                </span>
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <span className={cn("px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
+                                                                        o.payment_method === 'Cash' ? "bg-[#2d5016]/10 text-[#2d5016]" :
+                                                                            (o.amount_paid >= o.total_amount ? "bg-blue-100 text-blue-600" : "bg-rose-100 text-rose-600")
+                                                                    )}>
+                                                                        {o.payment_method === 'Cash' ? 'TIỀN MẶT' : (o.amount_paid >= o.total_amount ? 'TẤT TOÁN' : 'CÔNG NỢ')}
+                                                                    </span>
+                                                                    {o.is_consignment && (
+                                                                        <span className="text-[8px] font-black text-amber-600 uppercase tracking-tight">
+                                                                            HÀNG GỬI KHO
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </td>
                                                         <td className="p-4 text-right space-x-1 whitespace-nowrap">

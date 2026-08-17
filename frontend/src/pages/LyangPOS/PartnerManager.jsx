@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import CustomSelect from '../../components/CustomSelect';
 import { m, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, Search, Phone, MapPin, Tag, X, FileUp, Download, Users, ChevronUp, ChevronDown, ArrowUpDown, Droplets, Sprout, Wheat, CreditCard, FileText, ShoppingCart } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Phone, MapPin, Tag, X, FileUp, Download, Users, ChevronUp, ChevronDown, ArrowUpDown, Droplets, Sprout, Wheat, CreditCard, FileText, ShoppingCart, Check } from 'lucide-react';
 import { formatNumber, formatDebt } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -12,6 +12,31 @@ import PartnerHistoryModal from '../../components/PartnerHistoryModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Portal from '../../components/Portal';
+
+const ThemeCheckbox = ({ checked, indeterminate, onChange, title, className }) => (
+    <button
+        type="button"
+        role="checkbox"
+        aria-checked={checked}
+        title={title}
+        onClick={(e) => {
+            e.stopPropagation();
+            onChange?.(e);
+        }}
+        className={cn(
+            "w-4.5 h-4.5 rounded-[6px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer select-none outline-none shrink-0",
+            checked
+                ? "bg-gradient-to-br from-[#2d5016] to-[#4a7c59] border-[#2d5016] text-white shadow-sm shadow-[#2d5016]/30 scale-105"
+                : indeterminate
+                    ? "bg-[#2d5016]/15 border-[#4a7c59] text-[#2d5016]"
+                    : "bg-white dark:bg-slate-800 border-[#d4a574]/40 hover:border-[#4a7c59] dark:border-slate-600 hover:scale-105 shadow-2xs",
+            className
+        )}
+    >
+        {checked && <Check size={12} strokeWidth={3.5} className="text-white" />}
+        {!checked && indeterminate && <span className="w-2 h-0.5 bg-[#2d5016] dark:bg-emerald-400 rounded-full" />}
+    </button>
+);
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -84,7 +109,6 @@ export default function PartnerManager() {
 
     useEffect(() => {
         fetchPartners();
-        setSelectedIds([]);
     }, [page, limit, searchQuery, filterType, sortBy, sortOrder]);
 
     useEffect(() => {
@@ -214,10 +238,12 @@ export default function PartnerManager() {
     };
 
     const toggleSelectAll = () => {
-        if (selectedIds.length === partners.length && partners.length > 0) {
-            setSelectedIds([]);
+        const currentPageIds = partners.map(p => p.id);
+        const isAllCurrentSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedIds.includes(id));
+        if (isAllCurrentSelected) {
+            setSelectedIds(prev => prev.filter(id => !currentPageIds.includes(id)));
         } else {
-            setSelectedIds(partners.map(p => p.id));
+            setSelectedIds(prev => Array.from(new Set([...prev, ...currentPageIds])));
         }
     };
 
@@ -345,35 +371,51 @@ export default function PartnerManager() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 w-full xl:w-auto relative z-10">
+                <div className="flex flex-wrap gap-2.5 w-full xl:w-auto relative z-10 items-center">
                     <AnimatePresence>
                         {selectedIds.length > 0 && (
-                            <m.button
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                onClick={handleBulkDelete}
-                                className="bg-red-600 dark:bg-red-700 hover:bg-red-750 text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-lg shadow-red-500/20 font-black uppercase text-[10px] tracking-wider"
-                            >
-                                <Trash2 size={16} /> Xóa đã chọn ({selectedIds.length})
-                            </m.button>
+                            <div className="flex items-center gap-2">
+                                <m.button
+                                    key="clear-select"
+                                    initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    onClick={() => setSelectedIds([])}
+                                    className="bg-[#faf8f3] dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/40 hover:bg-[#d4a574]/15 hover:border-[#8b6f47] px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm"
+                                    title="Bỏ chọn tất cả các trang"
+                                >
+                                    <X size={14} /> Bỏ chọn ({selectedIds.length})
+                                </m.button>
+                                <m.button
+                                    key="bulk-delete"
+                                    initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                    onClick={handleBulkDelete}
+                                    className="bg-[#c84b31] hover:bg-[#b03e26] text-white px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#c84b31]/25 hover:shadow-[#c84b31]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
+                                >
+                                    <Trash2 size={15} strokeWidth={2.5} /> Xóa ({selectedIds.length})
+                                </m.button>
+                            </div>
                         )}
                     </AnimatePresence>
-                    <button onClick={handleDownloadTemplate} className="bg-transparent hover:bg-primary/10 border border-border text-[#8b6f47] dark:text-[#d4a574] px-5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider">
-                         <Download size={16} /> Mẫu Excel
-                    </button>
-                    <button onClick={handleCleanupPrices} className="bg-transparent hover:bg-primary/10 border border-border text-primary dark:text-[#d4a574] px-5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider">
-                        <Droplets size={16} /> Đồng bộ giá
-                    </button>
-                    <button onClick={handleExportList} className="bg-transparent hover:bg-primary/10 border border-border text-[#2d5016] dark:text-[#d4a574] px-5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider">
-                        <FileText size={16} /> Xuất Excel
-                    </button>
-                    <label className="bg-[#d4a574] text-[#fdfdfb] hover:bg-[#8b6f47] px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-amber-950/15 font-black uppercase text-[10px] tracking-wider cursor-pointer">
-                        <FileUp size={16} /> Nhập Excel
+                    <div className="flex bg-[#faf8f3] dark:bg-slate-800/80 p-1 rounded-2xl border border-[#d4a574]/30 shadow-sm">
+                        <button onClick={handleDownloadTemplate} className="px-3.5 py-2 text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center gap-1.5 hover:bg-[#d4a574]/15 transition-all font-black uppercase text-[10px] tracking-wider">
+                            <Download size={15} /> Mẫu Excel
+                        </button>
+                        <button onClick={handleCleanupPrices} className="px-3.5 py-2 text-[#2d5016] dark:text-emerald-400 rounded-xl flex items-center gap-1.5 hover:bg-[#2d5016]/10 dark:hover:bg-emerald-950/40 transition-all font-black uppercase text-[10px] tracking-wider">
+                            <Droplets size={15} /> Đồng bộ giá
+                        </button>
+                        <button onClick={handleExportList} className="px-3.5 py-2 text-[#2d5016] dark:text-emerald-400 rounded-xl flex items-center gap-1.5 hover:bg-[#2d5016]/10 dark:hover:bg-emerald-950/40 transition-all font-black uppercase text-[10px] tracking-wider">
+                            <FileText size={15} /> Xuất Excel
+                        </button>
+                    </div>
+                    <label className="bg-white dark:bg-slate-800 text-[#2d5016] dark:text-emerald-400 border border-[#d4a574]/40 hover:border-[#4a7c59] hover:bg-[#2d5016]/5 px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm cursor-pointer">
+                        <FileUp size={15} strokeWidth={2.5} /> Nhập Excel
                         <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
                     </label>
-                    <button onClick={openAdd} className="bg-gradient-to-br from-[#2d5016] to-[#4a7c59] text-white px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:opacity-95 transition-all shadow-md shadow-emerald-950/20 font-black uppercase text-[10px] tracking-widest">
-                        <Plus size={16} strokeWidth={2.5} /> Thêm Đối Tác
+                    <button onClick={openAdd} className="bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#2d5016]/25 hover:shadow-[#2d5016]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider">
+                        <Plus size={16} strokeWidth={3} /> Thêm Đối Tác
                     </button>
                 </div>
             </m.div>
@@ -397,39 +439,34 @@ export default function PartnerManager() {
                     </button>
                     {searchQuery && <button onClick={() => { setSearchTerm(''); setSearchQuery(''); setPage(1); }} className="text-slate-450 hover:text-red-500 transition-colors p-2"><X size={20} /></button>}
                 </div>
-                <div className="flex flex-wrap items-center gap-6 w-full xl:w-auto justify-between sm:justify-end">
-                    <div className="flex gap-2 items-center">
-                        <span className="text-xs font-bold text-slate-450 uppercase tracking-wider">Hiển thị:</span>
+                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto justify-between sm:justify-end">
+                    <div className="flex flex-col gap-1.5 min-w-[160px]">
+                        <label className="text-[9px] font-black text-[#8b6f47] uppercase ml-1 tracking-widest">Loại đối tác</label>
                         <CustomSelect
-                            className="border-0 p-0 min-w-[70px]"
-                            value={limit}
-                            onChange={e => { setLimit(parseInt(e.target.value)); setPage(1); }}
+                            className="w-full border border-border rounded-xl px-1 py-0.5"
+                            value={filterType}
+                            onChange={e => { setFilterType(e.target.value); setPage(1); }}
                             options={[
-                                { value: 10, label: "10" },
-                                { value: 20, label: "20" },
-                                { value: 50, label: "50" },
-                                { value: 100, label: "100" }
+                                { value: 'All', label: 'Tất cả đối tác' },
+                                { value: 'Customer', label: 'Khách hàng' },
+                                { value: 'Supplier', label: 'Nhà cung cấp' },
+                                { value: 'Both', label: 'Hợp tác X (Cả hai)' }
                             ]}
                         />
                     </div>
-                    <div className="flex gap-1 p-1 pos-card rounded-2xl border border-border shadow-none">
-                        {[
-                            { id: 'All', label: 'Tất cả' },
-                            { id: 'Customer', label: 'Khách hàng' },
-                            { id: 'Supplier', label: 'Nhà cung cấp' },
-                            { id: 'Both', label: 'Hợp tác X' }
-                        ].map(type => (
-                            <button
-                                key={type.id}
-                                onClick={() => { setFilterType(type.id); setPage(1); }}
-                                className={cn(
-                                    "relative px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all duration-300",
-                                    filterType === type.id ? "bg-primary text-white" : "text-muted hover:text-[#2d5016] dark:hover:text-[#d4a574] hover:bg-primary/5"
-                                )}
-                            >
-                                <span className="relative z-10">{type.label}</span>
-                            </button>
-                        ))}
+                    <div className="flex flex-col gap-1.5 min-w-[100px]">
+                        <label className="text-[9px] font-black text-[#8b6f47] uppercase ml-1 tracking-widest">Số dòng</label>
+                        <CustomSelect
+                            className="w-full border border-border rounded-xl px-1 py-0.5"
+                            value={limit}
+                            onChange={e => { setLimit(parseInt(e.target.value)); setPage(1); }}
+                            options={[
+                                { value: 10, label: "10 mục" },
+                                { value: 20, label: "20 mục" },
+                                { value: 50, label: "50 mục" },
+                                { value: 100, label: "100 mục" }
+                            ]}
+                        />
                     </div>
                 </div>
             </m.div>
@@ -440,19 +477,15 @@ export default function PartnerManager() {
                     <table className="w-full text-left border-collapse min-w-[900px]">
                         <thead className="bg-primary/5 border-b border-border text-[10px] font-black tracking-widest text-muted uppercase">
                             <tr>
-                                <th 
-                                    className="p-5 w-12 cursor-pointer"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleSelectAll();
-                                    }}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 rounded border border-border text-[#2d5016] focus:ring-[#2d5016] cursor-pointer"
-                                        checked={selectedIds.length === partners.length && partners.length > 0}
-                                        onChange={() => {}}
-                                    />
+                                <th className="p-5 w-12 text-center">
+                                    <div className="flex items-center justify-center">
+                                        <ThemeCheckbox
+                                            checked={partners.length > 0 && partners.every(p => selectedIds.includes(p.id))}
+                                            indeterminate={partners.some(p => selectedIds.includes(p.id)) && !partners.every(p => selectedIds.includes(p.id))}
+                                            onChange={toggleSelectAll}
+                                            title={partners.length > 0 && partners.every(p => selectedIds.includes(p.id)) ? "Bỏ chọn trang này" : "Chọn tất cả trang này"}
+                                        />
+                                    </div>
                                 </th>
                                 <th onClick={() => handleSort('id')} className="p-5 font-black text-[10px] uppercase tracking-widest text-muted cursor-pointer hover:text-primary transition-colors group w-24">
                                     <div className="flex items-center">ID <SortIcon field="id" /></div>
@@ -487,18 +520,15 @@ export default function PartnerManager() {
                                             )}
                                         >
                                             <td 
-                                                className="p-5 w-12"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleSelect(p.id);
-                                                }}
+                                                className="p-5 w-12 text-center"
+                                                onClick={(e) => e.stopPropagation()}
                                             >
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 rounded border border-border text-[#2d5016] focus:ring-[#2d5016] cursor-pointer"
-                                                    checked={isSelected}
-                                                    onChange={() => {}}
-                                                />
+                                                <div className="flex items-center justify-center">
+                                                    <ThemeCheckbox
+                                                        checked={isSelected}
+                                                        onChange={() => toggleSelect(p.id)}
+                                                    />
+                                                </div>
                                             </td>
                                             <td className="p-5">
                                                 <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary dark:bg-slate-800 dark:text-[#d4a574] text-xs font-black border border-border shadow-none">

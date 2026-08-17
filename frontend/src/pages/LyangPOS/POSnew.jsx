@@ -1,494 +1,347 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import * as e from "react/jsx-runtime";
-import axios from "axios";
-import { m, AnimatePresence, useMotionValue, useSpring, MotionConfig } from "framer-motion";
-import { useLocation } from "react-router-dom";
-import { DEFAULT_SETTINGS } from "../../lib/settings";
-import PrintTemplate from "../../components/PrintTemplate";
-import ConfirmModal from "../../components/ConfirmModal";
-import TaxCalculatorModal from "../../components/TaxCalculatorModal";
-import ProductEditModal from "../../components/ProductEditModal";
-import PartnerEditModal from "../../components/PartnerEditModal";
-import LoadingOverlay from "../../components/LoadingOverlay";
-import Portal from "../../components/Portal";
-import Toast from "../../components/Toast";
-import OrderEditPopup from "../../components/OrderEditPopup";
-import HeavyClock from "../../components/HeavyClock";
-import QuickDebtModal from "../../components/QuickDebtModal";
-import QuickVoucherModal from "../../components/QuickVoucherModal";
-import QuickAuditPopout from "../../components/QuickAuditPopout";
-import PosMirrorModal from "../../components/PosMirrorModal";
-import CustomSelect from "../../components/CustomSelect";
-
-import {
-  useProductData,
-  usePartnerData,
-  useShippingSummary
-} from "../../queries/useProductData";
-
-import {
-  formatDate as Fe,
-  cn as u,
-  formatNumber as I,
-  smartSortItems as xs,
-  numberToViText as qa,
-  removeAccents as nt,
-  formatDebt as En,
-  formatCurrency as it,
-  normalizeUOM as Te,
-  playSuccessSound as fs,
-  playTabSound as On,
-  playErrorSound as Wn,
-  playPopSound as Tr,
-  speakNumber,
-  precacheCommonTTS,
-  precacheAmounts
-} from "../../lib/utils";
-
-import * as ScrollArea from "@radix-ui/react-scroll-area";
-import * as Dialog from "@radix-ui/react-dialog";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
-import { Slot } from "@radix-ui/react-slot";
-import { cva } from "class-variance-authority";
-import {
-  History, Eye, EyeOff, X, Clock, ShoppingBag, BookOpen, ReceiptText, Wallet, Copy, Satellite,
-  SquarePen, Trash2, Package, Truck, Search, Calendar, CircleCheck, MapPin,
-  Phone, PackageSearch, ExternalLink, RefreshCcw, Tv, VolumeX, Volume2, User,
-  Plus, ChevronRight, Pause, ChevronLeft, Coins, Users, TrendingUp, Zap,
-  PackageX, TriangleAlert, RotateCcw, TrendingDown, CircleAlert, Droplets,
-  Check, Activity, Sprout, FileText, LoaderCircle, Save, Printer, BadgePercent,
-  ArrowLeftRight, Leaf, HandCoins, RotateCw, Minus
-} from "lucide-react";
-
-// Aliases used in the compiled code
+import React from "react";
 const i = React;
-const q = axios;
-const Ae = (text, voice) => {
-  let baseUrl = q.defaults.baseURL || 'http://localhost:3579';
-  if (baseUrl.includes('localhost') && typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('tauri')) {
-    baseUrl = baseUrl.replace('localhost', window.location.hostname);
-  }
-  return `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voice}`;
-};
-const playPackingQueue = (items, productsList) => {
-  if (!items || items.length === 0) return;
-  const voice = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
-  const sentences = ["Soạn hàng"];
-  items.forEach(item => {
-    const qty = item.quantity || 0;
-    const unit = item.product_unit || item.unit || '';
-    const prod = productsList.find(s => s.id === item.product_id);
-    const nameText = (prod && prod.alias && prod.alias.trim()) ? prod.alias.trim() : item.product_name;
-    sentences.push(`${qty} ${unit} ${nameText}`);
-  });
-  
-  if (window.currentPackingQueue) {
-    window.currentPackingQueue.stop();
-  }
-  
-  let currentIndex = 0;
-  let currentAudio = null;
-  let nextAudio = null;
-  let isStopped = false;
-  
-  const destroyAudio = (audio) => {
-    if (audio) {
-      try {
-        audio.pause();
-        audio.src = "";
-        audio.load();
-      } catch (e) {}
-      audio.onended = null;
-      audio.onerror = null;
-    }
-  };
-  
-  const preloadAudio = (index) => {
-    if (index >= sentences.length || isStopped) return null;
-    const url = Ae(sentences[index], voice);
-    const audio = new Audio(url);
-    audio.preload = "auto";
-    return audio;
-  };
-  
-  const playNext = () => {
-    if (isStopped) return;
-    
-    if (currentAudio) {
-      destroyAudio(currentAudio);
-      currentAudio = null;
-    }
-    
-    if (currentIndex >= sentences.length) {
-      cleanup();
-      return;
-    }
-    
-    if (nextAudio) {
-      currentAudio = nextAudio;
-      nextAudio = null;
-    } else {
-      currentAudio = preloadAudio(currentIndex);
-    }
-    
-    if (!currentAudio) {
-      cleanup();
-      return;
-    }
-    
-    // Preload the next item immediately while current is playing
-    nextAudio = preloadAudio(currentIndex + 1);
-    
-    currentAudio.onended = () => {
-      currentIndex++;
-      playNext();
-    };
-    currentAudio.onerror = () => {
-      currentIndex++;
-      playNext();
-    };
-    
-    const playPromise = currentAudio.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(err => {
-        console.error("Queue play failed:", err);
-        currentIndex++;
-        playNext();
-      });
-    }
-  };
-  
-  const cleanup = () => {
-    isStopped = true;
-    destroyAudio(currentAudio);
-    destroyAudio(nextAudio);
-    currentAudio = null;
-    nextAudio = null;
-    window.currentPackingQueue = null;
-  };
-  
-  window.currentPackingQueue = {
-    stop: cleanup
-  };
-  
-  playNext();
-};
-const Qn = HeavyClock;
-const Ra = DEFAULT_SETTINGS;
-const bs = PrintTemplate;
-const Vn = TaxCalculatorModal;
-const gs = PartnerEditModal;
-
-const hs = async (fn) => await fn();
-const ms = ProductEditModal;
-const An = Toast;
-const qn = LoadingOverlay;
-const Rn = OrderEditPopup;
-const Mn = ConfirmModal;
-const Be = Portal;
-
-const fi = QuickDebtModal;
-const bi = QuickVoucherModal;
-const gi = QuickAuditPopout;
-
-const yi = useProductData;
-const wi = usePartnerData;
-const vi = useShippingSummary;
-
-// Radix ScrollArea aliases
-const Ds = ScrollArea.Root;
-const $n = ScrollArea.Viewport;
-const Bn = ScrollArea.Corner;
-const zs = ScrollArea.Scrollbar;
-const Fn = ScrollArea.Thumb;
-
-// Radix Dialog aliases
-const Ps = Dialog.Overlay;
-const Un = Dialog.Portal;
-const Es = Dialog.Content;
-const Kn = Dialog.Close;
-const As = Dialog.Title;
-const qs = Dialog.Description;
-const Ds_dialog = Dialog.Root;
-
-const Rs = useQueryClient;
-const ht = toast;
-const Gn = useLocation;
-
-const Ln = Slot;
-const Hn = cva;
-
-// Framer motion aliases
-const T = AnimatePresence;
-const ys = useMotionValue;
-const ws = useSpring;
-const Xn = MotionConfig;
-
-// Lucide icon aliases
-const Ot = History;
-const zr = Eye;
-const vs = EyeOff;
-const Se = X;
-const ia = Clock;
-const Jn = ShoppingBag;
-const Pr = BookOpen;
-const Er = ReceiptText;
-const La = Wallet;
-const Yn = SquarePen;
-const Ar = Trash2;
-const sa = Package;
-const lt = Truck;
-const qr = Search;
-const Zn = Calendar;
-const Ma = CircleCheck;
-const Ha = MapPin;
-const na = Phone;
-const ei = PackageSearch;
-const ti = ExternalLink;
-const Rt = RefreshCcw;
-const ks = Tv;
-const ai = VolumeX;
-const ri = Volume2;
-const Oa = User;
-const ft = Plus;
-const Sr = ChevronRight;
-const At = Pause;
-const js = ChevronLeft;
-const bt = Coins;
-const si = Users;
-const ni = TrendingUp;
-const ii = Zap;
-const Wa = PackageX;
-const qt = TriangleAlert;
-const Ir = RotateCcw;
-const Ns = TrendingDown;
-const li = CircleAlert;
-const oi = Droplets;
-const ci = Check;
-const _s = Activity;
-const Cs = Sprout;
-const ra = FileText;
-const Ts = LoaderCircle;
-const Ss = Save;
-const Dr = Printer;
-const di = BadgePercent;
-const pi = ArrowLeftRight;
-const ui = Leaf;
-const xi = HandCoins;
-const mi = RotateCw;
-const hi = Minus;
-
-
-function ki({
-  partner: f,
-  isOpen: g,
-  onClose: h,
-  onAddToCart: $,
-  onViewOrder: B,
-  onEditOrder: oe,
-  onDeleteOrder: Z,
-  onEditVoucher: F,
-  onDeleteVoucher: ve
+import axios from "axios";
+const M = axios;
+const Vn = axios;
+import { useQueryClient } from "@tanstack/react-query";
+const zl = useQueryClient;
+import { useLocation } from "react-router-dom";
+const Il = useLocation;
+import toast from "react-hot-toast";
+const Ve = toast;
+import { Slot } from "@radix-ui/react-slot";
+const Dl = Slot;
+import { cva } from "class-variance-authority";
+const Pl = cva;
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+const El = DialogPrimitive.Root;
+const ql = DialogPrimitive.Trigger;
+const Ml = DialogPrimitive.Close;
+const Wl = DialogPrimitive.Portal;
+const Rl = DialogPrimitive.Overlay;
+const Al = DialogPrimitive.Overlay;
+const Ol = DialogPrimitive.Root;
+const Ll = DialogPrimitive.Content;
+const $l = DialogPrimitive.Close;
+const Hl = DialogPrimitive.Title;
+const Kl = DialogPrimitive.Description;
+import { motion as x, useMotionValue as In, useSpring as Dn, MotionConfig as ro, AnimatePresence as Ws } from "framer-motion";
+import { Copy as Pn, Trash2 as so, User as Qn, X as Xn, Phone as Jn, MapPin as Yn, Plus as Zn, ChevronRight as no, FileText as ei, Pause as io, ChevronLeft as lo, Users as oo, History as ti, Menu as co, Bot as En, Eye as po, Tv as qr, Volume2 as la, ShoppingCart as uo, Bell as mo, PanelRight as xo, PanelBottom as ho, TrendingUp as bo, Satellite as go, Coins as Rs, Zap as fo, Search as yo, PackageX as vo, TriangleAlert as As, Package as ko, RefreshCcw as wo, RotateCcw as jo, TrendingDown as _o, CircleAlert as No, Droplets as Co, Check as Os, Sparkles as Es, Activity as So, Sprout as To, Wallet as zo, Truck as Io, Banknote as Do, CreditCard as Po, ArrowLeftRight as Eo, ArrowRight as qo, ShoppingBag as Mo, Save as Wo, Printer as Ro, Clock as Ao, LoaderCircle as ai, Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote } from "lucide-react";
+import { DEFAULT_SETTINGS as Gl } from "@/lib/settings";
+import PrintTemplate from "@/components/PrintTemplate";
+const Ul = PrintTemplate;
+import TaxCalculatorModal from "@/components/TaxCalculatorModal";
+const Bl = TaxCalculatorModal;
+import PartnerEditModal from "@/components/PartnerEditModal";
+const Fl = PartnerEditModal;
+import PartnerInfoHoverCard from "@/components/PartnerInfoHoverCard";
+const Vl = PartnerInfoHoverCard;
+import HeavyClock from "@/components/HeavyClock";
+const Ql = HeavyClock;
+import DailyOrderHistoryModal from "@/components/DailyOrderHistoryModal";
+const Xl = DailyOrderHistoryModal;
+import QuickDebtModal from "@/components/QuickDebtModal";
+const Jl = QuickDebtModal;
+import QuickVoucherModal from "@/components/QuickVoucherModal";
+const Yl = QuickVoucherModal;
+import QuickAuditPopout from "@/components/QuickAuditPopout";
+const Zl = QuickAuditPopout;
+import CustomSelect from "@/components/CustomSelect";
+const zn = CustomSelect;
+import MarqueeText from "@/components/MarqueeText";
+const Ps = MarqueeText;
+import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } from "@/queries/useProductData";
+import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs } from "@/lib/utils";
+import Portal from "@/components/Portal";
+const Fn = Portal;
+import ProductEditModal from "@/components/ProductEditModal";
+const wl = ProductEditModal;
+import Toast from "@/components/Toast";
+const jl = Toast;
+import ConfirmModal from "@/components/ConfirmModal";
+const Cl = ConfirmModal;
+import QuickEditModal from "@/components/QuickEditModal";
+const Nl = QuickEditModal;
+import logo from "@/assets/logo.png";
+const kl = logo;
+const _l = () => null;
+const Ts = fn => typeof fn === "function" ? fn() : fn;
+const Ls = (v, N) => {
+    let C = M.defaults.baseURL || "http://localhost:3579";
+    return C.includes("localhost") && typeof window < "u" && window.location && window.location.hostname && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.includes("tauri") && (C = C.replace("localhost", window.location.hostname)), `${C.replace(/\/+$/, "")}/api/tts?text=${encodeURIComponent(v)}&voice=${N}`;
+  },
+  qn = (v, N) => {
+    if (!v || v.length === 0) return;
+    const C = localStorage.getItem("pos_selected_voice") || "edge-vi-female",
+      X = ["Soạn hàng"];
+    v.forEach(B => {
+      const ue = B.quantity || 0,
+        je = B.product_unit || B.unit || "",
+        Ie = N.find(Le => Le.id === B.product_id),
+        dt = Ie && Ie.alias && Ie.alias.trim() ? Ie.alias.trim() : B.product_name;
+      X.push(`${ue} ${je} ${dt}`);
+    }), window.currentPackingQueue && window.currentPackingQueue.stop();
+    let xe = 0,
+      W = null,
+      pe = null,
+      we = !1;
+    const Oe = B => {
+        if (B) {
+          try {
+            B.pause(), B.src = "", B.load();
+          } catch {}
+          B.onended = null, B.onerror = null;
+        }
+      },
+      Qe = B => {
+        if (B >= X.length || we) return null;
+        const ue = Ls(X[B], C),
+          je = new Audio(ue);
+        return je.preload = "auto", je;
+      },
+      te = () => {
+        if (we) return;
+        if (W && (Oe(W), W = null), xe >= X.length) {
+          at();
+          return;
+        }
+        if (pe ? (W = pe, pe = null) : W = Qe(xe), !W) {
+          at();
+          return;
+        }
+        pe = Qe(xe + 1), W.onended = () => {
+          xe++, te();
+        }, W.onerror = () => {
+          xe++, te();
+        };
+        const B = W.play();
+        B !== void 0 && B.catch(ue => {
+          console.error("Queue play failed:", ue), xe++, te();
+        });
+      },
+      at = () => {
+        we = !0, Oe(W), Oe(pe), W = null, pe = null, window.currentPackingQueue = null;
+      };
+    window.currentPackingQueue = {
+      stop: at
+    }, te();
+  },
+  Zo = Ql,
+  Tr = Gl,
+  Mn = Ul,
+  ed = Bl,
+  Wn = Fl,
+  Rn = async v => await v(),
+  An = wl,
+  td = jl,
+  ad = _l,
+  rd = Nl,
+  sd = Cl,
+  Ee = Fn,
+  nd = Jl,
+  id = Yl,
+  ld = Zl,
+  od = eo,
+  dd = to,
+  cd = ao,
+  si = El,
+  pd = ql,
+  ud = Ml,
+  ni = Wl,
+  md = Rl,
+  ii = Al,
+  xd = Ol,
+  li = Ll,
+  hd = $l,
+  oi = Hl,
+  di = Kl,
+  ci = zl,
+  At = Ve,
+  bd = Il,
+  gd = Dl,
+  P = Ws,
+  fd = ro,
+  ua = ti,
+  $s = po,
+  On = Jo,
+  ke = Xn,
+  Ja = Ao,
+  pi = Mo,
+  Hs = Oo,
+  Ks = Lo,
+  Va = zo,
+  yd = Yo,
+  pa = so,
+  Qa = ko,
+  _t = Io,
+  Gs = yo,
+  vd = Fo,
+  zr = Vo,
+  Us = Yn,
+  Mr = Jn,
+  kd = Qo,
+  wd = Xo,
+  Xa = wo,
+  Ln = qr,
+  Ir = Qn,
+  Ot = Zn,
+  Dr = no,
+  jt = io,
+  qs = lo,
+  oa = Rs,
+  jd = oo,
+  _d = bo,
+  Nd = fo,
+  Pr = vo,
+  da = As,
+  Ms = jo,
+  $n = _o,
+  Cd = No,
+  Sd = Co,
+  Hn = Os,
+  Kn = So,
+  Gn = To,
+  ca = ei,
+  Un = ai,
+  Er = Wo,
+  Fa = Ro,
+  Td = $o,
+  Bn = Eo,
+  zd = ri,
+  Id = Ho,
+  Dd = Ko,
+  ui = Go;
+function Pd({
+  partner: v,
+  isOpen: N,
+  onClose: C,
+  onAddToCart: X,
+  onViewOrder: xe,
+  onEditOrder: W,
+  onDeleteOrder: pe,
+  onEditVoucher: we,
+  onDeleteVoucher: Oe
 }) {
-  const [z, Q] = i.useState([]), [ee, ce] = i.useState([]), [qe, Ue] = i.useState(!1), [de, Ie] = i.useState("invoices"), [te, Re] = i.useState("all"), [xe, Ke] = i.useState(1), [De, Me] = i.useState(!0), [ae, y] = i.useState(!0), [P, N] = i.useState("all"), [b, S] = i.useState(""), [O, ke] = i.useState(""), re = z.filter(w => w.is_voucher && w.type === "Receipt");
+  const [Qe, te] = i.useState([]),
+    [at, B] = i.useState([]),
+    [ue, je] = i.useState(!1),
+    [Ie, dt] = i.useState("invoices"),
+    [Le, Nt] = i.useState("all"),
+    [Lt, he] = i.useState(1),
+    [$t, _e] = i.useState(!0),
+    [Xe, j] = i.useState(!0),
+    [E, D] = i.useState("all"),
+    [T, Y] = i.useState(""),
+    [be, Z] = i.useState(""),
+    [ae, bt] = i.useState(!0),
+    rt = Qe.filter(_ => _.is_voucher && _.type === "Receipt");
   i.useEffect(() => {
-    g && f && (Q([]), Ke(1), Me(!0), N("all"), S(""), ke(""), Ge(1))
-  }, [g, f]), i.useEffect(() => {
-    const w = new BroadcastChannel("pos_data_sync");
-    return w.onmessage = be => {
-      g && f && (be.data.type === "ORDER_SAVED" || be.data.type === "PARTNER_UPDATED") && (console.log("History Panel Sync Refreshing..."), Q([]), Ke(1), Me(!0), Ge(1))
-    }, () => w.close()
-  }, [g, f]), i.useEffect(() => {
-    const w = be => {
-      be.key === "Escape" && h()
+    N && v && (te([]), he(1), _e(!0), D("all"), Y(""), Z(""), gt(1));
+  }, [N, v]), i.useEffect(() => {
+    const _ = new BroadcastChannel("pos_data_sync");
+    return _.onmessage = g => {
+      N && v && (g.data.type === "ORDER_SAVED" || g.data.type === "PARTNER_UPDATED") && (console.log("History Panel Sync Refreshing..."), te([]), he(1), _e(!0), gt(1));
+    }, () => _.close();
+  }, [N, v]), i.useEffect(() => {
+    const _ = g => {
+      g.key === "Escape" && C();
     };
-    return g && window.addEventListener("keydown", w), () => window.removeEventListener("keydown", w)
-  }, [g, h]), i.useEffect(() => {
-    P === "custom" && re.length >= 2 ? (b || S(re[0].id), O || ke(re[1].id)) : P === "custom" && re.length === 1 && (b || S(re[0].id), O || ke(re[0].id))
-  }, [P, re, b, O]);
-  const Ge = async (w = 1) => {
-    Ue(!0);
-    try {
-      const [k, ze] = await Promise.all([q.get(`/api/orders?partner_id=${f.id}&limit=20&page=${w}&type=Sale`), q.get(`/api/vouchers?partner_id=${f.id}`)]), K = k.data.items || k.data || [], Qe = (ze.data || []).filter(W => W.source !== 'auto').map(W => ({
-        id: `v_${W.id}`,
-        is_voucher: !0,
-        display_id: W.type === "DebtIncrease" ? `GN-${W.id}` : W.type === "Receipt" ? `PT-${W.id}` : `PC-${W.id}`,
-        date: W.date,
-        time: Fe(W.date, "HH:mm"),
-        total_amount: W.amount,
-        payment_method: W.type === "DebtIncrease" ? "Debt" : W.type === "Receipt" ? "PT" : "PC",
-        type: W.type,
-        note: W.note,
-        details: []
-      }));
-      if (Q(W => (w === 1 ? [...K.map(M => ({
-          ...M,
-          time: Fe(M.date, "HH:mm")
-        })), ...Qe] : [...W, ...K.map(M => ({
-          ...M,
-          time: Fe(M.date, "HH:mm")
-        }))]).sort((M, oa) => new Date(oa.date) - new Date(M.date))), K.length < 20 && Me(!1), w === 1) {
-        const W = {};
-        K.forEach(C => {
-          C.details && C.details.forEach(M => {
-            W[M.product_id] || (W[M.product_id] = {
-              id: M.product_id,
-              name: M.product_name,
-              unit: M.product_unit,
-              price: M.price,
-              total_qty: 0,
-              last_price: M.price,
-              last_date: C.date
-            }), W[M.product_id].total_qty += M.quantity, new Date(C.date) > new Date(W[M.product_id].last_date) && (W[M.product_id].last_date = C.date, W[M.product_id].last_price = M.price)
-          })
-        }), ce(Object.values(W).sort((C, M) => M.total_qty - C.total_qty))
+    return N && window.addEventListener("keydown", _), () => window.removeEventListener("keydown", _);
+  }, [N, C]), i.useEffect(() => {
+    E === "custom" && rt.length >= 2 ? (T || Y(rt[0].id), be || Z(rt[1].id)) : E === "custom" && rt.length === 1 && (T || Y(rt[0].id), be || Z(rt[0].id));
+  }, [E, rt, T, be]);
+  const gt = async (_ = 1, g = ae) => {
+      je(!0);
+      try {
+        const f = g ? `/api/orders?partner_id=${v.id}&limit=20&page=${_}` : `/api/orders?partner_id=${v.id}&limit=20&page=${_}&type=Sale`,
+          [ne, me] = await Promise.all([M.get(f), M.get(`/api/vouchers?partner_id=${v.id}`)]),
+          qe = ne.data.items || ne.data || [],
+          ma = (me.data || []).filter(A => A.source !== "auto").map(A => ({
+            id: `v_${A.id}`,
+            is_voucher: !0,
+            display_id: A.type === "DebtIncrease" ? `GN-${A.id}` : A.type === "Receipt" ? `PT-${A.id}` : `PC-${A.id}`,
+            date: A.date,
+            time: ot(A.date, "HH:mm"),
+            total_amount: A.amount,
+            payment_method: A.type === "DebtIncrease" ? "Debt" : A.type === "Receipt" ? "PT" : "PC",
+            type: A.type,
+            note: A.note,
+            details: []
+          }));
+        if (te(A => (_ === 1 ? [...qe.map(ie => ({
+          ...ie,
+          time: ot(ie.date, "HH:mm")
+        })), ...ma] : [...A, ...qe.map(ie => ({
+          ...ie,
+          time: ot(ie.date, "HH:mm")
+        }))]).sort((ie, y) => new Date(y.date) - new Date(ie.date))), qe.length < 20 && _e(!1), _ === 1) {
+          const A = {};
+          qe.forEach(ie => {
+            ie.details && ie.details.forEach(y => {
+              A[y.product_id] || (A[y.product_id] = {
+                id: y.product_id,
+                name: y.product_name,
+                unit: y.product_unit,
+                price: y.price,
+                total_qty: 0,
+                last_price: y.price,
+                last_date: ie.date
+              }), A[y.product_id].total_qty += y.quantity, new Date(ie.date) > new Date(A[y.product_id].last_date) && (A[y.product_id].last_date = ie.date, A[y.product_id].last_price = y.price);
+            });
+          }), B(Object.values(A).sort((ie, y) => y.total_qty - ie.total_qty));
+        }
+      } catch (f) {
+        console.error("Error fetching POS history:", f);
+      } finally {
+        je(!1);
       }
-    } catch (be) {
-      console.error("Error fetching POS history:", be)
-    } finally {
-      Ue(!1)
-    }
-  }, la = () => {
-    const w = xe + 1;
-    Ke(w), Ge(w)
-  };
-  return e.jsx(T, {
-    children: g && e.jsxs("div", {
-      className: "fixed inset-0 z-[3000] flex justify-end font-sans",
-      children: [e.jsx(m.div, {
-        initial: {
-          opacity: 0
-        },
-        animate: {
-          opacity: 1
-        },
-        exit: {
-          opacity: 0
-        },
-        onClick: h,
-        className: "absolute inset-0 bg-black/40 backdrop-blur-md"
-      }), e.jsxs(m.div, {
-        initial: {
-          x: "100%",
-          opacity: 0
-        },
-        animate: {
-          x: 0,
-          opacity: 1
-        },
-        exit: {
-          x: "100%",
-          opacity: 0
-        },
-        transition: {
-          type: "spring",
-          damping: 32,
-          stiffness: 260
-        },
-        className: "relative w-full max-w-[440px] h-full bg-[#022c22]/95 backdrop-blur-[100px] shadow-[0_0_150px_rgba(0,0,0,0.7)] flex flex-col border-l border-white/10",
-        children: [e.jsxs("div", {
-          className: "p-5 border-b border-white/10 relative overflow-hidden group",
-          children: [e.jsx("div", {
-            className: "absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-white",
-            children: e.jsx(Ot, {
-              size: 100
-            })
-          }), e.jsxs("div", {
-            className: "flex justify-between items-center relative z-10",
-            children: [e.jsxs("div", {
-              className: "flex items-center gap-4",
-              children: [e.jsx("div", {
-                className: "w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400 border border-white/10",
-                children: e.jsx(Ot, {
-                  size: 18,
-                  strokeWidth: 2.5
-                })
-              }), e.jsxs("div", {
-                children: [e.jsx("h3", {
-                  className: "font-black text-[14px] text-white uppercase tracking-tighter leading-none mb-1",
-                  children: "Lịch sử GD"
-                }), e.jsxs("p", {
-                  className: "text-[9px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2",
-                  children: [e.jsx("span", {
-                    className: "w-1 h-1 rounded-full bg-emerald-500"
-                  }), f.name]
-                })]
-              })]
-            }), e.jsxs("div", {
-              className: "flex items-center gap-2",
-              children: [e.jsx("button", {
-                onClick: () => y(!ae),
-                className: "w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white/60 hover:text-white rounded-xl transition-all border border-white/10 shadow-lg",
-                title: ae ? "Chế độ riêng tư" : "Hiện thông tin chi tiết",
-                children: ae ? e.jsx(zr, {
-                  size: 16,
-                  strokeWidth: 2.5
-                }) : e.jsx(vs, {
-                  size: 16,
-                  strokeWidth: 2.5
-                })
-              }), e.jsx("button", {
-                onClick: h,
-                className: "w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-rose-500/20 text-white/60 hover:text-rose-400 rounded-xl transition-all hover:rotate-90 border border-white/10 shadow-lg",
-                children: e.jsx(Se, {
-                  size: 16,
-                  strokeWidth: 3
-                })
-              })]
-            })]
-          })]
-        }), e.jsxs("div", {
-          className: "flex p-3 gap-2",
-          children: [e.jsxs("button", {
-            onClick: () => Ie("invoices"),
-            className: u("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2", de === "invoices" ? "bg-emerald-500 border-white/10 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 border-white/5 text-white/50 hover:text-white hover:bg-white/10"),
-            children: [e.jsx(ia, {
-              size: 14,
-              strokeWidth: 3
-            }), " Hóa đơn"]
-          }), e.jsxs("button", {
-            onClick: () => Ie("products"),
-            className: u("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2", de === "products" ? "bg-emerald-500 border-white/10 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 border-white/5 text-white/50 hover:text-white hover:bg-white/10"),
-            children: [e.jsx(Jn, {
-              size: 14,
-              strokeWidth: 3
-            }), " Sản phẩm"]
-          })]
-        }), e.jsx(T, {
-          children: de === "invoices" && e.jsxs(m.div, {
-            initial: {
-              opacity: 0,
-              y: -10
-            },
-            animate: {
-              opacity: 1,
-              y: 0
-            },
-            exit: {
-              opacity: 0,
-              y: -10
-            },
-            className: "px-5 pb-3 flex flex-col gap-2 border-b border-white/5",
-            children: [e.jsx("div", {
-              className: "flex gap-2",
-              children: [{
-                id: "all",
-                label: "Tất cả"
-              }, {
-                id: "cash",
-                label: "Tiền mặt"
-              }, {
-                id: "debt",
-                label: "Công nợ"
-              }].map(w => e.jsx("button", {
-                onClick: () => Re(w.id),
-                className: u("px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border", te === w.id ? "bg-white/20 border-white/40 text-white" : "bg-transparent border-white/5 text-white/30 hover:text-white/60"),
-                children: w.label
-              }, w.id))
-            }), e.jsx("div", {
-              className: "flex gap-2 bg-white/[0.02] p-1 rounded-lg border border-white/5",
-              children: [{
+    },
+    Ht = () => {
+      const _ = Lt + 1;
+      he(_), gt(_, ae);
+    },
+    fe = () => {
+      const _ = !ae;
+      bt(_), te([]), he(1), _e(!0), gt(1, _);
+    };
+  return <P>{N && <div className="fixed inset-0 z-[3000] flex justify-end font-sans"><x.div initial={{
+        opacity: 0
+      }} animate={{
+        opacity: 1
+      }} exit={{
+        opacity: 0
+      }} onClick={C} className="absolute inset-0 bg-black/40 backdrop-blur-md" /><x.div initial={{
+        x: "100%",
+        opacity: 0
+      }} animate={{
+        x: 0,
+        opacity: 1
+      }} exit={{
+        x: "100%",
+        opacity: 0
+      }} transition={{
+        type: "spring",
+        damping: 32,
+        stiffness: 260
+      }} className="relative w-full max-w-[450px] h-full bg-slate-950/95 dark:bg-[#071510]/95 backdrop-blur-2xl shadow-[0_0_100px_rgba(0,0,0,0.85)] flex flex-col border-l border-[#8b6f47]/30 dark:border-white/10"><div className="p-5 border-b border-white/10 relative overflow-hidden group"><div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-white"><Comp_ua size={100} /></div><div className="flex justify-between items-center relative z-10"><div className="flex items-center gap-4"><div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-emerald-400 border border-white/10"><Comp_ua size={18} strokeWidth={2.5} /></div><div><h3 className="font-black text-[14px] text-white uppercase tracking-tighter leading-none mb-1">Lịch sử GD</h3><p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-emerald-500" />{v.name}</p></div></div><div className="flex items-center gap-2"><button onClick={() => j(!Xe)} className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white/60 hover:text-white rounded-xl transition-all border border-white/10 shadow-lg" title={Xe ? "Chế độ riêng tư" : "Hiện thông tin chi tiết"}>{Xe ? <$s size={16} strokeWidth={2.5} /> : <On size={16} strokeWidth={2.5} />}</button><button onClick={C} className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-rose-500/20 text-white/60 hover:text-rose-400 rounded-xl transition-all hover:rotate-90 border border-white/10 shadow-lg"><Comp_ke size={16} strokeWidth={3} /></button></div></div></div><div className="flex p-3 gap-2"><button onClick={() => dt("invoices")} className={c("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2", Ie === "invoices" ? "bg-emerald-500 border-white/10 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 border-white/5 text-white/50 hover:text-white hover:bg-white/10")}><Ja size={14} strokeWidth={3} /> Hóa đơn</button><button onClick={() => dt("products")} className={c("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 border-2", Ie === "products" ? "bg-emerald-500 border-white/10 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 border-white/5 text-white/50 hover:text-white hover:bg-white/10")}><Comp_pi size={14} strokeWidth={3} /> Sản phẩm</button></div><P>{Ie === "invoices" && <x.div initial={{
+            opacity: 0,
+            y: -10
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} exit={{
+            opacity: 0,
+            y: -10
+          }} className="px-5 pb-3 flex flex-col gap-2 border-b border-white/5"><div className="flex items-center justify-between gap-2"><div className="flex gap-2">{[{
+                  id: "all",
+                  label: "Tất cả"
+                }, {
+                  id: "cash",
+                  label: "Tiền mặt"
+                }, {
+                  id: "debt",
+                  label: "Công nợ"
+                }].map(_ => <button key={_.id} onClick={() => Nt(_.id)} className={c("px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border", Le === _.id ? "bg-white/20 border-white/40 text-white" : "bg-transparent border-white/5 text-white/30 hover:text-white/60")}>{_.label}</button>)}</div><button onClick={fe} className={c("px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border flex items-center gap-1.5", ae ? "bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-sm" : "bg-transparent border-white/5 text-white/30 hover:text-white/60")} title="Bật/Tắt hiển thị các đơn nhập hàng từ đối tác này"><span className={c("w-1.5 h-1.5 rounded-full", ae ? "bg-amber-400 animate-pulse" : "bg-white/20")} />{ae ? "Kèm Đơn Nhập" : "+ Đơn Nhập"}</button></div><div className="flex gap-2 bg-white/[0.02] p-1 rounded-lg border border-white/5">{[{
                 id: "all",
                 label: "Hiện Full"
               }, {
@@ -497,333 +350,75 @@ function ki({
               }, {
                 id: "custom",
                 label: "Tùy chọn"
-              }].map(w => e.jsx("button", {
-                onClick: () => N(w.id),
-                className: u("flex-1 py-1 rounded-md text-[7px] font-black uppercase tracking-wider transition-all border", P === w.id ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5" : "bg-transparent border-white/5 text-white/40 hover:text-white/70"),
-                children: w.label
-              }, w.id))
-            }), P === "custom" && e.jsxs("div", {
-              className: "flex gap-2 items-center mt-1 bg-white/5 p-2 rounded-lg border border-white/5",
-              children: [e.jsxs("div", {
-                className: "flex-1 flex flex-col gap-0.5",
-                children: [e.jsx("span", {
-                  className: "text-[7px] text-white/40 uppercase font-black",
-                  children: "Từ lần trả"
-                }), e.jsxs("select", {
-                  value: b,
-                  onChange: w => S(w.target.value),
-                  className: "w-full bg-[#022c22] border border-white/10 text-white text-[9px] rounded p-1 font-bold outline-none focus:border-emerald-500/50",
-                  children: [e.jsx("option", {
-                    value: "",
-                    children: "-- Chọn --"
-                  }), re.map(w => e.jsxs("option", {
-                    value: w.id,
-                    children: [w.display_id, " (", Fe(w.date), ")"]
-                  }, w.id))]
-                })]
-              }), e.jsx("span", {
-                className: "text-[8px] text-white/30 font-bold self-end mb-1.5",
-                children: "→"
-              }), e.jsxs("div", {
-                className: "flex-1 flex flex-col gap-0.5",
-                children: [e.jsx("span", {
-                  className: "text-[7px] text-white/40 uppercase font-black",
-                  children: "Đến lần trả"
-                }), e.jsxs("select", {
-                  value: O,
-                  onChange: w => ke(w.target.value),
-                  className: "w-full bg-[#022c22] border border-white/10 text-white text-[9px] rounded p-1 font-bold outline-none focus:border-emerald-500/50",
-                  children: [e.jsx("option", {
-                    value: "",
-                    children: "-- Chọn --"
-                  }), re.map(w => e.jsxs("option", {
-                    value: w.id,
-                    children: [w.display_id, " (", Fe(w.date), ")"]
-                  }, w.id))]
-                })]
-              })]
-            })]
-          })
-        }), e.jsx("div", {
-          className: "flex-1 overflow-y-auto no-scrollbar px-5 pb-6 space-y-3",
-          children: qe && xe === 1 ? e.jsxs("div", {
-            className: "flex flex-col items-center justify-center py-32",
-            children: [e.jsx("div", {
-              className: "w-10 h-10 border-[3px] border-white/10 border-t-emerald-500 rounded-full animate-spin mb-6"
-            }), e.jsx("span", {
-              className: "font-black text-[10px] text-emerald-400 uppercase tracking-[0.4em]",
-              children: "Đang nạp dữ liệu..."
-            })]
-          }) : de === "invoices" ? z.length === 0 ? e.jsxs("div", {
-            className: "text-center py-40 opacity-20",
-            children: [e.jsx(Ot, {
-              size: 60,
-              strokeWidth: 1,
-              className: "mx-auto mb-8 text-white"
-            }), e.jsx("p", {
-              className: "font-black uppercase text-[10px] tracking-[0.4em] text-white",
-              children: "Trống trải..."
-            })]
-          }) : (() => {
-            let w = [...z];
-            if (P === "latest") {
-              const k = w.findIndex(ze => ze.is_voucher && ze.type === "Receipt");
-              k !== -1 && (w = w.slice(0, k + 1))
-            } else if (P === "custom" && b && O) {
-              const k = w.findIndex(K => K.id === b),
-                ze = w.findIndex(K => K.id === O);
-              if (k !== -1 && ze !== -1) {
-                const K = Math.min(k, ze),
-                  ot = Math.max(k, ze);
-                w = w.slice(K, ot + 1)
+              }].map(_ => <button key={_.id} onClick={() => D(_.id)} className={c("flex-1 py-1 rounded-md text-[7px] font-black uppercase tracking-wider transition-all border", E === _.id ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-md shadow-emerald-500/5" : "bg-transparent border-white/5 text-white/40 hover:text-white/70")}>{_.label}</button>)}</div>{E === "custom" && <div className="flex gap-2 items-center mt-1 bg-white/5 p-2 rounded-lg border border-white/5"><div className="flex-1 flex flex-col gap-0.5"><span className="text-[7px] text-white/40 uppercase font-black">Từ lần trả</span><select value={T} onChange={_ => Y(_.target.value)} className="w-full bg-[#022c22] border border-white/10 text-white text-[9px] rounded p-1 font-bold outline-none focus:border-emerald-500/50"><option value="">-- Chọn --</option>{rt.map(_ => <option key={_.id} value={_.id}>{_.display_id} ({ot(_.date)})</option>)}</select></div><span className="text-[8px] text-white/30 font-bold self-end mb-1.5">→</span><div className="flex-1 flex flex-col gap-0.5"><span className="text-[7px] text-white/40 uppercase font-black">Đến lần trả</span><select value={be} onChange={_ => Z(_.target.value)} className="w-full bg-[#022c22] border border-white/10 text-white text-[9px] rounded p-1 font-bold outline-none focus:border-emerald-500/50"><option value="">-- Chọn --</option>{rt.map(_ => <option key={_.id} value={_.id}>{_.display_id} ({ot(_.date)})</option>)}</select></div></div>}</x.div>}</P><div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-6 space-y-3">{ue && Lt === 1 ? <div className="flex flex-col items-center justify-center py-32"><div className="w-10 h-10 border-[3px] border-white/10 border-t-emerald-500 rounded-full animate-spin mb-6" /><span className="font-black text-[10px] text-emerald-400 uppercase tracking-[0.4em]">Đang nạp dữ liệu...</span></div> : Ie === "invoices" ? Qe.length === 0 ? <div className="text-center py-40 opacity-20"><Comp_ua size={60} strokeWidth={1} className="mx-auto mb-8 text-white" /><p className="font-black uppercase text-[10px] tracking-[0.4em] text-white">Trống trải...</p></div> : (() => {
+            let _ = [...Qe];
+            if (E === "latest") {
+              const f = _.findIndex(ne => ne.is_voucher && ne.type === "Receipt");
+              f !== -1 && (_ = _.slice(0, f + 1));
+            } else if (E === "custom" && T && be) {
+              const f = _.findIndex(me => me.id === T),
+                ne = _.findIndex(me => me.id === be);
+              if (f !== -1 && ne !== -1) {
+                const me = Math.min(f, ne),
+                  qe = Math.max(f, ne);
+                _ = _.slice(me, qe + 1);
               }
             }
-            const be = w.filter(k => te === "all" ? !0 : te === "cash" ? k.payment_method !== "Debt" : te === "debt" ? k.payment_method === "Debt" : !0);
-            return e.jsxs("div", {
-              className: "relative pl-7 space-y-2 pt-4",
-              children: [e.jsx("div", {
-                className: "absolute left-[13px] top-4 bottom-4 w-px bg-white/10"
-              }), be.map((k, ze) => e.jsxs("div", {
-                className: "relative",
-                children: [e.jsx("div", {
-                  className: u("absolute left-[-22px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-slate-950 z-10", k.type === "DebtIncrease" ? "bg-amber-500" : k.type === "Receipt" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : k.type === "Payment" ? "bg-rose-500" : "bg-white")
-                }), e.jsxs("div", {
-                  className: u("p-3 rounded-xl border transition-all group flex flex-col cursor-pointer relative overflow-hidden", k.type === "Receipt" ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/15 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "bg-white/[0.04] border-white/5 hover:border-emerald-400/40 hover:bg-white/[0.08]"),
-                  onClick: K => {
-                    !k.is_voucher && B && B(k)
-                  },
-                  children: [e.jsxs("div", {
-                    className: "flex items-center justify-between w-full",
-                    children: [e.jsxs("div", {
-                      className: "flex items-center gap-2.5 flex-1 min-w-0",
-                      children: [e.jsx("div", {
-                        className: u("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-inner", k.type === "DebtIncrease" ? "bg-amber-500/20 text-amber-500" : k.type === "Receipt" ? "bg-emerald-500/20 text-emerald-500" : k.type === "Payment" ? "bg-rose-500/20 text-rose-500" : "bg-white/10 text-white/50"),
-                        children: k.type === "DebtIncrease" ? e.jsx(Pr, {
-                          size: 14,
-                          strokeWidth: 2.5
-                        }) : k.is_voucher ? e.jsx(Er, {
-                          size: 14,
-                          strokeWidth: 2.5
-                        }) : ae ? e.jsx(zr, {
-                          size: 14,
-                          strokeWidth: 2.5
-                        }) : e.jsx(vs, {
-                          size: 14,
-                          strokeWidth: 2.5
-                        })
-                      }), e.jsxs("div", {
-                        className: "min-w-0",
-                        children: [e.jsxs("div", {
-                          className: u("text-[12px] font-black uppercase tracking-wide leading-none mb-1 truncate pr-2 flex items-center gap-1", k.type === "DebtIncrease" ? "text-amber-400" : k.type === "Receipt" ? "text-emerald-400 font-extrabold" : k.type === "Payment" ? "text-rose-400" : k.payment_method === "Debt" ? "text-blue-400" : "text-white"),
-                          children: [k.type === "Receipt" && e.jsx(La, {
-                            size: 12,
-                            className: "shrink-0"
-                          }), ae ? k.is_voucher ? k.type === "DebtIncrease" ? "Ghi nợ" : k.type === "Receipt" ? `Thu tiền #${k.id.split("_")[1]}` : `Chi tiền #${k.id.split("_")[1]}` : k.display_id ? `#${k.display_id}` : `#${k.id}` : "********"]
-                        }), e.jsxs("div", {
-                          className: "flex items-center gap-2",
-                          children: [e.jsx("span", {
-                            className: "text-[9px] font-black text-white/30 tabular-nums uppercase",
-                            children: ae ? k.time : "--:--"
-                          }), e.jsx("div", {
-                            className: u("text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-tight border", k.payment_method === "Debt" ? "bg-blue-500/20 text-blue-400 border-blue-500/5" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/5"),
-                            children: k.payment_method === "Debt" ? "NỢ" : "T.MẶT"
-                          })]
-                        })]
-                      })]
-                    }), e.jsxs("div", {
-                      className: "flex items-center gap-2 pl-2 shrink-0",
-                      children: [e.jsx("div", {
-                        className: u("text-[15px] font-black tracking-tighter tabular-nums text-right leading-none drop-shadow-md", k.type === "DebtIncrease" ? "text-amber-400" : k.type === "Receipt" ? "text-emerald-400" : k.type === "Payment" ? "text-rose-400" : k.payment_method === "Debt" ? "text-blue-400" : "text-emerald-400"),
-                        children: I(k.total_amount || k.total)
-                      }), e.jsxs("div", {
-                        className: "flex flex-col gap-1 transition-all duration-200 opacity-0 scale-90 translate-x-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 w-0 group-hover:w-auto overflow-hidden",
-                        children: [e.jsx("button", {
-                          onClick: K => {
-                            K.stopPropagation(), k.is_voucher ? F && F(k) : oe && oe(k)
-                          },
-                          className: "p-1 bg-white/10 hover:bg-white/20 text-white/40 hover:text-white rounded-md transition-all",
-                          children: e.jsx(Yn, {
-                            size: 10
-                          })
-                        }), e.jsx("button", {
-                          onClick: K => {
-                            K.stopPropagation(), k.is_voucher ? ve && ve(k) : Z && Z(k.id)
-                          },
-                          className: "p-1 bg-rose-500/10 hover:bg-rose-500/30 text-white/40 hover:text-rose-400 rounded-md transition-all",
-                          children: e.jsx(Ar, {
-                            size: 10
-                          })
-                        })]
-                      })]
-                    })]
-                  }), ae && k.details && k.details.length > 0 && e.jsxs("div", {
-                    className: "border-t border-white/5 mt-2.5 pt-2.5 flex flex-wrap gap-1",
-                    children: [k.details.slice(0, 3).map((K, ot) => e.jsxs("div", {
-                      className: "px-1.5 py-0.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md text-[8px] font-black text-emerald-400/90 uppercase flex items-center gap-1 transition-all hover:bg-emerald-500/10",
-                      children: [e.jsx("span", {
-                        className: "truncate max-w-[70px]",
-                        children: K.product_name
-                      }), e.jsx("div", {
-                        className: "w-px h-1.5 bg-emerald-500/20"
-                      }), e.jsx("span", {
-                        className: "text-emerald-300",
-                        children: I(K.quantity)
-                      })]
-                    }, ot)), k.details.length > 3 && e.jsxs("div", {
-                      className: "px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[8px] font-black text-white/30 uppercase tracking-tighter",
-                      children: ["+", k.details.length - 3, " món"]
-                    })]
-                  })]
-                })]
-              }, k.id || ze)), De && e.jsx("button", {
-                onClick: la,
-                disabled: qe,
-                className: "w-full py-3 rounded-xl border border-white/5 text-white/30 text-[8px] font-black uppercase tracking-[0.4em] hover:bg-white/5 hover:text-white transition-all active:scale-[0.98]",
-                children: qe ? "Đang truy xuất..." : "Tải thêm"
-              })]
-            })
-          })() : ee.length === 0 ? e.jsxs("div", {
-            className: "text-center py-40 opacity-20",
-            children: [e.jsx(sa, {
-              size: 60,
-              strokeWidth: 1,
-              className: "mx-auto mb-8 text-white"
-            }), e.jsx("p", {
-              className: "font-black uppercase text-[10px] tracking-[0.4em] text-white",
-              children: "Trống trải..."
-            })]
-          }) : ee.map(w => e.jsxs("div", {
-            className: "bg-white/[0.04] p-3 rounded-xl border border-white/5 hover:border-emerald-500/40 transition-colors flex items-center justify-between hover:bg-white/[0.08]",
-            children: [e.jsxs("div", {
-              className: "flex-1 min-w-0 pr-3",
-              children: [e.jsx("div", {
-                className: "font-black text-[12px] text-white uppercase truncate mb-1",
-                title: w.name,
-                children: w.name
-              }), e.jsxs("div", {
-                className: "flex items-center gap-2",
-                children: [e.jsxs("span", {
-                  className: "text-[9px] font-black text-emerald-400 bg-emerald-500/5 px-1.5 py-0.5 rounded-md border border-emerald-500/5 tabular-nums",
-                  children: ["Tổng ", I(w.total_qty), " ", w.unit]
-                }), e.jsxs("span", {
-                  className: "text-[9px] font-black text-white/20 tabular-nums",
-                  children: ["Giá cuối: ", I(w.last_price)]
-                })]
-              })]
-            }), e.jsx("button", {
-              onClick: () => $(w),
-              className: "w-8 h-8 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg shadow-lg flex items-center justify-center transition-all border border-emerald-500/5 active:scale-90",
-              children: e.jsx(ji, {
-                size: 14,
-                strokeWidth: 2.5
-              })
-            })]
-          }, w.id))
-        })]
-      })]
-    })
-  })
+            const g = _.filter(f => Le === "all" ? !0 : Le === "cash" ? f.payment_method !== "Debt" : Le === "debt" ? f.payment_method === "Debt" : !0);
+            return <div className="relative pl-7 space-y-2 pt-4"><div className="absolute left-[13px] top-4 bottom-4 w-px bg-white/10" />{g.map((f, ne) => <div key={f.id || ne} className="relative"><div className={c("absolute left-[-22px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-slate-950 z-10", f.type === "Purchase" ? "bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.9)]" : f.type === "DebtIncrease" ? "bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.9)]" : f.type === "Receipt" ? "bg-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.9)]" : f.type === "Payment" ? "bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.9)]" : "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.9)]")} /><div className={c("p-3 rounded-2xl border transition-all group flex flex-col cursor-pointer relative overflow-hidden backdrop-blur-sm", f.type === "Purchase" ? "bg-gradient-to-br from-indigo-950/60 via-slate-900/70 to-indigo-950/40 border-indigo-500/40 hover:border-indigo-400 hover:from-indigo-950/80 shadow-[0_4px_25px_rgba(99,102,241,0.12)]" : f.type === "DebtIncrease" ? "bg-gradient-to-br from-amber-950/50 via-slate-900/70 to-amber-950/30 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_25px_rgba(245,158,11,0.12)]" : f.type === "Receipt" ? "bg-gradient-to-br from-teal-950/50 via-slate-900/70 to-teal-950/30 border-teal-500/40 hover:border-teal-400 shadow-[0_4px_25px_rgba(20,184,166,0.12)]" : f.type === "Payment" ? "bg-gradient-to-br from-rose-950/50 via-slate-900/70 to-rose-950/30 border-rose-500/40 hover:border-rose-400 shadow-[0_4px_25px_rgba(244,63,94,0.12)]" : "bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-emerald-950/20 border-emerald-500/35 hover:border-emerald-400 shadow-[0_4px_25px_rgba(16,185,129,0.08)]")} onClick={me => {
+                  !f.is_voucher && xe && xe(f);
+                }}><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5 flex-1 min-w-0"><div className={c("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner border", f.type === "Purchase" ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" : f.type === "DebtIncrease" ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : f.type === "Receipt" ? "bg-teal-500/20 text-teal-300 border-teal-500/30" : f.type === "Payment" ? "bg-rose-500/20 text-rose-300 border-rose-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")}>{f.type === "Purchase" ? <Comp_ui size={14} strokeWidth={2.5} /> : f.type === "DebtIncrease" ? <Hs size={14} strokeWidth={2.5} /> : f.is_voucher ? <Ks size={14} strokeWidth={2.5} /> : Xe ? <$s size={14} strokeWidth={2.5} /> : <On size={14} strokeWidth={2.5} />}</div><div className="min-w-0"><div className={c("text-[12px] font-black uppercase tracking-wide leading-none mb-1 truncate pr-2 flex items-center gap-1", f.type === "Purchase" ? "text-indigo-200 font-extrabold" : f.type === "DebtIncrease" ? "text-amber-200 font-extrabold" : f.type === "Receipt" ? "text-teal-200 font-extrabold" : f.type === "Payment" ? "text-rose-200 font-extrabold" : "text-emerald-100 font-extrabold")}>{f.type === "Receipt" && <Va size={12} className="shrink-0" />}{Xe ? f.is_voucher ? f.type === "DebtIncrease" ? "Ghi nợ" : f.type === "Receipt" ? `Thu tiền #${f.id.split("_")[1]}` : `Chi tiền #${f.id.split("_")[1]}` : f.display_id ? `#${f.display_id}` : `#${f.id}` : "********"}</div><div className="flex items-center gap-2"><span className="text-[9px] font-black text-white/40 tabular-nums uppercase">{Xe ? f.time : "--:--"}</span>{f.type === "Purchase" ? <div className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border bg-indigo-500/25 text-indigo-200 border-indigo-400/40">NHẬP</div> : !f.is_voucher && <div className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border bg-emerald-500/25 text-emerald-200 border-emerald-400/40">BÁN</div>}<div className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border", f.payment_method === "Debt" ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")}>{f.payment_method === "Debt" ? "NỢ" : "T.MẶT"}</div></div></div></div><div className="flex items-center gap-2 pl-2 shrink-0"><div className={c("text-[15px] font-black tracking-tighter tabular-nums text-right leading-none drop-shadow-md", f.type === "Purchase" ? "text-indigo-300" : f.type === "DebtIncrease" ? "text-amber-300" : f.type === "Receipt" ? "text-teal-300" : f.type === "Payment" ? "text-rose-300" : "text-emerald-300")}>{z(f.total_amount || f.total)}</div><div className="flex flex-col gap-1 transition-all duration-200 opacity-0 scale-90 translate-x-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 w-0 group-hover:w-auto overflow-hidden"><button onClick={me => {
+                          me.stopPropagation(), f.is_voucher ? we && we(f) : W && W(f);
+                        }} className="p-1 bg-white/10 hover:bg-white/20 text-white/40 hover:text-white rounded-md transition-all"><Comp_yd size={10} /></button><button onClick={me => {
+                          me.stopPropagation(), f.is_voucher ? Oe && Oe(f) : pe && pe(f.id);
+                        }} className="p-1 bg-rose-500/10 hover:bg-rose-500/30 text-white/40 hover:text-rose-400 rounded-md transition-all"><Comp_pa size={10} /></button></div></div></div>{Xe && f.details && f.details.length > 0 && <div className="border-t border-white/10 mt-2.5 pt-2 flex flex-wrap gap-1">{f.details.slice(0, 3).map((me, qe) => <div key={qe} className={c("px-1.5 py-0.5 border rounded-md text-[8px] font-black uppercase flex items-center gap-1 transition-all", f.type === "Purchase" ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/25" : "bg-emerald-500/15 border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/25")}><span className="truncate max-w-[70px]">{me.product_name}</span><div className={c("w-px h-1.5", f.type === "Purchase" ? "bg-indigo-500/40" : "bg-emerald-500/40")} /><span className={f.type === "Purchase" ? "text-indigo-300" : "text-emerald-300"}>{z(me.quantity)}</span></div>)}{f.details.length > 3 && <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded-md text-[8px] font-black text-white/40 uppercase tracking-tighter">+{f.details.length - 3} món</div>}</div>}</div></div>)}{$t && <button onClick={Ht} disabled={ue} className="w-full py-3 rounded-xl border border-white/5 text-white/30 text-[8px] font-black uppercase tracking-[0.4em] hover:bg-white/5 hover:text-white transition-all active:scale-[0.98]">{ue ? "Đang truy xuất..." : "Tải thêm"}</button>}</div>;
+          })() : at.length === 0 ? <div className="text-center py-40 opacity-20"><Qa size={60} strokeWidth={1} className="mx-auto mb-8 text-white" /><p className="font-black uppercase text-[10px] tracking-[0.4em] text-white">Trống trải...</p></div> : at.map(_ => <div key={_.id} className="bg-white/[0.04] p-3 rounded-xl border border-white/5 hover:border-emerald-500/40 transition-colors flex items-center justify-between hover:bg-white/[0.08]"><div className="flex-1 min-w-0 pr-3"><div className="font-black text-[12px] text-white uppercase truncate mb-1" title={_.name}>{_.name}</div><div className="flex items-center gap-2"><span className="text-[9px] font-black text-emerald-400 bg-emerald-500/5 px-1.5 py-0.5 rounded-md border border-emerald-500/5 tabular-nums">Tổng {z(_.total_qty)} {_.unit}</span><span className="text-[9px] font-black text-white/20 tabular-nums">Giá cuối: {z(_.last_price)}</span></div></div><button onClick={() => X(_)} className="w-8 h-8 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg shadow-lg flex items-center justify-center transition-all border border-emerald-500/5 active:scale-90"><Ed size={14} strokeWidth={2.5} /></button></div>)}</div></x.div></div>}</P>;
 }
-const ji = ({
-    size: f,
-    strokeWidth: g
-  }) => e.jsxs("svg", {
-    width: f,
-    height: f,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: g,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    children: [e.jsx("line", {
-      x1: "12",
-      y1: "5",
-      x2: "12",
-      y2: "19"
-    }), e.jsx("line", {
-      x1: "5",
-      y1: "12",
-      x2: "19",
-      y2: "12"
-    })]
-  }),
-  Ni = i.forwardRef(({
-    className: f,
-    ...g
-  }, h) => e.jsx("div", {
-    className: "relative w-full overflow-auto",
-    children: e.jsx("table", {
-      ref: h,
-      className: u("w-full caption-bottom text-sm", f),
-      ...g
-    })
-  }));
-Ni.displayName = "Table";
-const _i = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("thead", {
-  ref: h,
-  className: u("[&_tr]:border-b", f),
-  ...g
-}));
-_i.displayName = "TableHeader";
-const Ci = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("tbody", {
-  ref: h,
-  className: u("[&_tr:last-child]:border-0", f),
-  ...g
-}));
-Ci.displayName = "TableBody";
-const Ti = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("tfoot", {
-  ref: h,
-  className: u("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", f),
-  ...g
-}));
-Ti.displayName = "TableFooter";
-const Si = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("tr", {
-  ref: h,
-  className: u("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", f),
-  ...g
-}));
-Si.displayName = "TableRow";
-const Ii = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("th", {
-  ref: h,
-  className: u("h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]", f),
-  ...g
-}));
-Ii.displayName = "TableHead";
-const Di = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("td", {
-  ref: h,
-  className: u("p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]", f),
-  ...g
-}));
-Di.displayName = "TableCell";
-const zi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("caption", {
-  ref: h,
-  className: u("mt-4 text-sm text-muted-foreground", f),
-  ...g
-}));
-zi.displayName = "TableCaption";
-const Pi = cva("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0", {
+const Ed = ({
+    size: v,
+    strokeWidth: N
+  }) => <svg width={v} height={v} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={N} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+  qd = i.forwardRef(({
+    className: v,
+    ...N
+  }, C) => <div className="relative w-full overflow-auto"><table ref={C} className={c("w-full caption-bottom text-sm", v)} {...N} /></div>);
+qd.displayName = "Table";
+const Md = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <thead ref={C} className={c("[&_tr]:border-b", v)} {...N} />);
+Md.displayName = "TableHeader";
+const Wd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <tbody ref={C} className={c("[&_tr:last-child]:border-0", v)} {...N} />);
+Wd.displayName = "TableBody";
+const Rd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <tfoot ref={C} className={c("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", v)} {...N} />);
+Rd.displayName = "TableFooter";
+const Ad = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <tr ref={C} className={c("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", v)} {...N} />);
+Ad.displayName = "TableRow";
+const Od = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <th ref={C} className={c("h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]", v)} {...N} />);
+Od.displayName = "TableHead";
+const Ld = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <td ref={C} className={c("p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]", v)} {...N} />);
+Ld.displayName = "TableCell";
+const $d = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <caption ref={C} className={c("mt-4 text-sm text-muted-foreground", v)} {...N} />);
+$d.displayName = "TableCaption";
+const Hd = Pl("inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0", {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
@@ -845,1020 +440,795 @@ const Pi = cva("inline-flex items-center justify-center gap-2 whitespace-nowrap 
       size: "default"
     }
   }),
-  Ei = i.forwardRef(({
-    className: f,
-    variant: g,
-    size: h,
-    asChild: $ = !1,
-    ...B
-  }, oe) => {
-    const Z = $ ? Ln : "button";
-    return e.jsx(Z, {
-      className: u(Pi({
-        variant: g,
-        size: h,
-        className: f
-      })),
-      ref: oe,
-      ...B
-    })
+  Kd = i.forwardRef(({
+    className: v,
+    variant: N,
+    size: C,
+    asChild: X = !1,
+    ...xe
+  }, W) => {
+    const pe = X ? gd : "button";
+    return <Comp_pe className={c(Hd({
+      variant: N,
+      size: C,
+      className: v
+    }))} ref={W} {...xe} />;
   });
-Ei.displayName = "Button";
-const Ai = i.forwardRef(({
-  className: f,
-  type: g,
-  ...h
-}, $) => e.jsx("input", {
-  type: g,
-  className: u("flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm", f),
-  ref: $,
-  ...h
-}));
-Ai.displayName = "Input";
-const qi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("rounded-xl border bg-card text-card-foreground shadow", f),
-  ...g
-}));
-qi.displayName = "Card";
-const Ri = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("flex flex-col space-y-1.5 p-6", f),
-  ...g
-}));
-Ri.displayName = "CardHeader";
-const Mi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("font-semibold leading-none tracking-tight", f),
-  ...g
-}));
-Mi.displayName = "CardTitle";
-const Oi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("text-sm text-muted-foreground", f),
-  ...g
-}));
-Oi.displayName = "CardDescription";
-const Wi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("p-6 pt-0", f),
-  ...g
-}));
-Wi.displayName = "CardContent";
-const Li = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx("div", {
-  ref: h,
-  className: u("flex items-center p-6 pt-0", f),
-  ...g
-}));
-Li.displayName = "CardFooter";
-const Hi = i.forwardRef(({
-  className: f,
-  children: g,
-  ...h
-}, $) => e.jsxs(Ds, {
-  ref: $,
-  className: u("relative overflow-hidden", f),
-  ...h,
-  children: [e.jsx($n, {
-    className: "h-full w-full rounded-[inherit]",
-    children: g
-  }), e.jsx(Ms, {}), e.jsx(Bn, {})]
-}));
-Hi.displayName = Ds.displayName;
-const Ms = i.forwardRef(({
-  className: f,
-  orientation: g = "vertical",
-  ...h
-}, $) => e.jsx(zs, {
-  ref: $,
-  orientation: g,
-  className: u("flex touch-none select-none transition-colors", g === "vertical" && "h-full w-2.5 border-l border-l-transparent p-[1px]", g === "horizontal" && "h-2.5 flex-col border-t border-t-transparent p-[1px]", f),
-  ...h,
-  children: e.jsx(Fn, {
-    className: "relative flex-1 rounded-full bg-border"
-  })
-}));
-Ms.displayName = zs.displayName;
-const $i = Un,
-  Os = i.forwardRef(({
-    className: f,
-    ...g
-  }, h) => e.jsx(Ps, {
-    ref: h,
-    className: u("fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", f),
-    ...g
-  }));
-Os.displayName = Ps.displayName;
-const Bi = i.forwardRef(({
-  className: f,
-  children: g,
-  ...h
-}, $) => e.jsxs($i, {
-  children: [e.jsx(Os, {}), e.jsxs(Es, {
-    ref: $,
-    className: u("fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg", f),
-    ...h,
-    children: [g, e.jsxs(Kn, {
-      className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground",
-      children: [e.jsx(Se, {
-        className: "h-4 w-4"
-      }), e.jsx("span", {
-        className: "sr-only",
-        children: "Close"
-      })]
-    })]
-  })]
-}));
-Bi.displayName = Es.displayName;
-const Fi = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx(As, {
-  ref: h,
-  className: u("text-lg font-semibold leading-none tracking-tight", f),
-  ...g
-}));
-Fi.displayName = As.displayName;
-const Ui = i.forwardRef(({
-  className: f,
-  ...g
-}, h) => e.jsx(qs, {
-  ref: h,
-  className: u("text-sm text-muted-foreground", f),
-  ...g
-}));
-Ui.displayName = qs.displayName;
-
-function Ki({
-  isOpen: f,
-  onClose: g,
-  onViewOrder: h
+Kd.displayName = "Button";
+const Gd = i.forwardRef(({
+  className: v,
+  type: N,
+  ...C
+}, X) => <input type={N} className={c("flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm", v)} ref={X} {...C} />);
+Gd.displayName = "Input";
+const Ud = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("rounded-xl border bg-card text-card-foreground shadow", v)} {...N} />);
+Ud.displayName = "Card";
+const Bd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("flex flex-col space-y-1.5 p-6", v)} {...N} />);
+Bd.displayName = "CardHeader";
+const Fd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("font-semibold leading-none tracking-tight", v)} {...N} />);
+Fd.displayName = "CardTitle";
+const Vd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("text-sm text-muted-foreground", v)} {...N} />);
+Vd.displayName = "CardDescription";
+const Qd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("p-6 pt-0", v)} {...N} />);
+Qd.displayName = "CardContent";
+const Xd = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <div ref={C} className={c("flex items-center p-6 pt-0", v)} {...N} />);
+Xd.displayName = "CardFooter";
+const Jd = i.forwardRef(({
+  className: v,
+  children: N,
+  ...C
+}, X) => <Comp_si ref={X} className={c("relative overflow-hidden", v)} {...C}><Comp_pd className="h-full w-full rounded-[inherit]">{N}</Comp_pd><Comp_mi /><Comp_ud /></Comp_si>);
+Jd.displayName = si.displayName;
+const mi = i.forwardRef(({
+  className: v,
+  orientation: N = "vertical",
+  ...C
+}, X) => <Comp_ni ref={X} orientation={N} className={c("flex touch-none select-none transition-colors", N === "vertical" && "h-full w-2.5 border-l border-l-transparent p-[1px]", N === "horizontal" && "h-2.5 flex-col border-t border-t-transparent p-[1px]", v)} {...C}><Comp_md className="relative flex-1 rounded-full bg-border" /></Comp_ni>);
+mi.displayName = ni.displayName;
+const Yd = xd,
+  xi = i.forwardRef(({
+    className: v,
+    ...N
+  }, C) => <Comp_ii ref={C} className={c("fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", v)} {...N} />);
+xi.displayName = ii.displayName;
+const Zd = i.forwardRef(({
+  className: v,
+  children: N,
+  ...C
+}, X) => <Yd><Comp_xi /><Comp_li ref={X} className={c("fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg", v)} {...C}>{N}<Comp_hd className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"><Comp_ke className="h-4 w-4" /><span className="sr-only">Close</span></Comp_hd></Comp_li></Yd>);
+Zd.displayName = li.displayName;
+const ec = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <Comp_oi ref={C} className={c("text-lg font-semibold leading-none tracking-tight", v)} {...N} />);
+ec.displayName = oi.displayName;
+const tc = i.forwardRef(({
+  className: v,
+  ...N
+}, C) => <Comp_di ref={C} className={c("text-sm text-muted-foreground", v)} {...N} />);
+tc.displayName = di.displayName;
+function ac({
+  isOpen: v,
+  onClose: N,
+  onViewOrder: C
 }) {
-  const $ = Rs(),
-    [B, oe] = i.useState([]),
-    [Z, F] = i.useState(!1),
-    [ve, z] = i.useState("Shipping"),
-    [Q, ee] = i.useState(""),
-    [ce, qe] = i.useState(null),
-    [Ue, de] = i.useState(null),
-    [Ie, te] = i.useState(null),
-    [Re, xe] = i.useState(new Date().toLocaleDateString("en-CA"));
+  const X = ci(),
+    [xe, W] = i.useState([]),
+    [pe, we] = i.useState(!1),
+    [Oe, Qe] = i.useState("Shipping"),
+    [te, at] = i.useState(""),
+    [B, ue] = i.useState(null),
+    [je, Ie] = i.useState(null),
+    [dt, Le] = i.useState(null),
+    [Nt, Lt] = i.useState(new Date().toLocaleDateString("en-CA"));
   i.useEffect(() => {
-    f && Ke()
-  }, [f, Re]);
-  const Ke = async () => {
-    F(!0);
-    try {
-      const y = await q.get("/api/orders?shipping_status=Shipping&limit=100&sort_by=date&sort_order=desc"),
-        P = y.data.items || y.data,
-        [N, b, S] = Re.split("-"),
-        O = await q.get(`/api/orders?shipping_status=Delivered&delivered_year=${N}&delivered_month=${b}&delivered_day=${S}&limit=100&sort_by=date&sort_order=desc`),
-        ke = O.data.items || O.data;
-      oe([...P, ...ke])
-    } catch (y) {
-      console.error("Error fetching shipping orders:", y), ht.error("Không thể tải danh sách giao hàng.")
-    } finally {
-      F(!1)
-    }
-  }, De = async (y, P) => {
-    try {
-      await q.patch(`/api/orders/${y}/shipping-status`, {
-        shipping_status: P
-      }), P === null ? (oe(N => N.filter(b => b.id !== y)), te(null), ht.success("Đã gỡ đơn khỏi danh sách giao hàng.")) : (oe(N => N.map(b => b.id === y ? {
-        ...b,
-        shipping_status: P
-      } : b)), ht.success(P === "Delivered" ? "Đã giao hàng thành công!" : "Đã hoàn tác trạng thái.")), $.invalidateQueries(["shippingSummary"])
-    } catch (N) {
-      console.error("Error updating shipping status:", N), ht.error("Không thể cập nhật trạng thái.")
-    }
-  }, Me = async (y, P) => {
-    const N = ht.loading("Đang cập nhật...");
-    try {
-      const b = await q.patch(`/api/order-details/${y.id}/shipped-quantity`, {
-          shipped_quantity: P
-        }),
-        {
-          order_shipping_status: S
-        } = b.data;
-      oe(O => O.map(ke => {
-        if (ke.details?.some(re => re.id === y.id)) {
-          const re = ke.details.map(Ge => Ge.id === y.id ? {
-            ...Ge,
-            shipped_quantity: P
-          } : Ge);
-          return {
-            ...ke,
-            details: re,
-            shipping_status: S
+    v && he();
+  }, [v, Nt]);
+  const he = async () => {
+      we(!0);
+      try {
+        const j = await M.get("/api/orders?shipping_status=Shipping&limit=100&sort_by=date&sort_order=desc"),
+          E = j.data.items || j.data,
+          [D, T, Y] = Nt.split("-"),
+          be = await M.get(`/api/orders?shipping_status=Delivered&delivered_year=${D}&delivered_month=${T}&delivered_day=${Y}&limit=100&sort_by=date&sort_order=desc`),
+          Z = be.data.items || be.data;
+        W([...E, ...Z]);
+      } catch (j) {
+        console.error("Error fetching shipping orders:", j), At.error("Không thể tải danh sách giao hàng.");
+      } finally {
+        we(!1);
+      }
+    },
+    $t = async (j, E) => {
+      try {
+        await M.patch(`/api/orders/${j}/shipping-status`, {
+          shipping_status: E
+        }), E === null ? (W(D => D.filter(T => T.id !== j)), Le(null), At.success("Đã gỡ đơn khỏi danh sách giao hàng.")) : (W(D => D.map(T => T.id === j ? {
+          ...T,
+          shipping_status: E
+        } : T)), At.success(E === "Delivered" ? "Đã giao hàng thành công!" : "Đã hoàn tác trạng thái.")), X.invalidateQueries(["shippingSummary"]);
+      } catch (D) {
+        console.error("Error updating shipping status:", D), At.error("Không thể cập nhật trạng thái.");
+      }
+    },
+    _e = async (j, E) => {
+      const D = At.loading("Đang cập nhật...");
+      try {
+        const T = await M.patch(`/api/order-details/${j.id}/shipped-quantity`, {
+            shipped_quantity: E
+          }),
+          {
+            order_shipping_status: Y
+          } = T.data;
+        W(be => be.map(Z => {
+          if (Z.details?.some(ae => ae.id === j.id)) {
+            const ae = Z.details.map(bt => bt.id === j.id ? {
+              ...bt,
+              shipped_quantity: E
+            } : bt);
+            return {
+              ...Z,
+              details: ae,
+              shipping_status: Y
+            };
           }
-        }
-        return ke
-      })), de(null), $.invalidateQueries(["shippingSummary"]), ht.success("Cập nhật số lượng thành công!", {
-        id: N
-      })
-    } catch (b) {
-      console.error("Error updating item shipped qty:", b), ht.error("Không thể cập nhật số lượng.", {
-        id: N
-      })
-    }
-  }, ae = B.filter(y => (ve === "any" || y.shipping_status === ve) && (y.display_id?.toLowerCase().includes(Q.toLowerCase()) || y.partner_name?.toLowerCase().includes(Q.toLowerCase()) || y.shipping_phone?.includes(Q)));
-  return e.jsxs(Be, {
-    children: [
-      e.jsx(T, {
-        children: f && e.jsxs("div", {
-          className: "fixed inset-0 z-[500000] flex justify-end font-sans",
-          children: [
-            e.jsx(m.div, {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-              onClick: g,
-              className: "absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"
-            }),
-            e.jsxs(m.div, {
-              initial: { x: "100%", opacity: 0 },
-              animate: { x: 0, opacity: 1 },
-              exit: { x: "100%", opacity: 0 },
-              transition: { type: "spring", damping: 25, stiffness: 200 },
-              className: "relative w-[650px] h-full bg-card backdrop-blur-3xl flex flex-col border-l border-border shadow-2xl text-foreground",
-              children: [
-                e.jsxs("div", {
-                  className: "p-6 border-b border-border bg-card flex justify-between items-center relative overflow-hidden shrink-0",
-                  children: [
-                    e.jsxs("div", {
-                      className: "flex items-center gap-3.5 relative z-10",
-                      children: [
-                        e.jsx("div", {
-                          className: "w-11 h-11 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]",
-                          children: e.jsx(lt, { size: 20, className: "text-primary" })
-                        }),
-                        e.jsxs("div", {
-                          children: [
-                            e.jsx("h3", {
-                              className: "font-black text-lg text-foreground uppercase tracking-wider leading-tight",
-                              children: "Giao Hàng"
-                            }),
-                            e.jsxs("div", {
-                              className: "flex gap-2.5 mt-2",
-                              children: [
-                                e.jsxs("span", {
-                                  className: "text-[9px] font-black text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(var(--primary-rgb),0.1)]",
-                                  children: [e.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-primary" }), `${B.filter(y => y.shipping_status === "Shipping").length} ĐANG CHẠY`]
-                                }),
-                                e.jsxs("span", {
-                                  className: "text-[9px] font-black text-muted-foreground bg-background/50 border border-border px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5",
-                                  children: [e.jsx("span", { className: "w-1.5 h-1.5 rounded-full bg-muted-foreground" }), `${B.filter(y => y.shipping_status === "Delivered").length} HOÀN TẤT`]
-                                })
-                              ]
-                            })
-                          ]
-                        })
-                      ]
-                    }),
-                    e.jsx("button", {
-                      onClick: g,
-                      className: "w-9 h-9 flex items-center justify-center rounded-xl bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary border border-border transition-all duration-300 hover:rotate-90",
-                      children: e.jsx(Se, { size: 16, strokeWidth: 3 })
-                    })
-                  ]
-                }),
-                e.jsxs("div", {
-                  className: "p-6 space-y-4 bg-card border-b border-border",
-                  children: [
-                    e.jsxs("div", {
-                      className: "flex gap-3.5",
-                      children: [
-                        e.jsxs("div", {
-                          className: "relative flex-1 group",
-                          children: [
-                            e.jsx(qr, { className: "absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors", size: 18 }),
-                            e.jsx("input", {
-                              type: "text",
-                              placeholder: "Tìm mã đơn, tên khách...",
-                              className: "w-full h-11 pl-11 pr-4 bg-background border border-border focus:border-primary rounded-xl text-sm font-semibold transition-all outline-none text-foreground focus:ring-1 focus:ring-primary placeholder-muted-foreground/50",
-                              value: Q,
-                              onChange: y => ee(y.target.value)
-                            })
-                          ]
-                        }),
-                        e.jsxs("div", {
-                          className: "relative w-40 group",
-                          children: [
-                            e.jsx(Zn, { className: "absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none", size: 16 }),
-                            e.jsx("input", {
-                              type: "date",
-                              className: "w-full h-11 pl-9 pr-2 bg-background border border-border focus:border-primary rounded-xl text-xs font-semibold transition-all outline-none text-foreground focus:ring-1 focus:ring-primary appearance-none uppercase",
-                              value: Re,
-                              onChange: y => xe(y.target.value)
-                            })
-                          ]
-                        })
-                      ]
-                    }),
-                    e.jsx("div", {
-                      className: "flex gap-3.5",
-                      children: [{ label: "Đang giao", value: "Shipping", icon: ia }, { label: "Đã giao", value: "Delivered", icon: Ma }].map(y => {
-                        const isSelected = ve === y.value;
-                        return e.jsxs("button", {
-                          onClick: () => z(y.value),
-                          className: u(
-                            "flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2 border active:scale-98 cursor-pointer",
-                            isSelected 
-                              ? "bg-primary/10 border-primary/20 text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
-                              : "bg-background border-border text-muted-foreground hover:text-foreground hover:bg-background/80"
-                          ),
-                          children: [e.jsx(y.icon, { size: 14, strokeWidth: 3 }), e.jsx("span", { children: y.label })]
-                        }, y.value);
-                      })
-                    })
-                  ]
-                }),
-                e.jsx("div", {
-                  className: "flex-1 overflow-y-auto no-scrollbar p-5 space-y-4 bg-transparent",
-                  children: Z ? e.jsxs("div", {
-                    className: "flex flex-col items-center justify-center py-20 opacity-50",
-                    children: [
-                      e.jsx("div", { className: "w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" }),
-                      e.jsx("span", { className: "font-black text-[10px] uppercase text-primary tracking-[0.2em]", children: "Đang tải đơn hàng..." })
-                    ]
-                  }) : ae.length === 0 ? e.jsxs("div", {
-                    className: "text-center py-20 text-muted-foreground opacity-60",
-                    children: [
-                      e.jsx(lt, { size: 48, className: "mx-auto mb-4 opacity-10" }),
-                      e.jsx("p", { className: "font-black uppercase text-[10px] tracking-[0.25em]", children: "Không tìm thấy đơn nào" })
-                    ]
-                  }) : ae.map((y, P) => e.jsxs(m.div, {
-                    initial: { opacity: 0, y: 10 },
-                    animate: { opacity: 1, y: 0 },
-                    transition: { delay: P * .05 },
-                    className: u(
-                      "p-4 rounded-2xl border transition-all duration-300 group flex flex-col relative overflow-hidden bg-background/50 border-border/80 hover:border-primary/30 hover:bg-background hover:shadow-md",
-                      y.shipping_status === "Delivered" && "hover:border-blue-550/30"
-                    ),
-                    children: [
-                      e.jsxs("div", {
-                        className: "flex items-center justify-between w-full mb-3",
-                        children: [
-                          e.jsxs("div", {
-                            className: "flex items-center gap-3 flex-1 min-w-0",
-                            children: [
-                              e.jsx("div", {
-                                className: u("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-inner", y.shipping_status === "Delivered" ? "bg-blue-500/10 text-blue-555" : "bg-primary/10 text-primary"),
-                                children: y.shipping_status === "Delivered" ? e.jsx(Ma, { size: 14, strokeWidth: 2.5 }) : e.jsx(lt, { size: 14, strokeWidth: 2.5 })
-                              }),
-                              e.jsxs("div", {
-                                className: "min-w-0",
-                                children: [
-                                  e.jsxs("div", {
-                                    className: u("text-[13px] font-black uppercase tracking-wider leading-none mb-1.5 flex items-center gap-1", y.shipping_status === "Delivered" ? "text-blue-600" : "text-primary"),
-                                    children: ["#", y.display_id]
-                                  }),
-                                  e.jsxs("div", {
-                                    className: "flex items-center gap-2.5",
-                                    children: [
-                                      e.jsx("span", {
-                                        className: "text-[9px] font-black text-muted-foreground tabular-nums uppercase tracking-wide",
-                                        children: y.shipping_status === "Delivered" ? y.delivery_date ? Fe(y.delivery_date) : Fe(y.date) : Fe(y.date)
-                                      }),
-                                      e.jsx("div", {
-                                        className: u("text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider border", y.shipping_status === "Delivered" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" : "bg-primary/10 text-primary border-primary/20"),
-                                        children: y.partner_name || "Khách lẻ"
-                                      })
-                                    ]
-                                  })
-                                ]
-                              })
-                            ]
-                          }),
-                          e.jsxs("div", {
-                            className: "flex items-center gap-3.5 shrink-0",
-                            children: [
-                              e.jsx("div", {
-                                className: u("text-[16px] font-black tracking-tight tabular-nums text-right leading-none text-foreground", y.shipping_status === "Delivered" ? "text-blue-600" : "text-primary"),
-                                children: I(y.total_amount)
-                              }),
-                              e.jsx("button", {
-                                onClick: N => { N.stopPropagation(); te(y.id); },
-                                className: "p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 hover:text-rose-700 rounded-lg transition-all border border-rose-500/25 active:scale-95 duration-200 cursor-pointer",
-                                title: "Hủy giao hàng",
-                                children: e.jsx(Se, { size: 10, strokeWidth: 3 })
-                              })
-                            ]
-                          })
-                        ]
-                      }),
-                      e.jsxs("div", {
-                        className: "flex gap-2 items-center mb-4 bg-background p-2.5 rounded-xl border border-border",
-                        children: [
-                          e.jsxs("div", {
-                            className: "flex items-center gap-2 flex-1 min-w-0",
-                            children: [
-                              e.jsx(Ha, { size: 11, className: "text-primary shrink-0" }),
-                              e.jsx("span", {
-                                className: "text-[10px] font-semibold text-muted-foreground truncate",
-                                children: y.shipping_address || e.jsx("span", { className: "italic opacity-30", children: "N/A" })
-                              })
-                            ]
-                          }),
-                          e.jsx("div", { className: "w-px h-3.5 bg-border shrink-0" }),
-                          e.jsxs("div", {
-                            className: "flex items-center gap-2 shrink-0",
-                            children: [
-                              e.jsx(na, { size: 11, className: "text-blue-500 shrink-0" }),
-                              e.jsx("span", {
-                                className: "text-[10px] font-black text-foreground tracking-wide",
-                                children: y.shipping_phone || e.jsx("span", { className: "italic opacity-30", children: "N/A" })
-                              })
-                            ]
-                          })
-                        ]
-                      }),
-                      e.jsxs("div", {
-                        className: "flex gap-2",
-                        children: [
-                          e.jsxs("button", {
-                            onClick: () => qe(y.id),
-                            className: "flex-1 py-2.5 bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-xl transition-all border border-border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 duration-200 cursor-pointer",
-                            children: [e.jsx(ei, { size: 10 }), " Bốc hàng"]
-                          }),
-                          e.jsx("button", {
-                            onClick: () => h(y),
-                            className: "w-9 h-9 bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-xl transition-all border border-border flex items-center justify-center active:scale-95 duration-200 cursor-pointer",
-                            children: e.jsx(ti, { size: 10 })
-                          }),
-                          y.shipping_status === "Shipping" && e.jsxs("button", {
-                            onClick: () => De(y.id, "Delivered"),
-                            className: "flex-1 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 hover:text-emerald-700 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 duration-200 shadow-sm cursor-pointer",
-                            children: [e.jsx(Ma, { size: 10, strokeWidth: 3 }), " XONG"]
-                          }),
-                          y.shipping_status === "Delivered" && e.jsxs("button", {
-                            onClick: () => De(y.id, "Shipping"),
-                            className: "flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 hover:text-amber-700 border border-amber-500/20 hover:border-amber-500/40 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 duration-200 shadow-sm cursor-pointer",
-                            children: [e.jsx(Rt, { size: 10 }), " HOÀN TÁC"]
-                          })
-                        ]
-                      })
-                    ]
-                  }, y.id))
-                })
-              ]
-            })
-          ]
-        })
-      }),
-      e.jsx(T, {
-        children: ce && e.jsxs("div", {
-          className: "fixed inset-0 z-[600000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto",
-          children: [
-            e.jsx(m.div, {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-              onClick: () => qe(null),
-              className: "absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"
-            }),
-            e.jsx(m.div, {
-              initial: { scale: .95, opacity: 0, y: 20 },
-              animate: { scale: 1, opacity: 1, y: 0 },
-              exit: { scale: .95, opacity: 0, y: 20 },
-              className: "relative w-full max-w-xl bg-card border border-border rounded-[2rem] overflow-hidden shadow-2xl flex flex-col font-sans text-foreground",
-              children: (() => {
-                const y = B.find(N => N.id === ce);
-                if (!y) return null;
-                const P = Math.round(y.details?.reduce((N, b) => N + (b.shipped_quantity || 0), 0) / y.details?.reduce((N, b) => N + b.quantity, 0) * 100);
-                return e.jsxs(e.Fragment, {
-                  children: [
-                    e.jsxs("div", {
-                      className: "p-6 border-b border-border flex justify-between items-center bg-card",
-                      children: [
-                        e.jsxs("div", {
-                          children: [
-                            e.jsxs("h4", { className: "text-lg font-black text-foreground uppercase tracking-wider", children: ["📦 Bốc hàng #", y.display_id] }),
-                            e.jsx("p", { className: "text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest", children: y.partner_name || "Khách lẻ" })
-                          ]
-                        }),
-                        e.jsxs("div", {
-                          className: "text-right flex flex-col items-end",
-                          children: [
-                            e.jsx("div", { className: "text-[8px] font-black text-primary uppercase tracking-widest mb-1.5", children: "Tiến độ bốc hàng" }),
-                            e.jsxs("div", {
-                              className: "text-2xl font-black text-primary flex items-baseline gap-0.5 leading-none",
-                              children: [P, e.jsx("span", { className: "text-xs text-primary/60 font-bold", children: "%" })]
-                            })
-                          ]
-                        })
-                      ]
-                    }),
-                    e.jsx("div", {
-                      className: "w-full h-1 bg-background overflow-hidden",
-                      children: e.jsx("div", {
-                        className: "h-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500 ease-out",
-                        style: { width: `${P}%` }
-                      })
-                    }),
-                    e.jsx("div", {
-                      className: "max-h-[50vh] overflow-y-auto p-6 space-y-3.5 no-scrollbar bg-card/50",
-                      children: y.details?.map(N => {
-                        const b = (N.shipped_quantity || 0) >= N.quantity;
-                        return e.jsxs("div", {
-                          className: u(
-                            "flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 bg-background/50 border-border/80 shadow-sm",
-                            b ? "bg-emerald-500/5 border-emerald-500/20 opacity-60" : "hover:bg-background hover:border-border"
-                          ),
-                          children: [
-                            e.jsxs("div", {
-                              className: "flex-1 min-w-0",
-                              children: [
-                                e.jsx("div", { className: u("text-base font-black uppercase tracking-tight text-foreground", b && "line-through text-muted-foreground/45 decoration-emerald-500/50"), children: N.product_name }),
-                                e.jsxs("div", {
-                                  className: "text-xs font-bold text-muted-foreground mt-1.5 flex items-center gap-1",
-                                  children: ["Đã bốc: ", e.jsx("span", { className: "text-foreground font-black", children: N.shipped_quantity || 0 }), " / ", N.quantity, " ", N.unit]
-                                })
-                              ]
-                            }),
-                            e.jsxs("div", {
-                              className: "flex items-center gap-2.5",
-                              children: [
-                                Ue?.detailId === N.id ? e.jsx("input", {
-                                  type: "number",
-                                  autoFocus: !0,
-                                  className: "w-20 h-10 bg-background border-2 border-primary rounded-xl text-lg font-black text-center text-foreground outline-none focus:ring-1 focus:ring-primary",
-                                  value: Ue.value,
-                                  onChange: S => de({ ...Ue, value: S.target.value }),
-                                  onBlur: () => Me(N, parseFloat(Ue.value) || 0),
-                                  onKeyDown: S => S.key === "Enter" && Me(N, parseFloat(Ue.value) || 0)
-                                }) : e.jsx("button", {
-                                  onClick: () => de({ detailId: N.id, value: N.shipped_quantity || 0 }),
-                                  className: "p-3 bg-background hover:bg-primary/10 rounded-xl text-muted-foreground hover:text-primary transition-all border border-border active:scale-95 cursor-pointer",
-                                  children: e.jsx(qr, { size: 16 })
-                                }),
-                                e.jsx("button", {
-                                  onClick: () => Me(N, b ? 0 : N.quantity),
-                                  className: u(
-                                    "w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md cursor-pointer",
-                                    b ? "bg-primary text-white shadow-primary/20" : "bg-background border border-border text-muted-foreground/30 hover:border-primary/50 hover:text-primary"
-                                  ),
-                                  children: e.jsx(Ma, { size: 20 })
-                                })
-                              ]
-                            })
-                          ]
-                        }, N.id);
-                      })
-                    }),
-                    e.jsx("div", {
-                      className: "p-6 border-t border-border bg-card shrink-0",
-                      children: e.jsx("button", {
-                        onClick: () => qe(null),
-                        className: "w-full h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg transition-all active:scale-98 duration-200 cursor-pointer",
-                        children: "Đóng danh sách"
-                      })
-                    })
-                  ]
-                });
-              })()
-            })
-          ]
-        })
-      }),
-      e.jsx(T, {
-        children: Ie && e.jsxs("div", {
-          className: "fixed inset-0 z-[600000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto",
-          children: [
-            e.jsx(m.div, {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              exit: { opacity: 0 },
-              onClick: () => te(null),
-              className: "absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"
-            }),
-            e.jsxs(m.div, {
-              initial: { scale: .9, opacity: 0, y: 20 },
-              animate: { scale: 1, opacity: 1, y: 0 },
-              exit: { scale: .9, opacity: 0, y: 20 },
-              className: "relative w-full max-w-sm bg-card rounded-[32px] p-8 shadow-2xl overflow-hidden border border-border",
-              children: [
-                e.jsx("div", { className: "absolute top-0 left-0 w-full h-2 bg-rose-500" }),
-                e.jsx("div", {
-                  className: "w-16 h-16 bg-rose-50 dark:bg-rose-900/20 rounded-2xl flex items-center justify-center text-rose-500 mb-6 mx-auto",
-                  children: e.jsx(lt, { size: 32 })
-                }),
-                e.jsx("h3", {
-                  className: "text-xl font-black text-foreground text-center uppercase tracking-tight mb-2",
-                  children: "Gỡ danh sách ship?"
-                }),
-                e.jsx("p", {
-                  className: "text-sm text-muted-foreground text-center font-medium leading-relaxed mb-8",
-                  children: "Bạn có chắc chắn muốn gỡ đơn hàng này không? Đơn hàng vẫn được lưu lại trong lịch sử bán hàng."
-                }),
-                e.jsxs("div", {
-                  className: "flex gap-3",
-                  children: [
-                    e.jsx("button", {
-                      onClick: () => te(null),
-                      className: "flex-1 h-12 bg-transparent text-muted-foreground rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-background/80 transition-all",
-                      children: "Bỏ qua"
-                    }),
-                    e.jsx("button", {
-                      onClick: () => De(Ie, null),
-                      className: "flex-1 h-12 bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all",
-                      children: "Gỡ ngay"
-                    })
-                  ]
-                })
-              ]
-            })
-          ]
-        })
-      })
-    ]
-  });
+          return Z;
+        })), Ie(null), X.invalidateQueries(["shippingSummary"]), At.success("Cập nhật số lượng thành công!", {
+          id: D
+        });
+      } catch (T) {
+        console.error("Error updating item shipped qty:", T), At.error("Không thể cập nhật số lượng.", {
+          id: D
+        });
+      }
+    },
+    Xe = xe.filter(j => (Oe === "any" || j.shipping_status === Oe) && (j.display_id?.toLowerCase().includes(te.toLowerCase()) || j.partner_name?.toLowerCase().includes(te.toLowerCase()) || j.shipping_phone?.includes(te)));
+  return <Ee><P>{v && <div className="fixed inset-0 z-[500000] flex justify-end font-sans"><x.div initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} exit={{
+          opacity: 0
+        }} onClick={N} className="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm" /><x.div initial={{
+          x: "100%",
+          opacity: 0
+        }} animate={{
+          x: 0,
+          opacity: 1
+        }} exit={{
+          x: "100%",
+          opacity: 0
+        }} transition={{
+          type: "spring",
+          damping: 25,
+          stiffness: 200
+        }} className="relative w-[650px] h-full bg-card backdrop-blur-3xl flex flex-col border-l border-border shadow-2xl text-foreground"><div className="p-6 border-b border-border bg-card flex justify-between items-center relative overflow-hidden shrink-0"><div className="flex items-center gap-3.5 relative z-10"><div className="w-11 h-11 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]"><Comp_u_t size={20} className="text-primary" /></div><div><h3 className="font-black text-lg text-foreground uppercase tracking-wider leading-tight">Giao Hàng</h3><div className="flex gap-2.5 mt-2"><span className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_10px_rgba(var(--primary-rgb),0.1)]"><span className="w-1.5 h-1.5 rounded-full bg-primary" />{`${xe.filter(j => j.shipping_status === "Shipping").length} ĐANG CHẠY`}</span><span className="text-[9px] font-black text-muted-foreground bg-background/50 border border-border px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />{`${xe.filter(j => j.shipping_status === "Delivered").length} HOÀN TẤT`}</span></div></div></div><button onClick={N} className="w-9 h-9 flex items-center justify-center rounded-xl bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary border border-border transition-all duration-300 hover:rotate-90"><Comp_ke size={16} strokeWidth={3} /></button></div><div className="p-6 space-y-4 bg-card border-b border-border"><div className="flex gap-3.5"><div className="relative flex-1 group"><Gs className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={18} /><input type="text" placeholder="Tìm mã đơn, tên khách..." className="w-full h-11 pl-11 pr-4 bg-background border border-border focus:border-primary rounded-xl text-sm font-semibold transition-all outline-none text-foreground focus:ring-1 focus:ring-primary placeholder-muted-foreground/50" value={te} onChange={j => at(j.target.value)} /></div><div className="relative w-40 group"><Comp_vd className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" size={16} /><input type="date" className="w-full h-11 pl-9 pr-2 bg-background border border-border focus:border-primary rounded-xl text-xs font-semibold transition-all outline-none text-foreground focus:ring-1 focus:ring-primary appearance-none uppercase" value={Nt} onChange={j => Lt(j.target.value)} /></div></div><div className="flex gap-3.5">{[{
+                label: "Đang giao",
+                value: "Shipping",
+                icon: Ja
+              }, {
+                label: "Đã giao",
+                value: "Delivered",
+                icon: zr
+              }].map(j => {
+                const E = Oe === j.value;
+                return <button key={j.value} onClick={() => Qe(j.value)} className={c("flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-200 flex items-center justify-center gap-2 border active:scale-98 cursor-pointer", E ? "bg-primary/10 border-primary/20 text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" : "bg-background border-border text-muted-foreground hover:text-foreground hover:bg-background/80")}><j.icon size={14} strokeWidth={3} /><span>{j.label}</span></button>;
+              })}</div></div><div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-4 bg-transparent">{pe ? <div className="flex flex-col items-center justify-center py-20 opacity-50"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" /><span className="font-black text-[10px] uppercase text-primary tracking-[0.2em]">Đang tải đơn hàng...</span></div> : Xe.length === 0 ? <div className="text-center py-20 text-muted-foreground opacity-60"><Comp_u_t size={48} className="mx-auto mb-4 opacity-10" /><p className="font-black uppercase text-[10px] tracking-[0.25em]">Không tìm thấy đơn nào</p></div> : Xe.map((j, E) => <x.div key={j.id} initial={{
+              opacity: 0,
+              y: 10
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              delay: E * 0.05
+            }} className={c("p-4 rounded-2xl border transition-all duration-300 group flex flex-col relative overflow-hidden bg-background/50 border-border/80 hover:border-primary/30 hover:bg-background hover:shadow-md", j.shipping_status === "Delivered" && "hover:border-blue-550/30")}><div className="flex items-center justify-between w-full mb-3"><div className="flex items-center gap-3 flex-1 min-w-0"><div className={c("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-inner", j.shipping_status === "Delivered" ? "bg-blue-500/10 text-blue-555" : "bg-primary/10 text-primary")}>{j.shipping_status === "Delivered" ? <Comp_zr size={14} strokeWidth={2.5} /> : <Comp_u_t size={14} strokeWidth={2.5} />}</div><div className="min-w-0"><div className={c("text-[13px] font-black uppercase tracking-wider leading-none mb-1.5 flex items-center gap-1", j.shipping_status === "Delivered" ? "text-blue-600" : "text-primary")}>#{j.display_id}</div><div className="flex items-center gap-2.5"><span className="text-[9px] font-black text-muted-foreground tabular-nums uppercase tracking-wide">{j.shipping_status === "Delivered" ? j.delivery_date ? ot(j.delivery_date) : ot(j.date) : ot(j.date)}</span><div className={c("text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider border", j.shipping_status === "Delivered" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" : "bg-primary/10 text-primary border-primary/20")}>{j.partner_name || "Khách lẻ"}</div></div></div></div><div className="flex items-center gap-3.5 shrink-0"><div className={c("text-[16px] font-black tracking-tight tabular-nums text-right leading-none text-foreground", j.shipping_status === "Delivered" ? "text-blue-600" : "text-primary")}>{z(j.total_amount)}</div><button onClick={D => {
+                    D.stopPropagation(), Le(j.id);
+                  }} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 hover:text-rose-700 rounded-lg transition-all border border-rose-500/25 active:scale-95 duration-200 cursor-pointer" title="Hủy giao hàng"><Comp_ke size={10} strokeWidth={3} /></button></div></div><div className="flex gap-2 items-center mb-4 bg-background p-2.5 rounded-xl border border-border"><div className="flex items-center gap-2 flex-1 min-w-0"><Us size={11} className="text-primary shrink-0" /><span className="text-[10px] font-semibold text-muted-foreground truncate">{j.shipping_address || <span className="italic opacity-30">N/A</span>}</span></div><div className="w-px h-3.5 bg-border shrink-0" /><div className="flex items-center gap-2 shrink-0"><Mr size={11} className="text-blue-500 shrink-0" /><span className="text-[10px] font-black text-foreground tracking-wide">{j.shipping_phone || <span className="italic opacity-30">N/A</span>}</span></div></div><div className="flex gap-2"><button onClick={() => ue(j.id)} className="flex-1 py-2.5 bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-xl transition-all border border-border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 duration-200 cursor-pointer"><Comp_kd size={10} /> Bốc hàng</button><button onClick={() => C(j)} className="w-9 h-9 bg-background hover:bg-primary/10 text-muted-foreground hover:text-primary rounded-xl transition-all border border-border flex items-center justify-center active:scale-95 duration-200 cursor-pointer"><Comp_wd size={10} /></button>{j.shipping_status === "Shipping" && <button onClick={() => $t(j.id, "Delivered")} className="flex-1 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 hover:text-emerald-700 border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 duration-200 shadow-sm cursor-pointer"><Comp_zr size={10} strokeWidth={3} /> XONG</button>}{j.shipping_status === "Delivered" && <button onClick={() => $t(j.id, "Shipping")} className="flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 hover:text-amber-700 border border-amber-500/20 hover:border-amber-500/40 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95 duration-200 shadow-sm cursor-pointer"><Xa size={10} /> HOÀN TÁC</button>}</div></x.div>)}</div></x.div></div>}</P><P>{B && <div className="fixed inset-0 z-[600000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto"><x.div initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} exit={{
+          opacity: 0
+        }} onClick={() => ue(null)} className="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm" /><x.div initial={{
+          scale: 0.95,
+          opacity: 0,
+          y: 20
+        }} animate={{
+          scale: 1,
+          opacity: 1,
+          y: 0
+        }} exit={{
+          scale: 0.95,
+          opacity: 0,
+          y: 20
+        }} className="relative w-full max-w-xl bg-card border border-border rounded-[2rem] overflow-hidden shadow-2xl flex flex-col font-sans text-foreground">{(() => {
+            const j = xe.find(D => D.id === B);
+            if (!j) return null;
+            const E = Math.round(j.details?.reduce((D, T) => D + (T.shipped_quantity || 0), 0) / j.details?.reduce((D, T) => D + T.quantity, 0) * 100);
+            return <><div className="p-6 border-b border-border flex justify-between items-center bg-card"><div><h4 className="text-lg font-black text-foreground uppercase tracking-wider">📦 Bốc hàng #{j.display_id}</h4><p className="text-[10px] font-bold text-muted-foreground mt-1 uppercase tracking-widest">{j.partner_name || "Khách lẻ"}</p></div><div className="text-right flex flex-col items-end"><div className="text-[8px] font-black text-primary uppercase tracking-widest mb-1.5">Tiến độ bốc hàng</div><div className="text-2xl font-black text-primary flex items-baseline gap-0.5 leading-none">{E}<span className="text-xs text-primary/60 font-bold">%</span></div></div></div><div className="w-full h-1 bg-background overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500 ease-out" style={{
+                  width: `${E}%`
+                }} /></div><div className="max-h-[50vh] overflow-y-auto p-6 space-y-3.5 no-scrollbar bg-card/50">{j.details?.map(D => {
+                  const T = (D.shipped_quantity || 0) >= D.quantity;
+                  return <div key={D.id} className={c("flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 bg-background/50 border-border/80 shadow-sm", T ? "bg-emerald-500/5 border-emerald-500/20 opacity-60" : "hover:bg-background hover:border-border")}><div className="flex-1 min-w-0"><div className={c("text-base font-black uppercase tracking-tight text-foreground", T && "line-through text-muted-foreground/45 decoration-emerald-500/50")}>{D.product_name}</div><div className="text-xs font-bold text-muted-foreground mt-1.5 flex items-center gap-1">Đã bốc: <span className="text-foreground font-black">{D.shipped_quantity || 0}</span> / {D.quantity} {D.unit}</div></div><div className="flex items-center gap-2.5">{je?.detailId === D.id ? <input type="number" autoFocus={!0} className="w-20 h-10 bg-background border-2 border-primary rounded-xl text-lg font-black text-center text-foreground outline-none focus:ring-1 focus:ring-primary" value={je.value} onChange={Y => Ie({
+                        ...je,
+                        value: Y.target.value
+                      })} onBlur={() => _e(D, parseFloat(je.value) || 0)} onKeyDown={Y => Y.key === "Enter" && _e(D, parseFloat(je.value) || 0)} /> : <button onClick={() => Ie({
+                        detailId: D.id,
+                        value: D.shipped_quantity || 0
+                      })} className="p-3 bg-background hover:bg-primary/10 rounded-xl text-muted-foreground hover:text-primary transition-all border border-border active:scale-95 cursor-pointer"><Gs size={16} /></button>}<button onClick={() => _e(D, T ? 0 : D.quantity)} className={c("w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 shadow-md cursor-pointer", T ? "bg-primary text-white shadow-primary/20" : "bg-background border border-border text-muted-foreground/30 hover:border-primary/50 hover:text-primary")}><Comp_zr size={20} /></button></div></div>;
+                })}</div><div className="p-6 border-t border-border bg-card shrink-0"><button onClick={() => ue(null)} className="w-full h-12 bg-primary hover:bg-primary-hover text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-lg transition-all active:scale-98 duration-200 cursor-pointer">Đóng danh sách</button></div></>;
+          })()}</x.div></div>}</P><P>{dt && <div className="fixed inset-0 z-[600000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto"><x.div initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} exit={{
+          opacity: 0
+        }} onClick={() => Le(null)} className="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm" /><x.div initial={{
+          scale: 0.9,
+          opacity: 0,
+          y: 20
+        }} animate={{
+          scale: 1,
+          opacity: 1,
+          y: 0
+        }} exit={{
+          scale: 0.9,
+          opacity: 0,
+          y: 20
+        }} className="relative w-full max-w-sm bg-card rounded-[32px] p-8 shadow-2xl overflow-hidden border border-border"><div className="absolute top-0 left-0 w-full h-2 bg-rose-500" /><div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 rounded-2xl flex items-center justify-center text-rose-500 mb-6 mx-auto"><Comp_u_t size={32} /></div><h3 className="text-xl font-black text-foreground text-center uppercase tracking-tight mb-2">Gỡ danh sách ship?</h3><p className="text-sm text-muted-foreground text-center font-medium leading-relaxed mb-8">Bạn có chắc chắn muốn gỡ đơn hàng này không? Đơn hàng vẫn được lưu lại trong lịch sử bán hàng.</p><div className="flex gap-3"><button onClick={() => Le(null)} className="flex-1 h-12 bg-transparent text-muted-foreground rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-background/80 transition-all">Bỏ qua</button><button onClick={() => $t(dt, null)} className="flex-1 h-12 bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all">Gỡ ngay</button></div></x.div></div>}</P></Ee>;
 }
-// Inline TTS helpers removed, using functions imported from utils.js
-
-function ol({
-  onToggleTheme: f,
-  currentTheme: g
+const Comp_ua = props => React.createElement(ua, props);
+const Comp_ke = props => React.createElement(ke, props);
+const Comp_pi = props => React.createElement(pi, props);
+const Comp_ui = props => React.createElement(ui, props);
+const Comp_yd = props => React.createElement(yd, props);
+const Comp_pa = props => React.createElement(pa, props);
+const Comp_pe = props => React.createElement(pe, props);
+const Comp_pd = props => React.createElement(pd, props);
+const Comp_mi = props => React.createElement(mi, props);
+const Comp_ud = props => React.createElement(ud, props);
+const Comp_si = props => React.createElement(si, props);
+const Comp_md = props => React.createElement(md, props);
+const Comp_ni = props => React.createElement(ni, props);
+const Comp_ii = props => React.createElement(ii, props);
+const Comp_xi = props => React.createElement(xi, props);
+const Comp_hd = props => React.createElement(hd, props);
+const Comp_li = props => React.createElement(li, props);
+const Comp_oi = props => React.createElement(oi, props);
+const Comp_di = props => React.createElement(di, props);
+const Comp_u_t = props => React.createElement(_t, props);
+const Comp_vd = props => React.createElement(vd, props);
+const Comp_zr = props => React.createElement(zr, props);
+const Comp_kd = props => React.createElement(kd, props);
+const Comp_wd = props => React.createElement(wd, props);
+const Comp_ei = props => React.createElement(ei, props);
+const Comp_jt = props => React.createElement(jt, props);
+const Comp_qs = props => React.createElement(qs, props);
+const Comp_jd = props => React.createElement(jd, props);
+const Comp_co = props => React.createElement(co, props);
+const Comp_la = props => React.createElement(la, props);
+const Comp_uo = props => React.createElement(uo, props);
+const Comp_mo = props => React.createElement(mo, props);
+const Comp_xo = props => React.createElement(xo, props);
+const Comp_ho = props => React.createElement(ho, props);
+const Comp_u_d = props => React.createElement(_d, props);
+const Comp_go = props => React.createElement(go, props);
+const Comp_qr = props => React.createElement(qr, props);
+const Comp_da = props => React.createElement(da, props);
+const Comp_ca = props => React.createElement(ca, props);
+const Comp_oa = props => React.createElement(oa, props);
+const Comp_ti = props => React.createElement(ti, props);
+const Comp_zn = props => React.createElement(zn, props);
+const Comp_qo = props => React.createElement(qo, props);
+const Comp_zd = props => React.createElement(zd, props);
+const Comp_td = props => React.createElement(td, props);
+const Comp_ed = props => React.createElement(ed, props);
+const Comp_nd = props => React.createElement(nd, props);
+const Comp_ac = props => React.createElement(ac, props);
+const Comp_id = props => React.createElement(id, props);
+const Comp_ad = props => React.createElement(ad, props);
+const Comp_rd = props => React.createElement(rd, props);
+const Comp_sd = props => React.createElement(sd, props);
+const Comp_ld = props => React.createElement(ld, props);
+const Comp_ri = props => React.createElement(ri, props);
+const Comp_ai = props => React.createElement(ai, props);
+const Comp_fd = props => React.createElement(fd, props);
+function a0({
+  onToggleTheme: v,
+  currentTheme: N
 }) {
-  const {
-    data: h,
-    isLoading: $
-  } = yi(), {
-    data: B,
-    isLoading: oe
-  } = wi(), {
-    data: Z
-  } = vi(), F = Rs(), ve = Z?.total || 0, z = h || [], Q = B || [];
-
-  const getActiveTabField = (field, defaultValue) => {
-    const savedTabs = localStorage.getItem("pos_order_tabs");
-    const savedActive = localStorage.getItem("pos_active_tab_id");
-    if (savedTabs && savedActive) {
-      try {
-        const tabs = JSON.parse(savedTabs);
-        const activeId = JSON.parse(savedActive);
-        const activeTab = tabs.find(t => t.id === activeId);
-        if (activeTab && activeTab[field] !== undefined) return activeTab[field];
+  const [C, X] = i.useState(!1),
+    [xe, W] = i.useState(!1),
+    [pe, we] = i.useState([]),
+    [Oe, Qe] = i.useState(!1),
+    [te, at] = i.useState(""),
+    B = new Set(["co", "thuoc", "phan", "bon", "sau", "ray", "benh", "duong", "chai", "goi", "can", "xit", "tri", "giet", "diet", "tru", "hop", "thung", "bao", "kg", "gr", "g", "ml", "l", "lit", "x", "loai", "hieu", "syngenta", "hop tri", "basf"]),
+    ue = t => xt(String(t || "")).toLowerCase().trim(),
+    je = t => {
+      if (!t) return {
+        clean: "",
+        tokens: new Set(),
+        codes: new Set(),
+        volumes: new Set(),
+        npk: null,
+        coreWords: []
+      };
+      let a = ue(t),
+        r = null;
+      const s = a.match(/\b(\d{1,2})[\-.](\d{1,2})[\-.](\d{1,2})\b/);
+      s && (r = `${s[1]}-${s[2]}-${s[3]}`, a = a.replace(s[0], " ")), a = a.replace(/\bx\s*\d+\b/gi, " ");
+      const n = new Set(),
+        l = /\b(\d+(?:\.\d+)?)\s*(ml|l|lit|kg|gr|g|cc)\b/g;
+      let d;
+      for (; (d = l.exec(a)) !== null;) {
+        let b = d[2] === "lit" ? "l" : d[2] === "gr" ? "g" : d[2];
+        n.add(`${d[1]}${b}`);
+      }
+      const o = a.split(/[\s\-_,./+*()[\]{}]+/).filter(Boolean),
+        u = new Set(),
+        h = [];
+      return o.forEach(b => {
+        /^[a-z]+\d+[a-z]*$/i.test(b) || /^\d+[a-z]+$/i.test(b) ? /^\d+(ml|l|lit|kg|gr|g|cc)$/i.test(b) ? n.add(b.toLowerCase()) : u.add(b.toLowerCase()) : b.length > 1 && !B.has(b) && !/^\d+$/.test(b) && h.push(b.toLowerCase());
+      }), {
+        clean: ue(t),
+        tokens: new Set(o),
+        codes: u,
+        volumes: n,
+        npk: r,
+        coreWords: h
+      };
+    },
+    Ie = (t, a) => {
+      if (t === a) return !0;
+      if (t.length >= 3 && a.length >= 3) {
+        if (t.includes(a) || a.includes(t)) return !0;
+        const r = Math.min(t.length, a.length);
+        if (Math.max(t.length, a.length) - r <= 2) {
+          let n = 0;
+          for (; n < r && t[n] === a[n];) n++;
+          if (n >= 4 || r <= 4 && n >= 3) return !0;
+        }
+      }
+      return !1;
+    },
+    dt = (t, a) => {
+      if (!a) return 0;
+      const r = a.name || "",
+        s = a.alias || "",
+        n = a.code || "",
+        l = `${r} ${s} ${n}`,
+        d = je(l);
+      if (t.clean === d.clean || t.clean === ue(r)) return 20;
+      let o = 0,
+        u = !1;
+      if (t.npk && d.npk) {
+        if (t.npk === d.npk) o += 6, u = !0;else return 0;
+      } else t.npk && !d.npk && (o -= 2);
+      let h = 0;
+      if (t.coreWords.forEach(w => {
+        d.coreWords.some(U => Ie(w, U)) && (h += 1);
+      }), h > 0 ? (o += h * 3.5, u = !0) : d.coreWords.length > 0 && t.coreWords.length > 0 && (o -= 2), !u) return 0;
+      t.codes.forEach(w => {
+        d.codes.has(w) ? o += 3 : d.codes.size > 0 && (o -= 1);
+      }), t.volumes.forEach(w => {
+        d.volumes.has(w) ? o += 2 : d.volumes.size > 0 && (o -= 1);
+      });
+      let b = 0;
+      t.tokens.forEach(w => {
+        d.tokens.has(w) && (b += 1);
+      }), b > 0 && (o += b / Math.max(t.tokens.size, d.tokens.size) * 1.5);
+      const S = ue(r);
+      return (t.clean.includes(S) || S.includes(t.clean)) && (o += 2), Math.max(0, o);
+    },
+    Le = (t, a) => {
+      if (!t || !a || a.length === 0) return null;
+      const r = je(t);
+      let s = null,
+        n = 0;
+      for (const l of a) {
+        const d = dt(r, l);
+        d > n && (n = d, s = l);
+      }
+      return n >= 0.5 ? s : null;
+    },
+    Nt = t => {
+      const a = Array.from(t.target.files || []);
+      if (a.length === 0) return;
+      const r = a.map(s => new Promise(n => {
+        const l = new FileReader();
+        l.onloadend = () => n(l.result), l.readAsDataURL(s);
+      }));
+      Promise.all(r).then(s => {
+        we(n => [...n, ...s]);
+      });
+    },
+    Lt = async () => {
+      if (pe.length !== 0) {
+        Qe(!0);
+        try {
+          const t = await M.post("/api/purchase/scan-invoice", {
+            images: pe,
+            api_key: te || J?.gemini_api_key || ""
+          });
+          te && te !== J?.gemini_api_key && (await M.post("/api/settings", {
+            gemini_api_key: te
+          }), Na(s => ({
+            ...s,
+            gemini_api_key: te
+          })));
+          const a = t.data || [];
+          if (a.length === 0) {
+            G({
+              message: "Không phát hiện được sản phẩm nào trong hóa đơn.",
+              type: "error"
+            });
+            return;
+          }
+          const r = [...y];
+          a.forEach(s => {
+            const n = Le(s.product_name, T),
+              l = Math.max(1, parseFloat(s.quantity) || 1);
+            if (n) {
+              const d = (s.unit || "").trim().toLowerCase(),
+                o = (n.unit || "").trim().toLowerCase(),
+                u = (n.secondary_unit || "").trim().toLowerCase();
+              let h = l,
+                b = l / (n.multiplier || 1);
+              u && d && (d === u || d.includes(u) || u.includes(d)) && (h = l * (n.multiplier || 1), b = l);
+              let S = 0;
+              const w = R && R[n.id] !== void 0 ? R[n.id] : void 0,
+                U = (Te || localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? n.bulk_price || n.sale_price || 0 : n.sale_price || 0;
+              w !== void 0 ? S = w : n.bulk_quantity > 0 && h >= n.bulk_quantity && n.bulk_price ? S = n.bulk_price : S = U, S <= 0 && s.price && parseFloat(s.price) > 0 && (S = parseFloat(s.price));
+              const L = r.findIndex(ce => ce.product_id === n.id && ce.price === S);
+              L > -1 ? (r[L].quantity += h, r[L].secondary_qty = r[L].quantity / (n.multiplier || 1)) : r.unshift({
+                cartId: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                product_id: n.id,
+                product_name: n.name,
+                unit: n.unit,
+                secondary_unit: n.secondary_unit,
+                multiplier: n.multiplier || 1,
+                price: S,
+                quantity: h,
+                secondary_qty: b,
+                cost_price: n.cost_price,
+                latest_cost_price: n.latest_cost_price,
+                stock: n.stock,
+                is_combo: n.is_combo,
+                active_ingredient: n.active_ingredient,
+                latest_audit: n.latest_audit,
+                latest_stock_entry: n.latest_stock_entry,
+                ai_scanned: !0,
+                ai_original_name: s.product_name,
+                ai_matched_status: "matched"
+              });
+            } else {
+              const d = s.price && parseFloat(s.price) > 0 ? parseFloat(s.price) : 0;
+              r.unshift({
+                cartId: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                product_id: null,
+                product_name: s.product_name,
+                unit: s.unit || "Cái",
+                secondary_unit: null,
+                multiplier: 1,
+                price: d,
+                quantity: l,
+                secondary_qty: l,
+                cost_price: 0,
+                latest_cost_price: 0,
+                stock: 0,
+                is_combo: !1,
+                active_ingredient: null,
+                ai_scanned: !0,
+                ai_original_name: s.product_name,
+                ai_matched_status: "unmatched"
+              });
+            }
+          }), H(r), X(!1), we([]), Is?.(), G({
+            message: `Quét AI thành công! Đã thêm ${a.length} sản phẩm vào giỏ hàng.`,
+            type: "success"
+          });
+        } catch (t) {
+          console.error(t), G({
+            message: t.response?.data?.error || "Có lỗi xảy ra khi quét hóa đơn.",
+            type: "error"
+          });
+        } finally {
+          Qe(!1);
+        }
+      }
+    },
+    {
+      data: he,
+      isLoading: $t
+    } = od(),
+    {
+      data: _e,
+      isLoading: Xe
+    } = dd(),
+    {
+      data: j
+    } = cd(),
+    E = ci(),
+    D = j?.total || 0,
+    T = Array.isArray(he) ? he : (Array.isArray(he?.items) ? he.items : (Array.isArray(he?.products) ? he.products : [])),
+    Y = Array.isArray(_e) ? _e : (Array.isArray(_e?.items) ? _e.items : (Array.isArray(_e?.partners) ? _e.partners : [])),
+    be = (t, a) => {
+      const r = localStorage.getItem("pos_order_tabs"),
+        s = localStorage.getItem("pos_active_tab_id");
+      if (r && s) try {
+        const n = JSON.parse(r),
+          l = JSON.parse(s),
+          d = n.find(o => o.id === l);
+        if (d && d[t] !== void 0) return d[t];
       } catch {}
-    }
-    return defaultValue;
-  };
-
-  const [ee, ce] = i.useState(""), [qe, Ue] = i.useState(!0), [de, Ie] = i.useState("add"), [te, Re] = i.useState(() => {
-    const saved = localStorage.getItem("pos_order_tabs");
-    if (saved) {
+      return a;
+    },
+    [Z, ae] = i.useState(""),
+    [bt, rt] = i.useState(!0),
+    [gt, Ht] = i.useState("add"),
+    [fe, _] = i.useState(() => {
+      const t = localStorage.getItem("pos_order_tabs");
+      if (t) try {
+        return JSON.parse(t);
+      } catch (a) {
+        console.error("Failed to parse saved POS tabs:", a);
+      }
+      return [{
+        id: 1,
+        name: "Đơn 1",
+        cart: [],
+        selectedPartner: null,
+        note: "",
+        amountPaid: 0,
+        cashGiven: 0,
+        paymentMethod: (localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? "Debt" : "Cash"
+      }];
+    }),
+    [g, f] = i.useState(() => {
+      const t = localStorage.getItem("pos_active_tab_id");
+      return t ? JSON.parse(t) : 1;
+    }),
+    [ne, me] = i.useState(() => {
+      const t = localStorage.getItem("pos_pinned_scan_tab_id");
+      return t ? JSON.parse(t) : 1;
+    }),
+    qe = i.useRef(""),
+    ma = i.useRef(0),
+    A = i.useRef(null),
+    ie = i.useRef({}),
+    [y, H] = i.useState(() => be("cart", [])),
+    [Je, rc] = i.useState(() => {
+      const t = {
+          color1: "#ffffff",
+          color2: "#f8fafc",
+          opacity: 0.8,
+          isGradient: !0,
+          blur: 20,
+          radius: 2.5,
+          shadow: 20,
+          accent: "#10b981",
+          headerColor: "#ffffff",
+          headerOpacity: 0.4,
+          bgColor1: "#ecfdf5",
+          bgColor2: "#f0fdf4",
+          dropdownBg: "#ffffff",
+          dropdownAccent: "#10b981"
+        },
+        a = localStorage.getItem("pos_new_style");
+      if (!a) return t;
       try {
-        return JSON.parse(saved);
-      } catch (err) {
-        console.error("Failed to parse saved POS tabs:", err);
+        const r = JSON.parse(a);
+        return {
+          ...t,
+          ...r
+        };
+      } catch {
+        return t;
       }
-    }
-    return [{
-      id: 1,
-      name: "Đơn 1",
-      cart: [],
-      selectedPartner: null,
-      note: "",
-      amountPaid: 0,
-      cashGiven: 0,
-      paymentMethod: (localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? "Debt" : "Cash"
-    }];
-  }), [xe, Ke] = i.useState(() => {
-    const saved = localStorage.getItem("pos_active_tab_id");
-    return saved ? JSON.parse(saved) : 1;
-  }), [De, Me] = i.useState(() => {
-    const saved = localStorage.getItem("pos_pinned_scan_tab_id");
-    return saved ? JSON.parse(saved) : 1;
-  }), ae = i.useRef(""), y = i.useRef(0), P = i.useRef(null), N = i.useRef({}), [b, S] = i.useState(() => {
-    return getActiveTabField("cart", []);
-  }), [O, ke] = i.useState(() => {
-    const t = {
-        color1: "#ffffff",
-        color2: "#f8fafc",
-        opacity: .8,
-        isGradient: !0,
-        blur: 20,
-        radius: 2.5,
-        shadow: 20,
-        accent: "#10b981",
-        headerColor: "#ffffff",
-        headerOpacity: .4,
-        bgColor1: "#ecfdf5",
-        bgColor2: "#f0fdf4",
-        dropdownBg: "#ffffff",
-        dropdownAccent: "#10b981"
-      },
-      a = localStorage.getItem("pos_new_style");
-    if (!a) return t;
-    try {
-      const r = JSON.parse(a);
-      return {
-        ...t,
-        ...r
+    }),
+    [sc, nc] = i.useState(!1);
+  i.useRef(null);
+  const Wr = i.useRef(null),
+    Rr = i.useRef(null),
+    [ic, lc] = i.useState("themes"),
+    [hi, Bs] = i.useState([]),
+    [Ya, oc] = i.useState(() => localStorage.getItem("pos_gpu_disabled") === "true"),
+    [ft, bi] = i.useState(() => localStorage.getItem("pos_tts_mode") || "female"),
+    [Za, gi] = i.useState(() => localStorage.getItem("pos_tts_read_product") !== "false"),
+    [er, fi] = i.useState(() => localStorage.getItem("pos_tts_read_qty") !== "false"),
+    [xa, yi] = i.useState(() => localStorage.getItem("pos_tts_read_total") !== "false"),
+    [ha, vi] = i.useState(() => localStorage.getItem("pos_tts_read_thanks") !== "false"),
+    tr = () => {
+      if (window.currentTtsSequence) {
+        try {
+          window.currentTtsSequence.audio1.pause();
+        } catch {}
+        try {
+          window.currentTtsSequence.audio2.pause();
+        } catch {}
       }
-    } catch {
-      return t
-    }
-  }), [re, Ge] = i.useState(!1), la = i.useRef(null), w = i.useRef(null), be = i.useRef(null), [k, ze] = i.useState("themes"), [K, ot] = i.useState([]), [Qe, W] = i.useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
-
-  const [C, M] = i.useState(() => localStorage.getItem("pos_tts_mode") || "female");
-  const [oa, Ws] = i.useState(() => localStorage.getItem("pos_tts_read_product") !== "false");
-  const [Rr, Ls] = i.useState(() => localStorage.getItem("pos_tts_read_qty") !== "false");
-  const [ca, Hs] = i.useState(() => localStorage.getItem("pos_tts_read_total") !== "false");
-  const [Ba, $s] = i.useState(() => localStorage.getItem("pos_tts_read_thanks") !== "false");
-  const Mt = () => {
-    if (window.currentTtsSequence) {
-      try { window.currentTtsSequence.audio1.pause(); } catch (e) {}
-      try { window.currentTtsSequence.audio2.pause(); } catch (e) {}
-    }
-  };
-  const Ka = (t) => {
-    M(t);
-    localStorage.setItem("pos_tts_mode", t);
-    Mt();
-    if (t === "female") {
-      setSelectedVoice("edge-vi-female");
-      localStorage.setItem("pos_selected_voice", "edge-vi-female");
-    } else if (t === "male") {
-      setSelectedVoice("edge-vi-male");
-      localStorage.setItem("pos_selected_voice", "edge-vi-male");
-    }
-  };
-
-  // Reconstructed July 6th voice settings states
-  const [selectedVoice, setSelectedVoice] = i.useState(() => {
-    const saved = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
-    if (saved === "native-vi" || !saved.startsWith("edge") && saved !== "google") {
-      localStorage.setItem("pos_selected_voice", "edge-vi-female");
-      return "edge-vi-female";
-    }
-    return saved;
-  });
+    },
+    Ar = t => {
+      bi(t), localStorage.setItem("pos_tts_mode", t), tr(), t === "female" ? (Fs("edge-vi-female"), localStorage.setItem("pos_selected_voice", "edge-vi-female")) : t === "male" && (Fs("edge-vi-male"), localStorage.setItem("pos_selected_voice", "edge-vi-male"));
+    },
+    [ki, Fs] = i.useState(() => {
+      const t = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
+      return t === "native-vi" || !t.startsWith("edge") && t !== "google" ? (localStorage.setItem("pos_selected_voice", "edge-vi-female"), "edge-vi-female") : t;
+    });
   i.useEffect(() => {
-    precacheCommonTTS();
-  }, []);
+    Ss();
+  }, []), i.useEffect(() => {
+    T && T.length > 0 && Ss(T);
+  }, [T]);
+  const [Or, wi] = i.useState(() => parseFloat(localStorage.getItem("pos_speech_rate") || "1.4")),
+    ji = t => {
+      const a = parseFloat(t.target.value);
+      wi(a), localStorage.setItem("pos_speech_rate", a.toString()), setTimeout(() => Ss(T), 100);
+    },
+    [Lr, ba] = i.useState(!1),
+    [ar, Ct] = i.useState(!1),
+    [ga, Vs] = i.useState(() => localStorage.getItem("pos_keep_order_after_save") === "true"),
+    $r = i.useRef(null);
   i.useEffect(() => {
-    if (z && z.length > 0) {
-      precacheCommonTTS(z);
-    }
-  }, [z]);
-  const handleVoiceChange = (e) => {
-    const val = e.target.value;
-    setSelectedVoice(val);
-    localStorage.setItem("pos_selected_voice", val);
-    setTimeout(() => precacheCommonTTS(z), 100);
-  };
-  const [speechRate, setSpeechRate] = i.useState(() => parseFloat(localStorage.getItem("pos_speech_rate") || "1.4"));
-  const handleSpeechRateChange = (e) => {
-    const val = parseFloat(e.target.value);
-    setSpeechRate(val);
-    localStorage.setItem("pos_speech_rate", val.toString());
-    setTimeout(() => precacheCommonTTS(z), 100);
-  };
-  const [showVoiceSettings, setShowVoiceSettings] = i.useState(false);
-  const [settingsVoiceTab, setSettingsVoiceTab] = i.useState("general");
-  const voiceSettingsRef = i.useRef(null);
-  const cartSpeechTimeoutRef = i.useRef(null);
-  const lastSpokenProductIdRef = N;
-  i.useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (voiceSettingsRef.current && !voiceSettingsRef.current.contains(e.target)) {
-        setShowVoiceSettings(false);
-      }
+    const t = a => {
+      $r.current && !$r.current.contains(a.target) && Ct(!1);
     };
-    if (showVoiceSettings) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showVoiceSettings]);
-  const [currencyTemplate, setCurrencyTemplate] = i.useState(() => localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng");
-  const [currencyPartnerTemplate, setCurrencyPartnerTemplate] = i.useState(() => localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng");
-  const [thankyouTemplate, setThankyouTemplate] = i.useState(() => localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý");
-  const [thankyouPartnerTemplate, setThankyouPartnerTemplate] = i.useState(() => localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý");
-  const [enableThankyou, setEnableThankyou] = i.useState(() => localStorage.getItem("pos_tts_enable_thankyou") !== "false");
-  const [disablePartnerCurrency, setDisablePartnerCurrency] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_template") === "true");
-  const [disablePartnerThankyou, setDisablePartnerThankyou] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_thankyou") === "true");
-  const [transferTemplate, setTransferTemplate] = i.useState(() => localStorage.getItem("pos_tts_transfer_template") || "số tiền cần chuyển khoản là {amount} đồng");
-  const [transferPartnerTemplate, setTransferPartnerTemplate] = i.useState(() => localStorage.getItem("pos_tts_transfer_partner_template") || "số tiền cần chuyển khoản của {partner} là {amount} đồng");
-  const [disablePartnerTransfer, setDisablePartnerTransfer] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_transfer") === "true");
-  const [enableCartAdditionSpeech, setEnableCartAdditionSpeech] = i.useState(() => localStorage.getItem("pos_tts_enable_cart_addition") !== "false");
-  const handleEnableCartAdditionSpeechChange = (e) => {
-    const val = e.target.checked;
-    setEnableCartAdditionSpeech(val);
-    localStorage.setItem("pos_tts_enable_cart_addition", val ? "true" : "false");
-  };
-  const [enableCartProductNameSpeech, setEnableCartProductNameSpeech] = i.useState(() => localStorage.getItem("pos_tts_enable_cart_product_name") !== "false");
-  const handleEnableCartProductNameSpeechChange = (e) => {
-    const val = e.target.checked;
-    setEnableCartProductNameSpeech(val);
-    localStorage.setItem("pos_tts_enable_cart_product_name", val ? "true" : "false");
-  };
-  const [cartSpeechOrder, setCartSpeechOrder] = i.useState(() => localStorage.getItem("pos_tts_cart_speech_order") || "name_first");
-  const handleCartSpeechOrderChange = (e) => {
-    const val = e.target.value;
-    setCartSpeechOrder(val);
-    localStorage.setItem("pos_tts_cart_speech_order", val);
-  };
-  const handleDisablePartnerCurrencyChange = (e) => {
-    const val = e.target.checked;
-    setDisablePartnerCurrency(val);
-    localStorage.setItem("pos_tts_disable_partner_template", val ? "true" : "false");
-  };
-  const handleDisablePartnerThankyouChange = (e) => {
-    const val = e.target.checked;
-    setDisablePartnerThankyou(val);
-    localStorage.setItem("pos_tts_disable_partner_thankyou", val ? "true" : "false");
-  };
-  const handleDisablePartnerTransferChange = (e) => {
-    const val = e.target.checked;
-    setDisablePartnerTransfer(val);
-    localStorage.setItem("pos_tts_disable_partner_transfer", val ? "true" : "false");
-  };
-  const handleCurrencyTemplateChange = (e) => {
-    const val = e.target.value;
-    setCurrencyTemplate(val);
-    localStorage.setItem("pos_tts_currency_template", val);
-  };
-  const handleCurrencyPartnerTemplateChange = (e) => {
-    const val = e.target.value;
-    setCurrencyPartnerTemplate(val);
-    localStorage.setItem("pos_tts_currency_partner_template", val);
-  };
-  const handleThankyouTemplateChange = (e) => {
-    const val = e.target.value;
-    setThankyouTemplate(val);
-    localStorage.setItem("pos_tts_thankyou_template", val);
-    setTimeout(() => precacheCommonTTS(), 100);
-  };
-  const handleThankyouPartnerTemplateChange = (e) => {
-    const val = e.target.value;
-    setThankyouPartnerTemplate(val);
-    localStorage.setItem("pos_tts_thankyou_partner_template", val);
-    setTimeout(() => precacheCommonTTS(), 100);
-  };
-  const handleTransferTemplateChange = (e) => {
-    const val = e.target.value;
-    setTransferTemplate(val);
-    localStorage.setItem("pos_tts_transfer_template", val);
-  };
-  const handleTransferPartnerTemplateChange = (e) => {
-    const val = e.target.value;
-    setTransferPartnerTemplate(val);
-    localStorage.setItem("pos_tts_transfer_partner_template", val);
-  };
-  const handleEnableThankyouChange = (e) => {
-    const val = e.target.checked;
-    setEnableThankyou(val);
-    localStorage.setItem("pos_tts_enable_thankyou", val ? "true" : "false");
-  };
-
-  const [p, L] = i.useState(() => getActiveTabField("selectedPartner", null)), [Oe, Ga] = i.useState(null), [We, Qa] = i.useState(null), [se, gt] = i.useState("debt"), [da, Va] = i.useState(!1), [Or, Wr] = i.useState(!1), [yt, je] = i.useState(""), [Xa, Pe] = i.useState(!1), [pe, Ve] = i.useState(() => getActiveTabField("note", "")), [Le, J] = i.useState(() => getActiveTabField("amountPaid", 0)), [ne, Xe] = i.useState(() => getActiveTabField("cashGiven", 0)), [D, me] = i.useState(() => getActiveTabField("paymentMethod", (localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? "Debt" : "Cash")), [pa, ua] = i.useState(null), [wt, Lr] = i.useState(null), [tt, Hr] = i.useState(!1), [H, xa] = i.useState(null), [ge, Ja] = i.useState(null), [Ya, ma] = i.useState(null), [He, Za] = i.useState(0);
+    return ar && document.addEventListener("mousedown", t), () => document.removeEventListener("mousedown", t);
+  }, [ar]);
+  const [dc, cc] = i.useState("general"),
+    Qs = i.useRef(null);
+  i.useRef(null);
+  const rr = ie;
+  i.useEffect(() => {
+    const t = a => {
+      Qs.current && !Qs.current.contains(a.target) && ba(!1);
+    };
+    return Lr && document.addEventListener("mousedown", t), () => document.removeEventListener("mousedown", t);
+  }, [Lr]);
+  const [pc, uc] = i.useState(() => localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng"),
+    [mc, xc] = i.useState(() => localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng"),
+    [hc, bc] = i.useState(() => localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý"),
+    [gc, fc] = i.useState(() => localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý"),
+    [yc, vc] = i.useState(() => localStorage.getItem("pos_tts_enable_thankyou") !== "false"),
+    [kc, wc] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_template") === "true"),
+    [jc, _c] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_thankyou") === "true"),
+    [Nc, Cc] = i.useState(() => localStorage.getItem("pos_tts_transfer_template") || "số tiền cần chuyển khoản là {amount} đồng"),
+    [Sc, Tc] = i.useState(() => localStorage.getItem("pos_tts_transfer_partner_template") || "số tiền cần chuyển khoản của {partner} là {amount} đồng"),
+    [zc, Ic] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_transfer") === "true"),
+    [Dc, Pc] = i.useState(() => localStorage.getItem("pos_tts_enable_cart_addition") !== "false"),
+    [Ec, qc] = i.useState(() => localStorage.getItem("pos_tts_enable_cart_product_name") !== "false"),
+    [Mc, Wc] = i.useState(() => localStorage.getItem("pos_tts_cart_speech_order") || "name_first"),
+    [p, F] = i.useState(() => be("selectedPartner", null)),
+    [st, Hr] = i.useState(null),
+    [nt, Kr] = i.useState(null),
+    [Ne, Kt] = i.useState("debt"),
+    [sr, Gr] = i.useState(!1),
+    [Xs, Js] = i.useState(!1),
+    [yt, Ge] = i.useState(""),
+    [Me, Ue] = i.useState(!1),
+    [K, $e] = i.useState(() => be("note", "")),
+    [oe, re] = i.useState(() => be("amountPaid", 0)),
+    [V, Ye] = i.useState(() => be("cashGiven", 0)),
+    [I, ge] = i.useState(() => be("paymentMethod", (localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? "Debt" : "Cash")),
+    [fa, Ur] = i.useState(null),
+    [ya, Ys] = i.useState(null),
+    [Be, Zs] = i.useState(!1),
+    [Q, Gt] = i.useState(null),
+    [le, Br] = i.useState(null),
+    [Fr, nr] = i.useState(null),
+    [Ce, Vr] = i.useState(0);
   i.useEffect(() => {
     (async () => {
       try {
-        const a = await q.get("/api/orders?limit=1&page=1&type=Sale");
-        a.data.items && a.data.items.length > 0 && Lr(a.data.items[0])
-      } catch (a) {
-        console.error("Failed to fetch last order:", a)
+        const t = await M.get("/api/orders?limit=1&page=1&type=Sale");
+        t.data.items && t.data.items.length > 0 && Ys(t.data.items[0]);
+      } catch (t) {
+        console.error("Failed to fetch last order:", t);
       }
-    })()
-  }, []);
-
-  // Sync changes in active states back to te state
-  i.useEffect(() => {
-    Re(prevTabs => {
-      const activeTab = prevTabs.find(tab => tab.id === xe);
-      if (activeTab && (
-        activeTab.cart !== b ||
-        activeTab.selectedPartner !== p ||
-        activeTab.note !== pe ||
-        activeTab.amountPaid !== Le ||
-        activeTab.cashGiven !== ne ||
-        activeTab.paymentMethod !== D
-      )) {
-        return prevTabs.map(tab => {
-          if (tab.id === xe) {
-            return {
-              ...tab,
-              cart: b,
-              selectedPartner: p,
-              note: pe,
-              amountPaid: Le,
-              cashGiven: ne,
-              paymentMethod: D
-            };
-          }
-          return tab;
-        });
-      }
-      return prevTabs;
+    })();
+  }, []), i.useEffect(() => {
+    _(t => {
+      const a = t.find(r => r.id === g);
+      return a && (a.cart !== y || a.selectedPartner !== p || a.note !== K || a.amountPaid !== oe || a.cashGiven !== V || a.paymentMethod !== I) ? t.map(r => r.id === g ? {
+        ...r,
+        cart: y,
+        selectedPartner: p,
+        note: K,
+        amountPaid: oe,
+        cashGiven: V,
+        paymentMethod: I
+      } : r) : t;
     });
-  }, [xe, b, p, pe, Le, ne, D]);
-
-  // Save te, xe, De to localStorage when they change
-  i.useEffect(() => {
-    localStorage.setItem("pos_order_tabs", JSON.stringify(te));
-  }, [te]);
-
-  i.useEffect(() => {
-    localStorage.setItem("pos_active_tab_id", JSON.stringify(xe));
-  }, [xe]);
-
-  i.useEffect(() => {
-    localStorage.setItem("pos_pinned_scan_tab_id", JSON.stringify(De));
-  }, [De]);
-
-  // Sync state across multiple browser tabs in real time
-  i.useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (!e.newValue) return;
-      if (e.key === "pos_order_tabs") {
-        try {
-          const newTabs = JSON.parse(e.newValue);
-          Re(newTabs);
-          const activeTab = newTabs.find(t => t.id === xe);
-          if (activeTab) {
-            if (JSON.stringify(activeTab.cart) !== JSON.stringify(b)) {
-              S(activeTab.cart || []);
-            }
-            if (activeTab.selectedPartner?.id !== p?.id) {
-              L(activeTab.selectedPartner || null);
-            }
-            if (activeTab.note !== pe) {
-              Ve(activeTab.note || "");
-            }
-            if (activeTab.amountPaid !== Le) {
-              J(activeTab.amountPaid || 0);
-            }
-            if (activeTab.cashGiven !== ne) {
-              Xe(activeTab.cashGiven || 0);
-            }
-            if (activeTab.paymentMethod !== D) {
-              me(activeTab.paymentMethod || "Cash");
+  }, [g, y, p, K, oe, V, I]), i.useEffect(() => {
+    localStorage.setItem("pos_order_tabs", JSON.stringify(fe));
+  }, [fe]), i.useEffect(() => {
+    localStorage.setItem("pos_active_tab_id", JSON.stringify(g));
+  }, [g]), i.useEffect(() => {
+    localStorage.setItem("pos_pinned_scan_tab_id", JSON.stringify(ne));
+  }, [ne]), i.useEffect(() => {
+    const t = a => {
+      if (a.newValue) {
+        if (a.key === "pos_order_tabs") try {
+          const r = JSON.parse(a.newValue);
+          _(r);
+          const s = r.find(n => n.id === g);
+          s && (JSON.stringify(s.cart) !== JSON.stringify(y) && H(s.cart || []), s.selectedPartner?.id !== p?.id && F(s.selectedPartner || null), s.note !== K && $e(s.note || ""), s.amountPaid !== oe && re(s.amountPaid || 0), s.cashGiven !== V && Ye(s.cashGiven || 0), s.paymentMethod !== I && ge(s.paymentMethod || "Cash"));
+        } catch (r) {
+          console.error("Error syncing storage across tabs:", r);
+        } else if (a.key === "pos_active_tab_id") try {
+          const r = JSON.parse(a.newValue);
+          if (r !== g) {
+            f(r);
+            const s = localStorage.getItem("pos_order_tabs");
+            if (s) {
+              const l = JSON.parse(s).find(d => d.id === r);
+              l && (H(l.cart || []), F(l.selectedPartner || null), $e(l.note || ""), re(l.amountPaid || 0), Ye(l.cashGiven || 0), ge(l.paymentMethod || "Cash"));
             }
           }
-        } catch (err) {
-          console.error("Error syncing storage across tabs:", err);
-        }
-      } else if (e.key === "pos_active_tab_id") {
-        try {
-          const newActiveId = JSON.parse(e.newValue);
-          if (newActiveId !== xe) {
-            Ke(newActiveId);
-            const savedTabs = localStorage.getItem("pos_order_tabs");
-            if (savedTabs) {
-              const tabs = JSON.parse(savedTabs);
-              const activeTab = tabs.find(t => t.id === newActiveId);
-              if (activeTab) {
-                S(activeTab.cart || []);
-                L(activeTab.selectedPartner || null);
-                Ve(activeTab.note || "");
-                J(activeTab.amountPaid || 0);
-                Xe(activeTab.cashGiven || 0);
-                me(activeTab.paymentMethod || "Cash");
-              }
-            }
-          }
-        } catch {}
-      } else if (e.key === "pos_pinned_scan_tab_id") {
-        try {
-          const newPinnedId = JSON.parse(e.newValue);
-          if (newPinnedId !== De) {
-            Me(newPinnedId);
-          }
+        } catch {} else if (a.key === "pos_pinned_scan_tab_id") try {
+          const r = JSON.parse(a.newValue);
+          r !== ne && me(r);
         } catch {}
       }
     };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
+    return window.addEventListener("storage", t), () => {
+      window.removeEventListener("storage", t);
     };
-  }, [xe, b, p, pe, Le, ne, D, De]);
-  const vt = Gn(),
-    [Ne, er] = i.useState(() => {
+  }, [g, y, p, K, oe, V, I, ne]);
+  const Ut = bd(),
+    [Fe, Qr] = i.useState(() => {
       const t = localStorage.getItem("held_invoices");
-      return t ? JSON.parse(t) : []
+      return t ? JSON.parse(t) : [];
     }),
-    [Wt, ct] = i.useState(!1),
-    [Lt, $r] = i.useState(!1),
-    [ie, Bs] = i.useState(() => {
+    [va, St] = i.useState(!1),
+    [ka, en] = i.useState(!1),
+    [Ze, _i] = i.useState(() => localStorage.getItem("pos_summary_layout_mode") || "sidebar"),
+    [ir, Ni] = i.useState(() => localStorage.getItem("pos_save_notice_style") || "card"),
+    Ci = () => {
+      const t = Ze === "sidebar" ? "bottom" : "sidebar";
+      _i(t), localStorage.setItem("pos_summary_layout_mode", t);
+    },
+    [Si, Xr] = i.useState(!1),
+    [Ti, Bt] = i.useState(!1),
+    [Rc, zi] = i.useState(!1),
+    [Jr, Yr] = i.useState(() => {
+      const t = localStorage.getItem("pos_bottom_summary_height");
+      return t ? parseInt(t, 10) : 105;
+    }),
+    [tn, an] = i.useState(!1),
+    Ii = t => {
+      t.preventDefault(), t.stopPropagation(), an(!0);
+      const a = t.clientY,
+        r = Jr,
+        s = l => {
+          const d = a - l.clientY,
+            o = Math.min(Math.max(r + d, 70), 320);
+          Yr(o);
+        },
+        n = () => {
+          an(!1), window.removeEventListener("mousemove", s), window.removeEventListener("mouseup", n), Yr(l => (localStorage.setItem("pos_bottom_summary_height", l.toString()), l));
+        };
+      window.addEventListener("mousemove", s), window.addEventListener("mouseup", n);
+    },
+    [Se, Di] = i.useState(() => {
       try {
         const t = localStorage.getItem("pos_bubble_positions");
         return t ? JSON.parse(t) : {
@@ -1870,7 +1240,7 @@ function ol({
             x: 0,
             y: 0
           }
-        }
+        };
       } catch {
         return {
           partner: {
@@ -1881,11 +1251,11 @@ function ol({
             x: 0,
             y: 0
           }
-        }
+        };
       }
     }),
-    Br = (t, a) => {
-      Bs(r => {
+    rn = (t, a) => {
+      Di(r => {
         let s = r[t].x + a.x,
           n = r[t].y + a.y;
         t === "partner" ? (s = Math.max(-20, Math.min(s, 800)), n = Math.max(-500, Math.min(n, 20))) : t === "total" && (s = Math.max(-800, Math.min(s, 20)), n = Math.max(-500, Math.min(n, 20)));
@@ -1896,35 +1266,35 @@ function ol({
             y: n
           }
         };
-        return localStorage.setItem("pos_bubble_positions", JSON.stringify(l)), l
-      })
+        return localStorage.setItem("pos_bubble_positions", JSON.stringify(l)), l;
+      });
     },
-    tr = (t, a) => t.map(r => r.id === a ? {
+    Zr = (t, a) => t.map(r => r.id === a ? {
       ...r,
-      cart: b,
+      cart: y,
       selectedPartner: p,
-      note: pe,
-      amountPaid: Le,
-      cashGiven: ne,
-      paymentMethod: D
+      note: K,
+      amountPaid: oe,
+      cashGiven: V,
+      paymentMethod: I
     } : r),
-    Fs = t => {
-      t !== xe && Re(a => {
-        const r = tr(a, xe),
+    es = t => {
+      t !== g && _(a => {
+        const r = Zr(a, g),
           s = r.find(n => n.id === t);
-        return s && (S(s.cart), L(s.selectedPartner), Ve(s.note), J(s.amountPaid), Xe(s.cashGiven), me(s.paymentMethod), Ke(t)), r
-      })
+        return s && (H(s.cart), F(s.selectedPartner), $e(s.note), re(s.amountPaid), Ye(s.cashGiven), ge(s.paymentMethod), f(t)), r;
+      });
     },
-    Us = () => {
-      if (te.length >= 5) {
+    Pi = () => {
+      if (fe.length >= 5) {
         G({
           message: "Tối đa 5 đơn cùng lúc",
           type: "error"
         });
-        return
+        return;
       }
-      Re(t => {
-        const a = tr(t, xe),
+      _(t => {
+        const a = Zr(t, g),
           r = Math.max(...a.map(n => n.id), 0) + 1,
           s = {
             id: r,
@@ -1936,92 +1306,94 @@ function ol({
             cashGiven: 0,
             paymentMethod: (localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? "Debt" : "Cash"
           };
-        return S(s.cart), L(s.selectedPartner), Ve(s.note), J(s.amountPaid), Xe(s.cashGiven), me(s.paymentMethod), Ke(r), [...a, s]
-      })
+        return H(s.cart), F(s.selectedPartner), $e(s.note), re(s.amountPaid), Ye(s.cashGiven), ge(s.paymentMethod), f(r), [...a, s];
+      });
     },
-    Ks = (t, a) => {
-      if (a.stopPropagation(), te.length <= 1) {
+    Ei = (t, a) => {
+      if (a.stopPropagation(), fe.length <= 1) {
         G({
           message: "Không thể đóng đơn cuối cùng",
           type: "error"
         });
-        return
+        return;
       }
-      Re(r => {
-        N.current && delete N.current[t];
-        let s = tr(r, xe);
-        if (s = s.filter(n => n.id !== t), xe === t) {
+      _(r => {
+        ie.current && delete ie.current[t];
+        let s = Zr(r, g);
+        if (s = s.filter(n => n.id !== t), g === t) {
           const n = s[s.length - 1];
-          S(n.cart), L(n.selectedPartner), Ve(n.note), J(n.amountPaid), Xe(n.cashGiven), me(n.paymentMethod), Ke(n.id)
+          H(n.cart), F(n.selectedPartner), $e(n.note), re(n.amountPaid), Ye(n.cashGiven), ge(n.paymentMethod), f(n.id);
         }
-        return De === t && Me(s[0].id), s
-      })
+        return ne === t && me(s[0].id), s;
+      });
     },
-    [Fr, Gs] = i.useState(78),
-    [Ht, Ur] = i.useState(!1),
-    [Qs, ha] = i.useState(!1),
-    [Vs, fa] = i.useState(!1),
-    [Xs, ar] = i.useState(!1),
-    [ba, rr] = i.useState(!1),
-    [he, $t] = i.useState(0),
-    [V, sr] = i.useState(0),
-    [E, nr] = i.useState({}),
-    [Js, Ys] = i.useState([]),
-    [Kr, Gr] = i.useState(""),
-    [X, ga] = i.useState(() => {
+    [sn, qi] = i.useState(78),
+    [wa, nn] = i.useState(!1),
+    [Mi, ja] = i.useState(!1),
+    [Wi, _a] = i.useState(!1),
+    [Ri, ts] = i.useState(!1),
+    [lr, as] = i.useState(!1),
+    [De, Ft] = i.useState(0),
+    [We, rs] = i.useState(0),
+    [R, or] = i.useState({}),
+    [ln, Ai] = i.useState([]),
+    [ss, ns] = i.useState(""),
+    [J, Na] = i.useState(() => {
       const t = localStorage.getItem("ui_enable_smart_sorting");
       return {
-        ...Ra,
-        ui_enable_smart_sorting: t !== null ? t : Ra.ui_enable_smart_sorting
-      }
+        ...Tr,
+        ui_enable_smart_sorting: t !== null ? t : Tr.ui_enable_smart_sorting
+      };
     }),
-    [ya, wa] = i.useState(!1),
-    [va, ka] = i.useState(!1),
-    [Qr, Vr] = i.useState(""),
-    [ir, G] = i.useState(null),
-    [ye, Zs] = i.useState(() => localStorage.getItem("unified_pos_mode") || "Retail"),
-    [o, _e] = i.useState({
+    [dr, cr] = i.useState(!1),
+    [pr, ur] = i.useState(!1),
+    [on, dn] = i.useState(""),
+    [is, G] = i.useState(null),
+    [Te, Oi] = i.useState(() => localStorage.getItem("unified_pos_mode") || "Retail"),
+    [m, He] = i.useState({
       product: null,
       quantity: 0,
       price: 0,
       secondary_qty: 0,
       name: ""
     }),
-    [Je, at] = i.useState(null),
-    [kt, Xr] = i.useState(""),
-    [jt, ja] = i.useState(0),
-    [en, lr] = i.useState(!1),
-    [or, Bt] = i.useState(!1),
-    [Jr, tn] = i.useState(null),
-    [Yr, cr] = i.useState(1),
-    [dr, dt] = i.useState(!1),
-    [an, Ft] = i.useState(null),
-    [Nt, pt] = i.useState(!1),
-    [Ye, _t] = i.useState(null),
-    [rn, Ut] = i.useState(null);
+    [Tt, ct] = i.useState(null),
+    [zt, ls] = i.useState(""),
+    [It, Ca] = i.useState(0),
+    [Li, os] = i.useState(!1),
+    [ds, Sa] = i.useState(!1),
+    [Ta, $i] = i.useState(null),
+    [cn, cs] = i.useState(1),
+    [ps, vt] = i.useState(!1),
+    [Hi, Vt] = i.useState(null),
+    [Qt, Dt] = i.useState(!1),
+    [pt, Xt] = i.useState(null),
+    [Ki, za] = i.useState(null),
+    [Gi, pn] = i.useState("Sale"),
+    [Jt, un] = i.useState("Sale");
   i.useEffect(() => {
-    if (h) {
-      const t = Array.isArray(h) ? h : h.items || [];
-      if (o.product) {
-        const a = t.find(r => r.id === o.product.id);
-        a && (a.stock !== o.product.stock || a.name !== o.product.name || a.unit !== o.product.unit || a.cost_price !== o.product.cost_price || JSON.stringify(a.latest_audit) !== JSON.stringify(o.product.latest_audit)) && _e(s => ({
-          ...s,
+    if (he) {
+      const t = Array.isArray(he) ? he : he.items || [];
+      if (m.product) {
+        const a = t.find(r => r.id === m.product.id);
+        a && (a.stock !== m.product.stock || a.name !== m.product.name || a.unit !== m.product.unit || a.cost_price !== m.product.cost_price || JSON.stringify(a.latest_audit) !== JSON.stringify(m.product.latest_audit)) && He(r => ({
+          ...r,
           product: a
-        }))
+        }));
       }
-      if (Nt && Ye) {
-        const a = t.find(r => r.id === Ye.id);
+      if (Qt && pt) {
+        const a = t.find(r => r.id === pt.id);
         if (a) {
-          const r = a.stock !== Ye.stock,
-            s = JSON.stringify(a.latest_audit) !== JSON.stringify(Ye.latest_audit);
-          (r || s) && _t(a)
+          const r = a.stock !== pt.stock,
+            s = JSON.stringify(a.latest_audit) !== JSON.stringify(pt.latest_audit);
+          (r || s) && Xt(a);
         }
       }
-      S(a => {
+      H(a => {
         let r = !1;
         const s = a.map(n => {
           if (!n.product_id) return n;
-          const l = t.find(c => c.id === n.product_id);
+          const l = t.find(d => d.id === n.product_id);
           return l && (l.stock !== n.stock || l.name !== n.product_name || l.unit !== n.unit || l.multiplier !== n.multiplier || l.cost_price !== n.cost_price || l.latest_cost_price !== n.latest_cost_price) ? (r = !0, {
             ...n,
             product_name: l.name,
@@ -2035,526 +1407,360 @@ function ol({
             latest_audit: l.latest_audit,
             is_combo: l.is_combo,
             active_ingredient: l.active_ingredient
-          }) : n
+          }) : n;
         });
-        return r ? s : a
-      })
+        return r ? s : a;
+      });
     }
-  }, [h, o.product?.id, Nt, Ye?.id, Ye?.stock, JSON.stringify(Ye?.latest_audit)]), i.useEffect(() => {
-    if (B && p) {
-      const a = (Array.isArray(B) ? B : B.items || []).find(r => r.id === p.id);
-      a && (a.debt_balance !== p.debt_balance || a.name !== p.name) && L(a)
+  }, [he, m.product?.id, Qt, pt?.id, pt?.stock, JSON.stringify(pt?.latest_audit)]), i.useEffect(() => {
+    if (_e && p) {
+      const t = (Array.isArray(_e) ? _e : _e.items || []).find(a => a.id === p.id);
+      t && (t.debt_balance !== p.debt_balance || t.name !== p.name) && F(t);
     }
-  }, [B, p?.id]);
-  const [sn, Ct] = i.useState(!1), [pr, Na] = i.useState(null), [le, Kt] = i.useState(null), [Gt, Qt] = i.useState(null), nn = i.useRef({}), ue = i.useRef(null), ut = i.useRef(null), ur = i.useRef(null), Vt = i.useRef(null), _a = i.useRef(null), Xt = i.useRef(null), xr = i.useRef(null), mr = i.useRef(null), Jt = i.useRef(null);
-  const [remoteTerminals, setRemoteTerminals] = i.useState([]);
-  const [activeRemoteTerminalId, setActiveRemoteTerminalId] = i.useState(null);
-  const [isMirrorDropdownOpen, setIsMirrorDropdownOpen] = i.useState(false);
-  const [isMirrorModalOpen, setIsMirrorModalOpen] = i.useState(false);
-  const mirrorDropdownRef = i.useRef(null);
-
-  const [showDeletePrompt, setShowDeletePrompt] = i.useState(false);
-  const [deleteRowInput, setDeleteRowInput] = i.useState("");
-
-  const handleConfirmDeleteRow = () => {
-    const rowNum = parseInt(deleteRowInput.trim(), 10);
-    if (!isNaN(rowNum) && rowNum > 0 && rowNum <= fe.length) {
-      const itemToRemove = fe[rowNum - 1];
-      if (itemToRemove) {
-        S(prevCart => prevCart.filter(item => item.cartId !== itemToRemove.cartId));
-        G({
-          message: `Đã xóa dòng ${rowNum}: ${itemToRemove.product_name || "Sản phẩm"}`,
+  }, [_e, p?.id]);
+  const [Ui, Yt] = i.useState(!1),
+    [us, mr] = i.useState(null),
+    [ye, Ia] = i.useState(null),
+    [Da, et] = i.useState(null),
+    Bi = i.useRef({}),
+    se = i.useRef(null),
+    Pt = i.useRef(null),
+    ms = i.useRef(null),
+    Et = i.useRef(null),
+    xr = i.useRef(null),
+    Pa = i.useRef(null),
+    xs = i.useRef(null),
+    hs = i.useRef(null),
+    Ea = i.useRef(null),
+    [hr, qa] = i.useState([]),
+    [q, br] = i.useState(null),
+    [Zt, Ma] = i.useState(!1),
+    [Ac, Oc] = i.useState(!1),
+    bs = i.useRef(null),
+    [Fi, gr] = i.useState(!1),
+    [mn, Wa] = i.useState(""),
+    [ea, xn] = i.useState(null),
+    Vi = () => {
+      const t = parseInt(mn.trim(), 10);
+      if (!isNaN(t) && t > 0 && t <= ve.length) {
+        const a = ve[t - 1];
+        a && (H(r => r.filter(s => s.cartId !== a.cartId)), G({
+          message: `Đã xóa dòng ${t}: ${a.product_name || "Sản phẩm"}`,
           type: "success"
-        });
-      }
-    } else {
-      G({
+        }));
+      } else G({
         message: "Số dòng không hợp lệ!",
         type: "error"
       });
-    }
-    setShowDeletePrompt(false);
-    setDeleteRowInput("");
-  };
-
-  i.useEffect(() => {
-    if (!isMirrorDropdownOpen) return;
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setIsMirrorDropdownOpen(false);
-      }
+      gr(!1), Wa("");
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMirrorDropdownOpen]);
-
   i.useEffect(() => {
-    const isValidTab = te.some(t => t.id === xe) || (xe === 'remote_inspect' && activeRemoteTerminalId);
-    if (!isValidTab && te.length > 0) {
-      Ke(te[0].id);
-    }
-  }, [xe, te, activeRemoteTerminalId]);
-
-  i.useEffect(() => {
-    const fetchRemoteTerminals = async () => {
+    if (!Zt) return;
+    const t = a => {
+      a.key === "Escape" && Ma(!1);
+    };
+    return window.addEventListener("keydown", t), () => window.removeEventListener("keydown", t);
+  }, [Zt]), i.useEffect(() => {
+    !(fe.some(a => a.id === g) || g === "remote_inspect" && q) && fe.length > 0 && f(fe[0].id);
+  }, [g, fe, q]), i.useEffect(() => {
+    const t = async () => {
       try {
-        const myTerminalId = localStorage.getItem('pos_terminal_id');
-        const res = await axios.get('/api/pos/terminals');
-        const list = (res.data.terminals || []).filter(t => t.terminal_id !== myTerminalId);
-        setRemoteTerminals(list);
-      } catch (err) {}
+        const s = localStorage.getItem("pos_terminal_id"),
+          l = ((await Vn.get("/api/pos/terminals")).data.terminals || []).filter(d => d.terminal_id !== s);
+        qa(l);
+      } catch {}
     };
-    fetchRemoteTerminals();
-    const interval = setInterval(fetchRemoteTerminals, 2000);
-    const handleFocusTab = () => {
-      setIsMirrorDropdownOpen(prev => !prev);
-    };
-    window.addEventListener('focus_pos_mirror_tab', handleFocusTab);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('focus_pos_mirror_tab', handleFocusTab);
+    t();
+    const a = setInterval(t, 2e3),
+      r = () => {
+        Ma(s => !s);
+      };
+    return window.addEventListener("focus_pos_mirror_tab", r), () => {
+      clearInterval(a), window.removeEventListener("focus_pos_mirror_tab", r);
     };
   }, []);
-
-  const handleImportRemoteCart = (remoteCart) => {
-    if (!remoteCart || remoteCart.length === 0) {
-      toast.error("Giỏ hàng của máy trạm này đang trống!");
-      return;
-    }
-    const newItems = remoteCart.map((item, idx) => ({
-      id: `imported_${Date.now()}_${idx}`,
-      product_id: item.id || item.product_id,
-      product_name: item.name || item.product_name,
-      unit: item.unit || item.product_unit || 'Cái',
-      quantity: Number(item.quantity) || 1,
-      price: Number(item.price || item.sale_price) || 0,
-      cost_price: Number(item.cost_price || item.capital_price) || 0,
-      code: item.code || item.product_code || item.sku || ''
-    }));
-    S(newItems);
-    setActiveRemoteTerminalId(null);
-    toast.success(`Đã chép ${newItems.length} sản phẩm từ máy trạm vào đơn của bạn!`);
-  };
-
-  const activeRemoteTerm = activeRemoteTerminalId 
-    ? remoteTerminals.find(t => t.terminal_id === activeRemoteTerminalId || t.ip_address === activeRemoteTerminalId || (t.ip_address && activeRemoteTerminalId.includes(t.ip_address)) || (t.terminal_id && (activeRemoteTerminalId.includes(t.terminal_id) || t.terminal_id.includes(activeRemoteTerminalId))))
-    : null;
-
-  const displayPartner = xe === 'remote_inspect' ? activeRemoteTerm?.partner : p;
-
-  const handleUpdateRemoteCart = (newCart) => {
-    if (!activeRemoteTerminalId) return;
-    
-    // 1. Update local cache immediately
-    setRemoteTerminals(prev => prev.map(t => {
-      if (t.terminal_id === activeRemoteTerminalId || t.ip_address === activeRemoteTerminalId) {
-        return {
-          ...t,
-          cart: newCart,
-          total_items: newCart.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0),
-          total_amount: newCart.reduce((sum, item) => sum + (Number(item.quantity) || 1) * Number(item.price || item.sale_price || 0), 0)
-        };
+  const hn = t => {
+      if (!t || t.length === 0) {
+        Ve.error("Giỏ hàng của máy trạm này đang trống!");
+        return;
       }
-      return t;
-    }));
-
-    // 2. Push to server
-    q.post('/api/pos/terminal-state/edit-cart', {
-      terminal_id: activeRemoteTerminalId,
-      cart: newCart
-    }).catch(err => {
-      toast.error("Không thể cập nhật máy trạm!");
-    });
-  };
-
-  const handleUpdateRemotePartner = (newPartner) => {
-    if (!activeRemoteTerminalId) return;
-    
-    // 1. Update local cache immediately
-    setRemoteTerminals(prev => prev.map(t => {
-      if (t.terminal_id === activeRemoteTerminalId || t.ip_address === activeRemoteTerminalId) {
-        return {
-          ...t,
-          partner: newPartner,
-          partner_name: newPartner ? newPartner.name : 'Khách lẻ'
-        };
-      }
-      return t;
-    }));
-
-    // 2. Push to server
-    q.post('/api/pos/terminal-state/edit-cart', {
-      terminal_id: activeRemoteTerminalId,
-      partner: newPartner,
-      partner_name: newPartner ? newPartner.name : 'Khách lẻ',
-      cart: activeRemoteTerm?.cart || []
-    }).catch(err => {
-      toast.error("Không thể cập nhật đối tác máy trạm!");
-    });
-  };
-
-  const remoteCartRows = i.useMemo(() => {
-    if (xe !== 'remote_inspect') return [];
-    if (!activeRemoteTerminalId && !activeRemoteTerm) return [];
-    const currentRemoteTerm = activeRemoteTerm || {
-      terminal_id: activeRemoteTerminalId,
-      terminal_name: activeRemoteTerminalId,
-      user_name: 'Thu ngân',
-      ip_address: activeRemoteTerminalId.includes('.') ? activeRemoteTerminalId : null,
-      cart: []
-    };
-
-    const bannerRow = e.jsx(m.tr, {
-      key: 'remote-header-banner',
-      initial: { opacity: 0, y: -10 },
-      animate: { opacity: 1, y: 0 },
-      exit: { opacity: 0, y: -10 },
-      className: 'bg-emerald-500/5 dark:bg-emerald-500/10 border-b border-emerald-500/20 z-50 relative',
-      children: e.jsx('td', {
-        colSpan: 10,
-        className: 'p-2 px-4',
-        children: e.jsxs('div', {
-          className: 'flex items-center justify-between gap-4 py-1.5 px-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl border border-emerald-500/20 backdrop-blur-md shadow-xs shadow-emerald-500/5 transition-all duration-300',
-          children: [
-            e.jsxs('div', {
-              className: 'flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-[11px] font-black uppercase tracking-wider',
-              children: [
-                e.jsxs('span', {
-                  className: 'flex h-2 w-2 relative shrink-0',
-                  children: [
-                    e.jsx('span', { className: 'relative inline-flex rounded-full h-2 w-2 bg-emerald-500' })
-                  ]
-                }),
-                e.jsx('span', {
-                  className: 'px-2 py-0.5 rounded-lg bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest mr-1.5 shadow-sm shadow-emerald-500/25',
-                  children: 'LIVE INSPECT'
-                }),
-                e.jsxs('span', {
-                  children: [
-                    'Đang soi: ',
-                    e.jsx('strong', { 
-                      className: 'font-black text-emerald-800 dark:text-emerald-200 uppercase', 
-                      children: `${currentRemoteTerm.user_name || 'Thu ngân'} (${currentRemoteTerm.ip_address || 'Local'})` 
-                    }),
-                    ` - ${(currentRemoteTerm.cart || []).length} món`
-                  ]
-                })
-              ]
-            }),
-             e.jsxs('div', {
-              className: 'flex items-center gap-2 shrink-0',
-              children: [
-                e.jsxs('button', {
-                  onClick: () => {
-                    Qt({
-                      title: "Xác nhận lưu hóa đơn",
-                      message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
-                      onConfirm: () => {
-                        Qt(null);
-                        q.post('/api/pos/terminal-state/action', {
-                          terminal_id: activeRemoteTerminalId,
-                          action: 'save_order'
-                        }).then(() => {
-                          toast.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
-                        }).catch(err => {
-                          toast.error("Không thể gửi lệnh lưu hóa đơn!");
-                        });
-                      }
-                    });
-                  },
-                  className: 'px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-sm shadow-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5',
-                  children: ['LƯU HÓA ĐƠN']
-                }),
-                e.jsxs('button', {
-                  onClick: () => handleImportRemoteCart(currentRemoteTerm.cart),
-                  className: 'px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-sm shadow-emerald-500/10 border border-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5',
-                  children: [e.jsx(Copy, { size: 10, className: 'shrink-0' }), 'CHÉP GIỎ HÀNG']
-                }),
-                e.jsxs('button', {
-                  onClick: () => setActiveRemoteTerminalId(null),
-                  className: 'px-2.5 py-1 bg-slate-200/80 dark:bg-slate-800/80 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1',
-                  children: [e.jsx('span', { children: '✕' }), 'QUAY LẠI']
-                })
-              ]
-            })
-          ]
-        })
-      })
-    });
-
-    const cartItems = (!currentRemoteTerm.cart || currentRemoteTerm.cart.length === 0) ? [
-      e.jsx(m.tr, {
-        key: 'remote-empty-cart',
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        children: e.jsx('td', {
-          colSpan: 10,
-          className: 'p-8 text-center text-xs font-black uppercase tracking-widest text-slate-400',
-          children: 'Giỏ hàng của máy trạm này hiện tại đang trống.'
-        })
-      })
-    ] : currentRemoteTerm.cart.map((item, idx) => {
-      const qty = Number(item.quantity) || 0;
-      const price = Number(item.price || item.sale_price) || 0;
-      const subtotal = price * qty;
-      const mult = Number(item.multiplier) || 1;
-      const secQty = item.secondary_qty !== undefined && item.secondary_qty !== null ? item.secondary_qty : (qty / mult);
-      const secQtyStr = (mult > 1 || item.secondary_qty) ? (Number(secQty) % 1 === 0 ? Number(secQty) : Number(secQty).toFixed(3)) : 'N/A';
-      const itemKey = item.id || item.product_id || `remote_${idx}_${item.name || item.product_name}`;
-
-      return e.jsxs(m.tr, {
-        key: itemKey,
-        layout: true,
-        initial: { opacity: 0, x: -20, scale: 0.98 },
-        animate: { opacity: 1, x: 0, scale: 1 },
-        exit: { opacity: 0, x: 30, scale: 0.95, transition: { duration: 0.2 } },
-        transition: { type: 'spring', stiffness: 350, damping: 25 },
-        className: 'border-b border-slate-200 dark:border-white/5 hover:bg-primary/5 dark:hover:bg-slate-800/20 transition-colors group',
-        children: [
-          e.jsx('td', {
-            className: 'py-2 px-4 text-center text-slate-400 font-black text-[11px] group-hover:text-emerald-500 transition-colors tabular-nums',
-            children: idx + 1
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-4 text-center',
-            children: e.jsx('button', {
-              onClick: (ev) => {
-                ev.stopPropagation();
-                const newCart = (activeRemoteTerm?.cart || []).filter((c, i) => i !== idx);
-                handleUpdateRemoteCart(newCart);
-              },
-              className: 'p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all',
-              title: 'Xóa dòng',
-              children: e.jsx(Ar, { size: 18 })
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-2 relative',
-            children: e.jsxs('div', {
-              className: 'w-full h-auto py-2.5 px-4 text-[17px] font-black uppercase tracking-tight text-emerald-900 dark:text-emerald-300 leading-relaxed truncate',
-              children: [
-                item.name || item.product_name,
-                (item.code || item.product_code || item.sku) && e.jsxs('span', {
-                  className: 'ml-2 text-xs font-black tabular-nums text-slate-400 normal-case',
-                  children: ['(', item.code || item.product_code || item.sku, ')']
-                })
-              ]
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-4 text-center',
-            children: e.jsx('div', {
-              className: 'font-bold text-gray-700 dark:text-gray-200',
-              children: Te(item.unit || item.product_unit || 'Cái')
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-2 w-32',
-            children: item.secondary_unit ? e.jsxs('div', {
-              className: 'flex items-center justify-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574]',
-              children: [
-                e.jsx('input', {
-                  type: 'text',
-                  className: 'w-16 bg-transparent text-center border-0 outline-none p-0 focus:ring-0 focus:border-0 font-black text-base text-primary dark:text-[#d4a574]',
-                  value: secQtyStr,
-                  onFocus: (ev) => ev.target.select(),
-                  onKeyDown: (ev) => {
-                    if (ev.key === 'Enter') {
-                      ev.preventDefault();
-                      ue.current?.focus();
+      const a = t.map((r, s) => ({
+        id: `imported_${Date.now()}_${s}`,
+        product_id: r.id || r.product_id,
+        product_name: r.name || r.product_name,
+        unit: r.unit || r.product_unit || "Cái",
+        quantity: Number(r.quantity) || 1,
+        price: Number(r.price || r.sale_price) || 0,
+        cost_price: Number(r.cost_price || r.capital_price) || 0,
+        code: r.code || r.product_code || r.sku || ""
+      }));
+      H(a), br(null), Ve.success(`Đã chép ${a.length} sản phẩm từ máy trạm vào đơn của bạn!`);
+    },
+    k = q ? hr.find(t => t.terminal_id === q || t.ip_address === q || t.ip_address && q.includes(t.ip_address) || t.terminal_id && (q.includes(t.terminal_id) || t.terminal_id.includes(q))) : null,
+    ze = k?.partner || (k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" ? {
+      name: k.partner_name,
+      debt_balance: k.debt_balance || 0
+    } : null),
+    Pe = g === "remote_inspect" ? ze : p,
+    Ra = t => {
+      q && (qa(a => a.map(r => r.terminal_id === q || r.ip_address === q ? {
+        ...r,
+        cart: t,
+        total_items: t.reduce((s, n) => s + (Number(n.quantity) || 1), 0),
+        total_amount: t.reduce((s, n) => s + (Number(n.quantity) || 1) * Number(n.price || n.sale_price || 0), 0)
+      } : r)), M.post("/api/pos/terminal-state/edit-cart", {
+        terminal_id: q,
+        cart: t
+      }).catch(a => {
+        Ve.error("Không thể cập nhật máy trạm!");
+      }));
+    },
+    Aa = t => {
+      q && (qa(a => a.map(r => r.terminal_id === q || r.ip_address === q ? {
+        ...r,
+        partner: t,
+        partner_name: t ? t.name : "Khách lẻ"
+      } : r)), M.post("/api/pos/terminal-state/edit-cart", {
+        terminal_id: q,
+        partner: t,
+        partner_name: t ? t.name : "Khách lẻ",
+        cart: k?.cart || []
+      }).catch(a => {
+        Ve.error("Không thể cập nhật đối tác máy trạm!");
+      }));
+    },
+    Qi = i.useMemo(() => {
+      if (g !== "remote_inspect") return [];
+      if (!q && !k) return [];
+      const t = k || {
+          user_name: "Thu ngân",
+          ip_address: q.includes(".") ? q : null,
+          cart: []
+        },
+        a = <x.tr key="remote-header-banner" initial={{
+          opacity: 0,
+          y: -10
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} exit={{
+          opacity: 0,
+          y: -10
+        }} className="bg-transparent border-b border-[#8b6f47]/15 dark:border-white/10 z-50 relative"><td colSpan={9} className="p-1.5 px-3"><div className="flex items-center justify-between gap-4 py-1.5 px-3 bg-black/[0.03] dark:bg-white/[0.04] rounded-xl border border-[#8b6f47]/20 dark:border-white/10 backdrop-blur-md shadow-xs transition-all duration-300"><div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 text-[11px] font-black tracking-wider"><span className="flex h-2 w-2 relative shrink-0"><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-sm" /></span><span className="px-2 py-0.5 rounded-lg bg-emerald-600 dark:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-widest mr-1 shadow-sm">LIVE INSPECT</span><span>Đang soi: <strong className="font-black text-[#8b6f47] dark:text-[#d4a574]">{`${t.user_name || "Thu ngân"} (${t.ip_address || "Local"})`}</strong>{` - ${(t.cart || []).length} món`}</span></div><div className="flex items-center gap-1.5 shrink-0"><button onClick={() => {
+                  et({
+                    title: "Xác nhận lưu hóa đơn",
+                    message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                    onConfirm: () => {
+                      et(null), M.post("/api/pos/terminal-state/action", {
+                        terminal_id: q,
+                        action: "save_order"
+                      }).then(() => {
+                        Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
+                      }).catch(s => {
+                        Ve.error("Không thể gửi lệnh lưu hóa đơn!");
+                      });
                     }
-                  },
-                  onChange: (ev) => {
-                    const val = parseFloat(ev.target.value) || 0;
-                    const newCart = (activeRemoteTerm?.cart || []).map((c, i) => i === idx ? {
-                      ...c,
-                      secondary_qty: val,
-                      quantity: val * (Number(c.multiplier) || 1)
-                    } : c);
-                    handleUpdateRemoteCart(newCart);
-                  }
-                }),
-                e.jsx('span', { className: 'text-[10px] font-black text-gray-400 uppercase ml-1', children: Te(item.secondary_unit || 'Cái') })
-              ]
-            }) : e.jsx('div', {
-              className: 'text-center text-gray-300 italic text-[10px] font-bold',
-              children: 'N/A'
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-2 w-24',
-            children: e.jsx('input', {
-              type: 'text',
-              className: 'w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-lg text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30',
-              value: qty,
-              onFocus: (ev) => ev.target.select(),
-              onKeyDown: (ev) => {
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  ue.current?.focus();
-                }
-              },
-              onChange: (ev) => {
-                const val = parseFloat(ev.target.value) || 0;
-                const newCart = (activeRemoteTerm?.cart || []).map((c, i) => i === idx ? {
-                  ...c,
-                  quantity: val,
-                  secondary_qty: val / (Number(c.multiplier) || 1)
-                } : c);
-                handleUpdateRemoteCart(newCart);
-              }
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-2 w-[180px]',
-            children: e.jsx('input', {
-              type: 'text',
-              className: 'w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30',
-              value: I(price),
-              onFocus: (ev) => ev.target.select(),
-              onKeyDown: (ev) => {
-                if (ev.key === 'Enter') {
-                  ev.preventDefault();
-                  ue.current?.focus();
-                }
-              },
-              onChange: (ev) => {
-                const val = parseFloat(ev.target.value.replace(/,/g, '')) || 0;
-                const newCart = (activeRemoteTerm?.cart || []).map((c, i) => i === idx ? {
-                  ...c,
-                  price: val,
-                  sale_price: val
-                } : c);
-                handleUpdateRemoteCart(newCart);
-              }
-            })
-          }),
-          e.jsx('td', {
-            className: 'py-2 px-4 text-right',
-            children: e.jsxs('div', {
-              className: 'font-black text-lg text-emerald-600 dark:text-emerald-400 tabular-nums',
-              children: [I(subtotal), 'đ']
-            })
-          }),
-          e.jsx('td', {
-            className: 'w-8'
-          })
-        ]
-      });
+                  });
+                }} className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-sm transition-all cursor-pointer flex items-center gap-1">LƯU HÓA ĐƠN</button><button onClick={() => hn(t.cart)} className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-sm transition-all cursor-pointer flex items-center gap-1"><Pn size={10} className="shrink-0" />CHÉP GIỎ HÀNG</button><button onClick={() => br(null)} className="px-2.5 py-1 bg-black/[0.05] dark:bg-white/[0.08] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"><span>✕</span>QUAY LẠI</button></div></div></td></x.tr>,
+        r = !t.cart || t.cart.length === 0 ? [<x.tr key="remote-empty-cart" initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} exit={{
+          opacity: 0
+        }}><td colSpan={9} className="p-8 text-center text-xs font-black uppercase tracking-widest text-slate-400">Giỏ hàng của máy trạm này hiện tại đang trống.</td></x.tr>] : t.cart.map((s, n) => {
+          const l = Number(s.quantity) || 0,
+            d = Number(s.price || s.sale_price) || 0,
+            o = d * l,
+            u = Number(s.multiplier) || 1,
+            h = s.secondary_qty !== void 0 && s.secondary_qty !== null ? s.secondary_qty : l / u,
+            b = u > 1 || s.secondary_qty ? Number(h) % 1 === 0 ? Number(h) : Number(h).toFixed(3) : "N/A",
+            S = s.id || s.product_id || `remote_${n}_${s.name || s.product_name}`;
+          return <x.tr key={S} layout={!0} initial={{
+            opacity: 0,
+            x: -20,
+            scale: 0.98
+          }} animate={{
+            opacity: 1,
+            x: 0,
+            scale: 1
+          }} exit={{
+            opacity: 0,
+            x: 30,
+            scale: 0.95,
+            transition: {
+              duration: 0.2
+            }
+          }} transition={{
+            type: "spring",
+            stiffness: 350,
+            damping: 25
+          }} className="border-b border-slate-200 dark:border-white/5 hover:bg-primary/5 dark:hover:bg-slate-800/20 transition-colors group"><td className="py-2 px-4 text-center text-slate-400 font-black text-[11px] group-hover:text-emerald-500 transition-colors tabular-nums">{n + 1}</td><td className="py-2 px-4 text-center"><button onClick={w => {
+                w.stopPropagation();
+                const O = (k?.cart || []).filter((U, L) => L !== n);
+                Ra(O);
+              }} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all" title="Xóa dòng"><Comp_pa size={18} /></button></td><td className="py-2 px-2 relative"><div className="w-full h-auto py-2.5 px-4 text-[17px] font-black uppercase tracking-tight text-emerald-900 dark:text-emerald-300 leading-relaxed truncate">{s.name || s.product_name}{(s.code || s.product_code || s.sku) && <span className="ml-2 text-xs font-black tabular-nums text-slate-400 normal-case">({s.code || s.product_code || s.sku})</span>}</div></td><td className="py-2 px-4 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(s.unit || s.product_unit || "Cái")}</div></td><td className="py-2 px-2 w-32">{s.secondary_unit ? <div className="flex items-center justify-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574]"><input type="text" className="w-16 bg-transparent text-center border-0 outline-none p-0 focus:ring-0 focus:border-0 font-black text-base text-primary dark:text-[#d4a574]" value={b} onFocus={w => w.target.select()} onKeyDown={w => {
+                  w.key === "Enter" && (w.preventDefault(), se.current?.focus());
+                }} onChange={w => {
+                  const O = parseFloat(w.target.value) || 0,
+                    U = (k?.cart || []).map((L, ce) => ce === n ? {
+                      ...L,
+                      secondary_qty: O,
+                      quantity: O * (Number(L.multiplier) || 1)
+                    } : L);
+                  Ra(U);
+                }} /><span className="text-[10px] font-black text-gray-400 uppercase ml-1">{Ae(s.secondary_unit || "Cái")}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 w-24"><input type="text" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-lg text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30" value={l} onFocus={w => w.target.select()} onKeyDown={w => {
+                w.key === "Enter" && (w.preventDefault(), se.current?.focus());
+              }} onChange={w => {
+                const O = parseFloat(w.target.value) || 0,
+                  U = (k?.cart || []).map((L, ce) => ce === n ? {
+                    ...L,
+                    quantity: O,
+                    secondary_qty: O / (Number(L.multiplier) || 1)
+                  } : L);
+                Ra(U);
+              }} /></td><td className="py-2 px-2 w-[180px]"><input type="text" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30" value={z(d)} onFocus={w => w.target.select()} onKeyDown={w => {
+                w.key === "Enter" && (w.preventDefault(), se.current?.focus());
+              }} onChange={w => {
+                const O = parseFloat(w.target.value.replace(/,/g, "")) || 0,
+                  U = (k?.cart || []).map((L, ce) => ce === n ? {
+                    ...L,
+                    price: O,
+                    sale_price: O
+                  } : L);
+                Ra(U);
+              }} /></td><td className="py-2 px-4 text-right"><div className="font-black text-lg text-emerald-600 dark:text-emerald-400 tabular-nums">{z(o)}đ</div></td><td className="w-8" /></x.tr>;
+        });
+      return [a, ...r];
+    }, [q, k, g]),
+    [Xi, Oa] = i.useState(!1),
+    [Ji, fr] = i.useState(null),
+    [gs, La] = i.useState(!1),
+    [Yi, fs] = i.useState(!1),
+    [ut, $a] = i.useState({
+      name: "",
+      price: ""
+    }),
+    ys = i.useRef(null),
+    bn = i.useRef(null),
+    [gn, Zi] = i.useState(!1),
+    ve = i.useMemo(() => J.ui_enable_smart_sorting !== "true" ? y : Tn(y), [y, J.ui_enable_smart_sorting]),
+    [fn, yn] = i.useState(!1),
+    [Ha, el] = i.useState(!1),
+    ta = i.useRef(null),
+    yr = t => {
+      ta.current || (ta.current = setTimeout(() => {
+        el(a => !a), ta.current = null;
+      }, 3e3));
+    },
+    aa = () => {
+      ta.current && (clearTimeout(ta.current), ta.current = null);
+    },
+    [tl, kt] = i.useState(!1),
+    [al, vn] = i.useState(!1),
+    [tt, qt] = i.useState(null),
+    [vr, ra] = i.useState(""),
+    [kr, sa] = i.useState(""),
+    mt = i.useRef(null),
+    [Ke, rl] = i.useState(() => {
+      const t = localStorage.getItem("pos_print_options");
+      return t ? JSON.parse(t) : {
+        showOldDebt: !1,
+        showPayment: !1,
+        showRemaining: !1,
+        showCashGiven: !0,
+        showChange: !0
+      };
     });
-
-    return [bannerRow, ...cartItems];
-  }, [activeRemoteTerminalId, activeRemoteTerm, xe]);
-
-  const [ln, Yt] = i.useState(!1), [on, Ca] = i.useState(null), [hr, Zt] = i.useState(!1), [cn, Ta] = i.useState(!1), [Ze, ea] = i.useState({
-    name: "",
-    price: ""
-  }), fr = i.useRef(null), Zr = i.useRef(null), [es, dn] = i.useState(!1), fe = i.useMemo(() => X.ui_enable_smart_sorting !== "true" ? b : xs(b), [b, X.ui_enable_smart_sorting]), [ts, as] = i.useState(!1), [pn, un] = i.useState(!1), Tt = i.useRef(null), rs = t => {
-    Tt.current || (Tt.current = setTimeout(() => {
-      un(a => !a), Tt.current = null
-    }, 3e3))
-  }, br = () => {
-    Tt.current && (clearTimeout(Tt.current), Tt.current = null)
-  }, [xn, xt] = i.useState(!1), [mn, ss] = i.useState(!1), [Ee, mt] = i.useState(null), [Sa, St] = i.useState(""), [Ia, It] = i.useState(""), et = i.useRef(null), [we, hn] = i.useState(() => {
-    const t = localStorage.getItem("pos_print_options");
-    return t ? JSON.parse(t) : {
-      showOldDebt: !1,
-      showPayment: !1,
-      showRemaining: !1,
-      showCashGiven: !0,
-      showChange: !0
-    }
-  });
   i.useEffect(() => {
-    localStorage.setItem("pos_new_style", JSON.stringify(O)), document.documentElement.style.setProperty("--pos-accent", O.accent), document.documentElement.style.setProperty("--dropdown-bg", O.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", O.dropdownAccent)
-  }, [O]);
-  const ns = t => {
+    localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
+  }, [Je]);
+  const kn = t => {
       if (!t) return "#000000";
       const a = parseInt(t.slice(1, 3), 16),
         r = parseInt(t.slice(3, 5), 16),
         s = parseInt(t.slice(5, 7), 16);
-      return (a * 299 + r * 587 + s * 114) / 1e3 > 128 ? "#000000" : "#ffffff"
+      return (a * 299 + r * 587 + s * 114) / 1e3 > 128 ? "#000000" : "#ffffff";
     },
-    is = (t, a = .8) => {
-      if (!t) return `rgba(255, 255, 255, ${a})`;
+    sl = (t, a = 0.8) => {
       const r = parseInt(t.slice(1, 3), 16),
         s = parseInt(t.slice(3, 5), 16),
         n = parseInt(t.slice(5, 7), 16);
-      return `rgba(${r}, ${s}, ${n}, ${a})`
+      return `rgba(${r}, ${s}, ${n}, ${a})`;
     },
-    Y = i.useMemo(() => {
-      const a = document.documentElement.classList.contains("dark") || g === "dark" ? "#0f172a" : O.dropdownBg,
-        r = O.dropdownAccent,
-        s = ns(a),
-        n = ns(r);
+    Mt = i.useMemo(() => {
+      const t = document.documentElement.classList.contains("dark") || N === "dark",
+        a = t ? "#1a1714" : "#f7f4ed",
+        r = Je.dropdownAccent || "#8b6f47",
+        s = kn(a),
+        n = kn(r);
       return {
         main: s,
         accent: n,
         muted: s === "#ffffff" ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
         accentMuted: n === "#ffffff" ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)",
-        glassBg: is(a, .35),
-        glassAccent: is(r, .9)
-      }
-    }, [O.dropdownBg, O.dropdownAccent, g]);
+        glassBg: t ? "rgba(26, 23, 20, 0.96)" : "rgba(247, 244, 237, 0.96)",
+        glassAccent: sl(r, 0.9)
+      };
+    }, [Je.dropdownBg, Je.dropdownAccent, N]);
   i.useEffect(() => {
-    localStorage.setItem("pos_print_options", JSON.stringify(we))
-  }, [we]);
-  const fn = useMotionValue(0),
-    bn = useMotionValue(0);
-  useSpring(fn, {
+    localStorage.setItem("pos_print_options", JSON.stringify(Ke));
+  }, [Ke]);
+  const nl = In(0),
+    il = In(0);
+  Dn(nl, {
     stiffness: 50,
     damping: 20
-  }), useSpring(bn, {
+  }), Dn(il, {
     stiffness: 50,
     damping: 20
   }), i.useEffect(() => {
-    et.current = new BroadcastChannel("packing_channel");
+    mt.current = new BroadcastChannel("packing_channel");
     const t = new BroadcastChannel("pos_data_sync");
     return t.onmessage = a => {
-      a.data.type === "PARTNER_UPDATED" ? (F.invalidateQueries({
+      a.data.type === "PARTNER_UPDATED" ? (E.invalidateQueries({
         queryKey: ["partners"]
-      }), p && yr(p.id)) : a.data.type === "PRODUCT_UPDATED" ? F.invalidateQueries({
+      }), p && ws(p.id)) : a.data.type === "PRODUCT_UPDATED" ? E.invalidateQueries({
         queryKey: ["products"]
-      }) : a.data.type === "ORDER_SAVED" ? (F.invalidateQueries({
+      }) : a.data.type === "ORDER_SAVED" ? (E.invalidateQueries({
         queryKey: ["shippingSummary"]
-      }), F.invalidateQueries({
+      }), E.invalidateQueries({
         queryKey: ["partners"]
-      }), F.invalidateQueries({
+      }), E.invalidateQueries({
         queryKey: ["products"]
-      }), p && yr(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (cs(), ds()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && ga(r => ({
+      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
         ...r,
         ui_enable_smart_sorting: a.data.value
-      }))
+      }));
     }, () => {
-      et.current && et.current.close(), t.close()
-    }
+      mt.current && mt.current.close(), t.close();
+    };
   }, []), i.useEffect(() => {
-    if (et.current) {
-      et.current.onmessage = r => {
-        if (r.data && r.data.type === "REQUEST_SYNC") {
-          const s = new Date().toLocaleTimeString("vi-VN", {
+    if (mt.current) {
+      mt.current.onmessage = s => {
+        if (s.data && s.data.type === "REQUEST_SYNC") {
+          const n = new Date().toLocaleTimeString("vi-VN", {
               hour: "2-digit",
               minute: "2-digit"
             }),
-            n = {
-              type: b.length > 0 ? "NEW_ORDER" : "CLEAR",
-              orders: b.length > 0 ? [{
-                id: H || "MỚI",
+            l = {
+              type: y.length > 0 ? "NEW_ORDER" : "CLEAR",
+              orders: y.length > 0 ? [{
+                id: Q || "MỚI",
                 customer_name: p ? p.name : null,
-                timestamp: s,
-                items: b.map(l => ({
-                  id: l.cartId,
-                  product_id: l.product_id,
-                  name: l.product_name,
-                  quantity: l.quantity,
-                  unit: l.unit,
-                  price: l.price
+                timestamp: n,
+                items: y.map(d => ({
+                  id: d.cartId,
+                  product_id: d.product_id,
+                  name: d.product_name,
+                  quantity: d.quantity,
+                  unit: d.unit,
+                  price: d.price
                 })),
-                note: pe
+                note: K
               }] : []
             };
-          et.current.postMessage(n), q.post("/api/packing/sync", n).catch(console.error)
+          mt.current.postMessage(l), M.post("/api/packing/sync", l).catch(console.error);
         }
       };
       const t = new Date().toLocaleTimeString("vi-VN", {
@@ -2562,51 +1768,61 @@ function ol({
           minute: "2-digit"
         }),
         a = {
-          type: b.length > 0 ? "NEW_ORDER" : "CLEAR",
-          orders: b.length > 0 ? [{
-            id: H || "MỚI",
+          type: y.length > 0 ? "NEW_ORDER" : "CLEAR",
+          orders: y.length > 0 ? [{
+            id: Q || "MỚI",
             customer_name: p ? p.name : null,
             timestamp: t,
-            items: b.map(r => ({
-              id: r.cartId,
-              product_id: r.product_id,
-              name: r.product_name,
-              quantity: r.quantity,
-              unit: r.unit,
-              price: r.price
+            items: y.map(s => ({
+              id: s.cartId,
+              product_id: s.product_id,
+              name: s.product_name,
+              quantity: s.quantity,
+              unit: s.unit,
+              price: s.price
             })),
-            note: pe
+            note: K
           }] : []
         };
-      et.current.postMessage(a), q.post("/api/packing/sync", a).catch(console.error);
+      mt.current.postMessage(a);
+      const r = setTimeout(() => {
+        M.post("/api/packing/sync", a).catch(console.error);
+      }, 350);
       try {
-        const normCart = b.map(r => ({
-          name: r.product_name || r.name,
-          product_name: r.product_name || r.name,
-          quantity: r.quantity || 1,
-          unit: r.unit || r.product_unit || 'Cái',
-          price: r.price || r.sale_price || 0,
-          sale_price: r.price || r.sale_price || 0,
-          cost_price: r.cost_price || r.capital_price || (r.price ? r.price * 0.75 : 0),
-          code: r.code || r.sku || r.product_code || '',
-          secondary_unit: r.secondary_unit || null,
-          multiplier: Number(r.multiplier) || 1,
-          secondary_qty: Number(r.secondary_qty) || 0,
-          product_id: r.product_id || null
+        const s = y.map(l => ({
+            name: l.product_name || l.name,
+            product_name: l.product_name || l.name,
+            quantity: l.quantity || 1,
+            unit: l.unit || l.product_unit || "Cái",
+            price: l.price || l.sale_price || 0,
+            sale_price: l.price || l.sale_price || 0,
+            cost_price: l.cost_price || l.capital_price || (l.price ? l.price * 0.75 : 0),
+            code: l.code || l.sku || l.product_code || "",
+            secondary_unit: l.secondary_unit || null,
+            multiplier: Number(l.multiplier) || 1,
+            secondary_qty: Number(l.secondary_qty) || 0,
+            product_id: l.product_id || null
+          })),
+          n = p && p.name || "Khách lẻ";
+        localStorage.setItem("pos_cart", JSON.stringify(s)), localStorage.setItem("pos_partner_name", n), p ? localStorage.setItem("pos_selected_partner", JSON.stringify(p)) : localStorage.removeItem("pos_selected_partner"), localStorage.setItem("pos_active_payment_method", I || "Cash"), localStorage.setItem("pos_active_amount_paid", String(oe || 0)), localStorage.setItem("pos_active_cash_given", String(V || 0)), localStorage.setItem("pos_active_note", K || ""), window.dispatchEvent(new CustomEvent("pos_cart_updated", {
+          detail: {
+            cart: s,
+            partner_name: n,
+            partner: p,
+            payment_method: I || "Cash",
+            amount_paid: oe || 0,
+            cash_given: V || 0,
+            note: K || ""
+          }
         }));
-        const pName = p ? (p.name || 'Khách lẻ') : 'Khách lẻ';
-        localStorage.setItem('pos_cart', JSON.stringify(normCart));
-        localStorage.setItem('pos_partner_name', pName);
-        window.dispatchEvent(new CustomEvent('pos_cart_updated', {
-          detail: { cart: normCart, partner_name: pName }
-        }));
-      } catch (e) {}
+      } catch {}
+      return () => clearTimeout(r);
     }
-  }, [b, pe, H, p]), i.useEffect(() => {
-    if (et.current) {
+  }, [y, K, Q, p, I, oe, V]), i.useEffect(() => {
+    if (mt.current) {
       const t = {
         type: "SYNC_HELD",
-        heldInvoices: Ne.map(a => ({
+        heldInvoices: Fe.map(a => ({
           id: a.id,
           partner_name: a.partner ? a.partner.name : "Khách Lẻ",
           total: a.total,
@@ -2621,233 +1837,237 @@ function ol({
           note: a.note
         }))
       };
-      et.current.postMessage(t), q.post("/api/packing/sync", t).catch(console.error)
+      mt.current.postMessage(t), M.post("/api/packing/sync", t).catch(console.error);
     }
-  }, [Ne]);
-  const gn = () => {
-    Ta(!0)
-  };
-  i.useEffect(() => {
-    if (o.product) {
+  }, [Fe]), i.useEffect(() => {
+    if (m.product) {
       const t = setTimeout(() => {
-        const a = ye === "Wholesale" && o.product.secondary_unit ? Xt : ut;
-        a.current && document.activeElement !== a.current && (a.current.focus(), a.current.select?.())
+        const a = Te === "Wholesale" && m.product.secondary_unit ? Pa : Pt;
+        a.current && document.activeElement !== a.current && (a.current.focus(), a.current.select?.());
       }, 0);
-      return () => clearTimeout(t)
+      return () => clearTimeout(t);
     }
-  }, [o.product?.id, ye]);
-  const ls = i.useMemo(() => o.product ? o.price * o.quantity : 0, [o.product, o.price, o.quantity]),
-    A = i.useMemo(() => b.reduce((t, a) => t + a.price * a.quantity, 0) + ls, [b, ls]);
+  }, [m.product?.id, Te]);
+  const wn = i.useMemo(() => m.product ? m.price * m.quantity : 0, [m.product, m.price, m.quantity]),
+    $ = i.useMemo(() => y.reduce((t, a) => t + a.price * a.quantity, 0) + wn, [y, wn]);
   i.useEffect(() => {
-    if (A > 0) {
-      const timer = setTimeout(() => {
-        precacheAmounts(A, p?.name);
+    if ($ > 0) {
+      const t = setTimeout(() => {
+        yl($, p?.name);
       }, 150);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(t);
     }
-  }, [A, p]);
-  const yn = i.useMemo(() => {
-      const t = b.reduce((r, s) => {
+  }, [$, p]);
+  const vs = i.useMemo(() => {
+      const t = y.reduce((r, s) => {
           const n = s.product_id == null ? s.price : s.cost_price || 0;
-          return r + (s.price - n) * s.quantity
+          return r + (s.price - n) * s.quantity;
         }, 0),
-        a = o.product ? (o.price - (o.product.cost_price || 0)) * o.quantity : 0;
-      return t + a
-    }, [b, o]),
-    wn = i.useMemo(() => b.length + (o.product ? 1 : 0), [b, o.product]),
-    vn = i.useMemo(() => b.reduce((t, a) => t + (a.quantity || 0), 0) + (o.quantity || 0), [b, o.quantity]),
-    kn = i.useMemo(() => b.reduce((t, a) => t + (a.secondary_qty || 0), 0) + (o.secondary_qty || 0), [b, o.secondary_qty]),
-    Dt = i.useMemo(() => {
+        a = m.product ? (m.price - (m.product.cost_price || 0)) * m.quantity : 0;
+      return t + a;
+    }, [y, m]),
+    ll = i.useMemo(() => y.length + (m.product ? 1 : 0), [y, m.product]),
+    ol = i.useMemo(() => y.reduce((t, a) => t + (a.quantity || 0), 0) + (m.quantity || 0), [y, m.quantity]),
+    dl = i.useMemo(() => y.reduce((t, a) => t + (a.secondary_qty || 0), 0) + (m.secondary_qty || 0), [y, m.secondary_qty]),
+    de = i.useMemo(() => {
       if (!p) return 0;
+      if (Q && le && p.id === le.partner_id && le.old_debt !== void 0 && le.old_debt !== null) return le.old_debt;
       let t = p.debt_balance;
-      if (H && ge && p.id === ge.partner_id && ge.payment_method === "Debt") {
-        const a = (ge.total_amount || 0) - (ge.amount_paid || 0);
-        t -= a
+      if (Q && le && p.id === le.partner_id && le.payment_method === "Debt") {
+        const a = (le.total_amount || 0) - (le.amount_paid || 0);
+        t -= a;
       }
-      return t
-    }, [p, H, ge]),
-    zt = D === "Debt" ? Dt + (A >= 0 ? A - Le : A + Le) : Dt,
-    gr = () => {
-      if (b.length === 0) return;
+      return t;
+    }, [p, Q, le]),
+    it = I === "Debt" ? de + ($ >= 0 ? $ - oe : $ + oe) : de,
+    wr = () => {
+      if (y.length === 0) return;
       const t = {
         id: Date.now(),
-        cart: [...b],
+        cart: [...y],
         partner: p,
-        note: pe,
-        amountPaid: Le,
-        cashGiven: ne,
-        paymentMethod: D,
-        editOrderId: H,
+        note: K,
+        amountPaid: oe,
+        cashGiven: V,
+        paymentMethod: I,
+        editOrderId: Q,
         time: new Date().toLocaleTimeString("vi-VN", {
           hour: "2-digit",
           minute: "2-digit"
         }),
-        total: A
+        total: $
       };
-      er([t, ...Ne]), rt(), G({
+      Qr([t, ...Fe]), Wt(), G({
         message: "Đã tạm dừng đơn hàng",
         type: "success"
-      })
-    },
-    os = t => {
-      S(t.cart), L(t.partner), Ve(t.note), J(t.amountPaid), Xe(t.cashGiven || 0), me(t.paymentMethod || "Debt"), xa(t.editOrderId || null), er(Ne.filter(a => a.id !== t.id)), ct(!1)
+      });
     },
     jn = t => {
-      er(Ne.filter(a => a.id !== t))
+      H(t.cart), F(t.partner), $e(t.note), re(t.amountPaid), Ye(t.cashGiven || 0), ge(t.paymentMethod || "Debt"), Gt(t.editOrderId || null), Qr(Fe.filter(a => a.id !== t.id)), St(!1);
     },
-    rt = (t = !1) => {
-      S([]), t || (L(null), je("")), ce(""), Pe(!1), J(0), Xe(0), Ve(""), nr({});
-      const a = ye === "Wholesale" ? "Debt" : "Cash";
-      me(a), a === "Cash" && J(0), xa(null), Ja(null), ua(null), Za(0), mt(null), St(""), It(""), N.current && (N.current[xe] = null), Tr(), setTimeout(() => ue.current?.focus(), 100)
-    };
-    const $e = async (t = !0) => {
-      let a = [...b];
-      if (o.product && o.quantity !== 0) {
-        const r = a.findIndex(s => s.product_id === o.product.id && s.price === o.price);
-        r > -1 ? (a[r].quantity += o.quantity, a[r].secondary_qty += o.secondary_qty) : a = [{
-          product_id: o.product.id,
-          product_name: o.product.name,
-          unit: o.product.unit,
-          secondary_unit: o.product.secondary_unit,
-          multiplier: o.product.multiplier || 1,
-          price: o.price,
-          cost_price: o.product.cost_price,
-          latest_cost_price: o.product.latest_cost_price,
-          quantity: o.quantity,
-          secondary_qty: o.secondary_qty,
-          stock: o.product.stock,
-          is_combo: o.product.is_combo,
-          active_ingredient: o.product.active_ingredient,
+    cl = t => {
+      Qr(Fe.filter(a => a.id !== t));
+    },
+    Wt = (t = !1) => {
+      H([]), t || (F(null), Ge("")), ae(""), Ue(!1), re(0), Ye(0), $e(""), or({});
+      He({
+        product: null,
+        quantity: 0,
+        price: 0,
+        secondary_qty: 0,
+        name: ""
+      });
+      const a = Te === "Wholesale" ? "Debt" : "Cash";
+      ge(a), a === "Cash" && re(0), Gt(null), Br(null), Ur(null), Vr(0), qt(null), ra(""), sa(""), ie.current && (ie.current[g] = null), Ds(), setTimeout(() => se.current?.focus(), 100);
+    },
+    Re = async (t = !0, a = "Sale") => {
+      let r = [...y];
+      if (m.product && m.quantity !== 0) {
+        const s = r.findIndex(n => n.product_id === m.product.id && n.price === m.price);
+        s > -1 ? (r[s].quantity += m.quantity, r[s].secondary_qty += m.secondary_qty) : r = [{
+          product_id: m.product.id,
+          product_name: m.product.name,
+          unit: m.product.unit,
+          secondary_unit: m.product.secondary_unit,
+          multiplier: m.product.multiplier || 1,
+          price: m.price,
+          cost_price: m.product.cost_price,
+          latest_cost_price: m.product.latest_cost_price,
+          quantity: m.quantity,
+          secondary_qty: m.secondary_qty,
+          stock: m.product.stock,
+          is_combo: m.product.is_combo,
+          active_ingredient: m.product.active_ingredient,
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
-        }, ...a]
+        }, ...r];
       }
-      if (a.length !== 0) {
-        X.ui_enable_smart_sorting === "true" && (a = xs(a)), Hr(!0);
+      if (r.length !== 0) {
+        J.ui_enable_smart_sorting === "true" && (r = Tn(r)), Zs(!0);
         try {
-          const r = {
+          const s = {
             partner_id: p ? p.id : null,
             type: "Sale",
-            payment_method: D,
-            details: a.map(n => ({
-              product_id: n.product_id,
-              product_name: n.product_name,
-              quantity: n.quantity,
-              price: n.price
+            payment_method: I,
+            details: r.map(o => ({
+              product_id: o.product_id,
+              product_name: o.product_name,
+              quantity: o.quantity,
+              price: o.price
             })),
-            note: pe,
-            amount_paid: Le,
-            cash_given: ne,
-            bank_account_id: D === "Transfer" ? Kr : null,
-            shipping_status: Ee,
-            shipping_address: Sa,
-            shipping_phone: Ia,
+            note: K,
+            amount_paid: oe,
+            cash_given: V,
+            bank_account_id: I === "Transfer" ? ss : null,
+            shipping_status: tt,
+            shipping_address: vr,
+            shipping_phone: kr,
             created_by: JSON.parse(sessionStorage.getItem("user") || "{}").name || JSON.parse(sessionStorage.getItem("user") || "{}").username || "Unknown"
           };
-          let s;
-          if (H) {
-            s = await q.put(`/api/orders/${H}`, r);
-          } else {
-            s = await q.post("/api/orders", r);
-          }
-          if (C !== "off" && Ba) try {
-            Mt();
-            const savedVoice = localStorage.getItem("pos_selected_voice") || (C === "male" ? "edge-vi-male" : "edge-vi-female");
-            const n = savedVoice === "edge-vi-male" ? "edge-vi-male" : (savedVoice === "edge-vi-female" ? "edge-vi-female" : "google");
-            const disablePartnerThankyou = localStorage.getItem("pos_tts_disable_partner_thankyou") === "true";
-            const cleanPartner = (p?.name || "").trim();
-            const isRealPartner = cleanPartner && cleanPartner.toLowerCase() !== "khách lẻ" && cleanPartner.toLowerCase() !== "khách vãng lai" && cleanPartner.toLowerCase() !== "ncc vãng lai";
-            const finalPartnerDisplay = (disablePartnerThankyou || !isRealPartner) ? "" : cleanPartner;
-            
-            const tpl = finalPartnerDisplay 
-              ? (localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý")
-              : (localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý");
-            
-            const l = tpl
-              .replace(/{partner}/gi, finalPartnerDisplay || "quý khách")
-              .replace(/{customer}/gi, finalPartnerDisplay || "quý khách");
-              
-            const c = `${l}_${n}`;
-            let x;
-            if (window.preloadedTtsAudios && window.preloadedTtsAudios[c]) x = window.preloadedTtsAudios[c], x.currentTime = 0;
-            else {
-              const d = Ae(l, n);
-              x = new Audio(d), x.load()
+          let n;
+          if (Q ? n = await M.put(`/api/orders/${Q}`, s) : n = await M.post("/api/orders", s), ft !== "off" && ha) try {
+            tr();
+            const o = localStorage.getItem("pos_selected_voice") || (ft === "male" ? "edge-vi-male" : "edge-vi-female"),
+              u = o === "edge-vi-male" ? "edge-vi-male" : o === "edge-vi-female" ? "edge-vi-female" : "google",
+              h = localStorage.getItem("pos_tts_disable_partner_thankyou") === "true",
+              b = (p?.name || "").trim(),
+              S = b && b.toLowerCase() !== "khách lẻ" && b.toLowerCase() !== "khách vãng lai" && b.toLowerCase() !== "ncc vãng lai",
+              w = h || !S ? "" : b,
+              U = (w ? localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý" : localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý").replace(/{partner}/gi, w || "quý khách").replace(/{customer}/gi, w || "quý khách"),
+              L = `${U}_${u}`;
+            let ce;
+            if (window.preloadedTtsAudios && window.preloadedTtsAudios[L]) ce = window.preloadedTtsAudios[L], ce.currentTime = 0;else {
+              const Rt = Ls(U, u);
+              ce = new Audio(Rt), ce.load();
             }
             window.currentTtsSequence = {
-              audio1: x,
+              audio1: ce,
               audio2: null
-            }, x.play().catch(d => console.error("Error playing Thank You TTS:", d))
-          } catch (n) {
-            console.error("Lỗi đọc cảm ơn:", n)
+            }, ce.play().catch(Rt => console.error("Error playing Thank You TTS:", Rt));
+          } catch (o) {
+            console.error("Lỗi đọc cảm ơn:", o);
           }
-          if (ua(s.data), Lr(s.data), p) {
-            const n = a.filter(l => l.product_id).map(l => ({
-              product_id: l.product_id,
-              price: l.price
+          const l = {
+              ...n.data,
+              old_debt: n.data?.old_debt !== void 0 && n.data?.old_debt !== null ? n.data.old_debt : p && p.debt_balance || 0,
+              partner_id: p?.id || n.data.partner_id,
+              partner_name: p?.name || n.data.partner_name,
+              partner_address: p?.address || n.data.partner_address,
+              partner_phone: p?.phone || n.data.partner_phone,
+              partner: p || n.data.partner || null
+            },
+            d = n.data?.display_id || n.data?.id || Q || "MỚI";
+          if (ir === "card" ? (xn({
+            id: d,
+            count: r.length,
+            total: $,
+            partnerName: p ? p.name : "Khách lẻ",
+            type: "Sale"
+          }), setTimeout(() => xn(null), 2400)) : G({
+            message: "Đã lưu đơn hàng thành công!",
+            type: "success"
+          }), Ur(l), Ys(l), p) {
+            const o = r.filter(u => u.product_id).map(u => ({
+              product_id: u.product_id,
+              price: u.price
             }));
-            if (n.length > 0) try {
-              await q.post("/api/custom-prices/bulk", {
+            if (o.length > 0) try {
+              await M.post("/api/custom-prices/bulk", {
                 partner_id: p.id,
-                prices: n
-              })
-            } catch (l) {
-              console.error("Failed to save custom prices:", l)
+                prices: o
+              });
+            } catch (u) {
+              console.error("Failed to save custom prices:", u);
             }
           }
-          if (F.invalidateQueries(["shippingSummary"]), t) fs(), setTimeout(() => {
+          if (pn(a || "Sale"), E.invalidateQueries(["shippingSummary"]), t) Is(), setTimeout(() => {
             window.print(), setTimeout(() => {
-              rt(!1);
-              const n = new BroadcastChannel("pos_data_sync");
-              n.postMessage({
+              ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
+              const o = new BroadcastChannel("pos_data_sync");
+              o.postMessage({
                 type: "ORDER_SAVED"
-              }), n.close(), ua(null)
-            }, 1e3)
-          }, 1e3);
-          else {
-            rt(!1);
-            const n = new BroadcastChannel("pos_data_sync");
-            n.postMessage({
+              }), o.close();
+            }, 1e3);
+          }, 1e3);else {
+            ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
+            const o = new BroadcastChannel("pos_data_sync");
+            o.postMessage({
               type: "ORDER_SAVED"
-            }), n.close(), fs(), G({
+            }), o.close(), Is(), G({
               message: "Đã lưu đơn hàng thành công!",
               type: "success"
-            }), ua(null), localStorage.removeItem("pos_draft")
+            });
           }
-        } catch (r) {
+        } catch (s) {
           G({
-            message: r.response?.data?.error || "Lỗi khi lưu đơn hàng",
+            message: s.response?.data?.error || "Lỗi khi lưu đơn hàng",
             type: "error"
-          })
+          });
         } finally {
-          Hr(!1)
+          Zs(!1);
         }
       }
     };
-
   i.useEffect(() => {
-    const handleRemoteAction = (e) => {
-      if (e.detail && e.detail.action === 'save_order') {
-        $e();
-      }
+    const t = a => {
+      a.detail && a.detail.action === "save_order" && Re(!1);
     };
-    window.addEventListener('pos_remote_action', handleRemoteAction);
-    return () => window.removeEventListener('pos_remote_action', handleRemoteAction);
-  }, [$e]);
-
-  const Nn = async t => {
+    return window.addEventListener("pos_remote_action", t), () => window.removeEventListener("pos_remote_action", t);
+  }, [Re]);
+  const pl = async t => {
       try {
-        const a = await q.get(`/api/orders/${t}`);
-        a.data && Da(a.data)
+        const a = await M.get(`/api/orders/${t}`);
+        a.data && Ka(a.data);
       } catch (a) {
         console.error("Error fetching order", a), G({
           message: "Không tìm thấy hóa đơn",
           type: "error"
-        })
+        });
       }
-    }, Da = t => {
-      xa(t.id), Ja(t), S(t.details.map(a => {
-        const r = z.find(s => s.id === a.product_id);
+    },
+    Ka = t => {
+      Gt(t.id), Br(t), H(t.details.map(a => {
+        const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
           product_name: a.product_name,
@@ -2865,384 +2085,341 @@ function ol({
           is_manual_price: !0,
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
-        }
-      })), Ve(t.note || ""), J(t.amount_paid || 0), Xe(t.cash_given || 0), me(t.payment_method), mt(t.shipping_status || null), St(t.shipping_address || ""), It(t.shipping_phone || ""), t.partner_id ? ma(t.partner_id) : (L(null), ma(null)), je(""), ce(""), Pe(!1)
-    }, za = async t => {
+        };
+      })), $e(t.note || ""), re(t.amount_paid || 0), Ye(t.cash_given || 0), ge(t.payment_method), qt(t.shipping_status || null), ra(t.shipping_address || ""), sa(t.shipping_phone || ""), t.partner_id ? nr(t.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
+    },
+    na = async t => {
       let a;
-      if (t === "prev" ? a = He + 1 : a = Math.max(0, He - 1), a === 0) {
-        Tr(), rt();
-        return
+      if (t === "prev" ? a = Ce + 1 : a = Math.max(0, Ce - 1), a === 0) {
+        Ds(), Wt();
+        return;
       }
-      Tr(), as(!0);
+      Ds(), yn(!0);
       try {
-        const r = await q.get(`/api/orders?limit=1&page=${a}&type=Sale`);
-        r.data.items && r.data.items.length > 0 ? (Da(r.data.items[0]), Za(a)) : G({
+        const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
+        r.data.items && r.data.items.length > 0 ? (Ka(r.data.items[0]), Vr(a)) : G({
           message: "Không còn hóa đơn nào khác",
           type: "info"
-        })
+        });
       } catch (r) {
-        console.error(r)
+        console.error(r);
       } finally {
-        as(!1)
+        yn(!1);
       }
-    }, cs = async () => {
+    },
+    _n = async () => {
       try {
-        const [t, a] = await Promise.all([q.get("/api/print-templates?module=Sale"), q.get("/api/settings")]);
+        const [t, a] = await Promise.all([M.get("/api/print-templates?module=Sale"), M.get("/api/settings")]);
         let r = {
-          ...Ra
+          ...Tr
         };
         if (a.data && (r = {
-            ...r,
-            ...a.data
-          }), t.data && t.data.length > 0) {
-          const l = t.data.find(c => c.is_default) || t.data[0];
+          ...r,
+          ...a.data
+        }), t.data && t.data.length > 0) {
+          const l = t.data.find(d => d.is_default) || t.data[0];
           if (l) try {
-            const c = JSON.parse(l.config);
+            const d = JSON.parse(l.config);
             r = {
               ...r,
-              ...c
-            }
-          } catch (c) {
-            console.error(c)
+              ...d
+            };
+          } catch (d) {
+            console.error(d);
           }
         }
         const s = localStorage.getItem("ui_show_doraemon");
         s !== null && (r.ui_show_doraemon = s);
         const n = localStorage.getItem("ui_enable_smart_sorting");
-        r.ui_enable_smart_sorting = n !== null ? n : Ra.ui_enable_smart_sorting, ga(r)
+        r.ui_enable_smart_sorting = n !== null ? n : Tr.ui_enable_smart_sorting, Na(r);
       } catch (t) {
-        console.error(t)
+        console.error(t);
       }
     };
   i.useEffect(() => {
     const t = a => {
-      a.key === "ui_show_doraemon" && ga(r => ({
+      a.key === "ui_show_doraemon" && Na(r => ({
         ...r,
         [a.key]: a.newValue
-      }))
+      }));
     };
-    return window.addEventListener("storage", t), () => window.removeEventListener("storage", t)
+    return window.addEventListener("storage", t), () => window.removeEventListener("storage", t);
   }, []), i.useEffect(() => {
-    Wt && setTimeout(() => {
+    va && setTimeout(() => {
       const t = document.getElementById("first-held-card");
-      t && t.focus()
-    }, 100)
-  }, [Wt]), i.useEffect(() => {
+      t && t.focus();
+    }, 100);
+  }, [va]), i.useEffect(() => {
     const t = a => {
       if (a.isComposing || a.keyCode === 229 || !a.key) return;
       if (a.key === "Delete") {
-        const v = document.activeElement;
-        if (!v || (v.tagName !== "INPUT" && v.tagName !== "TEXTAREA" && v.getAttribute("contenteditable") !== "true") || v === ue.current) {
-          a.preventDefault();
-          a.stopPropagation();
-          setDeleteRowInput("");
-          setShowDeletePrompt(true);
+        const o = document.activeElement;
+        if (!o || o.tagName !== "INPUT" && o.tagName !== "TEXTAREA" && o.getAttribute("contenteditable") !== "true" || o === se.current) {
+          a.preventDefault(), a.stopPropagation(), Wa(""), gr(!0);
           return;
         }
       }
       const r = Date.now();
       if (a.key.length === 1 && !a.ctrlKey && !a.altKey && !a.metaKey) {
-        const d = r - y.current;
-        if (y.current = r, d > 150 ? ae.current = a.key : ae.current += a.key, d < 45) {
-          const v = document.activeElement;
-          v && (v.tagName === "INPUT" || v.tagName === "TEXTAREA") || (a.preventDefault(), a.stopPropagation()), P.current && (clearTimeout(P.current), P.current = null)
+        const o = r - ma.current;
+        if (ma.current = r, o > 150 ? qe.current = a.key : qe.current += a.key, o < 45) {
+          const u = document.activeElement;
+          u && (u.tagName === "INPUT" || u.tagName === "TEXTAREA") || (a.preventDefault(), a.stopPropagation()), A.current && (clearTimeout(A.current), A.current = null);
         }
       } else if (a.key === "Enter") {
-        const d = r - y.current,
-          v = ae.current;
-        if (d < 45 && v.length >= 4) {
-          if (a.preventDefault(), a.stopPropagation(), ae.current = "", jr.current(v, Ea.current) || G({
-              message: `Mã vạch ${v} không tồn tại`,
-              type: "error"
-            }), document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
-            const j = document.activeElement,
-              U = v[0];
-            if (j.value.endsWith(v)) try {
-              const R = j.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-              Object.getOwnPropertyDescriptor(R, "value").set.call(j, j.value.slice(0, -v.length)), j.dispatchEvent(new Event("input", {
+        const o = r - ma.current,
+          u = qe.current;
+        if (o < 45 && u.length >= 4) {
+          if (a.preventDefault(), a.stopPropagation(), qe.current = "", _s.current(u, Nr.current) || G({
+            message: `Mã vạch ${u} không tồn tại`,
+            type: "error"
+          }), document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA")) {
+            const h = document.activeElement,
+              b = u[0];
+            if (h.value.endsWith(u)) try {
+              const S = h.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+              Object.getOwnPropertyDescriptor(S, "value").set.call(h, h.value.slice(0, -u.length)), h.dispatchEvent(new Event("input", {
                 bubbles: !0
-              }))
+              }));
             } catch {
-              j.value = j.value.slice(0, -v.length)
-            } else if (U && j.value.endsWith(U)) try {
-              const R = j.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-              Object.getOwnPropertyDescriptor(R, "value").set.call(j, j.value.slice(0, -1)), j.dispatchEvent(new Event("input", {
+              h.value = h.value.slice(0, -u.length);
+            } else if (b && h.value.endsWith(b)) try {
+              const S = h.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+              Object.getOwnPropertyDescriptor(S, "value").set.call(h, h.value.slice(0, -1)), h.dispatchEvent(new Event("input", {
                 bubbles: !0
-              }))
+              }));
             } catch {
-              j.value = j.value.slice(0, -1)
+              h.value = h.value.slice(0, -1);
             }
           }
-          return
+          return;
         }
-        ae.current = ""
+        qe.current = "";
       }
       if (a.ctrlKey && (a.code === "Space" || a.key === " ")) {
-        a.preventDefault(), a.stopPropagation(), ct(d => !d);
-        return
+        a.preventDefault(), a.stopPropagation(), St(o => !o);
+        return;
       }
-      a.key === "Tab" && On();
-      const n = a.key.toUpperCase();
-      if (n === (X.kb_cash || "F1").toUpperCase()) {
+      a.key === "Tab" && zs();
+      const s = a.key.toUpperCase();
+      if (s === (J.kb_cash || "F1").toUpperCase()) {
         a.preventDefault(), a.stopPropagation();
-        const d = document.getElementById("cash-given-compact"),
-          v = document.getElementById("cash-given-sidebar"),
-          _ = d && d.offsetParent !== null ? d : v;
-        _ ? (_.focus(), _.select()) : (_a.current?.focus(), _a.current?.select())
+        const o = document.getElementById("cash-given-compact"),
+          u = document.getElementById("cash-given-sidebar"),
+          h = o && o.offsetParent !== null ? o : u;
+        h ? (h.focus(), h.select()) : (xr.current?.focus(), xr.current?.select());
       }
-      if (n === (X.kb_partner || "F3").toUpperCase()) {
-        a.preventDefault(), a.stopPropagation(), setTimeout(() => {
-          Vt.current?.focus(), Vt.current?.select()
+      if (s === (J.kb_partner || "F3").toUpperCase()) {
+        a.preventDefault(), a.stopPropagation(), W(!1), zi(!0), setTimeout(() => {
+          Et.current?.focus(), Et.current?.select();
         }, 50);
-        return
+        return;
       }
-      if (a.key === "Escape") Mt(), (Xa || Wt || or || ya || va || dr || ee || Je !== null || ba || hr || Nt) && (Pe(!1), ct(!1), Bt(!1), wa(!1), ka(!1), dt(!1), ce(""), at(null), xt(!1), rr(!1), Zt(!1), pt(!1));
-      else if (n === "F2" && a.shiftKey) {
-        if (a.preventDefault(), o.product) {
-          const d = ue.current?.getBoundingClientRect();
-          _t(o.product), d && Ut({
-            top: d.top,
-            bottom: d.bottom,
-            left: d.left,
-            right: d.right
-          }), pt(!0)
+      if (a.key === "Escape") tr(), (Me || va || ds || dr || pr || ps || Z || Tt !== null || lr || gs || Qt) && (Ue(!1), St(!1), Sa(!1), cr(!1), ur(!1), vt(!1), ae(""), ct(null), kt(!1), as(!1), La(!1), Dt(!1));else if (s === "F2" && a.shiftKey) {
+        if (a.preventDefault(), m.product) {
+          const o = se.current?.getBoundingClientRect();
+          Xt(m.product), o && za({
+            top: o.top,
+            bottom: o.bottom,
+            left: o.left,
+            right: o.right
+          }), Dt(!0);
         }
-      } else if (n === (X.kb_search || "F2").toUpperCase()) {
+      } else if (s === (J.kb_search || "F2").toUpperCase()) {
         a.preventDefault();
-        const d = document.activeElement;
-        if (d && d.id && d.id.startsWith("row-name-")) {
-          const v = parseInt(d.id.replace("row-name-", "")),
-            _ = fe[v];
-          if (_) {
-            const j = z.find(U => U.id === _.product_id);
-            j && (Ft(j), dt(!0))
+        const o = document.activeElement;
+        if (o && o.id && o.id.startsWith("row-name-")) {
+          const u = parseInt(o.id.replace("row-name-", "")),
+            h = ve[u];
+          if (h) {
+            const b = T.find(S => S.id === h.product_id);
+            b && (Vt(b), vt(!0));
           }
-        } else ue.current?.focus(), ue.current?.select?.()
-      } else if (n === (X.kb_save || "F12").toUpperCase()) a.preventDefault(), $e(!1);
-      else if (n === (X.kb_pay || "F9").toUpperCase()) a.preventDefault(), $e(!0);
-      else if (n === (X.kb_new || "F4").toUpperCase()) a.preventDefault(), rt();
-      else if (n === (X.kb_hold || "F8").toUpperCase()) a.preventDefault(), gr();
-      else if (n === (X.kb_custom || "F6").toUpperCase()) a.preventDefault(), Zt(!0), ea({
+        } else se.current?.focus(), se.current?.select?.();
+      } else if (s === (J.kb_save || "F12").toUpperCase()) a.preventDefault(), Re(!1);else if (s === (J.kb_pay || "F9").toUpperCase()) a.preventDefault(), Re(!0);else if (s === (J.kb_new || "F4").toUpperCase()) a.preventDefault(), Wt();else if (s === (J.kb_hold || "F8").toUpperCase()) a.preventDefault(), wr();else if (s === (J.kb_custom || "F6").toUpperCase()) a.preventDefault(), La(!0), $a({
         name: "",
         price: ""
       }), setTimeout(() => {
-        fr.current?.focus()
-      }, 100);
-      else if (n === (X.kb_speech || "F10").toUpperCase()) {
-        a.preventDefault(), a.stopPropagation();
-        if (C !== "off" && ca) {
-          Mt();
-          console.log("F10 calling speakNumber with:", A);
-          speakNumber(A, true, p?.name);
-        }
-      }
-      else if (a.key === "Insert") {
-        a.preventDefault(), a.stopPropagation();
-        if (o && o.product) {
-          _e(v => ({
-            ...v,
-            quantity: v.quantity * -1,
-            secondary_qty: v.secondary_qty * -1
-          }));
-        }
-      }
-      else if (n === "F7") {
+        ys.current?.focus();
+      }, 100);else if (s === (J.kb_speech || "F10").toUpperCase()) a.preventDefault(), a.stopPropagation(), ft !== "off" && xa && (tr(), console.log("F10 calling speakNumber with:", $), ht($, !0, p?.name));else if (a.key === "Insert") a.preventDefault(), a.stopPropagation(), m && m.product && He(o => ({
+        ...o,
+        quantity: o.quantity * -1,
+        secondary_qty: o.secondary_qty * -1
+      }));else if (s === "F7") a.preventDefault(), console.log("F7 keydown triggered. State:", {
+        bLength: y.length
+      }), y.length > 0 && ts(!0);else if (a.ctrlKey && a.key === "ArrowUp") {
         a.preventDefault();
-        console.log("F7 keydown triggered. State:", { bLength: b.length });
-        if (b.length > 0) {
-          ar(!0);
-        }
-      } else if (a.ctrlKey && a.key === "ArrowUp") {
-        a.preventDefault();
-        const allTabs = [...te];
-        if (activeRemoteTerminalId) {
-          allTabs.push({ id: 'remote_inspect' });
-        }
-        const idx = allTabs.findIndex(t => t.id === xe);
-        if (idx > 0) {
-          const target = allTabs[idx - 1];
-          if (target.id === 'remote_inspect') {
-            Ke('remote_inspect');
-          } else {
-            Fs(target.id);
-          }
+        const o = [...fe];
+        q && o.push({
+          id: "remote_inspect"
+        });
+        const u = o.findIndex(h => h.id === g);
+        if (u > 0) {
+          const h = o[u - 1];
+          h.id === "remote_inspect" ? f("remote_inspect") : es(h.id);
         }
       } else if (a.ctrlKey && a.key === "ArrowDown") {
         a.preventDefault();
-        const allTabs = [...te];
-        if (activeRemoteTerminalId) {
-          allTabs.push({ id: 'remote_inspect' });
+        const o = [...fe];
+        q && o.push({
+          id: "remote_inspect"
+        });
+        const u = o.findIndex(h => h.id === g);
+        if (u !== -1 && u < o.length - 1) {
+          const h = o[u + 1];
+          h.id === "remote_inspect" ? f("remote_inspect") : es(h.id);
         }
-        const idx = allTabs.findIndex(t => t.id === xe);
-        if (idx !== -1 && idx < allTabs.length - 1) {
-          const target = allTabs[idx + 1];
-          if (target.id === 'remote_inspect') {
-            Ke('remote_inspect');
-          } else {
-            Fs(target.id);
-          }
-        }
-      } else if (a.ctrlKey && a.key === "ArrowLeft") {
-        a.preventDefault();
-        za("prev");
-      } else if (a.ctrlKey && a.key === "ArrowRight") {
-        a.preventDefault();
-        za("next");
-      }
-      const l = a.key.length === 1,
-        c = !a.ctrlKey && !a.altKey && !a.metaKey,
-        x = a.target.tagName !== "INPUT" && a.target.tagName !== "TEXTAREA";
-      console.log("[Keydown Debug] target:", a.target ? a.target.tagName : "null", "key:", a.key, "x:", x);
-      l && c && x && (P.current && clearTimeout(P.current), P.current = setTimeout(() => {
-        Wn()
-      }, 50))
+      } else a.ctrlKey && a.key === "ArrowLeft" ? (a.preventDefault(), na("prev")) : a.ctrlKey && a.key === "ArrowRight" && (a.preventDefault(), na("next"));
+      const n = a.key.length === 1,
+        l = !a.ctrlKey && !a.altKey && !a.metaKey,
+        d = a.target.tagName !== "INPUT" && a.target.tagName !== "TEXTAREA";
+      console.log("[Keydown Debug] target:", a.target ? a.target.tagName : "null", "key:", a.key, "x:", d), n && l && d && (A.current && clearTimeout(A.current), A.current = setTimeout(() => {
+        Sl();
+      }, 50));
     };
-    return window.addEventListener("keydown", t, !0), () => window.removeEventListener("keydown", t, !0)
-  }, [b, p, Le, pe, X, Xa, Wt, or, ya, va, dr, ee, Je, hr, He, ne, D, Ee, Sa, Ia, $e, o, Nt, A, C, fe, oa, Rr, ca, Ba]);
-  const Pa = () => {
+    return window.addEventListener("keydown", t, !0), () => window.removeEventListener("keydown", t, !0);
+  }, [y, p, oe, K, J, Me, va, ds, dr, pr, ps, Z, Tt, gs, Ce, V, I, tt, vr, kr, Re, m, Qt, $, ft, ve, Za, er, xa, ha]);
+  const ks = () => {
     const t = localStorage.getItem("pos_draft");
     if (t) try {
       const a = JSON.parse(t);
-      if (S(a.cart || []), Ve(a.note || ""), J(a.amountPaid || 0), me(a.paymentMethod || (localStorage.getItem("unified_pos_mode") === "Wholesale" ? "Debt" : "Cash")), Xe(a.cashGiven || 0), a.selectedPartnerId) {
-        const r = Q.find(s => s.id === a.selectedPartnerId);
-        L(r || null)
-      } else L(null);
-      return xa(null), Ja(null), Za(0), !0
+      if (H(a.cart || []), $e(a.note || ""), re(a.amountPaid || 0), ge(a.paymentMethod || (localStorage.getItem("unified_pos_mode") === "Wholesale" ? "Debt" : "Cash")), Ye(a.cashGiven || 0), a.selectedPartnerId) {
+        const r = Y.find(s => s.id === a.selectedPartnerId);
+        F(r || null);
+      } else F(null);
+      return Gt(null), Br(null), Vr(0), !0;
     } catch (a) {
-      console.error("Error loading draft", a)
+      console.error("Error loading draft", a);
     }
-    return !1
+    return !1;
   };
   i.useEffect(() => {
-    if (cs(), ds(), vt.state?.editOrder || Pa(), vt.state?.editOrder) {
-      const t = vt.state.editOrder;
-      Da(t)
+    if (_n(), Nn(), Ut.state?.editOrder || ks(), Ut.state?.editOrder) {
+      const t = Ut.state.editOrder;
+      Ka(t);
     } else {
       const t = new URLSearchParams(window.location.search),
         a = t.get("edit"),
         r = t.get("partner_id");
-      a ? Nn(a) : (r && ma(r), H && (Pa() || rt(!1)))
+      a ? pl(a) : (r && nr(r), Q && (ks() || Wt(!1)));
     }
-    dn(!0)
-  }, [vt.search, vt.state]);
-  const _n = t => {
-    Zs(t), localStorage.setItem("unified_pos_mode", t), b.length === 0 && !H && me(t === "Wholesale" ? "Debt" : "Cash")
+    Zi(!0);
+  }, [Ut.search, Ut.state]);
+  const ul = t => {
+    Oi(t), localStorage.setItem("unified_pos_mode", t), y.length === 0 && !Q && ge(t === "Wholesale" ? "Debt" : "Cash");
   };
   i.useEffect(() => {
-    D === "Cash" && J(A)
-  }, [D, A]), i.useEffect(() => {
-    if (es && !H) {
+    I === "Cash" && re($);
+  }, [I, $]), i.useEffect(() => {
+    if (gn && !Q) {
       const t = {
-        cart: b,
+        cart: y,
         selectedPartnerId: p?.id,
-        note: pe,
-        amountPaid: Le,
-        paymentMethod: D,
-        cashGiven: ne
+        note: K,
+        amountPaid: oe,
+        paymentMethod: I,
+        cashGiven: V
       };
-      localStorage.setItem("pos_draft", JSON.stringify(t))
+      localStorage.setItem("pos_draft", JSON.stringify(t));
     }
-  }, [b, p, pe, Le, D, ne, H, es]), i.useEffect(() => {
-    localStorage.setItem("held_invoices", JSON.stringify(Ne))
-  }, [Ne]), i.useEffect(() => {
-    if (Q.length > 0) {
-      if (Ya) {
-        const t = Q.find(a => a.id == Ya);
-        t && (L(t), ma(null), je(""))
+  }, [y, p, K, oe, I, V, Q, gn]), i.useEffect(() => {
+    localStorage.setItem("held_invoices", JSON.stringify(Fe));
+  }, [Fe]), i.useEffect(() => {
+    if (Y.length > 0) {
+      if (Fr) {
+        const t = Y.find(a => a.id == Fr);
+        t && (F(t), nr(null), Ge(""));
       } else if (p) {
-        const t = Q.find(a => a.id === p.id);
-        t && t.debt_balance !== p.debt_balance && L(t)
-      } else if (!H) {
+        const t = Y.find(a => a.id === p.id);
+        t && t.debt_balance !== p.debt_balance && F(t);
+      } else if (!Q) {
         const t = localStorage.getItem("pos_draft");
         if (t) try {
           const a = JSON.parse(t);
           if (a.selectedPartnerId) {
-            const r = Q.find(s => s.id === a.selectedPartnerId);
-            r && (L(r), je(""))
+            const r = Y.find(s => s.id === a.selectedPartnerId);
+            r && (F(r), Ge(""));
           }
         } catch {}
       }
     }
-  }, [Q, Ya, H, vt.state]), i.useEffect(() => {
-    p?.id && !H && (async () => {
+  }, [Y, Fr, Q, Ut.state]), i.useEffect(() => {
+    p?.id && !Q && (async () => {
       try {
-        const a = await q.post(`/api/partners/${p.id}/recalculate-debt`);
-        a.data.new_balance !== void 0 && L(r => !r || r.id !== p.id ? r : {
-          ...r,
-          debt_balance: a.data.new_balance
-        })
-      } catch (a) {
-        console.error("Error auto-syncing debt:", a)
+        const t = await M.post(`/api/partners/${p.id}/recalculate-debt`);
+        t.data.new_balance !== void 0 && F(a => !a || a.id !== p.id ? a : {
+          ...a,
+          debt_balance: t.data.new_balance
+        });
+      } catch (t) {
+        console.error("Error auto-syncing debt:", t);
       }
-    })()
-  }, [p?.id, H]);
-  const Cn = async t => {
-    try {
-      await q.post("/api/inventory/audit", t), G({
-        message: "Đã cập nhật kho thành công!",
-        type: "success"
-      }), F.invalidateQueries(["products"]);
-      const a = new BroadcastChannel("pos_data_sync");
-      a.postMessage({
-        type: "PRODUCT_UPDATED"
-      }), a.close()
-    } catch (a) {
-      throw console.error(a), G({
-        message: "Lỗi khi cập nhật kho",
-        type: "error"
-      }), a
-    }
-  }, ds = async () => {
-    try {
-      const t = await q.get("/api/bank-accounts");
-      Ys(t.data), t.data.length > 0 && Gr(t.data[0].id)
-    } catch (t) {
-      console.error(t)
-    }
-  }, yr = async t => {
-    nr({});
-    if (!t) {
-      return
-    }
-    try {
-      const a = await q.get(`/api/custom-prices/${t}`);
-      nr(a.data)
-    } catch (a) {
-      console.error(a)
-    }
-  };
+    })();
+  }, [p?.id, Q]);
+  const ml = async t => {
+      try {
+        await M.post("/api/inventory/audit", t), G({
+          message: "Đã cập nhật kho thành công!",
+          type: "success"
+        }), E.invalidateQueries(["products"]);
+        const a = new BroadcastChannel("pos_data_sync");
+        a.postMessage({
+          type: "PRODUCT_UPDATED"
+        }), a.close();
+      } catch (a) {
+        throw console.error(a), G({
+          message: "Lỗi khi cập nhật kho",
+          type: "error"
+        }), a;
+      }
+    },
+    Nn = async () => {
+      try {
+        const t = await M.get("/api/bank-accounts");
+        Ai(t.data), t.data.length > 0 && ns(t.data[0].id);
+      } catch (t) {
+        console.error(t);
+      }
+    },
+    ws = async t => {
+      if (or({}), !!t) try {
+        const a = await M.get(`/api/custom-prices/${t}`);
+        or(a.data);
+      } catch (a) {
+        console.error(a);
+      }
+    };
   i.useEffect(() => {
-    p ? (yr(p.id), Wr(!0), gt("debt"), q.get(`/api/partners/${p.id}/ledger`).then(t => {
+    p ? (ws(p.id), Js(!0), Kt("debt"), M.get(`/api/partners/${p.id}/ledger`).then(t => {
       const a = t.data?.ledger || [],
         r = a.find(n => n.type === "Order" && n.payment_method === "Debt" && (n.increase > 0 || n.obj && n.obj.total_amount > 0)),
         s = a.find(n => n.type === "Order" && n.payment_method !== "Debt" && (n.increase > 0 || n.obj && n.obj.total_amount > 0));
-      Ga(r || null), Qa(s || null)
+      Hr(r || null), Kr(s || null);
     }).catch(t => {
-      console.error("Error fetching partner ledger:", t), Ga(null), Qa(null)
+      console.error("Error fetching partner ledger:", t), Hr(null), Kr(null);
     }).finally(() => {
-      Wr(!1)
-    })) : (nr({}), Ga(null), Qa(null), gt("debt"))
+      Js(!1);
+    })) : (or({}), Hr(null), Kr(null), Kt("debt"));
   }, [p]), i.useEffect(() => {
     const t = a => {
-      if (!document.body.contains(a.target)) return;
-      !(w.current && w.current.contains(a.target) || be.current && be.current.contains(a.target)) && !a.target.closest(".partner-popout-trigger") && Va(!1)
+      document.body.contains(a.target) && !(Wr.current && Wr.current.contains(a.target) || Rr.current && Rr.current.contains(a.target)) && !a.target.closest(".partner-popout-trigger") && Gr(!1);
     };
-    return document.addEventListener("mousedown", t), () => document.removeEventListener("mousedown", t)
+    return document.addEventListener("mousedown", t), () => document.removeEventListener("mousedown", t);
   }, []), i.useEffect(() => {
-    if (!h) return;
-    const t = Array.isArray(h) ? h : h.items || [];
-    S(a => {
+    if (!he) return;
+    const t = Array.isArray(he) ? he : he.items || [];
+    H(a => {
       if (a.length === 0) return a;
       let r = !1;
       const s = a.map(n => {
-        const l = t.find(c => c.id === n.product_id);
+        const l = t.find(d => d.id === n.product_id);
         if (l) {
-          const c = l.stock !== n.stock,
-            x = l.unit !== n.unit || l.multiplier !== n.multiplier || l.secondary_unit !== n.secondary_unit;
-          let d = E[n.product_id] !== void 0 ? E[n.product_id] : l.sale_price;
-          l.bulk_quantity > 0 && n.quantity >= l.bulk_quantity && E[n.product_id] === void 0 && (d = l.bulk_price || d);
-          const v = !n.is_manual_price && n.price !== d;
-          if (c || x || v) return r = !0, {
+          const d = l.stock !== n.stock,
+            o = l.unit !== n.unit || l.multiplier !== n.multiplier || l.secondary_unit !== n.secondary_unit;
+          let u = R[n.product_id] !== void 0 ? R[n.product_id] : l.sale_price;
+          l.bulk_quantity > 0 && n.quantity >= l.bulk_quantity && R[n.product_id] === void 0 && (u = l.bulk_price || u);
+          const h = !n.is_manual_price && n.price !== u;
+          if (d || o || h) return r = !0, {
             ...n,
             cost_price: l.cost_price,
             stock: l.stock,
@@ -3251,264 +2428,228 @@ function ol({
             secondary_unit: l.secondary_unit,
             latest_audit: l.latest_audit,
             latest_stock_entry: l.latest_stock_entry,
-            price: v ? d : n.price
-          }
+            price: h ? u : n.price
+          };
         }
-        return n
+        return n;
       });
-      return r ? s : a
-    })
-  }, [h, E, b.length]), i.useEffect(() => {
-    D === "Cash" && J(A)
-  }, [A, D]);
-  const wr = async () => {
-    try {
-      await F.invalidateQueries({
-        queryKey: ["products"]
-      })
-    } catch (t) {
-      console.error(t)
-    }
-  }, vr = async () => {
-    try {
-      await F.invalidateQueries({
-        queryKey: ["partners"]
-      })
-    } catch (t) {
-      console.error(t)
-    }
-  }, ps = async () => {
-    if (p) try {
-      const {
-        data: t
-      } = await q.get("/api/partners"), a = t.find(r => r.id === p.id);
-      a && L(a), await F.invalidateQueries({
-        queryKey: ["partners"]
-      })
-    } catch (t) {
-      console.error("Error syncing partner balance:", t)
-    }
-  }, Pt = (t, a = null, r = null) => {
-    if (xe === 'remote_inspect' && activeRemoteTerminalId) {
-      const currentCart = activeRemoteTerm?.cart || [];
+      return r ? s : a;
+    });
+  }, [he, R, y.length]), i.useEffect(() => {
+    I === "Cash" && re($);
+  }, [$, I]);
+  const Ga = async () => {
+      try {
+        await E.invalidateQueries({
+          queryKey: ["products"]
+        });
+      } catch (t) {
+        console.error(t);
+      }
+    },
+    Ua = async () => {
+      try {
+        await E.invalidateQueries({
+          queryKey: ["partners"]
+        });
+      } catch (t) {
+        console.error(t);
+      }
+    },
+    jr = async () => {
+      if (p) try {
+        const {
+            data: t
+          } = await M.get("/api/partners"),
+          a = t.find(r => r.id === p.id);
+        a && F(a), await E.invalidateQueries({
+          queryKey: ["partners"]
+        });
+      } catch (t) {
+        console.error("Error syncing partner balance:", t);
+      }
+    },
+    ia = (t, a = null, r = null) => {
+      if (g === "remote_inspect" && q) {
+        const b = k?.cart || [],
+          S = a !== null ? a : 1,
+          w = t.sale_price,
+          O = R[t.id] !== void 0 ? R[t.id] : w,
+          U = r !== null && r !== O,
+          L = b.find(ee => (t.id !== null ? ee.product_id === t.id : ee.product_id === null && ee.product_name === t.name) && (U ? ee.price === (r !== null ? r : O) : !ee.is_manual_price)),
+          ce = (L ? L.quantity : 0) + S;
+        let Rt = r !== null ? r : O;
+        t.bulk_quantity > 0 && ce >= t.bulk_quantity && r === null && !U && R[t.id] === void 0 && (Rt = t.bulk_price || O);
+        let Sr = [];
+        if (L) ce === 0 ? Sr = b.filter(ee => (ee.id || ee.cartId) !== (L.id || L.cartId)) : Sr = b.map(ee => (ee.id || ee.cartId) === (L.id || L.cartId) ? {
+          ...ee,
+          quantity: ce,
+          price: Rt,
+          secondary_qty: ce / (ee.multiplier || 1),
+          is_manual_price: U || ee.is_manual_price,
+          isPacked: ee.isPacked || !1
+        } : ee);else {
+          const ee = Math.random().toString(36).substr(2, 9);
+          Sr = [{
+            id: ee,
+            cartId: ee,
+            product_id: t.id,
+            product_name: t.name,
+            unit: t.unit,
+            secondary_unit: t.secondary_unit,
+            multiplier: t.multiplier || 1,
+            price: Rt,
+            cost_price: t.cost_price,
+            latest_cost_price: t.latest_cost_price,
+            quantity: S,
+            secondary_qty: S / (t.multiplier || 1),
+            stock: t.stock,
+            latest_audit: t.latest_audit,
+            latest_stock_entry: t.latest_stock_entry,
+            is_combo: t.is_combo,
+            active_ingredient: t.active_ingredient,
+            is_manual_price: U,
+            isPacked: !1
+          }, ...b];
+        }
+        Ra(Sr), ae(""), Ft(0), He({
+          product: null,
+          quantity: 0,
+          price: 0,
+          secondary_qty: 0,
+          name: ""
+        }), setTimeout(() => {
+          const ee = se.current;
+          ee && (ee.focus(), ee.select());
+        }, 10);
+        return;
+      }
       const s = a !== null ? a : 1,
         n = t.sale_price,
-        l = E[t.id] !== void 0 ? E[t.id] : n,
-        c = r !== null && r !== l,
-        x = currentCart.find(j => (t.id !== null ? j.product_id === t.id : j.product_id === null && j.product_name === t.name) && (c ? j.price === (r !== null ? r : l) : !j.is_manual_price)),
-        v = (x ? x.quantity : 0) + s;
-      let _ = r !== null ? r : l;
-      t.bulk_quantity > 0 && v >= t.bulk_quantity && r === null && !c && E[t.id] === void 0 && (_ = t.bulk_price || l);
-
-      let newCart = [];
-      if (x) {
-        if (v === 0) {
-          newCart = currentCart.filter(j => (j.id || j.cartId) !== (x.id || x.cartId));
-        } else {
-          newCart = currentCart.map(j => (j.id || j.cartId) === (x.id || x.cartId) ? {
-            ...j,
-            quantity: v,
-            price: _,
-            secondary_qty: v / (j.multiplier || 1),
-            is_manual_price: c || j.is_manual_price,
-            isPacked: j.isPacked || !1
-          } : j);
+        l = R[t.id] !== void 0 ? R[t.id] : n,
+        d = r !== null && r !== l,
+        o = y.find(b => (t.id !== null ? b.product_id === t.id : b.product_id === null && b.product_name === t.name) && (d ? b.price === (r !== null ? r : l) : !b.is_manual_price)),
+        u = (o ? o.quantity : 0) + s;
+      let h = r !== null ? r : l;
+      if (t.bulk_quantity > 0 && u >= t.bulk_quantity && r === null && !d && R[t.id] === void 0 && (h = t.bulk_price || l), H(o ? u === 0 ? y.filter(b => b.cartId !== o.cartId) : y.map(b => b.cartId === o.cartId ? {
+        ...b,
+        quantity: u,
+        price: h,
+        secondary_qty: u / (b.multiplier || 1),
+        is_manual_price: d || b.is_manual_price,
+        isPacked: b.isPacked || !1
+      } : b) : [{
+        product_id: t.id,
+        product_name: t.name,
+        unit: t.unit,
+        secondary_unit: t.secondary_unit,
+        multiplier: t.multiplier || 1,
+        price: h,
+        cost_price: t.cost_price,
+        latest_cost_price: t.latest_cost_price,
+        quantity: s,
+        secondary_qty: s / (t.multiplier || 1),
+        stock: t.stock,
+        latest_audit: t.latest_audit,
+        latest_stock_entry: t.latest_stock_entry,
+        is_combo: t.is_combo,
+        active_ingredient: t.active_ingredient,
+        is_manual_price: d,
+        isPacked: !1,
+        cartId: Math.random().toString(36).substr(2, 9)
+      }, ...y]), localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
+        const b = localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
+          S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
+        if (window.cartSpeechTimeout && (clearTimeout(window.cartSpeechTimeout), window.cartSpeechTimeout = null), u === 0) ht("Đã xóa");else {
+          const w = u < 0,
+            O = Math.abs(u),
+            U = w ? `Trả hàng ${O}` : O;
+          if (b && t.alias && t.alias.trim()) {
+            const L = t.alias.trim();
+            S === "qty_first" ? (ht(U), window.cartSpeechTimeout = setTimeout(() => {
+              ht(L);
+            }, 1500), rr.current[g] = t.id) : rr.current[g] === t.id ? ht(U) : (ht(`${L}, ${U}`), rr.current[g] = t.id);
+          } else ht(U), rr.current[g] = t.id;
         }
-      } else {
-        const newId = Math.random().toString(36).substr(2, 9);
-        newCart = [{
-          id: newId,
-          cartId: newId,
-          product_id: t.id,
-          product_name: t.name,
-          unit: t.unit,
-          secondary_unit: t.secondary_unit,
-          multiplier: t.multiplier || 1,
-          price: _,
-          cost_price: t.cost_price,
-          latest_cost_price: t.latest_cost_price,
-          quantity: s,
-          secondary_qty: s / (t.multiplier || 1),
-          stock: t.stock,
-          latest_audit: t.latest_audit,
-          latest_stock_entry: t.latest_stock_entry,
-          is_combo: t.is_combo,
-          active_ingredient: t.active_ingredient,
-          is_manual_price: c,
-          isPacked: !1
-        }, ...currentCart];
       }
-      handleUpdateRemoteCart(newCart);
-      ce("");
-      $t(0);
-      _e({
+      ae(""), Ft(0), He({
         product: null,
         quantity: 0,
         price: 0,
         secondary_qty: 0,
         name: ""
-      });
-      setTimeout(() => {
-        const j = ue.current;
-        j && (j.focus(), j.select())
+      }), setTimeout(() => {
+        const b = se.current;
+        b && (b.focus(), b.select());
       }, 10);
-      return;
-    }
-
-    const s = a !== null ? a : 1,
-      n = t.sale_price,
-      l = E[t.id] !== void 0 ? E[t.id] : n,
-      c = r !== null && r !== l,
-      x = b.find(j => (t.id !== null ? j.product_id === t.id : j.product_id === null && j.product_name === t.name) && (c ? j.price === (r !== null ? r : l) : !j.is_manual_price)),
-      v = (x ? x.quantity : 0) + s;
-    let _ = r !== null ? r : l;
-    t.bulk_quantity > 0 && v >= t.bulk_quantity && r === null && !c && E[t.id] === void 0 && (_ = t.bulk_price || l), x ? v === 0 ? S(b.filter(j => j.cartId !== x.cartId)) : S(b.map(j => j.cartId === x.cartId ? {
-      ...j,
-      quantity: v,
-      price: _,
-      secondary_qty: v / (j.multiplier || 1),
-      is_manual_price: c || j.is_manual_price,
-      isPacked: j.isPacked || !1
-    } : j)) : S([{
-      product_id: t.id,
-      product_name: t.name,
-      unit: t.unit,
-      secondary_unit: t.secondary_unit,
-      multiplier: t.multiplier || 1,
-      price: _,
-      cost_price: t.cost_price,
-      latest_cost_price: t.latest_cost_price,
-      quantity: s,
-      secondary_qty: s / (t.multiplier || 1),
-      stock: t.stock,
-      latest_audit: t.latest_audit,
-      latest_stock_entry: t.latest_stock_entry,
-      is_combo: t.is_combo,
-      active_ingredient: t.active_ingredient,
-      is_manual_price: c,
-      isPacked: !1,
-      cartId: Math.random().toString(36).substr(2, 9)
-    }, ...b]);
-    if (localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
-      const displayQty = v <= 0 ? 0 : v;
-      const readProductName = localStorage.getItem("pos_tts_enable_cart_product_name") !== "false";
-      const speechOrder = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
-      
-      if (window.cartSpeechTimeout) {
-        clearTimeout(window.cartSpeechTimeout);
-        window.cartSpeechTimeout = null;
-      }
-
-      if (v === 0) {
-        speakNumber("Đã xóa");
-      } else {
-        const isReturn = v < 0;
-        const absQty = Math.abs(v);
-        const qtyText = isReturn ? `Trả hàng ${absQty}` : absQty;
-
-        if (readProductName && t.alias && t.alias.trim()) {
-          const aliasText = t.alias.trim();
-          if (speechOrder === "qty_first") {
-            speakNumber(qtyText);
-            window.cartSpeechTimeout = setTimeout(() => {
-              speakNumber(aliasText);
-            }, 1500);
-            lastSpokenProductIdRef.current[xe] = t.id;
-          } else {
-            if (lastSpokenProductIdRef.current[xe] === t.id) {
-              speakNumber(qtyText);
-            } else {
-              speakNumber(`${aliasText}, ${qtyText}`);
-              lastSpokenProductIdRef.current[xe] = t.id;
-            }
-          }
-        } else {
-          speakNumber(qtyText);
-          lastSpokenProductIdRef.current[xe] = t.id;
-        }
-      }
-    }
-    ce("");
-    $t(0);
-    _e({
-      product: null,
-      quantity: 0,
-      price: 0,
-      secondary_qty: 0,
-      name: ""
-    });
-    setTimeout(() => {
-      const j = ue.current;
-      j && (j.focus(), j.select())
-    }, 10);
-  }, Tn = t => {
-    const a = fe[t];
-    if (a) {
-      S(r => r.map(s => s.cartId === a.cartId ? {
+    },
+    xl = t => {
+      const a = ve[t];
+      if (a && (H(r => r.map(s => s.cartId === a.cartId ? {
         ...s,
         isPacked: !s.isPacked
-      } : s));
-      if (!a.isPacked) {
-        const prod = z.find(p => p.id === a.product_id);
-        const nameText = (prod && prod.alias && prod.alias.trim()) ? prod.alias.trim() : a.product_name;
-        speakNumber(`${nameText}, ${a.quantity}`);
+      } : s)), !a.isPacked)) {
+        const r = T.find(n => n.id === a.product_id),
+          s = r && r.alias && r.alias.trim() ? r.alias.trim() : a.product_name;
+        ht(`${s}, ${a.quantity}`);
       }
-    }
-  }, ta = (t, a, r) => {
-    const s = fe[t];
-    s && S(n => n.map(l => {
-      if (l.cartId !== s.cartId) return l;
-      const c = {
-        ...l
-      };
-      if (a === "secondary_qty" ? (c.secondary_qty = r, c.quantity = r * (c.multiplier || 1)) : a === "quantity" ? (c.quantity = r, c.secondary_qty = r / (c.multiplier || 1)) : a === "price" ? (c.price = r, c.is_manual_price = !0) : c[a] = r, (a === "quantity" || a === "secondary_qty") && !c.is_manual_price) {
-        const x = z.find(d => d.id === c.product_id);
-        if (x) {
-          const d = E[x.id] !== void 0 ? E[x.id] : x.sale_price;
-          x.bulk_quantity > 0 && c.quantity >= x.bulk_quantity && E[x.id] === void 0 ? c.price = x.bulk_price || d : c.price = d
+    },
+    _r = (t, a, r) => {
+      const s = ve[t];
+      s && H(n => n.map(l => {
+        if (l.cartId !== s.cartId) return l;
+        const d = {
+          ...l
+        };
+        if (a === "secondary_qty" ? (d.secondary_qty = r, d.quantity = r * (d.multiplier || 1)) : a === "quantity" ? (d.quantity = r, d.secondary_qty = r / (d.multiplier || 1)) : a === "price" ? (d.price = r, d.is_manual_price = !0) : d[a] = r, (a === "quantity" || a === "secondary_qty") && !d.is_manual_price) {
+          const o = T.find(u => u.id === d.product_id);
+          if (o) {
+            const u = R[o.id] !== void 0 ? R[o.id] : o.sale_price;
+            o.bulk_quantity > 0 && d.quantity >= o.bulk_quantity && R[o.id] === void 0 ? d.price = o.bulk_price || u : d.price = u;
+          }
         }
+        return d;
+      }));
+    },
+    hl = (t, a, r = 1) => {
+      if (t === g) {
+        const d = a.sale_price,
+          o = R[a.id] !== void 0 ? R[a.id] : d;
+        ia(a, r, o);
+        return;
       }
-      return c
-    }))
-  }, Sn = (t, a, r = 1) => {
-    if (t === xe) {
-      const c = a.sale_price,
-        x = E[a.id] !== void 0 ? E[a.id] : c;
-      Pt(a, r, x);
-      return
-    }
-    const s = te.find(c => c.id === t),
-      n = s ? s.name : `Đơn #${t}`,
-      l = Date.now() + Math.random();
-    if (ot(c => [...c, {
+      const s = fe.find(d => d.id === t),
+        n = s ? s.name : `Đơn #${t}`,
+        l = Date.now() + Math.random();
+      if (Bs(d => [...d, {
         id: l,
         productName: a.name,
         qty: r,
         tabName: n
       }]), setTimeout(() => {
-        ot(c => c.filter(x => x.id !== l))
-      }, 2500), Re(c => c.map(x => {
-        if (x.id !== t) return x;
-        const d = a.sale_price;
-        let v = d;
-        a.bulk_quantity > 0 && r >= a.bulk_quantity && (v = a.bulk_price || d);
-        const _ = x.cart.findIndex(U => U.product_id === a.id && !U.is_manual_price);
-        let j;
-        if (_ > -1) {
-          const U = x.cart[_].quantity + r;
-          U <= 0 ? j = x.cart.filter((R, Ce) => Ce !== _) : j = x.cart.map((R, Ce) => Ce !== _ ? R : {
-            ...R,
-            quantity: U,
-            price: a.bulk_quantity > 0 && U >= a.bulk_quantity && a.bulk_price || R.price,
-            secondary_qty: U / (R.multiplier || 1)
-          })
-        } else r > 0 ? j = [{
+        Bs(d => d.filter(o => o.id !== l));
+      }, 2500), _(d => d.map(o => {
+        if (o.id !== t) return o;
+        const u = a.sale_price;
+        let h = u;
+        a.bulk_quantity > 0 && r >= a.bulk_quantity && (h = a.bulk_price || u);
+        const b = o.cart.findIndex(w => w.product_id === a.id && !w.is_manual_price);
+        let S;
+        if (b > -1) {
+          const w = o.cart[b].quantity + r;
+          w <= 0 ? S = o.cart.filter((O, U) => U !== b) : S = o.cart.map((O, U) => U !== b ? O : {
+            ...O,
+            quantity: w,
+            price: a.bulk_quantity > 0 && w >= a.bulk_quantity && a.bulk_price || O.price,
+            secondary_qty: w / (O.multiplier || 1)
+          });
+        } else r > 0 ? S = [{
           product_id: a.id,
           product_name: a.name,
           unit: a.unit,
           secondary_unit: a.secondary_unit,
           multiplier: a.multiplier || 1,
-          price: v,
+          price: h,
           cost_price: a.cost_price,
           latest_cost_price: a.latest_cost_price,
           quantity: r,
@@ -3521,81 +2662,84 @@ function ol({
           is_manual_price: !1,
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
-        }, ...x.cart] : j = x.cart;
+        }, ...o.cart] : S = o.cart;
         return {
-          ...x,
-          cart: j
-        }
+          ...o,
+          cart: S
+        };
       })), s) {
-      const c = s.cart.findIndex(x => x.product_id === a.id && !x.is_manual_price);
-      c > -1 && s.cart[c].quantity
-    }
-  }, kr = (t, a = null) => {
-    const r = a !== null ? a : Ea.current || xe;
-    if (t) {
-      const d = t.trim().toUpperCase();
-      if (d === "THANHTOAN" || d === "THANH_TOAN" || d === "PAY" || d === "IN" || d === "IN_HOA_DON") return $e(!0), !0;
-      if (d === "LUUDON" || d === "LUU_DON" || d === "SAVE") return $e(!1), !0;
-      if (d === "CMD-TRU" || d === "CMD_TRU" || d === "TRU" || d === "GIAM" || d === "CMD-SUBTRACT") return Ie("subtract"), !0;
-      if (d === "CMD-XOA" || d === "CMD_XOA" || d === "XOA" || d === "DELETE" || d === "CMD-DELETE") return Ie("delete"), !0;
-      if (d === "CMD-CONG" || d === "CMD_CONG" || d === "CONG" || d === "ADD" || d === "CMD-ADD") return Ie("add"), !0
-    }
-    let s = null,
-      n = 1,
-      l = de === "delete",
-      c = de === "subtract",
-      x = t ? t.trim() : "";
-    if (x.toUpperCase().startsWith("DEL-") ? (l = !0, x = x.substring(4)) : x.toUpperCase().startsWith("DELETE-") ? (l = !0, x = x.substring(7)) : x.startsWith("-") && (c = !0, x = x.substring(1)), s = z.find(d => d.code === x || d.barcode === x), !s && x.includes("-")) {
-      const d = x.split("-"),
-        v = parseInt(d.pop(), 10);
-      if (!isNaN(v) && v > 0) {
-        const _ = d.join("-");
-        s = z.find(j => j.code === _ || j.barcode === _), s && (n = v)
+        const d = s.cart.findIndex(o => o.product_id === a.id && !o.is_manual_price);
+        d > -1 && s.cart[d].quantity;
       }
-    }
-    if (s) {
-      const d = l ? -999999 : c ? -n : n;
-      return Sn(r, s, d), de !== "add" && Ie("add"), !0
-    }
-    return !1
-  }, jr = i.useRef(kr);
+    },
+    js = (t, a = null) => {
+      const r = a !== null ? a : Nr.current || g;
+      if (t) {
+        const u = t.trim().toUpperCase();
+        if (u === "THANHTOAN" || u === "THANH_TOAN" || u === "PAY" || u === "IN" || u === "IN_HOA_DON") return Re(!0), !0;
+        if (u === "LUUDON" || u === "LUU_DON" || u === "SAVE") return Re(!1), !0;
+        if (u === "CMD-TRU" || u === "CMD_TRU" || u === "TRU" || u === "GIAM" || u === "CMD-SUBTRACT") return Ht("subtract"), !0;
+        if (u === "CMD-XOA" || u === "CMD_XOA" || u === "XOA" || u === "DELETE" || u === "CMD-DELETE") return Ht("delete"), !0;
+        if (u === "CMD-CONG" || u === "CMD_CONG" || u === "CONG" || u === "ADD" || u === "CMD-ADD") return Ht("add"), !0;
+      }
+      let s = null,
+        n = 1,
+        l = gt === "delete",
+        d = gt === "subtract",
+        o = t ? t.trim() : "";
+      if (o.toUpperCase().startsWith("DEL-") ? (l = !0, o = o.substring(4)) : o.toUpperCase().startsWith("DELETE-") ? (l = !0, o = o.substring(7)) : o.startsWith("-") && (d = !0, o = o.substring(1)), s = T.find(u => u.code === o || u.barcode === o), !s && o.includes("-")) {
+        const u = o.split("-"),
+          h = parseInt(u.pop(), 10);
+        if (!isNaN(h) && h > 0) {
+          const b = u.join("-");
+          s = T.find(S => S.code === b || S.barcode === b), s && (n = h);
+        }
+      }
+      if (s) {
+        const u = l ? -999999 : d ? -n : n;
+        return hl(r, s, u), gt !== "add" && Ht("add"), !0;
+      }
+      return !1;
+    },
+    _s = i.useRef(js);
   i.useEffect(() => {
-    jr.current = kr
+    _s.current = js;
   });
-  const Ea = i.useRef(De);
+  const Nr = i.useRef(ne);
   i.useEffect(() => {
-    Ea.current = De
-  }, [De]), i.useEffect(() => {
-    if (!qe) return;
+    Nr.current = ne;
+  }, [ne]), i.useEffect(() => {
+    if (!bt) return;
     let t = !0;
     const a = async () => {
-      try {
-        let s = !0;
-        for (; s && t;) {
-          const n = await q.get("/api/remote-scans/pop");
-          if (!t) break;
-          if (n.data && n.data.barcode) {
-            const l = n.data.barcode;
-            jr.current(l, Ea.current) || G({
-              message: `Mã vạch ${l} không tồn tại`,
-              type: "error"
-            })
-          } else s = !1
-        }
-      } catch {}
-    }, r = setInterval(() => {
-      t && a()
-    }, 500);
+        try {
+          let s = !0;
+          for (; s && t;) {
+            const n = await M.get("/api/remote-scans/pop");
+            if (!t) break;
+            if (n.data && n.data.barcode) {
+              const l = n.data.barcode;
+              _s.current(l, Nr.current) || G({
+                message: `Mã vạch ${l} không tồn tại`,
+                type: "error"
+              });
+            } else s = !1;
+          }
+        } catch {}
+      },
+      r = setInterval(() => {
+        t && a();
+      }, 500);
     return () => {
-      t = !1, clearInterval(r)
-    }
-  }, [qe]);
-  const In = t => {
-      const a = fe[t];
-      a && S(r => r.filter(s => s.cartId !== a.cartId))
+      t = !1, clearInterval(r);
+    };
+  }, [bt]);
+  const bl = t => {
+      const a = ve[t];
+      a && H(r => r.filter(s => s.cartId !== a.cartId));
     },
-    us = (t, a) => {
-      t && (S([{
+    Cn = (t, a) => {
+      t && (H([{
         product_id: null,
         product_name: t,
         unit: "Món",
@@ -3610,5143 +2754,2101 @@ function ol({
         active_ingredient: "",
         isPacked: !1,
         cartId: Math.random().toString(36).substr(2, 9)
-      }, ...b]), Zt(!1), ea({
+      }, ...y]), La(!1), $a({
         name: "",
         price: ""
       }), setTimeout(() => {
-        ue.current?.focus()
-      }, 10))
+        se.current?.focus();
+      }, 10));
     },
-    Dn = t => {
-      Qt({
+    gl = t => {
+      et({
         title: "Xác nhận xóa nợ sổ tay",
-        message: `Bạn có chắc chắn muốn xóa khoản nợ ${I(t.total_amount)} VNĐ của ${p?.name}?`,
+        message: `Bạn có chắc chắn muốn xóa khoản nợ ${z(t.total_amount)} VNĐ của ${p?.name}?`,
         onConfirm: async () => {
           try {
             const a = t.id.toString().replace("v_", "");
-            await q.delete(`/api/vouchers/${a}`), G({
+            await M.delete(`/api/vouchers/${a}`), G({
               message: "Đã xóa khoản nợ thành công!",
               type: "success"
-            }), F.invalidateQueries(["partners"]);
+            }), E.invalidateQueries(["partners"]);
             const r = new BroadcastChannel("pos_data_sync");
             r.postMessage({
               type: "PARTNER_UPDATED"
-            }), r.close(), xt(!1)
+            }), r.close(), kt(!1);
           } catch {
             G({
               message: "Lỗi khi xóa khoản nợ",
               type: "error"
-            })
+            });
           } finally {
-            Qt(null)
+            et(null);
           }
         }
-      })
+      });
     },
-    zn = t => {
-      Qt({
+    Sn = t => {
+      et({
         title: "Xác nhận hủy đơn hàng",
-        message: `Bạn có chắc chắn muốn hủy đơn hàng #${t.display_id||t.id}?`,
+        message: `Bạn có chắc chắn muốn hủy đơn hàng #${t.display_id || t.id}?`,
         onConfirm: async () => {
           try {
-            await q.delete(`/api/orders/${t.id}`), G({
+            await M.delete(`/api/orders/${t.id}`), G({
               message: "Đã hủy đơn hàng!",
               type: "success"
-            }), xt(!1), wr(), vr()
+            }), kt(!1), Ga(), Ua();
           } catch {
             G({
               message: "Lỗi khi hủy đơn hàng",
               type: "error"
-            })
+            });
           } finally {
-            Qt(null)
+            et(null);
           }
         }
-      })
+      });
     },
-    aa = i.useMemo(() => z.map(t => ({
+    Ba = i.useMemo(() => T.map(t => ({
       ...t,
-      _normName: nt((t.name || "").toLowerCase()),
-      _normCode: nt((t.code || "").toLowerCase()),
-      _normActive: nt((t.active_ingredient || "").toLowerCase()),
+      _normName: xt((t.name || "").toLowerCase()),
+      _normCode: xt((t.code || "").toLowerCase()),
+      _normActive: xt((t.active_ingredient || "").toLowerCase()),
       _lowName: (t.name || "").toLowerCase(),
       _lowCode: (t.code || "").toLowerCase(),
       _lowActive: (t.active_ingredient || "").toLowerCase()
-    })), [z]),
-    st = i.useMemo(() => {
-      const t = ee.toLowerCase(),
-        a = nt(t);
-      return t ? aa.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
-        const n = x => x._lowName.startsWith(t) ? 0 : x._normName.startsWith(a) ? 1 : x._lowName.includes(t) ? 2 : x._normName.includes(a) ? 3 : x._lowCode.startsWith(t) ? 4 : x._normCode.startsWith(a) ? 5 : x._lowCode.includes(t) || x._normCode.includes(a) ? 6 : x._lowActive.startsWith(t) || x._normActive.startsWith(a) ? 7 : x._lowActive.includes(t) || x._normActive.includes(a) ? 8 : 9,
+    })), [T]),
+    wt = i.useMemo(() => {
+      const t = Z.toLowerCase(),
+        a = xt(t);
+      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
+        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
           l = n(r),
-          c = n(s);
-        return l !== c ? l - c : r._lowName.localeCompare(s._lowName, "vi", {
+          d = n(s);
+        return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
           sensitivity: "base"
-        })
-      }).slice(0, 50) : aa.slice(0, 50)
-    }, [aa, ee]),
-    Aa = i.useMemo(() => {
+        });
+      }).slice(0, 50) : Ba.slice(0, 50);
+    }, [Ba, Z]),
+    Cr = i.useMemo(() => {
       const t = yt.toLowerCase(),
         a = parseInt(t),
-        r = nt(t);
-      return Q.filter(s => {
+        r = xt(t);
+      return Y.filter(s => {
         const n = !isNaN(a) && s.id === a,
           l = (s.name || "").toLowerCase();
-        return n || l.includes(t) || nt(l).includes(r) || (s.phone || "").includes(t)
+        return n || l.includes(t) || xt(l).includes(r) || (s.phone || "").includes(t);
       }).sort((s, n) => {
         if (!isNaN(a)) {
           if (s.id === a) return -1;
-          if (n.id === a) return 1
+          if (n.id === a) return 1;
         }
         const l = (s.name || "").toLowerCase(),
-          c = (n.name || "").toLowerCase(),
-          x = l.startsWith(t),
-          d = c.startsWith(t);
-        return x && !d ? -1 : !x && d ? 1 : l.localeCompare(c, "vi", {
+          d = (n.name || "").toLowerCase(),
+          o = l.startsWith(t),
+          u = d.startsWith(t);
+        return o && !u ? -1 : !o && u ? 1 : l.localeCompare(d, "vi", {
           sensitivity: "base"
-        })
-      }).slice(0, 50)
-    }, [Q, yt]),
-    Pn = i.useCallback(() => {
-      Ur(!0)
+        });
+      }).slice(0, 50);
+    }, [Y, yt]),
+    fl = i.useCallback(() => {
+      nn(!0);
     }, []),
-    Nr = i.useCallback(() => {
-      Ur(!1)
+    Ns = i.useCallback(() => {
+      nn(!1);
     }, []),
-    _r = i.useCallback(t => {
-      if (Ht) {
+    Cs = i.useCallback(t => {
+      if (wa) {
         const a = t.clientX / window.innerWidth * 100;
-        a > 50 && a < 85 && Gs(a)
+        a > 50 && a < 85 && qi(a);
       }
-    }, [Ht]);
-  return i.useEffect(() => (window.addEventListener("mousemove", _r), window.addEventListener("mouseup", Nr), () => {
-    window.removeEventListener("mousemove", _r), window.removeEventListener("mouseup", Nr)
-  }), [_r, Nr]), e.jsx(Xn, {
-    reducedMotion: Qe ? "always" : "no-preference",
-    transition: Qe ? {
-      type: "just"
-    } : void 0,
-    children: e.jsxs("div", {
-      id: "pos-root-container",
-      className: u("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Qe && "gpu-disabled-mode"),
-      children: [e.jsx("style", {
-        children: `
+    }, [wa]);
+  return i.useEffect(() => (window.addEventListener("mousemove", Cs), window.addEventListener("mouseup", Ns), () => {
+    window.removeEventListener("mousemove", Cs), window.removeEventListener("mouseup", Ns);
+  }), [Cs, Ns]), <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
+    type: "just"
+  } : void 0}><><div id="pos-root-container" className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode")}><style>{`
           :root {
-            --pos-accent: ${O.accent};
-            --radius-pos: ${O.radius}rem;
-            --bg-transparent-blur: ${O.blur}px;
+            --pos-accent: ${Je.accent};
+            --radius-pos: ${Je.radius}rem;
+            --bg-transparent-blur: ${Je.blur}px;
           }
           .pos- {
             backdrop-filter: blur(var(--bg-transparent-blur)) !important;
             border-radius: var(--radius-pos) !important;
           }
-        `
-      }), e.jsxs("div", {
-        className: "flex-1 flex flex-col overflow-hidden no-print",
-        children: [e.jsxs("div", {
-          className: "p-4 flex gap-6 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent",
-          children: [e.jsxs("div", {
-            className: "flex items-center gap-3 shrink-0",
-            children: [e.jsxs("div", {
-              className: "flex items-center gap-3 group cursor-default relative",
-              children: [e.jsxs("div", {
-                className: "flex flex-col",
-                children: [e.jsx("h1", {
-                  className: "text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none",
-                  children: "BÁN HÀNG"
-                }), e.jsx("span", {
-                  className: "text-[10px] font-bold text-slate-400",
-                  children: "by LyangNghia"
-                })]
-              }), e.jsx(T, {
-                mode: "popLayout",
-                initial: !1,
-                children: e.jsx(m.div, {
-                  initial: {
+        `}</style><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-4 flex gap-6 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none">BÁN HÀNG</h1><span className="text-[10px] font-bold text-slate-400">by LyangNghia</span></div><P mode="popLayout" initial={!1}><x.div key={le?.id || Ce || "draft"} initial={{
                     opacity: 0
-                  },
-                  animate: {
+                  }} animate={{
                     opacity: 1
-                  },
-                  exit: {
+                  }} exit={{
                     opacity: 0
-                  },
-                  transition: {
-                    duration: .2
-                  },
-                  className: "flex items-center",
-                  children: e.jsxs("div", {
-                    className: "flex items-center bg-transparent px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10",
-                    children: [e.jsx("div", {
-                      className: u("w-2 h-2 rounded-full mr-2", H ? "bg-amber-500" : "bg-emerald-500")
-                    }), e.jsxs("div", {
-                      className: "flex flex-col",
-                      children: [e.jsxs("span", {
-                        className: "text-[14px] font-black font-mono text-amber-600 dark:text-amber-400 tracking-wider leading-none",
-                        children: ["#", ge?.display_id || H || (He > 0 ? He : "MỚI")]
-                      }), ge?.date && e.jsxs("span", {
-                        className: "text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums",
-                        children: [new Date(ge.date).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        }), " - ", new Date(ge.date).toLocaleDateString("vi-VN", {
-                          day: "2-digit",
-                          month: "2-digit"
-                        })]
-                      })]
-                    })]
-                  })
-                }, ge?.id || He || "draft")
-              })]
-            }), e.jsxs("div", {
-              className: "flex gap-1.5 pl-4 border-l border-slate-200 dark:border-slate-800",
-              children: [e.jsx(m.button, {
-                whileHover: {
-                  y: -2,
-                  scale: 1.05
-                },
-                whileTap: {
-                  scale: .98
-                },
-                onClick: () => {
-                  const t = {
-                    display_id: H ? `Đơn #${H}` : "XEM TRƯỚC",
-                    date: new Date().toISOString(),
-                    partner_name: p ? p.name : "Khách Lẻ",
-                    partner_address: p ? p.address : "",
-                    partner_phone: p ? p.phone : "",
-                    total_amount: A,
-                    amount_paid: Le,
-                    payment_method: D,
-                    note: pe,
-                    old_debt: Dt,
-                    partner_id: p ? p.id : null,
-                    cash_given: ne,
-                    details: fe.map(a => ({
-                      ...a
-                    }))
-                  };
-                  tn(t), Bt(!0)
-                },
-                className: "w-9 h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white rounded-full transition-all border border-emerald-500/40 dark:border-emerald-400/40 shadow-sm",
-                title: "Xem trước in",
-                children: e.jsx(zr, {
-                  size: 16,
-                  strokeWidth: 2.5
-                })
-              }), e.jsx(m.button, {
-                whileHover: {
-                  y: -2,
-                  scale: 1.05
-                },
-                whileTap: {
-                  scale: .98
-                },
-                onClick: gn,
-                className: "w-9 h-9 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white rounded-full transition-all border border-slate-400/50 dark:border-white/20 shadow-sm",
-                title: "Màn hình soạn hàng",
-                children: e.jsx(ks, {
-                  size: 16,
-                  strokeWidth: 2.5
-                })
-              }), e.jsxs("div", {
-                className: "relative",
-                ref: voiceSettingsRef,
-                children: [e.jsx(m.button, {
-                  whileHover: {
-                    y: -2,
-                    scale: 1.05
-                  },
-                  whileTap: {
-                    scale: .98
-                  },
-                  onClick: () => setShowVoiceSettings(t => !t),
-                  className: u("w-9 h-9 flex items-center justify-center rounded-full transition-all border shadow-sm", showVoiceSettings ? "bg-indigo-600 text-white border-indigo-400" : "bg-slate-900 hover:bg-slate-800 text-white border-slate-400/50 dark:border-white/20"),
-                  title: "Cài đặt giọng đọc sản phẩm",
-                  children: e.jsx(Volume2, {
-                    size: 16,
-                    strokeWidth: 2.5
-                  })
-                }), e.jsx(T, {
-                  children: showVoiceSettings && e.jsxs(m.div, {
-                    initial: {
+                  }} transition={{
+                    duration: 0.2
+                  }} className="flex items-center"><div className="flex items-center h-9 bg-transparent px-3 rounded-full border border-black/10 dark:border-white/10 shrink-0"><div className={c("w-2 h-2 rounded-full mr-2 shrink-0", Q ? "bg-amber-500" : "bg-emerald-500")} /><div className="flex flex-col justify-center"><span className="text-[12px] font-black font-mono text-amber-600 dark:text-amber-400 tracking-wider leading-none">#{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}</span>{le?.date && <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums leading-none">{new Date(le.date).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })} - {new Date(le.date).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit"
+                          })}</span>}</div></div></x.div></P></div><div className="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-800 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => {
+                  !Me && document.activeElement !== Et.current && W(!0);
+                }} onMouseLeave={() => W(!1)} onBlur={t => {
+                  t.currentTarget.contains(t.relatedTarget) || setTimeout(() => {
+                    Ue(!1);
+                  }, 180);
+                }}><div className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border-2 transition-[border-color,background-color,box-shadow] duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-emerald-600 dark:bg-emerald-600 border-emerald-600 dark:border-emerald-500 shadow-md shadow-emerald-600/30" : "border-emerald-600/30 dark:border-emerald-400/30 bg-background/95 dark:bg-slate-900/90 shadow-sm focus-within:border-emerald-500/70 focus-within:shadow-[0_0_0_2px_rgba(16,185,129,0.2)]")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
+                      scale: 0.75,
+                      rotate: -8
+                    }} animate={{
+                      scale: 1,
+                      rotate: 0
+                    }} transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 24
+                    }} className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10"><Ir className={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "text-white shrink-0 drop-shadow-sm" : "text-[#059669] dark:text-emerald-400 shrink-0"} size={15} strokeWidth={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? 2.8 : 2.5} /></x.div><input type="text" className={c("w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-foreground placeholder:text-muted/60 leading-normal", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && "text-transparent select-none")} ref={Et} placeholder="Tìm đối tác (F3)..." value={(g === "remote_inspect" ? ze?.name || (k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" ? k.partner_name : "") || yt : p ? p.name : yt) || ""} onFocus={() => {
+                      W(!1), Ue(!0);
+                    }} onDoubleClick={t => {
+                      g === "remote_inspect" ? ze && (t.stopPropagation(), fr(ze), Oa(!0)) : p && (t.stopPropagation(), fr(p), Oa(!0));
+                    }} onChange={t => {
+                      W(!1), Ge(t.target.value), g !== "remote_inspect" && p && F(null), Ue(!0), rs(0);
+                    }} onKeyDown={t => {
+                      if (t.key === "Escape") t.preventDefault(), W(!1), Ue(!1);else if (t.key === "ArrowDown") t.preventDefault(), W(!1), rs(a => {
+                        const r = Math.min(a + 1, Cr.length),
+                          s = xs.current;
+                        if (s) {
+                          const n = s.querySelector(`[data-index="${r}"]`);
+                          n && n.scrollIntoView({
+                            block: "nearest"
+                          });
+                        }
+                        return r;
+                      });else if (t.key === "ArrowUp") t.preventDefault(), W(!1), rs(a => {
+                        const r = Math.max(a - 1, 0),
+                          s = xs.current;
+                        if (s) {
+                          const n = s.querySelector(`[data-index="${r}"]`);
+                          n && n.scrollIntoView({
+                            block: "nearest"
+                          });
+                        }
+                        return r;
+                      });else if (t.key === "Enter") {
+                        if (t.preventDefault(), W(!1), We === 0) g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1);else if (Cr[We - 1]) {
+                          const a = Cr[We - 1];
+                          g === "remote_inspect" ? Aa(a) : F(a), Ge(""), Ue(!1);
+                        }
+                        setTimeout(() => se.current?.focus(), 50);
+                      }
+                    }} /><Ws mode="wait">{(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && <x.div key={g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name} initial={{
+                        opacity: 0,
+                        x: 6,
+                        scale: 0.95
+                      }} animate={{
+                        opacity: 1,
+                        x: 0,
+                        scale: 1
+                      }} exit={{
+                        opacity: 0,
+                        x: -6,
+                        scale: 0.95
+                      }} transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 28
+                      }} className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"><span className={c("font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "text-white font-black drop-shadow-sm" : "text-foreground", ((g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name) || "").length > 12 && "partner-pill-marquee-text")}>{g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name}</span></x.div>}</Ws><Ws>{((g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) || yt) && !Me && <x.div initial={{
+                        opacity: 0,
+                        scale: 0.6
+                      }} animate={{
+                        opacity: 1,
+                        scale: 1
+                      }} exit={{
+                        opacity: 0,
+                        scale: 0.6
+                      }} transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 25
+                      }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
+                          t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
+                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><P>{Me && <x.div initial={{
                       opacity: 0,
-                      y: 10,
-                      scale: .95
-                    },
-                    animate: {
+                      y: 8,
+                      scale: 0.96
+                    }} animate={{
                       opacity: 1,
                       y: 0,
                       scale: 1
-                    },
-                    exit: {
+                    }} exit={{
                       opacity: 0,
-                      y: 10,
-                      scale: .95
-                    },
-                    transition: {
-                      duration: .15
-                    },
-                    className: "absolute left-0 mt-2 w-[380px] bg-white/80 dark:bg-slate-950/80 border border-white/20 dark:border-white/15 rounded-3xl shadow-2xl p-5 z-[4000] backdrop-blur-2xl flex flex-col gap-4 text-left",
-                    children: [e.jsxs("div", {
-                      className: "flex items-center justify-between",
-                      children: [e.jsxs("div", {
-                        className: "flex flex-col gap-0.5",
-                        children: [e.jsx("span", {
-                          className: "text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none",
-                          children: "Cấu hình"
-                        }), e.jsx("h4", {
-                          className: "text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight",
-                          children: "Giọng nói & Âm thanh"
-                        })]
-                      }), e.jsxs("div", {
-                        className: "flex bg-slate-100 dark:bg-slate-800/60 p-0.5 rounded-xl border border-slate-200/20",
-                        children: [e.jsx("button", {
-                          type: "button",
-                          onClick: () => setSettingsVoiceTab("general"),
-                          className: u("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer", settingsVoiceTab === "general" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"),
-                          children: "Cơ bản"
-                        }), e.jsx("button", {
-                          type: "button",
-                          onClick: () => setSettingsVoiceTab("templates"),
-                          className: u("px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer", settingsVoiceTab === "templates" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"),
-                          children: "Mẫu câu"
-                        })]
-                      })]
-                    }), e.jsx("div", {
-                      className: "h-[1px] bg-slate-100 dark:bg-slate-800/50 w-full"
-                    }), settingsVoiceTab === "general" && e.jsxs("div", {
-                      className: "flex flex-col gap-4.5 animate-in fade-in duration-200",
-                      children: [
-                        e.jsxs("div", {
-                          className: "grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40",
-                          children: [
-                            e.jsxs("div", {
-                              className: "flex flex-col gap-1.5",
-                              children: [e.jsx("label", {
-                                className: "text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider",
-                                children: "Giọng đọc"
-                              }), e.jsxs("select", {
-                                value: selectedVoice,
-                                onChange: handleVoiceChange,
-                                className: "w-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-2.5 py-2 cursor-pointer focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all",
-                                children: [e.jsx("option", {
-                                  value: "edge-vi-female",
-                                  children: "Nữ miền Tây"
-                                }), e.jsx("option", {
-                                  value: "edge-vi-male",
-                                  children: "Nam miền Tây"
-                                }), e.jsx("option", {
-                                  value: "google",
-                                  children: "Google Translate"
-                                })]
-                              })]
-                            }),
-                            e.jsxs("div", {
-                              className: "flex flex-col gap-1.5",
-                              children: [e.jsx("label", {
-                                className: "text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider",
-                                children: "Tốc độ đọc"
-                              }), e.jsxs("select", {
-                                value: speechRate.toString(),
-                                onChange: handleSpeechRateChange,
-                                className: "w-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-2.5 py-2 cursor-pointer focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all",
-                                children: [e.jsx("option", {
-                                  value: "1.0",
-                                  children: "x1.0 (Thường)"
-                                }), e.jsx("option", {
-                                  value: "1.2",
-                                  children: "x1.2 (Nhanh nhẹ)"
-                                }), e.jsx("option", {
-                                  value: "1.4",
-                                  children: "x1.4 (Nhanh vừa)"
-                                }), e.jsx("option", {
-                                  value: "1.6",
-                                  children: "x1.6 (Rất nhanh)"
-                                }), e.jsx("option", {
-                                  value: "1.8",
-                                  children: "x1.8 (Cực nhanh)"
-                                }), e.jsx("option", {
-                                  value: "2.0",
-                                  children: "x2.0 (Tối đa)"
-                                })]
-                              })]
-                            })
-                          ]
-                        }),
-                        e.jsxs("div", {
-                          className: "flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-800/10 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/30",
-                          children: [
-                            e.jsx("label", {
-                              className: "text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider",
-                              children: "Cài đặt giỏ hàng"
-                            }),
-                            e.jsxs("label", {
-                              className: "flex items-center justify-between cursor-pointer select-none group",
-                              children: [e.jsx("span", {
-                                className: "text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors",
-                                children: "Đọc sản phẩm khi thêm giỏ"
-                              }), e.jsxs("div", {
-                                className: "relative",
-                                children: [e.jsx("input", {
-                                  type: "checkbox",
-                                  checked: enableCartAdditionSpeech,
-                                  onChange: handleEnableCartAdditionSpeechChange,
-                                  className: "sr-only"
-                                }), e.jsx("div", {
-                                  className: u("w-9 h-5 rounded-full transition-all duration-300", enableCartAdditionSpeech ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")
-                                }), e.jsx("div", {
-                                  className: u("absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-all duration-300 shadow-sm", enableCartAdditionSpeech ? "transform translate-x-4" : "")
-                                })]
-                              })]
-                            }),
-                            e.jsxs("label", {
-                              className: u("flex items-center justify-between cursor-pointer select-none group transition-opacity duration-200", !enableCartAdditionSpeech && "opacity-50 pointer-events-none"),
-                              children: [e.jsx("span", {
-                                className: "text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors",
-                                children: "Đọc tên sản phẩm"
-                              }), e.jsxs("div", {
-                                className: "relative",
-                                children: [e.jsx("input", {
-                                  type: "checkbox",
-                                  checked: enableCartProductNameSpeech,
-                                  onChange: handleEnableCartProductNameSpeechChange,
-                                  className: "sr-only",
-                                  disabled: !enableCartAdditionSpeech
-                                }), e.jsx("div", {
-                                  className: u("w-9 h-5 rounded-full transition-all duration-300", enableCartProductNameSpeech && enableCartAdditionSpeech ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")
-                                }), e.jsx("div", {
-                                  className: u("absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-all duration-300 shadow-sm", enableCartProductNameSpeech && enableCartAdditionSpeech ? "transform translate-x-4" : "")
-                                })]
-                              })]
-                            }),
-                            e.jsxs("div", {
-                              className: u("flex flex-col gap-1.5 transition-opacity duration-200", (!enableCartAdditionSpeech || !enableCartProductNameSpeech) && "opacity-50 pointer-events-none"),
-                              children: [
-                                e.jsx("span", {
-                                  className: "text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider",
-                                  children: "Thứ tự đọc giỏ hàng"
-                                }),
-                                e.jsxs("select", {
-                                  value: cartSpeechOrder,
-                                  onChange: handleCartSpeechOrderChange,
-                                  disabled: !enableCartAdditionSpeech || !enableCartProductNameSpeech,
-                                  className: "w-full text-xs font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl px-3 py-2 cursor-pointer focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:cursor-not-allowed",
-                                  children: [
-                                    e.jsx("option", { value: "name_first", children: "Tên trước, Số lượng sau" }),
-                                    e.jsx("option", { value: "qty_first", children: "Số lượng trước, Tên sau" })
-                                  ]
-                                })
-                              ]
-                            })
-                          ]
-                        }),
-                        e.jsxs("div", {
-                          className: "flex flex-col gap-3 bg-slate-50/50 dark:bg-slate-800/10 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/30",
-                          children: [
-                            e.jsx("label", {
-                              className: "text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider",
-                              children: "Cài đặt thanh toán"
-                            }),
-                            e.jsxs("label", {
-                              className: "flex items-center justify-between cursor-pointer select-none group",
-                              children: [e.jsx("span", {
-                                className: "text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100 transition-colors",
-                                children: "Bật câu cảm ơn khi lưu/in"
-                              }), e.jsxs("div", {
-                                className: "relative",
-                                children: [e.jsx("input", {
-                                  type: "checkbox",
-                                  checked: enableThankyou,
-                                  onChange: handleEnableThankyouChange,
-                                  className: "sr-only"
-                                }), e.jsx("div", {
-                                  className: u("w-9 h-5 rounded-full transition-all duration-300", enableThankyou ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700")
-                                }), e.jsx("div", {
-                                  className: u("absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-all duration-300 shadow-sm", enableThankyou ? "transform translate-x-4" : "")
-                                })]
-                              })]
-                            })
-                          ]
-                        })
-                      ]
-                    }), settingsVoiceTab === "templates" && e.jsxs("div", {
-                      className: "flex flex-col gap-4 max-h-[350px] overflow-y-auto pr-1.5 animate-in fade-in duration-200 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent",
-                      children: [e.jsxs("div", {
-                        className: "flex flex-col gap-2.5 bg-slate-50 dark:bg-slate-800/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40",
-                        children: [e.jsx("span", {
-                          className: "text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                          children: "1. Đọc số tiền (F10 / Click)"
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách lẻ"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: currencyTemplate,
-                            onChange: handleCurrencyTemplateChange,
-                            placeholder: "số tiền của quý khách là {amount} đồng",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all"
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách có tên"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: currencyPartnerTemplate,
-                            onChange: handleCurrencyPartnerTemplateChange,
-                            disabled: disablePartnerCurrency,
-                            placeholder: "số tiền của {partner} là {amount} đồng",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
-                          })]
-                        }), e.jsxs("label", {
-                          className: "flex items-center justify-between cursor-pointer select-none mt-1",
-                          children: [e.jsx("span", {
-                            className: "text-[10px] font-bold text-slate-500 dark:text-slate-400",
-                            children: "Tắt đọc tên đối tác"
-                          }), e.jsxs("div", {
-                            className: "relative",
-                            children: [e.jsx("input", {
-                              type: "checkbox",
-                              checked: disablePartnerCurrency,
-                              onChange: handleDisablePartnerCurrencyChange,
-                              className: "sr-only"
-                            }), e.jsx("div", {
-                              className: u("w-7 h-4 rounded-full transition-all duration-300", disablePartnerCurrency ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700")
-                            }), e.jsx("div", {
-                              className: u("absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-all duration-300 shadow-sm", disablePartnerCurrency ? "transform translate-x-3" : "")
-                            })]
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "flex flex-col gap-2.5 bg-slate-50 dark:bg-slate-800/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40",
-                        children: [e.jsx("span", {
-                          className: "text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                          children: "2. Chuyển khoản (F7)"
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách lẻ"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: transferTemplate,
-                            onChange: handleTransferTemplateChange,
-                            placeholder: "số tiền cần chuyển khoản là {amount} đồng",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all"
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách có tên"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: transferPartnerTemplate,
-                            onChange: handleTransferPartnerTemplateChange,
-                            disabled: disablePartnerTransfer,
-                            placeholder: "số tiền cần chuyển khoản của {partner} là {amount} đồng",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
-                          })]
-                        }), e.jsxs("label", {
-                          className: "flex items-center justify-between cursor-pointer select-none mt-1",
-                          children: [e.jsx("span", {
-                            className: "text-[10px] font-bold text-slate-500 dark:text-slate-400",
-                            children: "Tắt đọc tên đối tác"
-                          }), e.jsxs("div", {
-                            className: "relative",
-                            children: [e.jsx("input", {
-                              type: "checkbox",
-                              checked: disablePartnerTransfer,
-                              onChange: handleDisablePartnerTransferChange,
-                              className: "sr-only"
-                            }), e.jsx("div", {
-                              className: u("w-7 h-4 rounded-full transition-all duration-300", disablePartnerTransfer ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700")
-                            }), e.jsx("div", {
-                              className: u("absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-all duration-300 shadow-sm", disablePartnerTransfer ? "transform translate-x-3" : "")
-                            })]
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "flex flex-col gap-2.5 bg-slate-50 dark:bg-slate-800/20 p-3 rounded-2xl border border-slate-100 dark:border-slate-800/40",
-                        children: [e.jsx("span", {
-                          className: "text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                          children: "3. Lời cảm ơn (Lưu/In)"
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách lẻ"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: thankyouTemplate,
-                            onChange: handleThankyouTemplateChange,
-                            disabled: !enableThankyou,
-                            placeholder: "Cảm ơn quý khách đã chọn Sáu Quý",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsx("label", {
-                            className: "text-[9px] font-bold text-slate-400 uppercase",
-                            children: "Khách có tên"
-                          }), e.jsx("input", {
-                            type: "text",
-                            value: thankyouPartnerTemplate,
-                            onChange: handleThankyouPartnerTemplateChange,
-                            disabled: !enableThankyou || disablePartnerThankyou,
-                            placeholder: "Cảm ơn {partner} đã chọn Sáu Quý",
-                            className: "w-full text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-indigo-500 transition-all disabled:opacity-50"
-                          })]
-                        }), e.jsxs("label", {
-                          className: "flex items-center justify-between cursor-pointer select-none mt-1",
-                          children: [e.jsx("span", {
-                            className: "text-[10px] font-bold text-slate-500 dark:text-slate-400",
-                            children: "Tắt đọc tên đối tác"
-                          }), e.jsxs("div", {
-                            className: "relative",
-                            children: [e.jsx("input", {
-                              type: "checkbox",
-                              checked: disablePartnerThankyou,
-                              onChange: handleDisablePartnerThankyouChange,
-                              className: "sr-only"
-                            }), e.jsx("div", {
-                              className: u("w-7 h-4 rounded-full transition-all duration-300", disablePartnerThankyou ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700")
-                            }), e.jsx("div", {
-                              className: u("absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-all duration-300 shadow-sm", disablePartnerThankyou ? "transform translate-x-3" : "")
-                            })]
-                          })]
-                        })]
-                      })]
-                    })]
-                  })
-                })]
-              })
-            ]
-          })
-        ]
-      }),
-      e.jsxs("div", {
-            className: "flex-1 max-w-[800px] flex items-center gap-4",
-            children: [e.jsxs("div", {
-              className: "flex-1 relative z-50 group/partner",
-              onBlur: () => setTimeout(() => Pe(!1), 200),
-              children: [e.jsxs("div", {
-                className: "relative cursor-pointer group",
-                onDoubleClick: t => {
-                  t.preventDefault(), p && (Ca(p), Yt(!0))
-                },
-                children: [e.jsx("div", {
-                  className: "absolute left-1.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center transition-all group-focus-within/partner:scale-110",
-                  children: e.jsx(Oa, {
-                    className: "text-primary dark:text-emerald-400",
-                    size: 20,
-                    strokeWidth: 2.5
-                  })
-                }), e.jsx("input", {
-                  type: "text",
-                  className: "w-full pl-14 pr-12 py-3 bg-transparent border border-slate-300 dark:border-white/15 focus:border-primary dark:focus:border-emerald-400 rounded-2xl outline-none font-bold text-[15px] dark:text-white leading-normal transition-all shadow-sm",
-                  ref: Vt,
-                  placeholder: "Tìm kiếm đối tác (F3)...",
-                  value: xe === 'remote_inspect' ? (activeRemoteTerm?.partner ? activeRemoteTerm.partner.name : yt) : (p ? p.name : yt),
-                  onFocus: () => {
-                    Pe(!0)
-                  },
-                  onDoubleClick: t => {
-                    if (xe === 'remote_inspect') {
-                      if (activeRemoteTerm?.partner) {
-                        t.stopPropagation(), Ca(activeRemoteTerm.partner), Yt(!0);
-                      }
-                    } else {
-                      p && (t.stopPropagation(), Ca(p), Yt(!0));
-                    }
-                  },
-                  onChange: t => {
-                    je(t.target.value);
-                    if (xe !== 'remote_inspect') {
-                      p && L(null);
-                    }
-                    Pe(!0);
-                    sr(0);
-                  },
-                  onKeyDown: t => {
-                    if (t.key === "ArrowDown") t.preventDefault(), sr(a => {
-                      const r = Math.min(a + 1, Aa.length),
-                        s = xr.current;
-                      if (s) {
-                        const n = s.querySelector(`[data-index="${r}"]`);
-                        n && n.scrollIntoView({
-                          block: "nearest"
-                        })
-                      }
-                      return r
-                    });
-                    else if (t.key === "ArrowUp") t.preventDefault(), sr(a => {
-                      const r = Math.max(a - 1, 0),
-                        s = xr.current;
-                      if (s) {
-                        const n = s.querySelector(`[data-index="${r}"]`);
-                        n && n.scrollIntoView({
-                          block: "nearest"
-                        })
-                      }
-                      return r
-                    });
-                    else if (t.key === "Enter") {
-                      if (t.preventDefault(), V === 0) {
-                        if (xe === 'remote_inspect') handleUpdateRemotePartner(null);
-                        else L(null);
-                        je(""), Pe(!1);
-                      } else if (Aa[V - 1]) {
-                        const a = Aa[V - 1];
-                        if (xe === 'remote_inspect') handleUpdateRemotePartner(a);
-                        else L(a);
-                        je(""), Pe(!1);
-                      }
-                      setTimeout(() => ue.current?.focus(), 50)
-                    }
-                  }
-                }), e.jsx("div", {
-                  className: "absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2",
-                  children: (xe === 'remote_inspect' ? activeRemoteTerm?.partner : p) ? e.jsx(m.button, {
-                    initial: {
-                      scale: 0
-                    },
-                    animate: {
-                      scale: 1
-                    },
-                    onClick: t => {
-                      t.stopPropagation();
-                      if (xe === 'remote_inspect') {
-                        handleUpdateRemotePartner(null);
-                      } else {
-                        L(null);
-                      }
-                      je("");
-                    },
-                    className: "w-7 h-7 flex items-center justify-center rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-500 hover:bg-rose-100 transition-colors ",
-                    children: e.jsx(Se, {
-                      size: 14,
-                      strokeWidth: 3
-                    })
-                  }) : e.jsx("span", {
-                    className: "text-[10px] font-black opacity-20 border border-current px-1 rounded uppercase tracking-tighter",
-                    children: "F3"
-                  })
-                })]
-              }), e.jsx(T, {
-                children: Xa && !(xe === 'remote_inspect' ? activeRemoteTerm?.partner : p) && e.jsxs(m.div, {
-                  initial: {
-                    opacity: 0,
-                    y: -5
-                  },
-                  animate: {
-                    opacity: 1,
-                    y: 0
-                  },
-                  exit: {
-                    opacity: 0,
-                    y: -5
-                  },
-                  transition: {
-                    duration: .15
-                  },
-                  className: "absolute top-full left-0 right-0 mt-2 dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[1000]",
-                  style: {
-                    backgroundColor: Y.glassBg
-                  },
-                  ref: xr,
-                  children: [e.jsx("div", {
-                    className: "absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
-                  }), e.jsxs("div", {
-                    className: "max-h-[450px] overflow-y-auto custom-scrollbar",
-                    children: [e.jsxs(m.div, {
-                      "data-index": 0,
-                      className: u("dropdown-item flex items-center gap-4", V === 0 && "active"),
-                      onClick: () => {
-                        if (xe === 'remote_inspect') handleUpdateRemotePartner(null);
-                        else L(null);
-                        je(""), Pe(!1);
-                      },
-                      children: [e.jsx("div", {
-                        className: u("w-12 h-12 rounded-xl flex items-center justify-center transition-all relative z-10", V === 0 ? "bg-primary text-white scale-110 shadow-primary/30" : "bg-transparent text-slate-400"),
-                        children: e.jsx(Oa, {
-                          size: 24,
-                          strokeWidth: 2.5
-                        })
-                      }), e.jsxs("div", {
-                        className: "relative z-10 py-1",
-                        children: [e.jsx("p", {
-                          className: "font-black uppercase tracking-tight transition-all duration-300",
-                          style: {
-                            color: V === 0 ? Y.accent : Y.main,
-                            fontSize: V === 0 ? "18px" : "16px",
-                            transform: V === 0 ? "scale(1.02)" : "scale(1)"
-                          },
-                          children: "Khách vãng lai"
-                        }), e.jsx("p", {
-                          className: "text-[10px] font-bold uppercase tracking-widest transition-colors leading-none",
-                          style: {
-                            color: V === 0 ? Y.accentMuted : Y.muted
-                          },
-                          children: "Mặc định không lưu nợ"
-                        })]
-                      })]
-                    }), Aa.map((t, a) => e.jsxs(m.div, {
-                      "data-index": a + 1,
-                      onClick: () => {
-                        if (xe === 'remote_inspect') handleUpdateRemotePartner(t);
-                        else L(t);
-                        je(""), Pe(!1);
-                      },
-                      className: u("dropdown-item flex justify-between items-center", V === a + 1 && "active"),
-                      children: [e.jsxs("div", {
-                        className: "flex items-center gap-4 relative z-10",
-                        children: [e.jsx("div", {
-                          className: u("w-12 h-12 rounded-xl flex items-center justify-center transition-all ", V === a + 1 ? "bg-primary text-white scale-110 shadow-primary/30" : "bg-white dark:bg-slate-700 text-primary"),
-                          children: e.jsx(Oa, {
-                            size: 24,
-                            strokeWidth: 2.5
-                          })
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-1",
-                          children: [e.jsxs("div", {
-                            className: "flex items-center gap-3",
-                            children: [e.jsx("span", {
-                              className: u("px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border-2 shrink-0 transition-colors", V === a + 1 ? "bg-primary text-white border-white/40 " : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/20 text-blue-500" : t.is_customer ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-amber-500/10 border-amber-500/20 text-amber-500"),
-                              children: t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"
-                            }), e.jsx("p", {
-                              className: "font-black uppercase tracking-tight transition-all duration-300",
-                              style: {
-                                color: V === a + 1 ? Y.accent : Y.main,
-                                fontSize: V === a + 1 ? "18px" : "16px",
-                                transform: V === a + 1 ? "scale(1.02)" : "scale(1)"
-                              },
-                              children: t.name
-                            })]
-                          }), e.jsxs("div", {
-                            className: "flex items-center gap-4 text-[11px] font-black tracking-wide transition-colors",
-                            style: {
-                              color: V === a + 1 ? Y.accentMuted : Y.muted
-                            },
-                            children: [e.jsxs("span", {
-                              className: "flex items-center gap-1.5",
-                              children: [e.jsx(na, {
-                                size: 12,
-                                strokeWidth: 3,
-                                className: "opacity-50"
-                              }), " ", t.phone || "---"]
-                            }), t.address && e.jsxs("span", {
-                              className: "flex items-center gap-1.5 truncate max-w-[180px]",
-                              children: [e.jsx(Ha, {
-                                size: 12,
-                                strokeWidth: 3,
-                                className: "opacity-50"
-                              }), " ", t.address]
-                            })]
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "text-right relative z-10 flex flex-col items-end gap-1",
-                        children: [e.jsx("p", {
-                          className: "text-[22px] font-black tabular-nums tracking-tighter leading-none drop- transition-colors",
-                          style: {
-                            color: V === a + 1 ? Y.accent : t.debt_balance > 0 ? "#e11d48" : "#059669"
-                          },
-                          children: En(t.debt_balance)
-                        }), e.jsx("div", {
-                          className: u("px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest transition-colors", V === a + 1 ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400"),
-                          children: "Dư nợ hiện tại"
-                        })]
-                      })]
-                    }, t.id))]
-                  }), yt && e.jsxs("div", {
-                    className: "dropdown-item flex items-center justify-between group/add border-t border-transparent",
-                    onClick: () => {
-                      Vr(yt), wa(!0), Pe(!1)
-                    },
-                    children: [e.jsxs("div", {
-                      className: "flex items-center gap-4",
-                      children: [e.jsx("div", {
-                        className: "w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center group-hover/add:rotate-90 transition-transform",
-                        children: e.jsx(ft, {
-                          size: 22,
-                          strokeWidth: 3
-                        })
-                      }), e.jsxs("div", {
-                        children: [e.jsx("p", {
-                          className: "text-[10px] font-black uppercase tracking-widest opacity-50",
-                          children: "Đối tác mới"
-                        }), e.jsxs("p", {
-                          className: "text-[14px] font-black uppercase tracking-tight",
-                          children: ['Tạo nhanh "', yt, '"']
-                        })]
-                      })]
-                    }), e.jsx(Sr, {
-                      size: 24,
-                      strokeWidth: 3,
-                      className: "opacity-30 group-hover/add:translate-x-1 transition-transform"
-                    })]
-                  })]
-                })
-              })]
-            }), e.jsxs("div", {
-              className: "flex items-center gap-2 shrink-0",
-              children: [e.jsxs(m.button, {
-                whileHover: {
-                  y: -2
-                },
-                whileTap: {
-                  scale: .98
-                },
-                onClick: () => ct(!0),
-                className: "relative w-9 h-9 bg-amber-500 hover:bg-amber-600 text-white rounded-full flex items-center justify-center border border-amber-600/40 dark:border-amber-400/40 shadow-sm group",
-                children: [e.jsx(At, {
-                  size: 16,
-                  strokeWidth: 2.5,
-                  className: "relative z-10"
-                }), Ne.length > 0 && e.jsx(m.span, {
-                  initial: {
+                      y: 8,
+                      scale: 0.96
+                    }} transition={{
+                      duration: 0.15
+                    }} className="absolute top-full left-0 mt-2 dropdown-premium bg-white dark:bg-slate-900 backdrop-blur-2xl !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-slate-100 dark:divide-slate-800/80"><x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
+                          W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
+                        }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-0.5"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px]", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-none mt-1", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>{Cr.map((t, a) => <x.div key={t.id} data-index={a + 1} onClick={() => {
+                          W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
+                        }} className={c("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", We === a + 1 && "active")}><div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", We === a + 1 ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm")}><Ir size={22} strokeWidth={2.5} /></div><div className="flex flex-col gap-0.5 min-w-0"><div className="flex items-center gap-2"><span className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", We === a + 1 ? "bg-white/20 border-white/40 text-white" : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : t.is_customer ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400")}>{t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"}</span><p className={c("font-black tracking-tight text-base md:text-[17px] truncate", We === a + 1 ? "text-white" : "text-slate-900 dark:text-white")}>{t.name}</p></div><div className={c("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors", We === a + 1 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}><span className="flex items-center gap-1 shrink-0"><Jn size={12} strokeWidth={2.5} className="opacity-60" />{t.phone || "---"}</span>{t.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><Yn size={12} strokeWidth={2.5} className="opacity-60" />{t.address}</span>}</div></div></div><div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2"><p className={c("text-2xl font-black tabular-nums tracking-tight leading-none transition-colors", We === a + 1 ? "text-white" : (t.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (t.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>{vl(t.debt_balance || 0)}</p><div className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors border", We === a + 1 ? "bg-white/20 border-white/40 text-white" : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50")}>{(t.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (t.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}</div></div></x.div>)}</div>{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-slate-100 dark:border-slate-800 px-4 py-3 cursor-pointer" onClick={() => {
+                        dn(yt), cr(!0), Ue(!1);
+                      }}><div className="flex items-center gap-3"><div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center group-hover/add:rotate-90 transition-transform text-primary"><Ot size={18} strokeWidth={3} /></div><div><p className="text-[10px] font-black uppercase tracking-widest opacity-60">Đối tác mới</p><p className="text-sm font-black uppercase tracking-tight text-primary">Tạo nhanh "{yt}"</p></div></div><Dr size={18} strokeWidth={3} className="opacity-40 group-hover/add:translate-x-1 transition-transform" /></div>}</x.div>}</P></div><x.button whileHover={{
+                  y: -2,
+                  scale: 1.05
+                }} whileTap={{
+                  scale: 0.98
+                }} onClick={() => Bt(!0)} className="relative w-9 h-9 flex items-center justify-center bg-[#059669] hover:bg-[#047857] text-white rounded-full transition-all border border-emerald-500/40 dark:border-emerald-400/40 shadow-sm shrink-0" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button whileHover={{
+                  y: -2,
+                  scale: 1.05
+                }} whileTap={{
+                  scale: 0.98
+                }} onClick={() => St(!0)} className="relative w-9 h-9 bg-[#059669] hover:bg-[#047857] text-white rounded-full flex items-center justify-center border border-emerald-500/40 dark:border-emerald-400/40 shadow-sm group shrink-0" title="Danh sách đơn tạm / treo"><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" />{Fe.length > 0 && <x.span initial={{
                     scale: 0
-                  },
-                  animate: {
+                  }} animate={{
                     scale: 1
-                  },
-                  className: "absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[20px] h-5 rounded-full flex items-center justify-center font-black border border-white px-1 z-20",
-                  children: Ne.length
-                })]
-              }), e.jsxs(m.div, {
-                className: "flex items-center rounded-full border border-slate-300 dark:border-white/15 bg-transparent p-0.5 transition-colors shadow-sm",
-                children: [e.jsx(m.button, {
-                  onClick: () => za("prev"),
-                  whileTap: {
-                    scale: .9
-                  },
-                  className: "w-8 h-8 flex items-center justify-center transition-colors rounded-full bg-amber-500 text-black hover:bg-amber-600 border border-amber-600/40",
-                  title: "Đơn trước",
-                  children: e.jsx(js, {
-                    size: 16,
-                    strokeWidth: 2.5
-                  })
-                }), e.jsx(m.button, {
-                  whileTap: {
-                    scale: .98
-                  },
-                  onClick: () => He !== 0 && !Pa() && rt(),
-                  className: "px-3 flex items-center justify-center min-w-[70px]",
-                  children: e.jsx("span", {
-                    className: u("text-[12px] font-black uppercase tracking-tighter", He === 0 ? "text-primary dark:text-emerald-400" : "text-amber-500 dark:text-amber-400"),
-                    children: ge?.display_id ? `#${ge.display_id}` : H ? `#${H}` : "MỚI"
-                  })
-                }), e.jsx(m.button, {
-                  onClick: () => za("next"),
-                  disabled: He === 0,
-                  whileTap: {
-                    scale: .9
-                  },
-                  className: u("w-8 h-8 flex items-center justify-center transition-colors rounded-full", He === 0 ? "text-slate-200 dark:text-slate-800" : "bg-amber-500 text-black hover:bg-amber-600 border border-amber-600/40"),
-                  children: e.jsx(Sr, {
-                    size: 16,
-                    strokeWidth: 2.5
-                  })
-                })]
-              }), wt && e.jsxs("div", {
-                className: "relative group flex items-center bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 w-9 h-9 rounded-full justify-center transition-all cursor-pointer border border-slate-300 dark:border-white/15 hover:border-amber-400 shadow-sm",
-                children: [e.jsx(bt, {
-                  size: 16,
-                  strokeWidth: 2.5,
-                  className: "text-amber-500"
-                }), e.jsxs("div", {
-                  className: "absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[1000] text-left",
-                  children: [e.jsx("p", {
-                    className: "text-[10px] font-black text-amber-500 uppercase tracking-wider mb-1",
-                    children: "Đơn hàng vừa qua"
-                  }), e.jsxs("div", {
-                    className: "space-y-1 text-[11px] font-medium font-sans",
-                    children: [e.jsxs("div", {
-                      className: "flex justify-between",
-                      children: [e.jsx("span", {
-                        className: "text-slate-400",
-                        children: "Mã đơn:"
-                      }), e.jsxs("span", {
-                        className: "font-bold text-slate-800 dark:text-slate-200",
-                        children: ["#", wt.display_id || wt.id]
-                      })]
-                    }), e.jsxs("div", {
-                      className: "flex justify-between",
-                      children: [e.jsx("span", {
-                        className: "text-slate-400",
-                        children: "Khách:"
-                      }), e.jsx("span", {
-                        className: "font-bold text-slate-800 dark:text-slate-200 truncate max-w-[110px]",
-                        title: wt.partner_name || "Khách lẻ",
-                        children: wt.partner_name || "Khách lẻ"
-                      })]
-                    }), e.jsxs("div", {
-                      className: "flex justify-between border-t border-slate-100 dark:border-slate-800 pt-1.5 mt-1",
-                      children: [e.jsx("span", {
-                        className: "text-slate-400 font-bold",
-                        children: "Tổng tiền:"
-                      }), e.jsx("span", {
-                        className: "font-black text-emerald-500 text-[12px]",
-                        children: it(wt.total_amount || 0)
-                      })]
-                    })]
-                  })]
-                })]
-              }), e.jsxs(m.button, {
-                whileHover: {
-                  y: -2
-                },
-                whileTap: {
-                  scale: .98
-                },
-                onClick: () => _n(ye === "Retail" ? "Wholesale" : "Retail"),
-                className: "relative w-9 h-9 bg-transparent dark:bg-slate-950/90 backdrop-blur-sm text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-all flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:border-emerald-500 shadow-sm",
-                children: [ye === "Wholesale" ? e.jsx(si, {
-                  size: 16,
-                  strokeWidth: 2.5
-                }) : e.jsx(Oa, {
-                  size: 16,
-                  strokeWidth: 2.5
-                }), e.jsx("div", {
-                  className: u("absolute bottom-2 right-2 w-2 h-2 rounded-full border border-white", ye === "Wholesale" ? "bg-emerald-500" : "bg-emerald-400")
-                })]
-              }), e.jsx(T, {
-                mode: "popLayout",
-                children: p && e.jsx(m.button, {
-                  initial: {
-                    opacity: 0,
-                    x: -10
-                  },
-                  animate: {
-                    opacity: 1,
-                    x: 0
-                  },
-                  exit: {
-                    opacity: 0,
-                    x: -10
-                  },
-                  whileHover: {
-                    y: -2
-                  },
-                  whileTap: {
-                    scale: .98
-                  },
-                  onClick: () => xt(!0),
-                  className: "w-9 h-9 bg-[#059669] hover:bg-[#047857] text-white rounded-full transition-all flex items-center justify-center  shadow-emerald-200/50 border-2 border-white/20",
-                  title: "Lịch sử mua hàng",
-                  children: e.jsx(Ot, {
-                    size: 16,
-                    strokeWidth: 2.5
-                  })
-                })
-              })]
-            })]
-          }), e.jsx("div", {
-            className: "flex items-center gap-4 shrink-0",
-            children: e.jsxs("div", {
-              className: "flex items-center gap-4 ml-auto",
-              children: [e.jsx(T, {
-                mode: "popLayout",
-                children: p && p.yearly_revenue > 0 && e.jsxs(m.div, {
-                  layout: !0,
-                  initial: {
+                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button>{Ze === "sidebar" && <x.div className="flex items-center rounded-full border border-[#8b6f47]/30 dark:border-white/15 bg-white/70 dark:bg-slate-900/60 p-0.5 transition-colors shadow-sm shrink-0"><x.button onClick={() => na("prev")} whileTap={{
+                    scale: 0.9
+                  }} className="w-8 h-8 flex items-center justify-center transition-all rounded-full bg-[#8b6f47]/15 hover:bg-[#8b6f47]/25 text-[#8b6f47] dark:text-[#d4a574] dark:bg-white/10 dark:hover:bg-white/20 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs" title="Đơn trước"><Comp_qs size={16} strokeWidth={2.5} /></x.button><x.button whileTap={{
+                    scale: 0.98
+                  }} onClick={() => Ce !== 0 && !ks() && Wt()} className="px-3 flex items-center justify-center min-w-[70px]"><span className={c("text-[12px] font-black uppercase tracking-wider", Ce === 0 ? "text-[#2d5016] dark:text-emerald-400" : "text-[#8b6f47] dark:text-[#d4a574]")}>{le?.display_id ? `#${le.display_id}` : Q ? `#${Q}` : "MỚI"}</span></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileTap={{
+                    scale: 0.9
+                  }} className={c("w-8 h-8 flex items-center justify-center transition-all rounded-full", Ce === 0 ? "text-slate-300 dark:text-slate-700 opacity-40 cursor-not-allowed" : "bg-[#8b6f47]/15 hover:bg-[#8b6f47]/25 text-[#8b6f47] dark:text-[#d4a574] dark:bg-white/10 dark:hover:bg-white/20 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs")}><Dr size={16} strokeWidth={2.5} /></x.button></x.div>}<x.button whileHover={{
+                  y: -2,
+                  scale: 1.05
+                }} whileTap={{
+                  scale: 0.98
+                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} className="relative w-9 h-9 shrink-0 bg-[#059669] hover:bg-[#047857] text-white rounded-full transition-all flex items-center justify-center border border-emerald-500/40 dark:border-emerald-400/40 shadow-sm" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}>{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}<div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white", Te === "Wholesale" ? "bg-amber-300" : "bg-white")} /></x.button><x.button whileHover={{
+                  y: -2,
+                  scale: 1.05
+                }} whileTap={{
+                  scale: 0.98
+                }} onClick={() => {
+                  Ze === "bottom" ? Xr(!0) : p ? kt(!0) : Xr(!0);
+                }} className="w-9 h-9 shrink-0 bg-[#059669] hover:bg-[#047857] text-white rounded-full transition-all flex items-center justify-center border border-emerald-500/40 dark:border-emerald-400/40 shadow-sm" title={Ze === "bottom" ? "Lịch sử hóa đơn trong ngày" : p ? `Lịch sử mua hàng của ${p.name}` : "Lịch sử hóa đơn trong ngày"}><Comp_ua size={16} strokeWidth={2.5} /></x.button><div className="relative" ref={$r}><x.button whileHover={{
+                    y: -2,
+                    scale: 1.05
+                  }} whileTap={{
+                    scale: 0.98
+                  }} onClick={() => Ct(t => !t)} className={c("w-9 h-9 shrink-0 rounded-full transition-all flex items-center justify-center border shadow-sm", ar ? "bg-emerald-700 text-white border-emerald-400" : "bg-[#059669] hover:bg-[#047857] text-white border-emerald-500/40 dark:border-emerald-400/40")} title="Thao tác khác"><Comp_co size={16} strokeWidth={2.5} /></x.button><P>{ar && <x.div initial={{
+                      opacity: 0,
+                      y: 8,
+                      scale: 0.95
+                    }} animate={{
+                      opacity: 1,
+                      y: 0,
+                      scale: 1
+                    }} exit={{
+                      opacity: 0,
+                      y: 8,
+                      scale: 0.95
+                    }} transition={{
+                      duration: 0.15
+                    }} className="absolute right-0 top-full mt-2 w-64 dropdown-premium bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl p-2 z-[4000] flex flex-col gap-1 text-left select-none"><button onClick={() => {
+                        Ct(!1), X(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform shrink-0"><En size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight text-left">AI SCAN</span></button><button onClick={() => {
+                        Ct(!1);
+                        const t = y.reduce((r, s) => r + (parseFloat(s.quantity) || 0) * (parseFloat(s.price) || 0), 0),
+                          a = {
+                            id: Q || le?.id || null,
+                            display_id: le?.display_id || (Q ? `#${Q}` : Ce > 0 ? `#${Ce}` : "XEM TRƯỚC"),
+                            date: le?.date || new Date().toISOString(),
+                            partner: p || null,
+                            partner_id: p?.id || null,
+                            partner_name: g === "remote_inspect" ? k?.partner?.name || "Khách lẻ" : p?.name || "Khách lẻ",
+                            partner_address: g === "remote_inspect" ? k?.partner?.address || "" : p?.address || "",
+                            partner_phone: g === "remote_inspect" ? k?.partner?.phone || "" : p?.phone || "",
+                            old_debt: de !== void 0 ? de : p?.debt_balance || 0,
+                            total_amount: t,
+                            final_amount: t,
+                            amount_paid: oe !== void 0 ? oe : t,
+                            cash_given: V || 0,
+                            payment_method: I || "Cash",
+                            note: K || "",
+                            details: y.map(r => ({
+                              product_id: r.product_id,
+                              product_name: r.product_name,
+                              unit: r.unit,
+                              secondary_unit: r.secondary_unit,
+                              multiplier: r.multiplier || 1,
+                              quantity: r.quantity,
+                              secondary_qty: r.secondary_qty,
+                              price: r.price,
+                              cost_price: r.cost_price,
+                              stock: r.stock
+                            }))
+                          };
+                        $i(a), Sa(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button><button onClick={() => {
+                        Ct(!1), fs(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
+                        Ct(!1), ba(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button><button onClick={() => {
+                        const t = !ga;
+                        Vs(t), localStorage.setItem("pos_keep_order_after_save", t ? "true" : "false");
+                        try {
+                          const a = new BroadcastChannel("pos_data_sync");
+                          a.postMessage({
+                            type: "UI_SETTING_UPDATED",
+                            key: "pos_keep_order_after_save",
+                            value: t ? "true" : "false"
+                          }), a.close();
+                        } catch {}
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_uo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Ở lại đơn vừa lưu</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ga ? "bật: giữ lại giỏ hàng" : "tắt: tự xóa giỏ hàng"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ga ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                        const t = ir === "card" ? "toast" : "card";
+                        Ni(t), localStorage.setItem("pos_save_notice_style", t);
+                        try {
+                          const a = new BroadcastChannel("pos_data_sync");
+                          a.postMessage({
+                            type: "UI_SETTING_UPDATED",
+                            key: "pos_save_notice_style",
+                            value: t
+                          }), a.close();
+                        } catch {}
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                        Ct(!1), Ci();
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-4 shrink-0"><div className="flex items-center gap-4 ml-auto"><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
                     x: 20,
-                    scale: .8
-                  },
-                  animate: {
+                    scale: 0.8
+                  }} animate={{
                     opacity: 1,
                     x: 0,
                     scale: 1
-                  },
-                  exit: {
+                  }} exit={{
                     opacity: 0,
                     x: 20,
-                    scale: .8
-                  },
-                  className: "hidden xl:flex items-center gap-3 bg-gradient-to-br from-blue-500/10 to-teal-500/5 dark:bg-slate-900/40 rounded-2xl px-4 py-2 border border-slate-100 dark:border-slate-800 ",
-                  children: [e.jsx("div", {
-                    className: "w-9 h-9 bg-blue-500 text-white rounded-xl flex items-center justify-center ",
-                    children: e.jsx(ni, {
-                      size: 18,
-                      strokeWidth: 3
-                    })
-                  }), e.jsxs("div", {
-                    children: [e.jsx("p", {
-                      className: "text-[8px] font-black text-blue-500 uppercase tracking-widest leading-none mb-1",
-                      children: "Doanh thu năm"
-                    }), e.jsx("p", {
-                      className: "text-[15px] font-black text-slate-800 dark:text-blue-300 tabular-nums leading-none",
-                      children: I(p.yearly_revenue)
-                    })]
-                  })]
-                })
-              }), e.jsx(Qn, {
-                variant: "purchase",
-                gpuDisabled: Qe
-              })]
-            })
-          })]
-        }), e.jsx(T, {
-          children: Wt && e.jsx(Be, {
-            children: e.jsxs("div", {
-              className: "fixed inset-0 z-[2000] flex justify-end font-sans",
-              children: [e.jsx(m.div, {
-                initial: {
+                    scale: 0.8
+                  }} className="hidden xl:flex items-center gap-2 h-9 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl rounded-full px-3 border border-slate-200/80 dark:border-slate-800 shadow-sm shrink-0"><div className="w-6 h-6 bg-primary text-white rounded-lg flex items-center justify-center shadow-xs shrink-0"><Comp_u_d size={13} strokeWidth={3} /></div><div className="flex flex-col justify-center"><p className="text-[7.5px] font-black text-primary uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-slate-800 dark:text-slate-100 tabular-nums leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P><Zo variant="purchase" gpuDisabled={Ya} /></div></div></div><P>{va && <Ee><div className="fixed inset-0 z-[2000] flex justify-end font-sans"><x.div initial={{
                   opacity: 0
-                },
-                animate: {
+                }} animate={{
                   opacity: 1
-                },
-                exit: {
+                }} exit={{
                   opacity: 0
-                },
-                className: "absolute inset-0 bg-black/40 backdrop-blur-md",
-                onClick: () => ct(!1)
-              }), e.jsxs(m.div, {
-                initial: {
+                }} className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => St(!1)} /><x.div initial={{
                   x: "100%",
                   opacity: 0
-                },
-                animate: {
+                }} animate={{
                   x: 0,
                   opacity: 1
-                },
-                exit: {
+                }} exit={{
                   x: "100%",
                   opacity: 0
-                },
-                transition: {
+                }} transition={{
                   type: "spring",
                   damping: 32,
                   stiffness: 260
-                },
-                className: "relative w-full max-w-[440px] h-full bg-[#022c22]/95 backdrop-blur-[100px]  flex flex-col border-l border-white/10",
-                children: [e.jsxs("div", {
-                  className: "p-5 border-b border-white/10 relative overflow-hidden group",
-                  children: [e.jsx("div", {
-                    className: "absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-white",
-                    children: e.jsx(At, {
-                      size: 100
-                    })
-                  }), e.jsxs("div", {
-                    className: "flex justify-between items-center relative z-10",
-                    children: [e.jsxs("div", {
-                      className: "flex items-center gap-4",
-                      children: [e.jsx("div", {
-                        className: "w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-amber-400 border border-white/10",
-                        children: e.jsx(At, {
-                          size: 18,
-                          strokeWidth: 2.5
-                        })
-                      }), e.jsxs("div", {
-                        children: [e.jsx("h3", {
-                          className: "font-black text-[14px] text-white uppercase tracking-tighter leading-none mb-1",
-                          children: "Hóa đơn chờ"
-                        }), e.jsxs("p", {
-                          className: "text-[9px] font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2",
-                          children: [e.jsx("span", {
-                            className: "w-1 h-1 rounded-full bg-amber-500"
-                          }), "Đang treo (", Ne.length, ")"]
-                        })]
-                      })]
-                    }), e.jsx("button", {
-                      onClick: () => ct(!1),
-                      className: "w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-rose-500/20 text-white/60 hover:text-rose-400 rounded-xl transition-all hover:rotate-90 border border-white/10 ",
-                      children: e.jsx(Se, {
-                        size: 16,
-                        strokeWidth: 3
-                      })
-                    })]
-                  })]
-                }), e.jsx("div", {
-                  className: "flex-1 overflow-y-auto no-scrollbar px-5 py-6 space-y-4",
-                  children: Ne.length === 0 ? e.jsxs("div", {
-                    className: "text-center py-40 opacity-20",
-                    children: [e.jsx(At, {
-                      size: 60,
-                      strokeWidth: 1,
-                      className: "mx-auto mb-8 text-white"
-                    }), e.jsx("p", {
-                      className: "font-black uppercase text-[10px] tracking-[0.4em] text-white",
-                      children: "Trống trải..."
-                    })]
-                  }) : e.jsx(T, {
-                    mode: "popLayout",
-                    children: Ne.map((t, a) => e.jsxs(m.div, {
-                      id: a === 0 ? "first-held-card" : void 0,
-                      tabIndex: 0,
-                      layout: !0,
-                      initial: {
+                }} className="relative w-full max-w-[440px] h-full bg-[#022c22]/95 backdrop-blur-[100px]  flex flex-col border-l border-white/10"><div className="p-5 border-b border-white/10 relative overflow-hidden group"><div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-white"><Comp_jt size={100} /></div><div className="flex justify-between items-center relative z-10"><div className="flex items-center gap-4"><div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center text-amber-400 border border-white/10"><Comp_jt size={18} strokeWidth={2.5} /></div><div><h3 className="font-black text-[14px] text-white uppercase tracking-tighter leading-none mb-1">Hóa đơn chờ</h3><p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-amber-500" />Đang treo ({Fe.length})</p></div></div><button onClick={() => St(!1)} className="w-9 h-9 flex items-center justify-center bg-white/10 hover:bg-rose-500/20 text-white/60 hover:text-rose-400 rounded-xl transition-all hover:rotate-90 border border-white/10 "><Comp_ke size={16} strokeWidth={3} /></button></div></div><div className="flex-1 overflow-y-auto no-scrollbar px-5 py-6 space-y-4">{Fe.length === 0 ? <div className="text-center py-40 opacity-20"><Comp_jt size={60} strokeWidth={1} className="mx-auto mb-8 text-white" /><p className="font-black uppercase text-[10px] tracking-[0.4em] text-white">Trống trải...</p></div> : <P mode="popLayout">{Fe.map((t, a) => <x.div key={t.id} id={a === 0 ? "first-held-card" : void 0} tabIndex={0} layout={!0} initial={{
                         opacity: 0,
                         x: 20
-                      },
-                      animate: {
+                      }} animate={{
                         opacity: 1,
                         x: 0
-                      },
-                      exit: {
+                      }} exit={{
                         opacity: 0,
-                        scale: .9,
+                        scale: 0.9,
                         x: 20
-                      },
-                      transition: {
-                        delay: a * .04
-                      },
-                      className: "bg-white/[0.04] border border-white/5 rounded-2xl p-4 hover:border-amber-500/40 focus:border-amber-500 focus:bg-white/[0.08] transition-all group hover:bg-white/[0.08] outline-none focus:outline-none cursor-pointer",
-                      onKeyDown: r => {
+                      }} transition={{
+                        delay: a * 0.04
+                      }} className="bg-white/[0.04] border border-white/5 rounded-2xl p-4 hover:border-amber-500/40 focus:border-amber-500 focus:bg-white/[0.08] transition-all group hover:bg-white/[0.08] outline-none focus:outline-none cursor-pointer" onKeyDown={r => {
                         if (r.key === "ArrowDown") {
                           r.preventDefault();
                           const s = r.currentTarget.nextElementSibling;
-                          s && s.focus()
+                          s && s.focus();
                         } else if (r.key === "ArrowUp") {
                           r.preventDefault();
                           const s = r.currentTarget.previousElementSibling;
-                          s && s.focus()
-                        } else r.key === "Enter" && (r.preventDefault(), os(t))
-                      },
-                      children: [e.jsx("div", {
-                        className: "flex justify-between items-start mb-3",
-                        children: e.jsxs("div", {
-                          className: "flex-1 pr-3 min-w-0",
-                          children: [e.jsx("div", {
-                            className: "font-black text-white uppercase text-xs leading-tight group-hover:text-amber-400 transition-colors truncate",
-                            children: t.partner ? t.partner.name : "KHÁCH BÁN LẺ"
-                          }), e.jsxs("div", {
-                            className: "flex items-center gap-3 mt-1.5",
-                            children: [e.jsx("div", {
-                              className: "text-[8px] font-black text-white/30 bg-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider tabular-nums border border-white/5",
-                              children: t.time
-                            }), e.jsxs("div", {
-                              className: "text-[8px] font-black text-amber-400 bg-amber-500/5 px-1.5 py-0.5 rounded border border-amber-500/10 uppercase tracking-widest",
-                              children: [t.cart.length, " món"]
-                            })]
-                          })]
-                        })
-                      }), t.cart && t.cart.length > 0 && e.jsxs("div", {
-                        className: "border-t border-white/5 mt-2 pt-2 flex flex-wrap gap-1 mb-3",
-                        children: [t.cart.slice(0, 3).map((r, s) => e.jsxs("div", {
-                          className: "px-1.5 py-0.5 bg-amber-500/5 border border-amber-500/10 rounded-md text-[8px] font-black text-amber-400/90 uppercase flex items-center gap-1 transition-all hover:bg-amber-500/10",
-                          children: [e.jsx("span", {
-                            className: "truncate max-w-[70px]",
-                            children: r.product_name
-                          }), e.jsx("div", {
-                            className: "w-px h-1.5 bg-amber-500/20"
-                          }), e.jsx("span", {
-                            className: "text-amber-300",
-                            children: I(r.quantity)
-                          })]
-                        }, s)), t.cart.length > 3 && e.jsxs("div", {
-                          className: "px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[8px] font-black text-white/30 uppercase tracking-tighter",
-                          children: ["+", t.cart.length - 3, " món"]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5",
-                        children: [e.jsx("div", {
-                          className: "text-amber-400 font-black text-lg tracking-tighter tabular-nums",
-                          children: I(t.total)
-                        }), e.jsxs("div", {
-                          className: "flex gap-2",
-                          children: [e.jsx(m.button, {
-                            whileHover: {
+                          s && s.focus();
+                        } else r.key === "Enter" && (r.preventDefault(), jn(t));
+                      }}><div className="flex justify-between items-start mb-3"><div className="flex-1 pr-3 min-w-0"><div className="font-black text-white uppercase text-xs leading-tight group-hover:text-amber-400 transition-colors truncate">{t.partner ? t.partner.name : "KHÁCH BÁN LẺ"}</div><div className="flex items-center gap-3 mt-1.5"><div className="text-[8px] font-black text-white/30 bg-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider tabular-nums border border-white/5">{t.time}</div><div className="text-[8px] font-black text-amber-400 bg-amber-500/5 px-1.5 py-0.5 rounded border border-amber-500/10 uppercase tracking-widest">{t.cart.length} món</div></div></div></div>{t.cart && t.cart.length > 0 && <div className="border-t border-white/5 mt-2 pt-2 flex flex-wrap gap-1 mb-3">{t.cart.slice(0, 3).map((r, s) => <div key={s} className="px-1.5 py-0.5 bg-amber-500/5 border border-amber-500/10 rounded-md text-[8px] font-black text-amber-400/90 uppercase flex items-center gap-1 transition-all hover:bg-amber-500/10"><span className="truncate max-w-[70px]">{r.product_name}</span><div className="w-px h-1.5 bg-amber-500/20" /><span className="text-amber-300">{z(r.quantity)}</span></div>)}{t.cart.length > 3 && <div className="px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[8px] font-black text-white/30 uppercase tracking-tighter">+{t.cart.length - 3} món</div>}</div>}<div className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5"><div className="text-amber-400 font-black text-lg tracking-tighter tabular-nums">{z(t.total)}</div><div className="flex gap-2"><x.button whileHover={{
                               scale: 1.05
-                            },
-                            whileTap: {
-                              scale: .95
-                            },
-                            onClick: () => jn(t.id),
-                            className: "p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10 active:scale-95 flex items-center justify-center",
-                            title: "Xóa hóa đơn chờ",
-                            children: e.jsx(Ar, {
-                              size: 12,
-                              strokeWidth: 2.5
-                            })
-                          }), e.jsx(m.button, {
-                            whileHover: {
+                            }} whileTap={{
+                              scale: 0.95
+                            }} onClick={() => cl(t.id)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/10 active:scale-95 flex items-center justify-center" title="Xóa hóa đơn chờ"><Comp_pa size={12} strokeWidth={2.5} /></x.button><x.button whileHover={{
                               scale: 1.05
-                            },
-                            whileTap: {
-                              scale: .95
-                            },
-                            onClick: () => os(t),
-                            className: "bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-white px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all border border-amber-500/10 active:scale-95",
-                            children: "MỞ LẠI"
-                          })]
-                        })]
-                      })]
-                    }, t.id))
-                  })
-                }), e.jsx("div", {
-                  className: "p-5 border-t border-white/10",
-                  children: e.jsx("button", {
-                    onClick: () => ct(!1),
-                    className: "w-full py-3.5 rounded-xl border border-white/10 text-white/30 font-black uppercase text-[9px] hover:bg-white/5 hover:text-white transition-all tracking-[0.3em] active:scale-[0.98]",
-                    children: "Đóng"
-                  })
-                })]
-              })]
-            })
-          })
-        }), e.jsxs("div", {
-          className: "flex-1 flex gap-3 px-4 pb-4 print:hidden min-h-0",
-          children: [e.jsx(m.div, {
-            initial: !1,
-            animate: {
-              width: Lt ? `${Fr}%` : "calc(100% - 100px)"
-            },
-            transition: Ht ? {
+                            }} whileTap={{
+                              scale: 0.95
+                            }} onClick={() => jn(t)} className="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-white px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all border border-amber-500/10 active:scale-95">MỞ LẠI</x.button></div></div></x.div>)}</P>}</div><div className="p-5 border-t border-white/10"><button onClick={() => St(!1)} className="w-full py-3.5 rounded-xl border border-white/10 text-white/30 font-black uppercase text-[9px] hover:bg-white/5 hover:text-white transition-all tracking-[0.3em] active:scale-[0.98]">Đóng</button></div></x.div></div></Ee>}</P><div className="flex-1 flex gap-3 px-4 pb-4 print:hidden min-h-0"><x.div initial={!1} animate={{
+              width: Ze === "bottom" ? "100%" : ka ? `${sn}%` : "calc(100% - 100px)"
+            }} transition={wa ? {
               duration: 0
             } : {
               type: "spring",
               stiffness: 300,
               damping: 30
-            },
-            className: "flex flex-col min-h-0",
-            children: e.jsx("div", {
-              className: "flex-1 overflow-hidden relative transition-all duration-500 rounded-[2.7rem] bg-transparent border border-[#8b6f47]/30 dark:border-emerald-500/25 shadow-md shadow-black/5 dark:shadow-emerald-950/20",
-              children: e.jsxs("div", {
-                className: "w-full h-full rounded-[2.5rem] overflow-hidden relative bg-transparent",
-                children: [e.jsx("div", {
-                  className: "absolute inset-0 overflow-auto no-scrollbar-on-empty z-10",
-                  children: e.jsx("div", {
-                    className: "min-w-[1000px] transition-colors relative pb-[400px]",
-                    children: e.jsxs("table", {
-                      className: "w-full text-left border-collapse",
-                      children: [e.jsxs("thead", {
-                        className: "bg-transparent sticky top-0 z-[100] print:hidden border-b border-transparent",
-                        children: [e.jsxs("tr", {
-                          className: "border-none",
-                          children: [e.jsx("th", {
-                            rowSpan: 2,
-                            className: "py-1.5 px-2 w-14 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Stt"
-                          }), e.jsx("th", {
-                            rowSpan: 2,
-                            className: "py-1.5 px-2 w-10 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Soạn"
-                          }), e.jsx("th", {
-                            className: "px-4 py-1 align-middle min-w-[450px] whitespace-nowrap",
-                            children: e.jsxs("div", {
-                              className: "flex items-center justify-between w-full gap-4",
-                              children: [e.jsxs("div", {
-                                onClick: t => {
+            }} className="flex flex-col min-h-0"><div className="flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-sm"><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-auto no-scrollbar-on-empty z-10"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+                            width: "3.5%"
+                          }} /><col style={{
+                            width: "3.5%"
+                          }} /><col style={{
+                            width: "38%"
+                          }} /><col style={{
+                            width: "7%"
+                          }} /><col style={{
+                            width: "9%"
+                          }} /><col style={{
+                            width: "8%"
+                          }} /><col style={{
+                            width: "12%"
+                          }} /><col style={{
+                            width: "14%"
+                          }} /><col style={{
+                            width: "5%"
+                          }} /></colgroup><thead className="bg-transparent backdrop-blur-md sticky top-0 z-[100] print:hidden border-b border-[#8b6f47]/15 dark:border-white/10 shadow-xs"><tr className="border-none"><th rowSpan={2} className="py-1.5 px-2 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Stt</th><th rowSpan={2} className="py-1.5 px-2 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Soạn</th><th className="px-4 py-1 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full gap-4"><div onClick={t => {
                                   t.stopPropagation();
-                                  const a = X.ui_enable_smart_sorting === "true" ? "false" : "true";
-                                  ga(s => ({
-                                    ...s,
+                                  const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
+                                  Na(r => ({
+                                    ...r,
                                     ui_enable_smart_sorting: a
                                   })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
                                     type: "UI_SETTING_UPDATED",
                                     key: "ui_enable_smart_sorting",
                                     value: a
-                                  })
-                                },
-                                className: "flex items-center gap-3 group/sort-wrapper cursor-pointer shrink-0",
-                                children: [e.jsx("span", {
-                                  className: "font-black uppercase tracking-[0.1em] text-[9px] text-slate-500/80 dark:text-slate-400 group-hover/sort-wrapper:text-primary transition-colors",
-                                  children: "Danh mục sản phẩm"
-                                }), e.jsx("div", {
-                                  className: u("relative w-14 h-5 rounded-lg p-0.5 transition-all duration-500 border", X.ui_enable_smart_sorting === "true" ? "bg-primary/20 border-primary/30 " : "bg-transparent-panel0/10 border-slate-500/20"),
-                                  children: e.jsx(m.div, {
-                                    layout: !0,
-                                    transition: {
+                                  });
+                                }} className="flex items-center gap-3 group/sort-wrapper cursor-pointer shrink-0"><span className="font-black uppercase tracking-[0.1em] text-[9px] text-slate-500/80 dark:text-slate-400 group-hover/sort-wrapper:text-primary transition-colors">Danh mục sản phẩm</span><div className={c("relative w-14 h-5 rounded-lg p-0.5 transition-all duration-500 border", J.ui_enable_smart_sorting === "true" ? "bg-primary/20 border-primary/30 " : "bg-transparent-panel0/10 border-slate-500/20")}><x.div layout={!0} transition={{
                                       type: "spring",
                                       stiffness: 400,
                                       damping: 30
-                                    },
-                                    className: u("absolute inset-y-0.5 w-[55%] rounded-md flex items-center justify-center gap-1  text-[7px] font-black uppercase tracking-tighter transition-all", X.ui_enable_smart_sorting === "true" ? "right-0.5 bg-primary text-white" : "left-0.5 bg-white/40 text-slate-500"),
-                                    children: X.ui_enable_smart_sorting === "true" ? "AUTO" : "MAN"
-                                  })
-                                })]
-                              }), e.jsxs("div", {
-                                className: "flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0",
-                                children: [te.map((t, a) => {
-                                  const r = t.id === xe,
-                                    s = t.id === De;
-                                  return e.jsxs("div", {
-                                    className: "group/tab relative shrink-0",
-                                    children: [e.jsxs("button", {
-                                      onClick: n => {
-                                        n.stopPropagation(), Fs(t.id)
-                                      },
-                                      className: `
+                                    }} className={c("absolute inset-y-0.5 w-[55%] rounded-md flex items-center justify-center gap-1  text-[7px] font-black uppercase tracking-tighter transition-all", J.ui_enable_smart_sorting === "true" ? "right-0.5 bg-primary text-white" : "left-0.5 bg-white/40 text-slate-500")}>{J.ui_enable_smart_sorting === "true" ? "AUTO" : "MAN"}</x.div></div></div><div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">{fe.map((t, a) => {
+                                    const r = t.id === g,
+                                      s = t.id === ne;
+                                    return <div className="group/tab relative shrink-0"><button onClick={n => {
+                                        n.stopPropagation(), es(t.id);
+                                      }} className={`
                                             relative flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black tracking-widest transition-all border
-                                            ${r?"bg-primary border-primary text-white shadow-md shadow-primary/10":"bg-transparent border border-slate-300 dark:border-white/25 text-slate-600 dark:text-slate-300 hover:border-primary dark:hover:border-emerald-400 hover:bg-black/5 dark:hover:bg-white/5"}
-                                          `,
-                                      children: [s && e.jsxs("span", {
-                                        className: "flex items-end gap-[1.5px] h-2.5 mr-1.5 pb-[1px] shrink-0",
-                                        children: [e.jsx("span", {
-                                          className: `w-[2px] rounded-full ${r?"bg-white":"bg-blue-500"}`,
-                                          style: {
+                                            ${r ? "bg-primary border-primary text-white shadow-md shadow-primary/10" : "bg-transparent border border-slate-300 dark:border-white/25 text-slate-600 dark:text-slate-300 hover:border-primary dark:hover:border-emerald-400 hover:bg-black/5 dark:hover:bg-white/5"}
+                                          `}>{s && <span className="flex items-end gap-[1.5px] h-2.5 mr-1.5 pb-[1px] shrink-0"><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "40%"
-                                          }
-                                        }), e.jsx("span", {
-                                          className: `w-[2px] rounded-full ${r?"bg-white":"bg-blue-500"}`,
-                                          style: {
+                                          }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "70%"
-                                          }
-                                        }), e.jsx("span", {
-                                          className: `w-[2px] rounded-full ${r?"bg-white":"bg-blue-500"}`,
-                                          style: {
+                                          }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "100%"
+                                          }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${r ? "text-white/50" : "text-slate-400/50"}`} onClick={n => {
+                                          n.stopPropagation(), Ei(t.id, n);
+                                        }}>✕</span>}</button>{!s && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50"><button onClick={n => {
+                                          n.stopPropagation(), me(t.id);
+                                        }} className="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded-lg shadow-xl flex items-center gap-0.5 hover:bg-blue-600 transition-colors border border-white/20">Ghim quét</button></div>}</div>;
+                                  })}{q && <div className="group/tab relative shrink-0"><button onClick={t => {
+                                      t.stopPropagation(), f("remote_inspect");
+                                    }} className={`relative flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all border cursor-pointer ${g === "remote_inspect" ? "bg-emerald-600 border-emerald-600 text-white shadow-none" : "bg-transparent border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-none"}`}><Comp_go size={12} className="mr-1 shrink-0 text-inherit" /><span className="font-extrabold flex items-center gap-0.5 text-inherit">.{(() => {
+                                          const t = k?.ip_address || (q.includes(".") ? q : "");
+                                          if (!t) return "LOCAL";
+                                          const a = t.split(".");
+                                          return a[a.length - 1];
+                                        })()}</span><span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-emerald-500/20 hover:text-emerald-600 transition-colors text-emerald-500/50" onClick={t => {
+                                        t.stopPropagation(), br(null), g === "remote_inspect" && f(fe[0]?.id || "tab1");
+                                      }}>✕</span></button></div>}{fe.length < 5 && <button onClick={t => {
+                                    t.stopPropagation(), Pi();
+                                  }} className="w-5 h-5 flex items-center justify-center bg-transparent border border-dashed border-black/25 dark:border-white/25 rounded-md text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[9px]" title="Thêm đơn mới">＋</button>}<div className="relative shrink-0 ml-2 pl-2 border-l border-slate-300 dark:border-white/25"><button ref={bs} onClick={t => {
+                                      t.stopPropagation(), Ma(!Zt);
+                                    }} className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-none border-none bg-transparent ${Zt || q ? "text-emerald-500" : "text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10"}`} title={(() => {
+                                      const t = new Set();
+                                      return `Giám sát máy trạm (${hr.filter(r => {
+                                        const s = r.ip_address || r.terminal_id;
+                                        return s && !t.has(s) ? (t.add(s), !0) : !1;
+                                      }).length} máy online)`;
+                                    })()}><Comp_qr size={14} className={Zt || q ? "text-emerald-500" : ""} />{(() => {
+                                        const t = new Set(),
+                                          a = hr.filter(r => {
+                                            const s = r.ip_address || r.terminal_id;
+                                            return s && !t.has(s) ? (t.add(s), !0) : !1;
+                                          });
+                                        return a.length > 0 && <span className="absolute top-0 right-0 flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-black text-white shadow-sm">{a.length}</span>;
+                                      })()}</button><P>{Zt ? <Fn><x.div initial={{
+                                          opacity: 0,
+                                          scale: 0.95,
+                                          y: -10
+                                        }} animate={{
+                                          opacity: 1,
+                                          scale: 1,
+                                          y: 0
+                                        }} exit={{
+                                          opacity: 0,
+                                          scale: 0.95,
+                                          y: -10
+                                        }} transition={{
+                                          duration: 0.15,
+                                          ease: "easeOut"
+                                        }} style={(() => {
+                                          if (bs.current) {
+                                            const t = bs.current.getBoundingClientRect();
+                                            return {
+                                              position: "fixed",
+                                              top: t.bottom + 6 + "px",
+                                              left: Math.max(10, t.left) + "px",
+                                              zIndex: 99999
+                                            };
                                           }
-                                        })]
-                                      }), e.jsxs("span", {
-                                        children: ["T", a + 1]
-                                      }), te.length > 1 && e.jsx("span", {
-                                        className: `inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${r?"text-white/50":"text-slate-400/50"}`,
-                                        onClick: n => {
-                                          n.stopPropagation(), Ks(t.id, n)
-                                        },
-                                        children: "✕"
-                                      })]
-                                    }), !s && e.jsx("div", {
-                                      className: "absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50",
-                                      children: e.jsx("button", {
-                                        onClick: n => {
-                                          n.stopPropagation(), Me(t.id)
-                                        },
-                                        className: "bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded-lg shadow-xl flex items-center gap-0.5 hover:bg-blue-600 transition-colors border border-white/20",
-                                        children: "Ghim quét"
-                                      })
-                                  })
-                                ]
-                              })
-                                                                  }),
-                                      activeRemoteTerminalId && e.jsxs("div", {
-                                        className: "group/tab relative shrink-0",
-                                        children: [
-                                          e.jsxs("button", {
-                                            onClick: n => {
-                                              n.stopPropagation();
-                                              Ke('remote_inspect');
-                                            },
-                                            className: `relative flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all border cursor-pointer ${
-                                              xe === 'remote_inspect'
-                                                ? "bg-emerald-600 border-emerald-600 text-white shadow-none"
-                                                : "bg-transparent border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-none"
-                                            }`,
-                                            children: [
-                                              e.jsx(Satellite, { size: 12, className: "mr-1 shrink-0 text-inherit" }),
-                                              e.jsxs("span", {
-                                                className: "font-extrabold flex items-center gap-0.5 text-inherit",
-                                                children: [
-                                                  ".",
-                                                  (() => {
-                                                    const ip = activeRemoteTerm?.ip_address || (activeRemoteTerminalId.includes('.') ? activeRemoteTerminalId : '');
-                                                    if (!ip) return 'LOCAL';
-                                                    const parts = ip.split('.');
-                                                    return parts[parts.length - 1];
-                                                  })()
-                                                ]
-                                              }),
-                                              e.jsx("span", {
-                                                className: "inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-emerald-500/20 hover:text-emerald-600 transition-colors text-emerald-500/50",
-                                                onClick: n => {
-                                                  n.stopPropagation();
-                                                  setActiveRemoteTerminalId(null);
-                                                  if (xe === 'remote_inspect') {
-                                                    Ke(te[0]?.id || 'tab1');
-                                                  }
-                                                },
-                                                children: "✕"
-                                              })
-                                            ]
-                                          })
-                                        ]
-                                      }), te.length < 5 && e.jsx("button", {
-                                   onClick: t => {
-                                     t.stopPropagation(), Us()
-                                   },
-                                   className: "w-5 h-5 flex items-center justify-center bg-transparent border border-dashed border-black/25 dark:border-white/25 rounded-md text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[9px]",
-                                   title: "Thêm đơn mới",
-                                   children: "＋"
-                                 }), e.jsxs("div", {
-                                   className: "relative shrink-0 ml-2 pl-2 border-l border-slate-300 dark:border-white/25",
-                                   children: [
-                                     e.jsxs("button", {
-                                       ref: mirrorDropdownRef,
-                                       onClick: evt => {
-                                         evt.stopPropagation();
-                                         setIsMirrorDropdownOpen(!isMirrorDropdownOpen);
-                                       },
-                                       className: `relative w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-none border-none bg-transparent ${
-                                         isMirrorDropdownOpen || activeRemoteTerminalId
-                                           ? "text-emerald-500"
-                                           : "text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10"
-                                       }`,
-                                       title: (() => {
-                                         const seen = new Set();
-                                         const uniqueTerms = remoteTerminals.filter(t => {
-                                           const ip = t.ip_address || t.terminal_id;
-                                           if (ip && !seen.has(ip)) {
-                                             seen.add(ip);
-                                             return true;
-                                           }
-                                           return false;
-                                         });
-                                         return `Giám sát máy trạm (${uniqueTerms.length} máy online)`;
-                                       })(),
-                                       children: [
-                                         e.jsx(Tv, { size: 14, className: (isMirrorDropdownOpen || activeRemoteTerminalId) ? "text-emerald-500" : "" }),
-                                         (() => {
-                                           const seen = new Set();
-                                           const uniqueTerms = remoteTerminals.filter(t => {
-                                             const ip = t.ip_address || t.terminal_id;
-                                             if (ip && !seen.has(ip)) {
-                                               seen.add(ip);
-                                               return true;
-                                             }
-                                             return false;
-                                           });
-                                           return uniqueTerms.length > 0 && e.jsx("span", {
-                                             className: "absolute top-0 right-0 flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-black text-white shadow-sm",
-                                             children: uniqueTerms.length
-                                           });
-                                         })()
-                                       ]
-                                     }),
-                                      e.jsx(T, {
-                                        children: isMirrorDropdownOpen ? e.jsx(Portal, {
-                                           children: e.jsxs(m.div, {
-                                             initial: { opacity: 0, scale: 0.95, y: -10 },
-                                             animate: { opacity: 1, scale: 1, y: 0 },
-                                             exit: { opacity: 0, scale: 0.95, y: -10 },
-                                             transition: { duration: 0.15, ease: "easeOut" },
-                                             style: (() => {
-                                               if (mirrorDropdownRef.current) {
-                                                 const rect = mirrorDropdownRef.current.getBoundingClientRect();
-                                                 return {
-                                                   position: "fixed",
-                                                   top: (rect.bottom + 6) + "px",
-                                                   left: Math.max(10, rect.left) + "px",
-                                                   zIndex: 99999
-                                                 };
-                                               }
-                                               return { position: "fixed", top: "100px", left: "100px", zIndex: 99999 };
-                                             })(),
-                                             className: "w-[340px] bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200 dark:border-emerald-500/20 rounded-[2rem] shadow-[0_20px_60px_rgba(16,185,129,0.12)] p-4 space-y-3.5 text-slate-900 dark:text-white ring-1 ring-black/5 dark:ring-white/5",
-                                             onClick: evt => evt.stopPropagation(),
-                                             children: [
-                                               e.jsxs("div", {
-                                                 className: "pb-2 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between",
-                                                 children: [
-                                                   e.jsx("span", {
-                                                     className: "text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-400",
-                                                     children: e.jsxs("div", {
-                                                       className: "flex items-center gap-1.5",
-                                                       children: [
-                                                         e.jsx(Tv, { size: 12, className: "text-emerald-500" }),
-                                                         "MÁY TRẠM HOẠT ĐỘNG"
-                                                       ]
-                                                     })
-                                                   }),
-                                                   e.jsx("button", {
-                                                     onClick: () => setIsMirrorDropdownOpen(false),
-                                                     className: "text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer",
-                                                     children: "✕"
-                                                   })
-                                                 ]
-                                               }),
-                                               e.jsx("div", {
-                                                 className: "max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1",
-                                                 children: (() => {
-                                                   // Deduplicate by IP address
-                                                   const seenIps = new Set();
-                                                   const filteredTerminals = [];
-                                                   // Sort to prioritize non-generic names
-                                                   const sortedTerms = [...remoteTerminals].sort((a, b) => {
-                                                     const aGen = (a.terminal_name || '').includes('MÁY POS') || (a.terminal_id || '').includes('127.0.0.1');
-                                                     const bGen = (b.terminal_name || '').includes('MÁY POS') || (b.terminal_id || '').includes('127.0.0.1');
-                                                     if (aGen && !bGen) return 1;
-                                                     if (!aGen && bGen) return -1;
-                                                     return (b.terminal_id || '').length - (a.terminal_id || '').length;
-                                                   });
-
-                                                   for (const term of sortedTerms) {
-                                                     const ip = term.ip_address || term.terminal_id;
-                                                     if (ip && !seenIps.has(ip)) {
-                                                       seenIps.add(ip);
-                                                       filteredTerminals.push(term);
-                                                     }
-                                                   }
-
-                                                   if (filteredTerminals.length === 0) {
-                                                     return e.jsx("div", {
-                                                       className: "p-4 text-center text-xs font-black uppercase tracking-widest text-slate-400",
-                                                       children: "Không tìm thấy máy trạm nào online"
-                                                     });
-                                                   }
-
-                                                   return filteredTerminals.map(term => {
-                                                     const isSelected = activeRemoteTerminalId === term.terminal_id;
-                                                     const itemCount = term.total_items || (term.cart ? term.cart.reduce((s, item) => s + (item.quantity || 1), 0) : 0);
-                                                     const isMobile = (term.terminal_id || '').includes('Mobile') || (term.current_page || '').includes('Mobile');
-                                                     const totalAmt = term.total_amount || 0;
-
-                                                     return e.jsxs("div", {
-                                                       key: term.terminal_id,
-                                                       className: u(
-                                                         "w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden",
-                                                         isSelected
-                                                           ? "bg-emerald-500/15 border-emerald-500 dark:border-emerald-400 text-slate-900 dark:text-emerald-200 shadow-md shadow-emerald-500/5"
-                                                           : "bg-slate-50/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                                       ),
-                                                       children: [
-                                                         e.jsxs("div", {
-                                                           className: "flex items-center gap-3 min-w-0 flex-1 cursor-pointer",
-                                                           onClick: () => {
-                                                             setActiveRemoteTerminalId(term.terminal_id);
-                                                             setIsMirrorDropdownOpen(false);
-                                                             Ke('remote_inspect');
-                                                           },
-                                                           children: [
-                                                             e.jsx("div", {
-                                                               className: u(
-                                                                 "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm",
-                                                                 isSelected 
-                                                                   ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" 
-                                                                   : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"
-                                                               ),
-                                                               children: isMobile ? e.jsx(Coins, { size: 16 }) : e.jsx(Tv, { size: 16 })
-                                                             }),
-                                                             e.jsxs("div", {
-                                                               className: "min-w-0 flex-1",
-                                                               children: [
-                                                                 e.jsx("div", { 
-                                                                   className: "text-xs font-black uppercase tracking-wide truncate text-slate-900 dark:text-slate-100", 
-                                                                   children: term.user_name && !term.user_name.includes('Thu ngân')
-                                                                     ? `${term.user_name} (${term.ip_address})` 
-                                                                     : `MÁY POS (${term.ip_address})`
-                                                                 }),
-                                                                 e.jsxs("div", { 
-                                                                   className: "text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate flex items-center gap-1", 
-                                                                   children: [e.jsx(User, { size: 10 }), term.terminal_name || term.terminal_id] 
-                                                                 })
-                                                               ]
-                                                             })
-                                                           ]
-                                                         }),
-                                                         e.jsxs("div", {
-                                                           className: "text-right shrink-0 flex flex-col items-end gap-0.5",
-                                                           children: [
-                                                             e.jsxs("div", { className: "text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5", children: [I(totalAmt), "đ"] }),
-                                                             e.jsxs("div", { className: "text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums", children: [itemCount, " món"] })
-                                                           ]
-                                                         }),
-                                                         e.jsx("button", {
-                                                           onClick: (evt) => {
-                                                             evt.stopPropagation();
-                                                             handleImportRemoteCart(term.cart);
-                                                           },
-                                                           className: "p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs",
-                                                           title: "Sao chép nhanh giỏ hàng từ máy này",
-                                                           children: e.jsx(Copy, { size: 13 })
-                                                         })
-                                                       ]
-                                                     });
-                                                   });
-                                                 })()
-                                               })
-                                             ]
-                                           })
-                                        })
-                                      : null })
-                                   ]
-                                  })
-                                ]
-                              })
-                            ] }) }), e.jsx("th", {
-                            rowSpan: 2,
-                            className: "py-1.5 px-3 w-28 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-x border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Đơn vị"
-                          }), e.jsx("th", {
-                            className: "py-1.5 px-3 w-36 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Quy đổi"
-                          }), e.jsx("th", {
-                            className: "py-1.5 px-3 w-20 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Số lượng"
-                          }), e.jsx("th", {
-                            rowSpan: 2,
-                            className: "py-1.5 px-3 w-36 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: "Đơn giá"
-                          }), e.jsx("th", {
-                            rowSpan: 2,
-                            className: "py-1.5 px-3 w-36 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 whitespace-nowrap",
-                            children: "Thành tiền"
-                          }), e.jsx("th", {
-                            rowSpan: 2,
-                            className: "w-8"
-                          })]
-                        }), e.jsxs("tr", {
-                          className: "border-t border-slate-200 dark:border-white/10 dark:border-slate-800/20 bg-transparent",
-                          children: [e.jsx("td", {
-                            className: "px-4 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: e.jsxs("div", {
-                              className: "flex items-center justify-center gap-1.5",
-                              children: [e.jsx("div", {
-                                className: "w-1 h-1 rounded-full bg-primary/40"
-                              }), e.jsxs("span", {
-                                className: "text-[8px] font-black text-slate-400/80 uppercase tracking-widest",
-                                children: [wn, " items"]
-                              })]
-                            })
-                          }), e.jsx("td", {
-                            className: "px-3 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap",
-                            children: e.jsx("span", {
-                              className: "text-xs font-black text-slate-500 tabular-nums",
-                              children: I(kn)
-                            })
-                          }), e.jsx("td", {
-                            className: "px-3 py-1 text-center whitespace-nowrap",
-                            children: e.jsx("span", {
-                              className: "text-xs font-black text-primary/80 tabular-nums",
-                              children: I(vn)
-                            })
-                          })]
-                        })]
-                      }), e.jsxs("tbody", {
-                        className: "divide-none",
-                        children: [e.jsxs("tr", {
-                          className: "bg-transparent sticky top-[60px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row",
-                          onDoubleClick: () => {
-                            o.product && (Ft(o.product), dt(!0))
-                          },
-                          children: [e.jsx("td", {
-                            onClick: r => {
-                              r.stopPropagation();
-                              if (fe && fe.length > 0) {
-                                playPackingQueue(fe, z);
-                              } else {
-                                toast.error("Giỏ hàng đang trống!");
-                              }
-                            },
-                            title: "Bấm để đọc toàn bộ danh sách soạn hàng",
-                            className: "py-4 px-4 text-center font-black text-primary cursor-pointer hover:bg-primary/10 rounded-l-xl",
-                            children: e.jsx(ii, {
-                              size: 18,
-                              strokeWidth: 3,
-                              className: "mx-auto"
-                            })
-                          }), e.jsx("td", {
-                            className: "py-4 px-4 text-center",
-                            children: e.jsx("div", {
-                              className: "w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary mx-auto",
-                              children: e.jsx(ft, {
-                                size: 20,
-                                strokeWidth: 3
-                              })
-                            })
-                          }), e.jsxs("td", {
-                            className: "py-4 px-2 relative",
-                            children: [e.jsxs("div", {
-                              className: "relative group/search flex items-center gap-2",
-                              children: [e.jsx("div", {
-                                className: "relative flex-1",
-                                children: e.jsxs("div", {
-                                  className: "relative",
-                                  children: [e.jsx("div", {
-                                    className: "absolute left-4 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors",
-                                    children: e.jsx(qr, {
-                                      size: 20,
-                                      strokeWidth: 3
-                                    })
-                                  }), e.jsx("input", {
-                                    type: "text",
-                                    placeholder: "Tìm kiếm sản phẩm thông minh (F2)...",
-                                    className: "w-full h-auto py-2.5 pl-12 pr-16 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl font-black text-slate-800 dark:text-white uppercase outline-none transition-all focus:border-primary/50 dark:focus:border-emerald-500/50 focus:ring-4 focus:ring-primary/10 dark:focus:ring-emerald-500/10 focus:bg-transparent leading-relaxed placeholder:normal-case placeholder:leading-relaxed",
-                                    autoComplete: "off",
-                                    value: ee,
-                                    onChange: t => {
+                                          return {
+                                            position: "fixed",
+                                            top: "100px",
+                                            left: "100px",
+                                            zIndex: 99999
+                                          };
+                                        })()} className="w-[340px] bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 space-y-3 text-slate-900 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/5" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-400"><div className="flex items-center gap-1.5"><Comp_qr size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
+                                              const t = new Set(),
+                                                a = [],
+                                                r = [...hr].sort((s, n) => {
+                                                  const l = (s.terminal_name || "").includes("MÁY POS") || (s.terminal_id || "").includes("127.0.0.1"),
+                                                    d = (n.terminal_name || "").includes("MÁY POS") || (n.terminal_id || "").includes("127.0.0.1");
+                                                  return l && !d ? 1 : !l && d ? -1 : (n.terminal_id || "").length - (s.terminal_id || "").length;
+                                                });
+                                              for (const s of r) {
+                                                const n = s.ip_address || s.terminal_id;
+                                                n && !t.has(n) && (t.add(n), a.push(s));
+                                              }
+                                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-slate-400">Không tìm thấy máy trạm nào online</div> : a.map(s => {
+                                                const n = q === s.terminal_id,
+                                                  l = s.total_items || (s.cart ? s.cart.reduce((u, h) => u + (h.quantity || 1), 0) : 0),
+                                                  d = (s.terminal_id || "").includes("Mobile") || (s.current_page || "").includes("Mobile"),
+                                                  o = s.total_amount || 0;
+                                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 dark:border-emerald-400 text-slate-900 dark:text-emerald-200 shadow-md shadow-emerald-500/5" : "bg-slate-50/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
+                                                    br(s.terminal_id), Ma(!1), f("remote_inspect");
+                                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500")}>{d ? <Rs size={16} /> : <Comp_qr size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-slate-900 dark:text-slate-100">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
+                                                    u.stopPropagation(), hn(s.cart);
+                                                  }} className="p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs" title="Sao chép nhanh giỏ hàng từ máy này"><Pn size={13} /></button></div>;
+                                              });
+                                            })()}</div></x.div></Fn> : null}</P></div></div></div></th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-x border-white/10 dark:border-slate-800/20 whitespace-nowrap">Đơn vị</th><th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Quy đổi</th><th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Số lượng</th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Đơn giá</th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 whitespace-nowrap">Thành tiền</th><th rowSpan={2} className="text-center" /></tr><tr className="border-t border-slate-200 dark:border-white/10 dark:border-slate-800/20 bg-transparent"><td className="px-4 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><div className="w-1 h-1 rounded-full bg-primary/40" /><span className="text-[8px] font-black text-slate-400/80 uppercase tracking-widest">{ll} items</span></div></td><td className="px-3 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap"><span className="text-xs font-black text-slate-500 tabular-nums">{z(dl)}</span></td><td className="px-3 py-1 text-center whitespace-nowrap"><span className="text-xs font-black text-primary/80 tabular-nums">{z(ol)}</span></td></tr></thead><tbody className="divide-none"><tr className="bg-transparent sticky top-[60px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row" onDoubleClick={() => {
+                            m.product && (Vt(m.product), vt(!0));
+                          }}><td onClick={t => {
+                              t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
+                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-3 px-2 text-center cursor-pointer select-none rounded-l-xl group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs hover:shadow-md hover:shadow-primary/20"><Nd size={16} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td className="py-3 px-2 w-12 min-w-[48px] max-w-[48px] text-center"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs"><Ot size={18} strokeWidth={2.5} /></div></td><td className="py-4 px-2 relative w-[540px] min-w-[540px] max-w-[540px]"><div className="relative group/search flex items-center gap-2"><div className="relative flex-1"><div className="relative"><div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={20} strokeWidth={3} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-auto py-2.5 pl-12 pr-16 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl font-black text-slate-800 dark:text-white outline-none transition-all focus:border-primary/50 dark:focus:border-emerald-500/50 focus:ring-4 focus:ring-primary/10 dark:focus:ring-emerald-500/10 focus:bg-transparent leading-relaxed placeholder:normal-case placeholder:leading-relaxed" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
-                                      ce(a), $t(0), lr(!0), o.product && a !== o.name && _e({
-                                        ...o,
-                                        product: null,
-                                        name: a,
-                                        quantity: 1,
-                                        price: 0
-                                      })
-                                    },
-                                    onKeyDown: t => {
-                                      if (t.key === "ArrowUp") t.preventDefault(), $t(a => {
+                                      ae(a), Ft(0), os(!0);
+                                      if (!a || a.trim() === "") {
+                                        He({
+                                          product: null,
+                                          name: "",
+                                          quantity: 0,
+                                          price: 0,
+                                          secondary_qty: 0
+                                        });
+                                      } else if (m.product && a !== m.name) {
+                                        He({
+                                          ...m,
+                                          product: null,
+                                          name: a,
+                                          quantity: 0,
+                                          price: 0,
+                                          secondary_qty: 0
+                                        });
+                                      }
+                                    }} onKeyDown={t => {
+                                      if (t.key === "Escape") {
+                                        t.preventDefault(), ae(""), os(!1), He({
+                                          product: null,
+                                          quantity: 0,
+                                          price: 0,
+                                          secondary_qty: 0,
+                                          name: ""
+                                        });
+                                      } else if (t.key === "ArrowUp") t.preventDefault(), Ft(a => {
                                         const r = Math.max(a - 1, 0),
-                                          s = mr.current;
+                                          s = hs.current;
                                         if (s) {
                                           const n = s.children[r];
                                           n && n.scrollIntoView({
                                             block: "nearest"
-                                          })
+                                          });
                                         }
-                                        return r
-                                      });
-                                      else if (t.key === "ArrowDown") t.preventDefault(), $t(a => {
-                                        const r = Math.min(a + 1, st.length - 1),
-                                          s = mr.current;
+                                        return r;
+                                      });else if (t.key === "ArrowDown") t.preventDefault(), Ft(a => {
+                                        const r = Math.min(a + 1, wt.length - 1),
+                                          s = hs.current;
                                         if (s) {
                                           const n = s.children[r];
                                           n && n.scrollIntoView({
                                             block: "nearest"
-                                          })
+                                          });
                                         }
-                                        return r
-                                      });
-                                      else if (t.key === "Enter") {
+                                        return r;
+                                      });else if (t.key === "Enter") {
                                         t.preventDefault();
                                         const a = t.target.value.trim();
                                         let r = !1;
-                                        if (a && (r = kr(a), r)) {
-                                          ce("");
-                                          return
+                                        if (a && (r = js(a), r)) {
+                                          ae("");
+                                          return;
                                         }
-                                        if (a && st.length === 0) {
+                                        if (a && wt.length === 0) {
                                           G({
                                             message: `Mã vạch ${a} không tồn tại`,
                                             type: "error"
-                                          }), ce("");
-                                          return
+                                          }), ae("");
+                                          return;
                                         }
-                                        if (ee && st[he]) {
-                                          const s = st[he];
-                                          if (ye === "Retail" || !s.secondary_unit) Pt(s, 1, E[s.id] !== void 0 ? E[s.id] : s.sale_price);
-                                          else {
-                                            const n = o.quantity !== 0 ? o.quantity : 1;
-                                            _e({
+                                        if (Z && wt[De]) {
+                                          const s = wt[De];
+                                          if (Te === "Retail" || !s.secondary_unit) ia(s, 1, R[s.id] !== void 0 ? R[s.id] : s.sale_price);else {
+                                            const n = m.quantity !== 0 ? m.quantity : 1;
+                                            He({
                                               product: s,
                                               quantity: n,
-                                              price: E[s.id] !== void 0 ? E[s.id] : s.sale_price,
+                                              price: R[s.id] !== void 0 ? R[s.id] : s.sale_price,
                                               secondary_qty: n / (s.multiplier || 1),
                                               name: s.name,
                                               latest_audit: s.latest_audit
-                                            }), ce(s.name), setTimeout(() => Xt.current?.focus(), 0)
+                                            }), ae(s.name), setTimeout(() => Pa.current?.focus(), 0);
                                           }
                                         }
                                       } else if (t.key === "Tab") {
-                                        if (t.preventDefault(), t.stopPropagation(), o.product) {
-                                          const a = ye === "Wholesale" && o.product.secondary_unit ? Xt : ut;
-                                          a.current?.focus(), a.current?.select()
-                                        } else if (ee && st[he]) {
-                                          const a = st[he],
-                                            r = o.quantity && o.quantity !== 0 ? o.quantity : 1;
-                                          _e({
+                                        if (t.preventDefault(), t.stopPropagation(), m.product) {
+                                          const a = Te === "Wholesale" && m.product.secondary_unit ? Pa : Pt;
+                                          a.current?.focus(), a.current?.select();
+                                        } else if (Z && wt[De]) {
+                                          const a = wt[De],
+                                            r = m.quantity && m.quantity !== 0 ? m.quantity : 1;
+                                          He({
                                             product: a,
                                             quantity: r,
-                                            price: E[a.id] !== void 0 ? E[a.id] : a.sale_price,
+                                            price: R[a.id] !== void 0 ? R[a.id] : a.sale_price,
                                             secondary_qty: r / (a.multiplier || 1),
                                             name: a.name
-                                          }), ce(a.name), setTimeout(() => {
-                                            const s = ye === "Wholesale" && a.secondary_unit ? Xt : ut;
-                                            s.current?.focus(), s.current?.select?.()
-                                          }, 0)
+                                          }), ae(a.name), setTimeout(() => {
+                                            const s = Te === "Wholesale" && a.secondary_unit ? Pa : Pt;
+                                            s.current?.focus(), s.current?.select?.();
+                                          }, 0);
                                         }
                                       }
-                                    },
-                                    onFocus: t => {
-                                      t.target.select(), lr(!0)
-                                    },
-                                    onBlur: () => {
-                                      setTimeout(() => lr(!1), 200)
-                                    },
-                                    ref: ue
-                                  }), o.product && e.jsx("div", {
-                                    className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2",
-                                    children: e.jsx("div", {
-                                      className: "flex items-center gap-4 relative z-[200]",
-                                      children: e.jsxs("div", {
-                                        onClick: t => {
+                                    }} onFocus={t => {
+                                      t.target.select(), os(!0);
+                                    }} onBlur={() => {
+                                      setTimeout(() => os(!1), 200);
+                                    }} ref={se} />{m.product && <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2"><div className="flex items-center gap-4 relative z-[200]"><div onClick={t => {
                                           t.stopPropagation();
                                           const a = t.currentTarget.getBoundingClientRect();
-                                          _t(o.product), Ut({
+                                          Xt(m.product), za({
                                             top: a.top,
                                             bottom: a.bottom,
                                             left: a.left,
                                             right: a.right
-                                          }), pt(!0)
-                                        },
-                                        className: u("px-3 py-1.5 rounded-xl text-xs font-black border transition-all flex items-center gap-2  hover:scale-110 active:scale-95 group/stock cursor-pointer", o.product.stock <= 0 ? "bg-rose-500/15 text-rose-500 border-rose-500/30 shadow-rose-500/10" : o.product.stock < 10 ? "bg-amber-500/15 text-amber-600 border-amber-500/30 shadow-amber-500/10" : "bg-emerald-500/15 text-emerald-500 border-emerald-500/30 shadow-emerald-500/10"),
-                                        children: [o.product.stock <= 0 ? e.jsx(Wa, {
-                                          size: 14,
-                                          strokeWidth: 3
-                                        }) : o.product.stock < 10 ? e.jsx(qt, {
-                                          size: 14,
-                                          strokeWidth: 3,
-                                          className: ""
-                                        }) : e.jsx(sa, {
-                                          size: 14,
-                                          strokeWidth: 3
-                                        }), e.jsx("span", {
-                                          className: "tabular-nums",
-                                          children: o.product.stock
-                                        })]
-                                      })
-                                    })
-                                  })]
-                                })
-                              }),
-                              e.jsxs(m.button, {
-                                whileHover: {
-                                  scale: 1.02,
-                                  backgroundColor: "rgba(15, 23, 42, 1)"
-                                },
-                                whileTap: {
-                                  scale: .98
-                                },
-                                onClick: () => {
-                                  Zt(!0), ea({
+                                          }), Dt(!0);
+                                        }} className={c("px-3 py-1.5 rounded-xl text-xs font-black border transition-all flex items-center gap-2  hover:scale-110 active:scale-95 group/stock cursor-pointer", m.product.stock <= 0 ? "bg-rose-500/15 text-rose-500 border-rose-500/30 shadow-rose-500/10" : m.product.stock < 10 ? "bg-amber-500/15 text-amber-600 border-amber-500/30 shadow-amber-500/10" : "bg-primary/15 text-primary border-primary/30 shadow-primary/10")}>{m.product.stock <= 0 ? <Pr size={14} strokeWidth={3} /> : m.product.stock < 10 ? <Comp_da size={14} strokeWidth={3} className="" /> : <Qa size={14} strokeWidth={3} />}<span className="tabular-nums">{m.product.stock}</span></div></div></div>}</div></div><x.button whileHover={{
+                                  scale: 1.02
+                                }} whileTap={{
+                                  scale: 0.95
+                                }} onClick={() => {
+                                  La(!0), $a({
                                     name: "",
                                     price: ""
-                                  }), setTimeout(() => fr.current?.focus(), 100)
-                                },
-                                tabIndex: -1,
-                                className: "h-9 px-3 bg-slate-900/90 dark:bg-slate-800/90 text-white rounded-xl font-black text-[9px] uppercase tracking-wider flex items-center gap-2  shadow-black/20 border border-white/10 transition-colors whitespace-nowrap shrink-0 group/f6",
-                                title: "Thêm món ngoài (F6)",
-                                children: [e.jsx("div", {
-                                  className: "w-5 h-5 rounded-md bg-white/10 flex items-center justify-center group-hover/f6:rotate-12 transition-transform",
-                                  children: e.jsx(ft, {
-                                    size: 12,
-                                    strokeWidth: 3
-                                  })
-                                }), e.jsx("span", {
-                                  children: "Món Ngoài"
-                                }), e.jsx("div", {
-                                  className: "px-1 py-0.2 rounded bg-white/10 text-[7px] font-black border border-white/10 opacity-60",
-                                  children: "F6"
-                                })]
-                              })]
-                            }), e.jsx(T, {
-                              children: ee && !o.product && en && e.jsxs(m.div, {
-                                initial: {
+                                  }), setTimeout(() => ys.current?.focus(), 100);
+                                }} tabIndex={-1} className="h-9 px-3 bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-300 rounded-xl font-black text-[9px] uppercase tracking-wider flex items-center gap-1.5 shadow-xs border border-emerald-500/30 dark:border-emerald-400/25 transition-all whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-5 h-5 rounded-lg bg-emerald-500/15 dark:bg-emerald-400/20 group-hover/f6:bg-white/20 flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={12} strokeWidth={3} /></div><span>Món Ngoài</span><div className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 group-hover/f6:bg-white/20 text-[8px] font-black border border-emerald-500/20 group-hover/f6:border-white/20 transition-all">F6</div></x.button></div><P>{Z && !m.product && Li && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
                                   y: -5
-                                },
-                                animate: {
+                                }} animate={{
                                   opacity: 1,
                                   y: 0
-                                },
-                                exit: {
+                                }} exit={{
                                   opacity: 0,
                                   y: -5
-                                },
-                                transition: {
-                                  duration: .15
-                                },
-                                className: "absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[1000]",
-                                style: {
-                                  backgroundColor: Y.glassBg
-                                },
-                                children: [e.jsx("div", {
-                                  className: "absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none"
-                                }), e.jsx("div", {
-                                  className: "max-h-[480px] overflow-y-auto custom-scrollbar",
-                                  ref: mr,
-                                  children: st.map((t, a) => e.jsxs("div", {
-                                    onMouseEnter: () => $t(a),
-                                    onMouseDown: r => {
+                                }} transition={{
+                                  duration: 0.15
+                                }} className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[1000]" style={{
+                                  backgroundColor: Mt.glassBg
+                                }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div className="max-h-[480px] overflow-y-auto custom-scrollbar" ref={hs}>{wt.map((t, a) => <div key={t.id} onMouseEnter={() => Ft(a)} onMouseDown={r => {
                                       r.preventDefault();
-                                      const s = o.quantity && o.quantity !== 0 ? o.quantity : 1;
-                                      _e({
+                                      const s = m.quantity && m.quantity !== 0 ? m.quantity : 1;
+                                      He({
                                         product: t,
                                         quantity: s,
-                                        price: E[t.id] !== void 0 ? E[t.id] : t.sale_price,
+                                        price: R[t.id] !== void 0 ? R[t.id] : t.sale_price,
                                         secondary_qty: s / (t.multiplier || 1),
                                         name: t.name
-                                      }), ce(t.name)
-                                    },
-                                    className: u("dropdown-item flex justify-between items-center", a === he && "active"),
-                                    children: [e.jsxs("div", {
-                                      className: "flex-1 flex flex-col gap-1.5 relative z-10",
-                                      children: [e.jsxs("div", {
-                                        className: "flex items-center gap-3",
-                                        children: [e.jsx("span", {
-                                          className: "font-black uppercase tracking-tight transition-all duration-300 leading-relaxed",
-                                          style: {
-                                            color: a === he ? Y.accent : Y.main,
-                                            fontSize: a === he ? "18px" : "16px",
-                                            transform: a === he ? "scale(1.02)" : "scale(1)",
-                                            paddingLeft: a === he ? "12px" : "0px"
-                                          },
-                                          children: t.name
-                                        }), t.code && e.jsx("span", {
-                                          className: "px-2.5 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-[10px] font-black tabular-nums text-slate-500 dark:text-slate-400",
-                                          children: t.code
-                                        }), t.is_combo && e.jsx("span", {
-                                          className: "px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest ",
-                                          children: "COMBO"
-                                        })]
-                                      }), e.jsxs("div", {
-                                        className: "flex items-center gap-5",
-                                        children: [e.jsx("span", {
-                                          className: "text-[11px] font-black italic tracking-wide transition-colors",
-                                          style: {
-                                            color: a === he ? Y.accentMuted : Y.muted
-                                          },
-                                          children: t.active_ingredient || ""
-                                        }), e.jsxs("div", {
-                                          className: "flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                                          children: [e.jsx("span", {
-                                            className: u("px-2 py-0.5 rounded-md border transition-colors", a === he ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"),
-                                            children: Te(t.unit)
-                                          }), t.multiplier > 1 && e.jsxs("span", {
-                                            className: a === he ? "text-white/60" : "text-slate-500 opacity-60",
-                                            children: ["/ ", Te(t.secondary_unit), " (x", t.multiplier, ")"]
-                                          })]
-                                        })]
-                                      })]
-                                    }), e.jsxs("div", {
-                                      className: "flex items-center gap-8 relative z-10",
-                                      children: [e.jsxs("div", {
-                                        onClick: r => {
+                                      }), ae(t.name);
+                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+                                              color: a === De ? Mt.accent : Mt.main,
+                                              fontSize: a === De ? "18px" : "16px",
+                                              paddingLeft: a === De ? "12px" : "0px"
+                                            }} /></div>{t.code && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-[10px] font-black tabular-nums text-slate-500 dark:text-slate-400">{t.code}</span>}{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}</div><div className="flex items-center gap-5"><span className="text-[11px] font-black italic tracking-wide transition-colors" style={{
+                                            color: a === De ? Mt.accentMuted : Mt.muted
+                                          }}>{t.active_ingredient || ""}</span><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest"><span className={c("px-2 py-0.5 rounded-md border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}</div></div></div><div className="flex items-center gap-8 relative z-10"><div onClick={r => {
                                           r.stopPropagation();
                                           const s = r.currentTarget.getBoundingClientRect();
-                                          _t(t), Ut({
+                                          Xt(t), za({
                                             top: s.top,
                                             bottom: s.bottom,
                                             left: s.left,
                                             right: s.right
-                                          }), pt(!0)
-                                        },
-                                        className: u("px-4 py-2 rounded-2xl text-[13px] font-black border-2 transition-all flex items-center gap-2.5  hover:scale-110 active:scale-95 group/stock", t.stock <= 0 ? "bg-rose-500/10 text-rose-600 border-rose-500/30" : t.stock < 10 ? "bg-amber-500/10 text-amber-700 border-amber-500/30" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"),
-                                        children: [t.stock <= 0 ? e.jsx(Wa, {
-                                          size: 16,
-                                          strokeWidth: 3
-                                        }) : t.stock < 10 ? e.jsx(qt, {
-                                          size: 16,
-                                          strokeWidth: 3,
-                                          className: ""
-                                        }) : e.jsx(sa, {
-                                          size: 16,
-                                          strokeWidth: 3
-                                        }), e.jsx("span", {
-                                          className: "tabular-nums",
-                                          children: t.stock
-                                        }), e.jsx(Rt, {
-                                          size: 12,
-                                          className: "ml-1 opacity-0 group-hover/stock:opacity-100 group-hover/stock:rotate-180 transition-all duration-500"
-                                        })]
-                                      }), e.jsxs("div", {
-                                        className: "flex flex-col items-end gap-1",
-                                        children: [e.jsx("div", {
-                                          className: "text-[22px] font-black tracking-tighter tabular-nums drop-",
-                                          style: {
-                                            color: a === he ? Y.accent : Y.main
-                                          },
-                                          children: I(t.sale_price)
-                                        }), e.jsxs("div", {
-                                          className: "text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80",
-                                          children: ["NHẬP CUỐI: ", I(t.latest_cost_price)]
-                                        })]
-                                      })]
-                                    })]
-                                  }, t.id))
-                                }), ee && st.length === 0 && e.jsxs("div", {
-                                  className: "dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent",
-                                  onClick: () => {
-                                    Vr(ee), ka(!0)
-                                  },
-                                  children: [e.jsx(ft, {
-                                    size: 18,
-                                    strokeWidth: 3
-                                  }), e.jsxs("span", {
-                                    children: ['Thêm sản phẩm mới: "', ee, '"']
-                                  })]
-                                })]
-                              }, "pos-product-dropdown")
-                            })]
-                          }), e.jsxs("td", {
-                            className: "py-4 px-4 text-center",
-                            children: [e.jsx("div", {
-                              className: "font-bold text-gray-700 dark:text-gray-200 text-xs",
-                              children: Te(o.product?.unit || "-")
-                            }), o.product?.secondary_unit && e.jsxs("div", {
-                              className: "text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap",
-                              children: ["1", " ", Te(o.product.secondary_unit), " ", "= ", o.product.multiplier, " ", Te(o.product.unit)]
-                            })]
-                          }), e.jsx("td", {
-                            className: "py-4 px-2 w-32",
-                            children: o.product?.secondary_unit ? e.jsxs("div", {
-                              className: "flex items-center gap-1 h-10 px-2 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10  transition-all",
-                              children: [e.jsx("input", {
-                                type: "number",
-                                className: "w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]",
-                                id: "working-sec-qty",
-                                ref: Xt,
-                                tabIndex: ye === "Wholesale" ? 0 : -1,
-                                value: o.secondary_qty,
-                                autoComplete: "off",
-                                onFocus: t => t.target.select(),
-                                onChange: t => {
+                                          }), Dt(!0);
+                                        }} className={c("px-4 py-2 rounded-2xl text-[13px] font-black border-2 transition-all flex items-center gap-2.5  hover:scale-110 active:scale-95 group/stock", t.stock <= 0 ? "bg-rose-500/10 text-rose-600 border-rose-500/30" : t.stock < 10 ? "bg-amber-500/10 text-amber-700 border-amber-500/30" : a === De ? "bg-white/20 text-white border-white/40" : "bg-primary/10 text-primary border-primary/30")}>{t.stock <= 0 ? <Pr size={16} strokeWidth={3} /> : t.stock < 10 ? <Comp_da size={16} strokeWidth={3} className="" /> : <Qa size={16} strokeWidth={3} />}<span className="tabular-nums">{t.stock}</span><Xa size={12} className="ml-1 opacity-0 group-hover/stock:opacity-100 group-hover/stock:rotate-180 transition-all duration-500" /></div><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
+                                            color: a === De ? Mt.accent : Mt.main
+                                          }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
+                                    dn(Z), ur(!0);
+                                  }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</P></td><td className="py-4 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200 text-xs">{Ae(m.product?.unit || "-")}</div>{m.product?.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-4 px-2">{m.product?.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10  transition-all"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" id="working-sec-qty" ref={Pa} tabIndex={Te === "Wholesale" ? 0 : -1} value={m.product ? m.secondary_qty : ""} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                   const a = parseFloat(t.target.value) || 0;
-                                  _e(r => {
+                                  He(r => {
                                     const s = parseFloat(r.product?.multiplier) || 1;
                                     return {
                                       ...r,
                                       secondary_qty: a,
                                       quantity: a * s
-                                    }
-                                  })
-                                },
-                                onKeyDown: t => {
-                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), ut.current?.focus()) : t.key === "Enter" && (t.preventDefault(), o.product && o.quantity !== 0 && Pt(o.product, o.quantity, o.price))
-                                }
-                              }), e.jsx("span", {
-                                className: "text-[10px] font-black text-muted-foreground uppercase pr-2",
-                                children: Te(o.product.secondary_unit)
-                              })]
-                            }) : e.jsx("div", {
-                              className: "text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center",
-                              children: "N/A"
-                            })
-                          }), e.jsx("td", {
-                            className: "py-4 px-2 w-24 group/qty",
-                            children: e.jsxs("div", {
-                              className: "relative w-full",
-                              children: [e.jsx("input", {
-                                type: "number",
-                                className: "w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-foreground  transition-all",
-                                value: o.quantity,
-                                id: "working-main-qty",
-                                ref: ut,
-                                autoComplete: "off",
-                                onFocus: t => t.target.select(),
-                                onChange: t => {
+                                    };
+                                  });
+                                }} onKeyDown={t => {
+                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), Pt.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                }} /><span className="text-[10px] font-black text-muted-foreground uppercase pr-2">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center">N/A</div>}</td><td className="py-4 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-foreground  transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                   const a = parseFloat(t.target.value) || 0;
-                                  _e(r => {
+                                  He(r => {
                                     const s = parseFloat(r.product?.multiplier) || 1;
                                     return {
                                       ...r,
                                       quantity: a,
                                       secondary_qty: a / s
-                                    }
-                                  })
-                                },
-                                onKeyDown: t => {
-                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), ur.current?.focus()) : t.key === "Enter" && (t.preventDefault(), o.product && o.quantity !== 0 && Pt(o.product, o.quantity, o.price))
-                                }
-                              }), e.jsx("button", {
-                                tabIndex: -1,
-                                className: "absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100",
-                                onClick: () => {
-                                  _e(t => ({
+                                    };
+                                  });
+                                }} onKeyDown={t => {
+                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => {
+                                  He(t => ({
                                     ...t,
                                     quantity: t.quantity * -1,
                                     secondary_qty: t.secondary_qty * -1
-                                  })), ut.current?.focus()
-                                },
-                                title: "Đổi thành Trả Hàng (Âm)",
-                                children: e.jsx(Ir, {
-                                  size: 12,
-                                  strokeWidth: 3
-                                })
-                              })]
-                            })
-                          }), e.jsx("td", {
-                            className: "py-4 px-2 text-right",
-                            children: e.jsxs("div", {
-                              className: "flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]",
-                              children: [o.product && e.jsxs("div", {
-                                className: `absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1\r
-                                                                                bg-white/85 dark:bg-slate-900/85 backdrop-blur-[32px] rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl\r
-                                                                                flex items-stretch whitespace-nowrap z-[9999] \r
-                                                                                opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100\r
-                                                                                transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0`,
-                                children: [e.jsxs("div", {
-                                  className: "flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors",
-                                  children: [e.jsx("span", {
-                                    className: "text-[9px] uppercase font-black text-slate-500/70 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]",
-                                    children: "Vốn TB"
-                                  }), e.jsxs("span", {
-                                    className: "text-sm font-black text-indigo-600 dark:text-indigo-300 tabular-nums",
-                                    children: [I(o.product.cost_price), e.jsx("span", {
-                                      className: "text-[10px] ml-1 opacity-50",
-                                      children: "đ"
-                                    })]
-                                  })]
-                                }), e.jsx("div", {
-                                  className: "w-px my-2 bg-gradient-to-b from-transparent via-black/10 dark:via-white/10 to-transparent"
-                                }), e.jsxs("div", {
-                                  className: "flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors",
-                                  children: [e.jsx("span", {
-                                    className: "text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]",
-                                    children: "Nhập cuối"
-                                  }), e.jsxs("span", {
-                                    className: "text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums",
-                                    children: [I(o.product.latest_cost_price || 0), e.jsx("span", {
-                                      className: "text-[10px] ml-1 opacity-50",
-                                      children: "đ"
-                                    })]
-                                  })]
-                                }), e.jsx("div", {
-                                  className: "absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-white/85 dark:border-t-slate-900/85"
-                                })]
-                              }), e.jsx("input", {
-                                type: "text",
-                                className: u("w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg transition-all ", o.product && o.price < o.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : o.product && o.price < (o.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground"),
-                                value: I(o.price),
-                                id: "working-price",
-                                ref: ur,
-                                autoComplete: "off",
-                                onFocus: t => t.target.select(),
-                                onChange: t => {
+                                  })), Pt.current?.focus();
+                                }} title="Đổi thành Trả Hàng (Âm)"><Ms size={12} strokeWidth={3} /></button></div></td><td className="py-4 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(m.product.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(m.product.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" className={c("w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg transition-all ", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                   const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
-                                  _e({
-                                    ...o,
+                                  He({
+                                    ...m,
                                     price: a
-                                  })
-                                },
-                                onKeyDown: t => {
-                                  if (t.key === "Enter") {
-                                    t.preventDefault();
-                                    On();
-                                    o.product && o.quantity !== 0 && Pt(o.product, o.quantity, o.price);
-                                  } else if (t.key === "Tab" && !t.shiftKey) {
-                                    t.preventDefault();
-                                    t.stopPropagation();
-                                    ue.current?.focus();
-                                  }
-                                }
-                              }), e.jsxs(T, {
-                                children: [o.product && o.price < o.product.cost_price && e.jsxs(m.div, {
-                                  initial: {
+                                  });
+                                }} onKeyDown={t => {
+                                  t.key === "Enter" ? (t.preventDefault(), zs(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
+                                }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
                                     opacity: 0,
-                                    scale: .8,
+                                    scale: 0.8,
                                     y: -5
-                                  },
-                                  animate: {
+                                  }} animate={{
                                     opacity: 1,
                                     scale: 1,
                                     y: 0
-                                  },
-                                  className: "bg-rose-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-rose-500/30 border border-white/20",
-                                  children: [e.jsx(qt, {
-                                    size: 12,
-                                    strokeWidth: 3,
-                                    className: "text-white"
-                                  }), "LỖ VỐN"]
-                                }), o.product && o.price < (o.product.latest_cost_price || 0) && o.price >= o.product.cost_price && e.jsxs(m.div, {
-                                  initial: {
+                                  }} className="bg-rose-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-rose-500/30 border border-white/20"><Comp_da size={12} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
                                     opacity: 0,
-                                    scale: .8,
+                                    scale: 0.8,
                                     y: -5
-                                  },
-                                  animate: {
+                                  }} animate={{
                                     opacity: 1,
                                     scale: 1,
                                     y: 0
-                                  },
-                                  className: "bg-orange-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-orange-500/30 border border-white/20",
-                                  children: [e.jsx(Ns, {
-                                    size: 12,
-                                    strokeWidth: 3,
-                                    className: "text-white"
-                                  }), "DƯỚI VỐN NHẬP"]
-                                }), o.product && o.price < o.product.sale_price && o.price >= (o.product.latest_cost_price || o.product.cost_price) && e.jsxs(m.div, {
-                                  initial: {
+                                  }} className="bg-orange-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-orange-500/30 border border-white/20"><$n size={12} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
                                     opacity: 0,
-                                    scale: .8,
+                                    scale: 0.8,
                                     y: -5
-                                  },
-                                  animate: {
+                                  }} animate={{
                                     opacity: 1,
                                     scale: 1,
                                     y: 0
-                                  },
-                                  className: "bg-amber-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20",
-                                  children: [e.jsx(li, {
-                                    size: 12,
-                                    strokeWidth: 3,
-                                    className: "text-white"
-                                  }), "GIÁ THẤP (", it(o.product.sale_price), ")"]
-                                }), o.product && p && E[o.product.id] !== void 0 && o.price === o.product.sale_price && e.jsxs(m.div, {
-                                  initial: {
+                                  }} className="bg-amber-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20"><Cd size={12} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
                                     opacity: 0,
-                                    scale: .8,
+                                    scale: 0.8,
                                     y: -5
-                                  },
-                                  animate: {
+                                  }} animate={{
                                     opacity: 1,
                                     scale: 1,
                                     y: 0
-                                  },
-                                  className: "px-2 py-1 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20  flex items-center gap-1.5 overflow-hidden",
-                                  children: [e.jsx(oi, {
-                                    size: 12,
-                                    className: "text-white fill-white/20"
-                                  }), e.jsx("span", {
-                                    className: "text-[9px] font-black uppercase tracking-wider text-white",
-                                    children: "Đồng bộ giá"
-                                  })]
-                                })]
-                              })]
-                            })
-                          }), e.jsxs("td", {
-                            className: "py-4 px-4 text-right",
-                            children: [e.jsx("div", {
-                              className: u("font-black text-lg transition-colors", o.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary"),
-                              children: I(o.price * o.quantity)
-                            }), o.quantity < 0 && e.jsx("span", {
-                              className: "inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1",
-                              children: "Hàng trả"
-                            })]
-                          }), e.jsx("td", {
-                            className: "py-4 px-2 text-center",
-                            children: o.product && e.jsx("button", {
-                              onClick: () => _e({
-                                product: null,
-                                quantity: 1,
-                                price: 0,
-                                secondary_qty: 0,
-                                name: ""
-                              }),
-                              className: "p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all",
-                              title: "Xóa dòng",
-                              children: e.jsx(Se, {
-                                size: 20
-                              })
-                            })
-                          })]
-                        }), e.jsxs(T, {
-                          initial: !1,
-                          children: [
-                            ts && e.jsx(m.tr, {
-                              className: "w-full border-none bg-transparent",
-                              initial: {
-                                opacity: 0
-                              },
-                              animate: {
-                                opacity: 1
-                              },
-                              exit: {
-                                opacity: 0,
-                                scale: .95,
-                                transition: {
-                                  duration: .2
-                                }
-                              },
-                              children: e.jsx("td", {
-                                colSpan: 10,
-                                className: "h-[400px] text-center relative align-middle border-none bg-transparent",
-                                children: e.jsxs("div", {
-                                  className: "absolute inset-0 flex flex-col items-center justify-center gap-4",
-                                  children: [e.jsxs("div", {
-                                    className: "relative",
-                                    children: [e.jsx("div", {
-                                      className: "absolute inset-0 bg-primary/20 blur-xl rounded-full"
-                                    }), e.jsx(Rt, {
-                                      size: 48,
-                                      className: "animate-spin text-primary relative z-10"
-                                    })]
-                                  }), e.jsx("span", {
-                                    className: "text-sm font-black text-muted dark:text-[#d4a574] uppercase tracking-widest",
-                                    children: "Đang đồng bộ dữ liệu..."
-                                  })]
-                                })
-                              })
-                            }, "loading-skeleton"),
-                             ...(remoteCartRows || []),
-                            xe !== 'remote_inspect' && !ts && fe.length > 0 && fe.map((t, a) => e.jsxs(m.tr, {
-                            layout: !0,
-                            initial: {
+                                  }} className="px-2 py-1 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1.5 overflow-hidden"><Sd size={12} className="text-white fill-white/20" /><span className="text-[9px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-4 px-4 text-right"><div className={c("font-black text-lg transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-4 px-2 text-center">{m.product && <button onClick={() => {
+                                  ae("");
+                                  He({
+                                    product: null,
+                                    quantity: 0,
+                                    price: 0,
+                                    secondary_qty: 0,
+                                    name: ""
+                                  });
+                                  se.current?.focus();
+                                }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa dòng"><Comp_ke size={20} /></button>}</td></tr><P initial={!1}>{fn && <x.tr key="loading-skeleton" className="w-full border-none bg-transparent" initial={{
+                              opacity: 0
+                            }} animate={{
+                              opacity: 1
+                            }} exit={{
+                              opacity: 0,
+                              scale: 0.95,
+                              transition: {
+                                duration: 0.2
+                              }
+                            }}><td colSpan={9} className="h-[400px] text-center relative align-middle border-none bg-transparent"><div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 select-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/20 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3 py-1 rounded-full bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/15 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></div></td></x.tr>}{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout={!0} initial={{
                               opacity: 0,
                               x: -20
-                            },
-                            animate: {
-                              opacity: t.isPacked ? .6 : 1,
+                            }} animate={{
+                              opacity: t.isPacked ? 0.6 : 1,
                               x: 0
-                            },
-                            exit: {
+                            }} exit={{
                               opacity: 0,
                               x: 50,
-                              scale: .95,
+                              scale: 0.95,
                               backgroundColor: "rgba(0,0,0,0)",
                               transition: {
-                                duration: .2,
+                                duration: 0.2,
                                 ease: "easeIn"
                               }
-                            },
-                            whileHover: {
+                            }} whileHover={{
                               scale: 1.008,
                               y: -3,
                               transition: {
-                                duration: .2,
+                                duration: 0.2,
                                 ease: "easeOut"
                               }
-                            },
-                            transition: {
-                              duration: .3,
+                            }} transition={{
+                              duration: 0.3,
                               type: "spring",
                               stiffness: 300,
                               damping: 25,
-                              delay: a * .02
-                            },
-                            className: u("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Je === a ? "z-[2000] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[1000] bg-transparent focus-within:z-[1000]"),
-                            onDoubleClick: () => {
-                              const r = z.find(s => s.id === t.product_id);
-                              r && (Ft(r), dt(!0))
-                            },
-                            children: [e.jsx("td", {
-                              onClick: r => {
+                              delay: a * 0.02
+                            }} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[2000] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[1000] bg-transparent focus-within:z-[1000]")} onDoubleClick={() => {
+                              const r = T.find(s => s.id === t.product_id);
+                              r && (Vt(r), vt(!0));
+                            }}><td onClick={r => {
                                 r.stopPropagation();
-                                const prod = z.find(s => s.id === t.product_id);
-                                const nameText = (prod && prod.alias && prod.alias.trim()) ? prod.alias.trim() : t.product_name;
-                                speakNumber(`${nameText}, ${t.quantity}`);
-                              },
-                              title: "Bấm để đọc tên và số lượng",
-                              className: "py-2 px-4 text-center text-slate-400 font-black text-[11px] group-hover:text-emerald-500 transition-colors tabular-nums cursor-pointer hover:bg-emerald-500/10 rounded-l-xl",
-                              children: a + 1
-                            }), e.jsx("td", {
-                              className: "py-2 px-4 text-center",
-                              children: e.jsx("button", {
-                                onClick: r => {
-                                  r.stopPropagation(), Tn(a)
-                                },
-                                className: u("w-8 h-8 rounded-xl flex items-center justify-center transition-all border-2", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white  shadow-emerald-500/20" : "bg-transparent dark:bg-slate-800/40 border-black/10 dark:border-white/10 text-gray-400 hover:border-emerald-400 hover:text-emerald-400 hover:bg-white/5"),
-                                children: e.jsx(ci, {
-                                  size: 16,
-                                  strokeWidth: 4
-                                })
-                              })
-                            }), e.jsx("td", {
-                              className: "py-2 px-2 relative",
-                              children: e.jsxs("div", {
-                                className: "relative group/search-row",
-                                onDoubleClick: r => {
+                                const s = T.find(l => l.id === t.product_id),
+                                  n = s && s.alias && s.alias.trim() ? s.alias.trim() : t.product_name;
+                                ht(`${n}, ${t.quantity}`);
+                              }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95 transition-all duration-200">{a + 1}</div></td><td className="py-2 px-2 text-center"><button onClick={r => {
+                                  r.stopPropagation(), xl(a);
+                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative"><div className="relative group/search-row" onDoubleClick={r => {
                                   r.preventDefault();
-                                  const s = z.find(n => n.id === t.product_id);
-                                  s && (Ft(s), dt(!0))
-                                },
-                                children: [e.jsx("input", {
-                                  type: "text",
-                                  autoComplete: "off",
-                                  className: u("w-full h-auto py-2.5 px-4 bg-transparent border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black uppercase tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", "text-emerald-900 dark:text-emerald-300 placeholder:text-gray-300", Je === a ? "bg-white/10 dark:bg-slate-800/30  rounded-xl" : ""),
-                                  value: Je === a ? kt : t.product_name,
-                                  onFocus: r => {
-                                    at(a), Xr(t.product_name), ja(0), r.target.select(), r.target.scrollIntoView({
+                                  const s = T.find(n => n.id === t.product_id);
+                                  s && (Vt(s), vt(!0));
+                                }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", "text-emerald-900 dark:text-emerald-300 placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
+                                    ct(a), ls(t.product_name), Ca(0), r.target.select(), r.target.scrollIntoView({
                                       block: "nearest",
                                       behavior: "smooth"
-                                    })
-                                  },
-                                  onChange: r => {
-                                    Xr(r.target.value), ja(0)
-                                  },
-                                  onBlur: () => {
+                                    });
+                                  }} onChange={r => {
+                                    ls(r.target.value), Ca(0);
+                                  }} onBlur={() => {
                                     setTimeout(() => {
-                                      at(r => r === a ? null : r)
-                                    }, 200)
-                                  },
-                                  onDoubleClick: () => {
-                                    const r = z.find(s => s.id === t.product_id);
-                                    r && (Ft(r), dt(!0))
-                                  },
-                                  onKeyDown: r => {
-                                    const s = aa.filter(n => {
-                                      const l = kt.toLowerCase(),
-                                        c = nt(l);
-                                      return n._lowName.includes(l) || n._normName.includes(c) || n._lowCode.includes(l) || n._normCode.includes(c) || n._lowActive.includes(l) || n._normActive.includes(c)
+                                      ct(r => r === a ? null : r);
+                                    }, 200);
+                                  }} onDoubleClick={() => {
+                                    const r = T.find(s => s.id === t.product_id);
+                                    r && (Vt(r), vt(!0));
+                                  }} onKeyDown={r => {
+                                    const s = Ba.filter(n => {
+                                      const l = zt.toLowerCase(),
+                                        d = xt(l);
+                                      return n._lowName.includes(l) || n._normName.includes(d) || n._lowCode.includes(l) || n._normCode.includes(d) || n._lowActive.includes(l) || n._normActive.includes(d);
                                     }).sort((n, l) => {
-                                      const c = kt.toLowerCase(),
-                                        x = n._lowName.startsWith(c),
-                                        d = l._lowName.startsWith(c);
-                                      return x && !d ? -1 : !x && d ? 1 : n._lowCode === c && l._lowCode !== c ? -1 : n._lowCode !== c && l._lowCode === c ? 1 : n._lowName.localeCompare(l._lowName, "vi", {
+                                      const d = zt.toLowerCase(),
+                                        o = n._lowName.startsWith(d),
+                                        u = l._lowName.startsWith(d);
+                                      return o && !u ? -1 : !o && u ? 1 : n._lowCode === d && l._lowCode !== d ? -1 : n._lowCode !== d && l._lowCode === d ? 1 : n._lowName.localeCompare(l._lowName, "vi", {
                                         sensitivity: "base"
-                                      })
-                                    }).slice(0, 10);
-                                    if (r.key === "ArrowDown")
-                                      if (Je === a && s.length > 0) r.preventDefault(), ja(n => {
-                                        const l = Math.min(n + 1, s.length - 1);
-                                        if (Jt.current) {
-                                          const c = Jt.current.children[l];
-                                          c && c.scrollIntoView({
-                                            block: "nearest"
-                                          })
-                                        }
-                                        return l
                                       });
-                                      else {
+                                    }).slice(0, 10);
+                                    if (r.key === "ArrowDown") {
+                                      if (Tt === a && s.length > 0) r.preventDefault(), Ca(n => {
+                                        const l = Math.min(n + 1, s.length - 1);
+                                        if (Ea.current) {
+                                          const d = Ea.current.children[l];
+                                          d && d.scrollIntoView({
+                                            block: "nearest"
+                                          });
+                                        }
+                                        return l;
+                                      });else {
                                         r.preventDefault();
                                         const n = a + 1;
-                                        n < fe.length && document.getElementById(`row-name-${n}`)?.focus()
+                                        n < ve.length && document.getElementById(`row-name-${n}`)?.focus();
                                       }
-                                    else if (r.key === "ArrowUp")
-                                      if (Je === a && s.length > 0) r.preventDefault(), ja(n => {
+                                    } else if (r.key === "ArrowUp") {
+                                      if (Tt === a && s.length > 0) r.preventDefault(), Ca(n => {
                                         const l = Math.max(n - 1, 0);
-                                        if (Jt.current) {
-                                          const c = Jt.current.children[l];
-                                          c && c.scrollIntoView({
+                                        if (Ea.current) {
+                                          const d = Ea.current.children[l];
+                                          d && d.scrollIntoView({
                                             block: "nearest"
-                                          })
+                                          });
                                         }
-                                        return l
-                                      });
-                                      else {
+                                        return l;
+                                      });else {
                                         r.preventDefault();
                                         const n = a - 1;
-                                        n >= 0 ? document.getElementById(`row-name-${n}`)?.focus() : ue.current?.focus()
+                                        n >= 0 ? document.getElementById(`row-name-${n}`)?.focus() : se.current?.focus();
                                       }
-                                    else if (r.key === "Enter") {
-                                      if (r.preventDefault(), s[jt]) {
-                                        const n = s[jt];
-                                        let l = [...b];
-                                        const c = t.quantity,
-                                          x = l.findIndex(v => v.cartId !== t.cartId && v.product_id === n.id),
-                                          d = l.findIndex(v => v.cartId === t.cartId);
-                                        d > -1 && (x > -1 ? (l[x].quantity += c, l[x].secondary_qty = l[x].quantity / (l[x].multiplier || 1), l.splice(d, 1)) : l[d] = {
-                                          ...l[d],
+                                    } else if (r.key === "Enter") {
+                                      if (r.preventDefault(), s[It]) {
+                                        const n = s[It];
+                                        let l = [...y];
+                                        const d = t.quantity,
+                                          o = l.findIndex(h => h.cartId !== t.cartId && h.product_id === n.id),
+                                          u = l.findIndex(h => h.cartId === t.cartId);
+                                        u > -1 && (o > -1 ? (l[o].quantity += d, l[o].secondary_qty = l[o].quantity / (l[o].multiplier || 1), l.splice(u, 1)) : l[u] = {
+                                          ...l[u],
                                           product_id: n.id,
                                           product_name: n.name,
                                           unit: n.unit,
                                           secondary_unit: n.secondary_unit,
                                           multiplier: n.multiplier || 1,
-                                          price: E[n.id] !== void 0 ? E[n.id] : n.sale_price,
+                                          price: R[n.id] !== void 0 ? R[n.id] : n.sale_price,
                                           cost_price: n.cost_price,
                                           latest_cost_price: n.latest_cost_price,
                                           stock: n.stock,
                                           latest_stock_entry: n.latest_stock_entry,
                                           is_combo: n.is_combo,
-                                          secondary_qty: c / (n.multiplier || 1),
+                                          secondary_qty: d / (n.multiplier || 1),
                                           active_ingredient: n.active_ingredient
-                                        }, S(l), at(null))
+                                        }, delete l[u]?.ai_scanned, H(l), ct(null));
                                       }
-                                      ue.current?.focus()
+                                      se.current?.focus();
                                     } else if (r.key === "Tab") {
                                       r.preventDefault();
                                       const n = s.length > 0 ? s : [];
-                                      if (n[jt]) {
-                                        const l = n[jt];
-                                        let c = [...b];
-                                        const x = t.quantity,
-                                          d = c.findIndex(_ => _.cartId !== t.cartId && _.product_id === l.id),
-                                          v = c.findIndex(_ => _.cartId === t.cartId);
-                                        v > -1 && (d > -1 ? (c[d].quantity += x, c[d].secondary_qty = c[d].quantity / (c[d].multiplier || 1), c.splice(v, 1), S(c), at(null), setTimeout(() => {
-                                          const _ = fe.findIndex(R => R.cartId === c[d > v ? d - 1 : d].cartId),
-                                            j = _ > -1 ? _ : d > v ? d - 1 : d,
-                                            U = document.getElementById(`qty-sec-${j}`);
-                                          if (ye === "Wholesale" && U && !U.disabled) U.focus(), U.select?.();
-                                          else {
-                                            const R = document.getElementById(`qty-main-${j}`);
-                                            R?.focus(), R?.select?.()
+                                      if (n[It]) {
+                                        const l = n[It];
+                                        let d = [...y];
+                                        const o = t.quantity,
+                                          u = d.findIndex(b => b.cartId !== t.cartId && b.product_id === l.id),
+                                          h = d.findIndex(b => b.cartId === t.cartId);
+                                        h > -1 && (u > -1 ? (d[u].quantity += o, d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1), d.splice(h, 1), H(d), ct(null), setTimeout(() => {
+                                          const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
+                                            S = b > -1 ? b : u > h ? u - 1 : u,
+                                            w = document.getElementById(`qty-sec-${S}`);
+                                          if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();else {
+                                            const O = document.getElementById(`qty-main-${S}`);
+                                            O?.focus(), O?.select?.();
                                           }
-                                        }, 200)) : (c[v] = {
-                                          ...c[v],
+                                        }, 200)) : (d[h] = {
+                                          ...d[h],
                                           product_id: l.id,
                                           product_name: l.name,
                                           unit: l.unit,
                                           secondary_unit: l.secondary_unit,
                                           multiplier: l.multiplier || 1,
-                                          price: E[l.id] !== void 0 ? E[l.id] : l.sale_price,
+                                          price: R[l.id] !== void 0 ? R[l.id] : l.sale_price,
                                           cost_price: l.cost_price,
                                           latest_cost_price: l.latest_cost_price,
                                           stock: l.stock,
                                           latest_stock_entry: l.latest_stock_entry,
                                           is_combo: l.is_combo,
-                                          secondary_qty: x / (l.multiplier || 1),
+                                          secondary_qty: o / (l.multiplier || 1),
                                           active_ingredient: l.active_ingredient
-                                        }, S(c), at(null), setTimeout(() => {
-                                          const _ = document.getElementById(`qty-sec-${a}`);
-                                          if (ye === "Wholesale" && _ && !_.disabled) _.focus(), _.select?.();
-                                          else {
-                                            const j = document.getElementById(`qty-main-${a}`);
-                                            j?.focus(), j?.select?.()
+                                        }, delete d[h]?.ai_scanned, H(d), ct(null), setTimeout(() => {
+                                          const b = document.getElementById(`qty-sec-${a}`);
+                                          if (Te === "Wholesale" && b && !b.disabled) b.focus(), b.select?.();else {
+                                            const S = document.getElementById(`qty-main-${a}`);
+                                            S?.focus(), S?.select?.();
                                           }
-                                        }, 200)))
-                                      } else at(null), setTimeout(() => {
+                                        }, 200)));
+                                      } else ct(null), setTimeout(() => {
                                         const l = document.getElementById(`qty-sec-${a}`);
-                                        if (ye === "Wholesale" && l && !l.disabled) l.focus(), l.select?.();
-                                        else {
-                                          const c = document.getElementById(`qty-main-${a}`);
-                                          c?.focus(), c?.select?.()
+                                        if (Te === "Wholesale" && l && !l.disabled) l.focus(), l.select?.();else {
+                                          const d = document.getElementById(`qty-main-${a}`);
+                                          d?.focus(), d?.select?.();
                                         }
-                                      }, 200)
+                                      }, 200);
                                     }
-                                  },
-                                  id: `row-name-${a}`
-                                }), Je !== a && e.jsx("div", {
-                                  className: "absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3",
-                                  children: e.jsxs("div", {
-                                    onClick: r => {
+                                  }} id={`row-name-${a}`} /> : <div onClick={() => {
+                                    ct(a), ls(t.product_name), Ca(0), setTimeout(() => {
+                                      const r = document.getElementById(`row-name-${a}`);
+                                      r?.focus(), r?.select?.();
+                                    }, 50);
+                                  }} onDoubleClick={() => {
+                                    const r = T.find(s => s.id === t.product_id);
+                                    r && (Vt(r), vt(!0));
+                                  }} className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2"><Ps text={t.product_name} className="text-[17px] font-black tracking-tight leading-snug text-emerald-900 dark:text-emerald-300" title={t.product_name} />{t.is_combo && <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>}</div>{t.ai_scanned && <div className="mt-1 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI Tự khớp: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
+                                        r.stopPropagation();
+                                        const s = [...y],
+                                          n = s.findIndex(l => l.cartId === t.cartId);
+                                        n > -1 && (delete s[n].ai_scanned, H(s));
+                                      }} className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1" title="Xác nhận khớp đúng"><Os size={10} strokeWidth={3} /></button></span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm w-fit"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI không khớp được: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
+                                        r.stopPropagation();
+                                        const s = [...y],
+                                          n = s.findIndex(l => l.cartId === t.cartId);
+                                        n > -1 && (delete s[n].ai_scanned, H(s));
+                                      }} className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1" title="Bỏ qua cảnh báo"><Xn size={10} strokeWidth={3} /></button></span>}</div>}</div><div className="shrink-0 flex items-center gap-2 z-10"><div onClick={r => {
                                       r.stopPropagation();
-                                      const s = z.find(n => n.id === t.product_id);
+                                      const s = T.find(n => n.id === t.product_id);
                                       if (s) {
                                         const n = r.currentTarget.getBoundingClientRect();
-                                        _t(s), Ut({
+                                        Xt(s), za({
                                           top: n.top,
                                           bottom: n.bottom,
                                           left: n.left,
                                           right: n.right
-                                        }), pt(!0)
+                                        }), Dt(!0);
                                       }
-                                    },
-                                    className: u("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5  group/stock overflow-hidden z-[100]", t.stock <= 0 ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 dark:bg-rose-500/30" : t.stock < 10 ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 dark:bg-amber-500/30" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 dark:bg-emerald-500/30"),
-                                    children: [e.jsx("div", {
-                                      className: "absolute inset-0 bg-white/20 opacity-0 group-hover/stock:opacity-100 transition-opacity"
-                                    }), e.jsxs("div", {
-                                      className: "relative flex items-center gap-1.5 transition-all duration-500",
-                                      children: [t.stock <= 0 ? e.jsx(Wa, {
-                                        size: 12,
-                                        strokeWidth: 3,
-                                        className: "opacity-90"
-                                      }) : t.stock < 10 ? e.jsx(qt, {
-                                        size: 12,
-                                        strokeWidth: 3,
-                                        className: "opacity-90"
-                                      }) : e.jsx(sa, {
-                                        size: 12,
-                                        strokeWidth: 3,
-                                        className: "opacity-90"
-                                      }), e.jsx("span", {
-                                        className: "tabular-nums drop-",
-                                        children: t.stock
-                                      }), e.jsx("div", {
-                                        className: "w-0 group-hover/stock:w-3.5 h-3.5 flex items-center justify-center opacity-0 group-hover/stock:opacity-100 transition-all duration-500 overflow-hidden",
-                                        children: e.jsx(Rt, {
-                                          size: 10,
-                                          className: "group-hover/stock:rotate-180 transition-transform duration-700 ease-out text-inherit shrink-0"
-                                        })
-                                      })]
-                                    })]
-                                  })
-                                }), e.jsx(T, {
-                                  children: Je === a && kt && e.jsx(m.div, {
-                                    initial: {
+                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock overflow-hidden whitespace-nowrap", t.stock <= 0 ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 dark:bg-rose-500/30" : t.stock < 10 ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 dark:bg-amber-500/30" : "bg-primary/20 text-primary dark:text-emerald-400 border-primary/40 dark:bg-primary/30")} title="Kiểm tồn nhanh"><div className="absolute inset-0 bg-white/20 opacity-0 group-hover/stock:opacity-100 transition-opacity" /><div className="relative flex items-center gap-1.5 transition-all duration-500">{t.stock <= 0 ? <Pr size={12} strokeWidth={3} className="opacity-90" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={3} className="opacity-90" /> : <Qa size={12} strokeWidth={3} className="opacity-90" />}<span className="tabular-nums drop-">{t.stock}</span><div className="w-0 group-hover/stock:w-3.5 h-3.5 flex items-center justify-center opacity-0 group-hover/stock:opacity-100 transition-all duration-500 overflow-hidden"><Xa size={10} className="group-hover/stock:rotate-180 transition-transform duration-700 ease-out text-inherit shrink-0" /></div></div></div></div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}<P>{Tt === a && zt && <x.div initial={{
                                       opacity: 0,
                                       y: -5
-                                    },
-                                    animate: {
+                                    }} animate={{
                                       opacity: 1,
                                       y: 0
-                                    },
-                                    exit: {
+                                    }} exit={{
                                       opacity: 0,
                                       y: -5
-                                    },
-                                    transition: {
-                                      duration: .15
-                                    },
-                                    className: "dropdown-premium backdrop-blur-xl backdrop-saturate-150 min-w-[400px] mt-2",
-                                    children: e.jsx("div", {
-                                      ref: Jt,
-                                      className: "max-h-64 overflow-y-auto no-scrollbar",
-                                      children: aa.filter(r => {
-                                        const s = kt.toLowerCase(),
-                                          n = nt(s);
-                                        return r._lowName.includes(s) || r._normName.includes(n) || r._lowCode.includes(s) || r._normCode.includes(n) || r._lowActive.includes(s) || r._normActive.includes(n)
-                                      }).sort((r, s) => {
-                                        const n = kt.toLowerCase(),
-                                          l = r._lowName.startsWith(n),
-                                          c = s._lowName.startsWith(n);
-                                        return l && !c ? -1 : !l && c ? 1 : r._lowCode === n && s._lowCode !== n ? -1 : r._lowCode !== n && s._lowCode === n ? 1 : r._lowName.localeCompare(s._lowName, "vi", {
-                                          sensitivity: "base"
-                                        })
-                                      }).slice(0, 10).map((r, s) => e.jsxs("div", {
-                                        onClick: () => {
-                                          let n = [...b];
-                                          const l = n.findIndex(d => d.cartId === t.cartId);
+                                    }} transition={{
+                                      duration: 0.15
+                                    }} className="dropdown-premium backdrop-blur-xl backdrop-saturate-150 min-w-[400px] mt-2"><div ref={Ea} className="max-h-64 overflow-y-auto no-scrollbar">{Ba.filter(r => {
+                                          const s = zt.toLowerCase(),
+                                            n = xt(s);
+                                          return r._lowName.includes(s) || r._normName.includes(n) || r._lowCode.includes(s) || r._normCode.includes(n) || r._lowActive.includes(s) || r._normActive.includes(n);
+                                        }).sort((r, s) => {
+                                          const n = zt.toLowerCase(),
+                                            l = r._lowName.startsWith(n),
+                                            d = s._lowName.startsWith(n);
+                                          return l && !d ? -1 : !l && d ? 1 : r._lowCode === n && s._lowCode !== n ? -1 : r._lowCode !== n && s._lowCode === n ? 1 : r._lowName.localeCompare(s._lowName, "vi", {
+                                            sensitivity: "base"
+                                          });
+                                        }).slice(0, 10).map((r, s) => <div key={r.id} onClick={() => {
+                                          let n = [...y];
+                                          const l = n.findIndex(u => u.cartId === t.cartId);
                                           if (l === -1) return;
-                                          const c = n[l].quantity,
-                                            x = n.findIndex((d, v) => v !== l && d.product_id === r.id);
-                                          x > -1 ? (n[x].quantity += c, n[x].secondary_qty = n[x].quantity / (n[x].multiplier || 1), n.splice(l, 1)) : n[l] = {
+                                          const d = n[l].quantity,
+                                            o = n.findIndex((u, h) => h !== l && u.product_id === r.id);
+                                          o > -1 ? (n[o].quantity += d, n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1), n.splice(l, 1)) : (n[l] = {
                                             ...n[l],
                                             product_id: r.id,
                                             product_name: r.name,
                                             unit: r.unit,
                                             secondary_unit: r.secondary_unit,
                                             multiplier: r.multiplier || 1,
-                                            price: E[r.id] !== void 0 ? E[r.id] : r.sale_price,
+                                            price: R[r.id] !== void 0 ? R[r.id] : Te === "Wholesale" && r.bulk_price || r.sale_price,
                                             cost_price: r.cost_price,
                                             latest_cost_price: r.latest_cost_price,
                                             stock: r.stock,
                                             is_combo: r.is_combo,
-                                            secondary_qty: c / (r.multiplier || 1),
+                                            secondary_qty: d / (r.multiplier || 1),
                                             active_ingredient: r.active_ingredient,
                                             latest_audit: r.latest_audit,
                                             latest_stock_entry: r.latest_stock_entry
-                                          }, S(n), at(null)
-                                        },
-                                        className: u("dropdown-item flex justify-between items-center", s === jt && "active"),
-                                        children: [e.jsxs("div", {
-                                          children: [e.jsx("div", {
-                                            className: "font-black text-gray-900 dark:text-gray-50 text-[17px] uppercase tracking-tight leading-relaxed mb-1",
-                                            children: r.name
-                                          }), e.jsxs("div", {
-                                            className: "text-[11px] text-gray-500 uppercase font-black flex items-center gap-2",
-                                            children: [e.jsxs("span", {
-                                              className: a === he ? "text-white/60" : "text-slate-500 opacity-60",
-                                              children: [Te(r.unit), " ", r.multiplier > 1 && `/ ${Te(r.secondary_unit)} (x${r.multiplier})`]
-                                            }), e.jsxs("div", {
-                                              onClick: n => {
+                                          }, delete n[l]?.ai_scanned), H(n), ct(null);
+                                        }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}><div className="flex-1 min-w-0 overflow-hidden mr-3"><Ps text={r.name} isActive={s === It} className="font-black text-gray-900 dark:text-gray-50 text-[17px] tracking-tight leading-relaxed mb-1" /><div className="text-[11px] text-gray-500 uppercase font-black flex items-center gap-2"><span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>{Ae(r.unit)} {r.multiplier > 1 && `/ ${Ae(r.secondary_unit)} (x${r.multiplier})`}</span><div onClick={n => {
                                                 n.stopPropagation();
                                                 const l = n.currentTarget.getBoundingClientRect();
-                                                _t(r), Ut({
+                                                Xt(r), za({
                                                   top: l.top,
                                                   bottom: l.bottom,
                                                   left: l.left,
                                                   right: l.right
-                                                }), pt(!0)
-                                              },
-                                              className: u("ml-auto px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5  group/stock cursor-pointer relative overflow-hidden", s === jt ? "bg-primary text-white border-primary shadow-primary/40" : r.stock <= 0 ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 dark:bg-rose-500/30" : r.stock < 10 ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 dark:bg-amber-500/30" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/40 dark:bg-emerald-500/30"),
-                                              title: "Kiểm tồn nhanh",
-                                              children: [e.jsx("div", {
-                                                className: "absolute inset-0 bg-white/20 opacity-0 group-hover/stock:opacity-100 transition-opacity"
-                                              }), e.jsxs("div", {
-                                                className: "relative flex items-center gap-1.5 transition-all duration-500",
-                                                children: [r.stock <= 0 ? e.jsx(Wa, {
-                                                  size: 12,
-                                                  strokeWidth: 3,
-                                                  className: "opacity-90"
-                                                }) : r.stock < 10 ? e.jsx(qt, {
-                                                  size: 12,
-                                                  strokeWidth: 3,
-                                                  className: "opacity-90"
-                                                }) : e.jsx(sa, {
-                                                  size: 12,
-                                                  strokeWidth: 3,
-                                                  className: "opacity-90"
-                                                }), e.jsx("span", {
-                                                  className: "tabular-nums drop-",
-                                                  children: r.stock
-                                                }), e.jsx("div", {
-                                                  className: "w-0 group-hover/stock:w-3.5 h-3.5 flex items-center justify-center opacity-0 group-hover/stock:opacity-100 transition-all duration-500 overflow-hidden",
-                                                  children: e.jsx(Rt, {
-                                                    size: 10,
-                                                    className: "group-hover/stock:rotate-180 transition-transform duration-700 ease-out text-inherit shrink-0"
-                                                  })
-                                                })]
-                                              })]
-                                            })]
-                                          })]
-                                        }), e.jsxs("div", {
-                                          className: "text-right flex flex-col items-end gap-1.5",
-                                          children: [e.jsx("div", {
-                                            className: "font-black text-[16px] text-primary dark:text-[#d4a574] leading-none",
-                                            children: I(r.sale_price)
-                                          }), e.jsxs("div", {
-                                            className: "text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500",
-                                            children: ["Nhập: ", I(r.latest_cost_price)]
-                                          })]
-                                        })]
-                                      }, r.id))
-                                    })
-                                  })
-                                }), t.is_combo && e.jsx("span", {
-                                  className: "ml-2 bg-primary/10 text-primary dark:text-[#d4a574] text-[9px] px-1.5 py-0.5 rounded font-black uppercase",
-                                  children: "Combo"
-                                }), t.active_ingredient && e.jsxs("div", {
-                                  className: "absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700",
-                                  children: [e.jsx("div", {
-                                    className: "text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1",
-                                    children: "Hoạt chất / Thành phần"
-                                  }), e.jsx("div", {
-                                    className: "text-xs font-bold leading-relaxed",
-                                    children: t.active_ingredient
-                                  })]
-                                })]
-                              })
-                            }), e.jsxs("td", {
-                              className: "py-2 px-4 text-center",
-                              children: [e.jsx("div", {
-                                className: "font-bold text-gray-700 dark:text-gray-200",
-                                children: Te(t.unit)
-                              }), t.secondary_unit && e.jsxs("div", {
-                                className: "text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap",
-                                children: ["1 ", Te(t.secondary_unit), " =", " ", t.multiplier, " ", Te(t.unit)]
-                              })]
-                            }), e.jsx("td", {
-                              className: "py-2 px-2 w-32",
-                              children: t.secondary_unit ? e.jsxs("div", {
-                                className: "flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all",
-                                children: [e.jsx("input", {
-                                  type: "number",
-                                  className: "w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]",
-                                  value: t.secondary_qty,
-                                  onFocus: r => r.target.select(),
-                                  autoComplete: "off",
-                                  onChange: r => ta(a, "secondary_qty", parseFloat(r.target.value) || 0),
-                                  onKeyDown: r => {
+                                                }), Dt(!0);
+                                              }} className={c("ml-auto px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5  group/stock cursor-pointer relative overflow-hidden", s === It ? "bg-primary text-white border-primary shadow-primary/40" : r.stock <= 0 ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 dark:bg-rose-500/30" : r.stock < 10 ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 dark:bg-amber-500/30" : "bg-primary/20 text-primary dark:text-emerald-400 border-primary/40 dark:bg-primary/30")} title="Kiểm tồn nhanh"><div className="absolute inset-0 bg-white/20 opacity-0 group-hover/stock:opacity-100 transition-opacity" /><div className="relative flex items-center gap-1.5 transition-all duration-500">{r.stock <= 0 ? <Pr size={12} strokeWidth={3} className="opacity-90" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={3} className="opacity-90" /> : <Qa size={12} strokeWidth={3} className="opacity-90" />}<span className="tabular-nums drop-">{r.stock}</span><div className="w-0 group-hover/stock:w-3.5 h-3.5 flex items-center justify-center opacity-0 group-hover/stock:opacity-100 transition-all duration-500 overflow-hidden"><Xa size={10} className="group-hover/stock:rotate-180 transition-transform duration-700 ease-out text-inherit shrink-0" /></div></div></div></div></div><div className="text-right flex flex-col items-end gap-1.5"><div className="font-black text-[16px] text-primary dark:text-[#d4a574] leading-none">{z(r.sale_price)}</div><div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Nhập: {z(r.latest_cost_price)}</div></div></div>)}</div></x.div>}</P>{t.active_ingredient && <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700"><div className="text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div><div className="text-xs font-bold leading-relaxed">{t.active_ingredient}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
-                                      s < fe.length && document.getElementById(`qty-sec-${s}`)?.focus()
+                                      s < ve.length && document.getElementById(`qty-sec-${s}`)?.focus();
                                     } else if (r.key === "ArrowUp") {
                                       r.preventDefault();
                                       const s = a - 1;
-                                      s >= 0 && document.getElementById(`qty-sec-${s}`)?.focus()
+                                      s >= 0 && document.getElementById(`qty-sec-${s}`)?.focus();
                                     }
-                                  },
-                                  id: `qty-sec-${a}`
-                                }), e.jsx("span", {
-                                  className: "text-[10px] font-black text-gray-400 uppercase pr-2",
-                                  children: Te(t.secondary_unit)
-                                })]
-                              }) : e.jsx("div", {
-                                className: "text-center text-gray-300 italic text-[10px] font-bold",
-                                children: "N/A"
-                              })
-                            }), e.jsx("td", {
-                              className: "py-2 px-2 w-24 group/qty",
-                              children: e.jsxs("div", {
-                                className: "relative w-full",
-                                children: [e.jsx("input", {
-                                  type: "number",
-                                  className: "w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-[#d4a574] shadow-none transition-all",
-                                  value: t.quantity,
-                                  onFocus: r => r.target.select(),
-                                  autoComplete: "off",
-                                  onChange: r => ta(a, "quantity", parseFloat(r.target.value) || 0),
-                                  ref: r => nn.current[t.product_id] = r,
-                                  id: `qty-main-${a}`,
-                                  onKeyDown: r => {
-                                    if (r.key === "Enter") r.preventDefault(), ue.current?.focus();
-                                    else if (r.key === "Tab") r.preventDefault(), document.getElementById(`price-${a}`)?.focus();
-                                    else if (r.key === "ArrowDown") {
+                                  }} id={`qty-sec-${a}`} /><span className="text-[10px] font-black text-gray-400 uppercase pr-2">{Ae(t.secondary_unit)}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-[#d4a574] shadow-none transition-all" value={t.quantity} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "quantity", parseFloat(r.target.value) || 0)} ref={r => Bi.current[t.product_id] = r} id={`qty-main-${a}`} onKeyDown={r => {
+                                    if (r.key === "Enter") r.preventDefault(), se.current?.focus();else if (r.key === "Tab") r.preventDefault(), document.getElementById(`price-${a}`)?.focus();else if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
-                                      s < fe.length && document.getElementById(`qty-main-${s}`)?.focus()
+                                      s < ve.length && document.getElementById(`qty-main-${s}`)?.focus();
                                     } else if (r.key === "ArrowUp") {
                                       r.preventDefault();
                                       const s = a - 1;
-                                      s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : ut.current?.focus()
+                                      s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : Pt.current?.focus();
                                     }
-                                  }
-                                }), e.jsx("button", {
-                                  tabIndex: -1,
-                                  className: "absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100",
-                                  onClick: () => ta(a, "quantity", t.quantity * -1),
-                                  title: "Đổi thành Trả Hàng (Âm)",
-                                  children: e.jsx(Ir, {
-                                    size: 10,
-                                    strokeWidth: 3
-                                  })
-                                })]
-                              })
-                            }), e.jsx("td", {
-                              className: "py-2 px-2 text-right",
-                              children: e.jsxs("div", {
-                                className: "flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]",
-                                children: [e.jsxs("div", {
-                                  className: "absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-white/85 dark:bg-slate-900/85 backdrop-blur-[32px] rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0",
-                                  children: [e.jsxs("div", {
-                                    className: "flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors",
-                                    children: [e.jsx("span", {
-                                      className: "text-[9px] uppercase font-black text-slate-500/70 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]",
-                                      children: "Vốn TB"
-                                    }), e.jsxs("span", {
-                                      className: "text-sm font-black text-indigo-600 dark:text-indigo-300 tabular-nums",
-                                      children: [I(t.cost_price), e.jsx("span", {
-                                        className: "text-[10px] ml-1 opacity-50",
-                                        children: "đ"
-                                      })]
-                                    })]
-                                  }), e.jsx("div", {
-                                    className: "w-px my-2 bg-gradient-to-b from-transparent via-black/10 dark:via-white/10 to-transparent"
-                                  }), e.jsxs("div", {
-                                    className: "flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors",
-                                    children: [e.jsx("span", {
-                                      className: "text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]",
-                                      children: "Nhập cuối"
-                                    }), e.jsxs("span", {
-                                      className: "text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums",
-                                      children: [I(t.latest_cost_price || 0), e.jsx("span", {
-                                        className: "text-[10px] ml-1 opacity-50",
-                                        children: "đ"
-                                      })]
-                                    })]
-                                  }), e.jsx("div", {
-                                    className: "absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-white/85 dark:border-t-slate-900/85"
-                                  })]
-                                }), e.jsxs("div", {
-                                  className: "relative w-full",
-                                  children: [e.jsx("input", {
-                                    type: "text",
-                                    className: u("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20"),
-                                    value: I(t.price),
-                                    onFocus: r => r.target.select(),
-                                    autoComplete: "off",
-                                    onChange: r => {
+                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
                                       const s = parseFloat(r.target.value.replace(/,/g, "")) || 0;
-                                      ta(a, "price", s)
-                                    },
-                                    onKeyDown: r => {
-                                      if (r.key === "Enter" || r.key === "Tab") {
-                                        r.preventDefault();
-                                        if (r.key === "Enter") On();
-                                        ue.current?.focus();
-                                      } else if (r.key === "ArrowDown") {
+                                      _r(a, "price", s);
+                                    }} onKeyDown={r => {
+                                      if (r.key === "Enter" || r.key === "Tab") r.preventDefault(), r.key === "Enter" && zs(), se.current?.focus();else if (r.key === "ArrowDown") {
                                         r.preventDefault();
                                         const s = a + 1;
-                                        s < fe.length && document.getElementById(`price-${s}`)?.focus()
+                                        s < ve.length && document.getElementById(`price-${s}`)?.focus();
                                       } else if (r.key === "ArrowUp") {
                                         r.preventDefault();
                                         const s = a - 1;
-                                        s >= 0 ? document.getElementById(`price-${s}`)?.focus() : ur.current?.focus()
+                                        s >= 0 ? document.getElementById(`price-${s}`)?.focus() : ms.current?.focus();
                                       }
-                                    },
-                                    id: `price-${a}`
-                                  }), t.price === 0 && e.jsx("div", {
-                                    className: "absolute inset-0 flex items-center justify-center pointer-events-none",
-                                    children: e.jsx("span", {
-                                      className: "bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider border border-rose-500/20",
-                                      children: "HÀNG TẶNG"
-                                    })
-                                  })]
-                                }), e.jsx(T, {
-                                  children: (() => {
-                                    const r = z.find(n => n.id === t.product_id),
-                                      s = t.latest_cost_price || 0;
-                                    return t.price < t.cost_price ? e.jsxs(m.div, {
-                                      initial: {
+                                    }} id={`price-${a}`} />{t.price === 0 && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider border border-rose-500/20">HÀNG TẶNG</span></div>}</div><P>{(() => {
+                                      const r = T.find(n => n.id === t.product_id),
+                                        s = t.latest_cost_price || 0;
+                                      return t.price < t.cost_price ? <x.div initial={{
                                         opacity: 0,
-                                        scale: .8,
+                                        scale: 0.8,
                                         y: -5
-                                      },
-                                      animate: {
+                                      }} animate={{
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      },
-                                      className: "bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  pointer-events-none border border-white/20",
-                                      children: [e.jsx(qt, {
-                                        size: 10,
-                                        className: "text-white"
-                                      }), e.jsxs("span", {
-                                        children: ["LỖ VỐN (THỰC TẾ:", " ", it(t.cost_price), ")"]
-                                      })]
-                                    }) : s > 0 && t.price < s && t.price >= t.cost_price ? e.jsxs(m.div, {
-                                      initial: {
+                                      }} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div> : s > 0 && t.price < s && t.price >= t.cost_price ? <x.div initial={{
                                         opacity: 0,
-                                        scale: .8,
+                                        scale: 0.8,
                                         y: -5
-                                      },
-                                      animate: {
+                                      }} animate={{
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      },
-                                      className: "bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  pointer-events-none border border-white/20",
-                                      children: [e.jsx(_s, {
-                                        size: 10,
-                                        className: "text-white"
-                                      }), e.jsxs("span", {
-                                        children: ["DƯỚI VỐN NHẬP MỚI (", it(s), ")"]
-                                      })]
-                                    }) : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? e.jsxs(m.div, {
-                                      initial: {
+                                      }} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <x.div initial={{
                                         opacity: 0,
-                                        scale: .8,
+                                        scale: 0.8,
                                         y: -5
-                                      },
-                                      animate: {
+                                      }} animate={{
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      },
-                                      className: "bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20",
-                                      children: [e.jsx(Ns, {
-                                        size: 10,
-                                        className: "text-white"
-                                      }), e.jsxs("span", {
-                                        children: ["GIÁ THẤP (", it(r.sale_price), ")"]
-                                      })]
-                                    }) : r && p && E[t.product_id] !== void 0 && t.price === r.sale_price ? e.jsxs(m.div, {
-                                      initial: {
+                                      }} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <x.div initial={{
                                         opacity: 0,
-                                        scale: .8,
+                                        scale: 0.8,
                                         y: -5
-                                      },
-                                      animate: {
+                                      }} animate={{
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      },
-                                      className: "bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20 ",
-                                      children: [e.jsx(Rt, {
-                                        size: 10,
-                                        className: "text-white"
-                                      }), e.jsx("span", {
-                                        children: "ĐỒNG BỘ GIÁ"
-                                      })]
-                                    }) : null
-                                  })()
-                                })]
-                              })
-                            }), e.jsxs("td", {
-                              className: "py-2 px-4 text-right",
-                              children: [e.jsx("div", {
-                                className: u("font-black text-lg transition-colors", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]"),
-                                children: I(t.price * t.quantity)
-                              }), t.quantity < 0 && e.jsx("span", {
-                                className: "inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1",
-                                children: "Hàng trả"
-                              })]
-                            }), e.jsx("td", {
-                              className: "py-2 px-2 text-center",
-                              children: e.jsx("button", {
-                                onClick: r => {
-                                  r.stopPropagation(), In(a)
-                                },
-                                className: "p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100",
-                                title: "Xóa dòng",
-                                children: e.jsx(Ar, {
-                                  size: 18
-                                })
-                              })
-                            })]
-                          }, t.cartId || `cart-row-${a}-${t.product_id}`))]
-                        })]
-                      })]
-                    })
-                  })
-                }), e.jsx(T, {
-                  children: !Lt && e.jsxs(e.Fragment, {
-                    children: [e.jsx(m.div, {
-                      layout: !0,
-                    initial: {
-                      scale: .5,
+                                      }} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div> : null;
+                                    })()}</P></div></td><td className="py-2 px-4 text-right"><div className={c("font-black text-lg transition-colors", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
+                                  r.stopPropagation(), bl(a);
+                                }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100" title="Xóa dòng"><Comp_pa size={18} /></button></td></x.tr>)}</P></tbody></table></div></div><P>{ea && <x.div initial={{
+                      opacity: 0
+                    }} animate={{
+                      opacity: 1
+                    }} exit={{
                       opacity: 0,
-                      x: ie.partner.x,
-                      y: ie.partner.y + 50,
-                      filter: "blur(10px)"
-                    },
-                    animate: {
-                      scale: 1,
-                      opacity: 1,
-                      x: ie.partner.x,
-                      y: ie.partner.y,
-                      filter: "blur(0.01px)"
-                    },
-                    exit: {
-                      scale: .5,
-                      opacity: 0,
-                      y: 50,
-                      filter: "blur(10px)",
                       transition: {
-                        scale: {
-                          type: "spring",
-                          stiffness: 350,
-                          damping: 25,
-                          mass: .8
-                        },
-                        opacity: {
-                          duration: .2
-                        },
-                        y: {
-                          type: "spring",
-                          stiffness: 350,
-                          damping: 25,
-                          mass: .8
-                        },
-                        filter: {
-                          duration: .2,
-                          ease: "easeOut"
-                        }
+                        duration: 0.2
                       }
-                    },
-                    drag: !0,
-                    dragConstraints: {
-                      top: -500 - ie.partner.y,
-                      left: -40 - ie.partner.x,
-                      right: 1200 - ie.partner.x,
-                      bottom: 40 - ie.partner.y
-                    },
-                    onDragEnd: (t, a) => Br("partner", a.offset),
-                    className: "absolute bottom-10 left-10 z-[110] pointer-events-none flex flex-col items-start gap-4",
-                    children: e.jsxs("div", {
-                      className: "flex items-center gap-4 pointer-events-auto",
-                      children: [e.jsxs("div", {
-                        onClick: t => {
-                          t.stopPropagation(), p ? (Ca(p), Yt(!0)) : Vt.current?.focus()
-                        },
-                        className: "flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-500 p-4 px-6 rounded-[2.5rem] border border-border/50 bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md hover:bg-[#f5eedb] dark:hover:bg-[#332a1e] hover:border-primary/30 relative overflow-hidden",
-                        children: [e.jsx(Cs, {
-                          className: "absolute -right-4 -bottom-4 w-32 h-32 text-primary/5 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none"
-                        }), e.jsxs("div", {
-                          className: "flex flex-col max-w-[300px] relative z-10",
-                          children: [e.jsx("div", {
-                            className: "text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1",
-                            children: "Đối tác / Khách hàng"
-                          }), e.jsxs("div", {
-                            className: "flex items-center gap-2 mb-2",
-                            children: [xe === 'remote_inspect' ? e.jsx("span", {
-                              className: "px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-black tracking-wider shrink-0 mt-0.5",
-                              children: "MÁY TRẠM"
-                            }) : (p && e.jsxs("span", {
-                              className: "px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px] font-black tracking-wider shrink-0 mt-0.5",
-                              children: ["ID: ", p.id]
-                            })), e.jsx("div", {
-                              className: "text-lg font-black text-foreground uppercase leading-relaxed py-1 tracking-tight truncate",
-                              children: xe === 'remote_inspect' ? (activeRemoteTerm?.partner_name || "Khách bán lẻ") : (p ? p.name : "Khách bán lẻ")
-                            })]
-                          }), displayPartner && e.jsxs("div", {
-                            className: "flex flex-col gap-1.5 w-full border-l-2 border-primary/20 pl-3 ml-1",
-                            children: [(displayPartner.phone || displayPartner.cccd) && e.jsxs("div", {
-                              className: "flex items-center gap-4 text-[11px] font-bold text-muted-foreground",
-                              children: [displayPartner.phone && e.jsxs("div", {
-                                className: "flex items-center gap-1.5",
-                                children: [e.jsx(na, {
-                                  size: 12,
-                                  className: "text-primary/70 shrink-0"
-                                }), e.jsx("span", {
-                                  className: "truncate",
-                                  children: displayPartner.phone
-                                })]
-                              }), displayPartner.cccd && e.jsxs("div", {
-                                className: "flex items-center gap-1.5",
-                                children: [e.jsx(ra, {
-                                  size: 12,
-                                  className: "text-primary/70 shrink-0"
-                                }), e.jsx("span", {
-                                  className: "truncate",
-                                  children: displayPartner.cccd
-                                })]
-                              })]
-                            }), displayPartner.address && e.jsxs("div", {
-                              className: "flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground",
-                              children: [e.jsx(Ha, {
-                                size: 12,
-                                className: "text-primary/70 shrink-0"
-                              }), e.jsx("span", {
-                                className: "truncate",
-                                children: displayPartner.address
-                              })]
-                            }), (xe === 'remote_inspect' ? (displayPartner.debt_balance || 0) : zt) !== 0 && e.jsxs("div", {
-                              className: "flex items-start gap-1.5 text-[11px] font-bold mt-0.5",
-                              children: [e.jsx(La, {
-                                size: 12,
-                                className: "text-primary/70 shrink-0 mt-0.5"
-                              }), e.jsx("span", {
-                                className: "text-muted-foreground uppercase tracking-wider text-[10px] whitespace-nowrap mt-0.5",
-                                children: "Dư nợ:"
-                              }), (() => {
-                                   if (xe === 'remote_inspect') {
-                                     const bal = displayPartner.debt_balance || 0;
-                                     return e.jsxs("span", {
-                                       className: u("font-black text-xs ml-1", bal > 0 ? "text-rose-500" : "text-emerald-500"),
-                                       children: [it(Math.abs(bal)), bal < 0 ? " (Mình nợ)" : bal > 0 ? " (Khách nợ)" : ""]
-                                     });
-                                   }
-                                   const changeVal = zt - Dt;
-                                   if (changeVal === 0) {
-                                     return e.jsxs("span", {
-                                       className: u("font-black text-xs ml-1", Dt > 0 ? "text-rose-500" : "text-emerald-500"),
-                                       children: [it(Math.abs(Dt)), Dt < 0 ? " (Mình nợ)" : Dt > 0 ? " (Khách nợ)" : ""]
-                                     });
-                                   }
-                                   return e.jsxs("span", {
-                                      className: "font-black text-xs ml-1 flex flex-col items-start gap-1",
-                                      children: [
-                                        e.jsxs("span", {
-                                          className: Dt > 0 ? "text-rose-500/80" : Dt < 0 ? "text-emerald-500/80" : "text-foreground/80",
-                                          children: [it(Math.abs(Dt)), Dt < 0 ? " (Mình nợ)" : Dt > 0 ? " (Khách nợ)" : ""]
-                                        }),
-                                        e.jsxs("div", {
-                                          className: "flex items-center gap-1.5",
-                                          children: [
-                                            e.jsx("span", {
-                                              className: "text-muted-foreground text-[10px]",
-                                              children: "➔"
-                                            }),
-                                            e.jsxs("span", {
-                                              className: zt > 0 ? "text-rose-500" : zt < 0 ? "text-emerald-500" : "text-foreground",
-                                              children: [it(Math.abs(zt)), zt < 0 ? " (Mình nợ)" : zt > 0 ? " (Khách nợ)" : ""]
-                                            })
-                                          ]
-                                        })
-                                      ]
-                                    });
-                                  })()]
-                               })]
-                             })]
-                           })]
-                         }), e.jsxs("div", {
-                           className: "relative group/note-container pointer-events-auto",
-                           children: [e.jsxs("div", {
-                             onClick: t => {
-                               t.stopPropagation(), rr(!ba)
-                             },
-                             className: u("w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md", pe ? "text-primary border-primary/50" : "text-muted dark:text-gray-400 border-white/20 dark:border-white/5", ba && "bg-white/40 dark:bg-slate-900/40 border-primary"),
-                             title: "Ghi chú hóa đơn",
-                             children: [e.jsx(ra, {
-                              size: 20,
-                              className: pe ? "text-primary" : "text-[#8b6f47]/70 dark:text-[#d4a574]/80",
-                              strokeWidth: 2.5
-                            }), pe && e.jsx("div", {
-                              className: "absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full  border border-white/50"
-                            })]
-                          }), e.jsx(T, {
-                            children: ba && e.jsxs(m.div, {
-                              initial: {
-                                opacity: 0,
-                                scale: .9,
-                                x: -20,
-                                y: 20
-                              },
-                              animate: {
-                                opacity: 1,
-                                scale: 1,
-                                x: 0,
-                                y: 0
-                              },
-                              exit: {
-                                opacity: 0,
-                                scale: .9,
-                                x: -20,
-                                y: 20
-                              },
-                              onClick: t => t.stopPropagation(),
-                              className: "absolute bottom-full left-0 mb-4 w-[280px] bg-transparent p-4 rounded-2xl  border border-[#8b6f47]/20 dark:border-white/10 z-[100]",
-                              children: [e.jsxs("div", {
-                                className: "flex justify-between items-center mb-2",
-                                children: [e.jsx("div", {
-                                  className: "text-[10px] font-black text-[#8b6f47]/60 dark:text-[#d4a574]/60 uppercase tracking-widest",
-                                  children: "Ghi chú đơn"
-                                }), e.jsx("button", {
-                                  onClick: t => {
-                                    t.stopPropagation(), rr(!1)
-                                  },
-                                  className: "text-muted-foreground hover:text-primary transition-colors",
-                                  children: e.jsx(Se, {
-                                    size: 14,
-                                    strokeWidth: 3
-                                  })
-                                })]
-                              }), e.jsx("textarea", {
-                                autoFocus: !0,
-                                placeholder: "Nhập ghi chú cho hóa đơn này...",
-                                rows: 3,
-                                className: "w-full px-4 py-3 bg-[#f9f8f6] dark:bg-slate-900 border border-[#8b6f47]/10 dark:border-white/5 rounded-[1rem] text-sm font-bold outline-none focus:ring-2 focus:ring-primary/30 transition-all resize-none shadow-none custom-scrollbar dark:text-white",
-                                value: pe,
-                                onChange: t => Ve(t.target.value)
-                              })]
-                            })
-                          })]
-                        }), e.jsxs("div", {
-                          className: "relative group/ship-container pointer-events-auto",
-                          children: [e.jsxs("div", {
-                            onClick: t => {
-                              t.stopPropagation(), Ee ? mt(null) : (mt("Shipping"), p && (St(p.address || ""), It(p.phone || "")))
-                            },
-                            className: u("w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md", Ee ? "text-emerald-600 border-emerald-500 shadow-emerald-500/20" : "text-muted dark:text-gray-400 border-white/20 dark:border-white/5"),
-                            title: "Giao hàng tận nơi",
-                            children: [e.jsx(lt, {
-                              size: 20,
-                              strokeWidth: 2.5,
-                              className: Ee ? "text-emerald-600" : "text-[#8b6f47]/70 dark:text-[#d4a574]/80"
-                            }), Ee && e.jsx("div", {
-                              className: "absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800"
-                            })]
-                          }), e.jsx(T, {
-                            children: Ee && e.jsxs(m.div, {
-                              initial: {
-                                opacity: 0,
-                                scale: .9,
-                                x: -20,
-                                y: 20
-                              },
-                              animate: {
-                                opacity: 1,
-                                scale: 1,
-                                x: 0,
-                                y: 0
-                              },
-                              exit: {
-                                opacity: 0,
-                                scale: .9,
-                                x: -20,
-                                y: 20
-                              },
-                              onClick: t => t.stopPropagation(),
-                              className: "absolute bottom-full left-0 mb-4 w-[320px] bg-transparent p-5 rounded-[2rem]  border border-emerald-500/20 z-[100]",
-                              children: [e.jsxs("div", {
-                                className: "flex justify-between items-center mb-4",
-                                children: [e.jsxs("div", {
-                                  className: "flex items-center gap-2",
-                                  children: [e.jsx(lt, {
-                                    size: 16,
-                                    className: "text-emerald-500"
-                                  }), e.jsx("div", {
-                                    className: "text-[10px] font-black text-emerald-600 uppercase tracking-widest",
-                                    children: "Thông tin giao hàng"
-                                  })]
-                                }), e.jsx("button", {
-                                  onClick: t => {
-                                    t.stopPropagation(), mt(null)
-                                  },
-                                  className: "text-muted-foreground hover:text-rose-500 transition-colors",
-                                  children: e.jsx(Se, {
-                                    size: 14,
-                                    strokeWidth: 3
-                                  })
-                                })]
-                              }), e.jsxs("div", {
-                                className: "space-y-4",
-                                children: [e.jsxs("div", {
-                                  className: "space-y-1",
-                                  children: [e.jsx("label", {
-                                    className: "text-[9px] font-black uppercase text-gray-400 ml-1",
-                                    children: "Địa chỉ giao hàng"
-                                  }), e.jsx("textarea", {
-                                    placeholder: "Nhập địa chỉ nhận hàng...",
-                                    rows: 2,
-                                    className: "w-full px-4 py-3 bg-transparent border border-emerald-500/10 dark:border-white/5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all resize-none dark:text-white",
-                                    value: Sa,
-                                    onChange: t => St(t.target.value)
-                                  })]
-                                }), e.jsxs("div", {
-                                  className: "space-y-1",
-                                  children: [e.jsx("label", {
-                                    className: "text-[9px] font-black uppercase text-gray-400 ml-1",
-                                    children: "Số điện thoại nhận"
-                                  }), e.jsxs("div", {
-                                    className: "relative",
-                                    children: [e.jsx(na, {
-                                      size: 12,
-                                      className: "absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
-                                    }), e.jsx("input", {
-                                      type: "text",
-                                      placeholder: "SĐT người nhận...",
-                                      className: "w-full h-10 pl-9 pr-4 bg-transparent border border-emerald-500/10 dark:border-white/5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all dark:text-white",
-                                      value: Ia,
-                                      onChange: t => It(t.target.value)
-                                    })]
-                                  })]
-                                })]
-                              })]
-                            })
-                          })]
-                        })]
-                      })
-                    }), e.jsxs(m.div, {
-                      layout: !0,
-                      initial: {
-                        scale: .5,
-                        opacity: 0,
-                        x: ie.total.x,
-                        y: ie.total.y + 50,
-                        filter: "blur(10px)"
-                      },
-                      animate: {
+                    }} className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl backdrop-blur-sm bg-transparent flex items-center justify-center p-4"><x.div initial={{
+                        scale: 0.95,
+                        opacity: 0
+                      }} animate={{
                         scale: 1,
-                        opacity: 1,
-                        x: ie.total.x,
-                        y: ie.total.y,
-                        filter: "blur(0.01px)"
-                      },
-                      exit: {
-                        scale: .5,
+                        opacity: 1
+                      }} exit={{
+                        scale: 0.98,
                         opacity: 0,
-                        y: 50,
-                        filter: "blur(10px)"
-                      },
-                      transition: {
-                        scale: {
-                          type: "spring",
-                          stiffness: 350,
-                          damping: 25,
-                          mass: .8
-                        },
-                        opacity: {
-                          duration: .2
-                        },
-                        y: {
-                          type: "spring",
-                          stiffness: 350,
-                          damping: 25,
-                          mass: .8
-                        },
-                        filter: {
-                          duration: .2,
-                          ease: "easeOut"
+                        transition: {
+                          duration: 0.15
                         }
+                      }} transition={{
+                        duration: 0.2,
+                        ease: "easeOut"
+                      }} className="bg-[#fbf8f2] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl rounded-3xl p-5 md:p-7 flex flex-col items-center gap-2.5 text-center max-w-xs sm:max-w-sm w-full mx-auto relative overflow-hidden pointer-events-auto"><svg className="absolute inset-0 w-full h-full pointer-events-none z-20"><x.rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="23" fill="none" stroke="#10b981" strokeWidth="2" pathLength="100" strokeDasharray="25 75" initial={{
+                            strokeDashoffset: 100
+                          }} animate={{
+                            strokeDashoffset: 0
+                          }} transition={{
+                            duration: 1.6,
+                            ease: "easeInOut"
+                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[120px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P></div></div><P>{Ze === "sidebar" && !ka && <><x.div layout={!0} initial={{
+                    scale: 0.5,
+                    opacity: 0,
+                    x: Se.partner.x,
+                    y: Se.partner.y + 50,
+                    filter: "blur(10px)"
+                  }} animate={{
+                    scale: 1,
+                    opacity: 1,
+                    x: Se.partner.x,
+                    y: Se.partner.y,
+                    filter: "blur(0.01px)"
+                  }} exit={{
+                    scale: 0.5,
+                    opacity: 0,
+                    y: 50,
+                    filter: "blur(10px)",
+                    transition: {
+                      scale: {
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 25,
+                        mass: 0.8
                       },
-                      drag: !0,
-                      dragConstraints: {
-                        top: -800 - ie.total.y,
-                        left: -1200 - ie.total.x,
-                        right: 40 - ie.total.x,
-                        bottom: 40 - ie.total.y
+                      opacity: {
+                        duration: 0.2
                       },
-                      onDragEnd: (t, a) => Br("total", a.offset),
-                      className: "absolute bottom-10 right-10 z-[110] pointer-events-none flex items-center gap-4",
-                      children: [D === "Cash" && e.jsxs("div", {
-                        className: "pointer-events-auto flex items-center pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md p-4 pr-8 rounded-[2.5rem]  group/cash-calculator relative min-w-[220px] hover:scale-105 transition-all duration-500",
-                        children: [e.jsx("div", {
-                          className: "w-12 h-12 bg-primary/10 dark:bg-emerald-500/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-emerald-400  group-hover/cash-calculator:rotate-12 transition-transform",
-                          children: e.jsx(bt, {
-                            size: 24
-                          })
-                        }), e.jsxs("div", {
-                          className: "flex flex-col ml-4",
-                          children: [e.jsx("span", {
-                            className: "text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-400/80 mb-0.5 whitespace-nowrap",
-                            children: "Khách đưa (F1)"
-                          }), e.jsxs("div", {
-                            className: "flex items-center gap-3",
-                            children: [e.jsxs("div", {
-                              className: "relative flex items-center min-w-[80px] group/input-wrapper h-full",
-                              children: [e.jsx("span", {
-                                className: "invisible whitespace-pre font-black text-2xl px-1 pointer-events-none tabular-nums select-none",
-                                children: I(ne) || "0"
-                              }), e.jsx("input", {
-                                id: "cash-given-compact",
-                                ref: _a,
-                                type: "text",
-                                className: "absolute inset-0 w-full h-full bg-transparent border-b-2 border-primary/20 focus:border-primary dark:focus:border-emerald-450 outline-none font-black text-2xl text-gray-900 dark:text-white p-0 tabular-nums transition-all z-10",
-                                value: I(ne),
-                                autoComplete: "off",
-                                onChange: t => Xe(parseFloat(t.target.value.replace(/,/g, "")) || 0),
-                                onFocus: t => t.target.select()
-                              })]
-                            }), ne > 0 && e.jsxs("div", {
-                              className: "flex flex-col items-end min-w-[100px] border-l border-primary/10 dark:border-emerald-500/10 pl-4 py-1",
-                              children: [e.jsx("span", {
-                                className: "text-[9px] font-black text-primary/60 dark:text-emerald-400/60 uppercase leading-none mb-1 whitespace-nowrap",
-                                children: "Tiền thối"
-                              }), e.jsx("span", {
-                                className: u("text-2xl font-black tabular-nums transition-colors", ne > A ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50"),
-                                children: I(Math.max(0, ne - A))
-                              })]
-                            })]
-                          })]
-                        })]
-                      }), (p || xe === 'remote_inspect') && e.jsxs("div", {
-                        className: "w-[180px] pointer-events-auto flex items-center pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md p-1.5 rounded-[2.5rem]  group/payment-toggle relative h-[75px] transition-all duration-500",
-                        children: [e.jsx(m.div, {
-                          layout: !0,
-                          className: "absolute inset-y-1.5 bg-[#059669] rounded-[2rem]  z-0",
-                          style: {
-                            width: "calc(50% - 6px)",
-                            left: (xe === 'remote_inspect' ? (activeRemoteTerm?.payment_method || 'Cash') : D) === "Cash" ? "6px" : "calc(50%)"
-                          },
-                          transition: {
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 30
-                          }
-                        }), e.jsxs("button", {
-                          onClick: t => {
-                            t.stopPropagation(), me("Cash"), J(A)
-                          },
-                          className: u("flex-1 h-full rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", D === "Cash" ? "text-white" : "text-slate-400 hover:text-primary dark:hover:text-emerald-400"),
-                          children: [e.jsx(bt, {
-                            size: 14,
-                            className: u(D === "Cash" ? "opacity-100" : "opacity-40")
-                          }), e.jsx("span", {
-                            className: "text-[10px] font-black uppercase tracking-wider",
-                            children: "Tiền mặt"
-                          })]
-                        }), e.jsxs("button", {
-                          onClick: t => {
-                            t.stopPropagation(), me("Debt"), J(0)
-                          },
-                          className: u("flex-1 h-full rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", D === "Debt" ? "text-white" : "text-slate-400 hover:text-primary dark:hover:text-emerald-400"),
-                          children: [e.jsx(Ot, {
-                            size: 14,
-                            className: u(D === "Debt" ? "opacity-100" : "opacity-40")
-                          }), e.jsx("span", {
-                            className: "text-[10px] font-black uppercase tracking-wider",
-                            children: "Ghi nợ"
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        onMouseDown: rs,
-                        onMouseUp: br,
-                        onMouseLeave: br,
-                        onTouchStart: rs,
-                        onTouchEnd: br,
-                        className: "px-10 py-6 rounded-[2.5rem] border border-border/50 bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md hover:bg-[#f5eedb] dark:hover:bg-[#332a1e] flex flex-col items-end group/total pointer-events-auto relative overflow-hidden",
-                        children: [e.jsx(La, {
-                          className: "absolute -left-8 -bottom-8 w-40 h-40 text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none"
-                        }), e.jsxs("div", {
-                          className: "flex items-center gap-2 mb-1 z-10 relative",
-                          children: [e.jsx("div", {
-                            className: "w-1.5 h-1.5 rounded-full bg-emerald-500"
-                          }), e.jsx("span", {
-                            className: "text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5",
-                            children: "Tổng cộng thanh toán"
-                          })]
-                        }), e.jsxs("div", {
-                          className: "text-4xl font-black tracking-tighter tabular-nums text-foreground flex items-baseline gap-1 z-10 relative",
-                          children: [I(xe === 'remote_inspect' ? (activeRemoteTerm?.total_amount || (activeRemoteTerm?.cart || []).reduce((sum, item) => sum + (item.price || item.sale_price || 0) * (item.quantity || 1), 0)) : A), e.jsx("span", {
-                            className: "text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-1",
-                            children: "đ"
-                          })]
-                        }), pn && (b.some(t => t.product_id !== null) || o.product && o.product.id !== null) && e.jsxs("div", {
-                          className: "mt-2 px-4 py-2 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-[1rem] flex items-center gap-2 border border-emerald-500/20 scale-105 z-10 relative",
-                          children: [e.jsx(_s, {
-                            size: 14,
-                            className: "text-emerald-600 dark:text-emerald-400"
-                          }), e.jsxs("span", {
-                            className: "text-[11px] font-black uppercase tracking-tight",
-                            children: ["Lợi nhuận: ", I(yn), "đ"]
-                          })]
-                        })]
-                      })]
-                    }, "total-bubble")]
-                  })
-                })]
-              })
-            })
-          }), Lt && e.jsx("div", {
-            onMouseDown: Pn,
-            className: u("w-1.5 h-full cursor-col-resize transition-all hover:bg-primary/20 flex items-center justify-center group relative z-[600]", Ht && "bg-primary/30"),
-            children: e.jsx("div", {
-              className: "w-0.5 h-12 bg-slate-300 dark:bg-slate-700 rounded-full group-hover:bg-primary/50 transition-colors"
-            })
-          }), e.jsx(m.div, {
-            initial: !1,
-            animate: {
-              width: Lt ? `${100-Fr-1}%` : "90px"
-            },
-            transition: Ht ? {
+                      y: {
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 25,
+                        mass: 0.8
+                      },
+                      filter: {
+                        duration: 0.2,
+                        ease: "easeOut"
+                      }
+                    }
+                  }} drag={!0} dragConstraints={{
+                    top: -500 - Se.partner.y,
+                    left: -40 - Se.partner.x,
+                    right: 1200 - Se.partner.x,
+                    bottom: 40 - Se.partner.y
+                  }} onDragEnd={(t, a) => rn("partner", a.offset)} className="absolute bottom-10 left-10 z-[110] pointer-events-none flex flex-col items-start gap-4"><div className="flex items-center gap-4 pointer-events-auto"><div onClick={t => {
+                        t.stopPropagation(), p ? (fr(p), Oa(!0)) : Et.current?.focus();
+                      }} className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-500 p-4 px-6 rounded-[2.5rem] border border-border/50 bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md hover:bg-[#f5eedb] dark:hover:bg-[#332a1e] hover:border-primary/30 relative overflow-hidden"><Gn className="absolute -right-4 -bottom-4 w-32 h-32 text-primary/5 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" /><div className="flex flex-col max-w-[300px] relative z-10"><div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">Đối tác / Khách hàng</div><div className="flex items-center gap-2 mb-2">{g === "remote_inspect" ? <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-black tracking-wider shrink-0 mt-0.5">MÁY TRẠM</span> : p && <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-[10px] font-black tracking-wider shrink-0 mt-0.5">ID: {p.id}</span>}<div className="text-lg font-black text-foreground uppercase leading-relaxed py-1 tracking-tight truncate">{g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}</div></div>{Pe && <div className="flex flex-col gap-1.5 w-full border-l-2 border-primary/20 pl-3 ml-1">{(Pe.phone || Pe.cccd) && <div className="flex items-center gap-4 text-[11px] font-bold text-muted-foreground">{Pe.phone && <div className="flex items-center gap-1.5"><Mr size={12} className="text-primary/70 shrink-0" /><span className="truncate">{Pe.phone}</span></div>}{Pe.cccd && <div className="flex items-center gap-1.5"><Comp_ca size={12} className="text-primary/70 shrink-0" /><span className="truncate">{Pe.cccd}</span></div>}</div>}{Pe.address && <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground"><Us size={12} className="text-primary/70 shrink-0" /><span className="truncate">{Pe.address}</span></div>}{(g === "remote_inspect" ? Pe.debt_balance || 0 : it) !== 0 && <div className="flex items-start gap-1.5 text-[11px] font-bold mt-0.5"><Va size={12} className="text-primary/70 shrink-0 mt-0.5" /><span className="text-muted-foreground uppercase tracking-wider text-[10px] whitespace-nowrap mt-0.5">Dư nợ:</span>{(() => {
+                                if (g === "remote_inspect") {
+                                  const a = Pe.debt_balance || 0;
+                                  return <span className={c("font-black text-xs ml-1", a > 0 ? "text-rose-500" : "text-emerald-500")}>{lt(Math.abs(a))}{a < 0 ? " (Mình nợ)" : a > 0 ? " (Khách nợ)" : ""}</span>;
+                                }
+                                return it - de === 0 ? <span className={c("font-black text-xs ml-1", de > 0 ? "text-rose-500" : "text-emerald-500")}>{lt(Math.abs(de))}{de < 0 ? " (Mình nợ)" : de > 0 ? " (Khách nợ)" : ""}</span> : <span className="font-black text-xs ml-1 flex flex-col items-start gap-1"><span className={de > 0 ? "text-rose-500/80" : de < 0 ? "text-emerald-500/80" : "text-foreground/80"}>{lt(Math.abs(de))}{de < 0 ? " (Mình nợ)" : de > 0 ? " (Khách nợ)" : ""}</span><div className="flex items-center gap-1.5"><span className="text-muted-foreground text-[10px]">➔</span><span className={it > 0 ? "text-rose-500" : it < 0 ? "text-emerald-500" : "text-foreground"}>{lt(Math.abs(it))}{it < 0 ? " (Mình nợ)" : it > 0 ? " (Khách nợ)" : ""}</span></div></span>;
+                              })()}</div>}</div>}</div></div><div className="relative group/note-container pointer-events-auto"><div onClick={t => {
+                          t.stopPropagation(), as(!lr);
+                        }} className={c("w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md", K ? "text-primary border-primary/50" : "text-muted dark:text-gray-400 border-white/20 dark:border-white/5", lr && "bg-white/40 dark:bg-slate-900/40 border-primary")} title="Ghi chú hóa đơn"><Comp_ca size={20} className={K ? "text-primary" : "text-[#8b6f47]/70 dark:text-[#d4a574]/80"} strokeWidth={2.5} />{K && <div className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full  border border-white/50" />}</div><P>{lr && <x.div initial={{
+                            opacity: 0,
+                            scale: 0.9,
+                            x: -20,
+                            y: 20
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1,
+                            x: 0,
+                            y: 0
+                          }} exit={{
+                            opacity: 0,
+                            scale: 0.9,
+                            x: -20,
+                            y: 20
+                          }} onClick={t => t.stopPropagation()} className="absolute bottom-full left-0 mb-4 w-[280px] bg-transparent p-4 rounded-2xl  border border-[#8b6f47]/20 dark:border-white/10 z-[100]"><div className="flex justify-between items-center mb-2"><div className="text-[10px] font-black text-[#8b6f47]/60 dark:text-[#d4a574]/60 uppercase tracking-widest">Ghi chú đơn</div><button onClick={t => {
+                                t.stopPropagation(), as(!1);
+                              }} className="text-muted-foreground hover:text-primary transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><textarea autoFocus={!0} placeholder="Nhập ghi chú cho hóa đơn này..." rows={3} className="w-full px-4 py-3 bg-[#f9f8f6] dark:bg-slate-900 border border-[#8b6f47]/10 dark:border-white/5 rounded-[1rem] text-sm font-bold outline-none focus:ring-2 focus:ring-primary/30 transition-all resize-none shadow-none custom-scrollbar dark:text-white" value={K} onChange={t => $e(t.target.value)} /></x.div>}</P></div><div className="relative group/ship-container pointer-events-auto"><div onClick={t => {
+                          t.stopPropagation(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
+                        }} className={c("w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95 pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md", tt ? "text-emerald-600 border-emerald-500 shadow-emerald-500/20" : "text-muted dark:text-gray-400 border-white/20 dark:border-white/5")} title="Giao hàng tận nơi"><Comp_u_t size={20} strokeWidth={2.5} className={tt ? "text-emerald-600" : "text-[#8b6f47]/70 dark:text-[#d4a574]/80"} />{tt && <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800" />}</div><P>{tt && <x.div initial={{
+                            opacity: 0,
+                            scale: 0.9,
+                            x: -20,
+                            y: 20
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1,
+                            x: 0,
+                            y: 0
+                          }} exit={{
+                            opacity: 0,
+                            scale: 0.9,
+                            x: -20,
+                            y: 20
+                          }} onClick={t => t.stopPropagation()} className="absolute bottom-full left-0 mb-4 w-[320px] bg-transparent p-5 rounded-[2rem]  border border-emerald-500/20 z-[100]"><div className="flex justify-between items-center mb-4"><div className="flex items-center gap-2"><Comp_u_t size={16} className="text-emerald-500" /><div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Thông tin giao hàng</div></div><button onClick={t => {
+                                t.stopPropagation(), qt(null);
+                              }} className="text-muted-foreground hover:text-rose-500 transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><div className="space-y-4"><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Địa chỉ giao hàng</label><textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-transparent border border-emerald-500/10 dark:border-white/5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all resize-none dark:text-white" value={vr} onChange={t => ra(t.target.value)} /></div><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Số điện thoại nhận</label><div className="relative"><Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" /><input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-transparent border border-emerald-500/10 dark:border-white/5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all dark:text-white" value={kr} onChange={t => sa(t.target.value)} /></div></div></div></x.div>}</P></div></div></x.div><x.div key="total-bubble" layout={!0} initial={{
+                    scale: 0.5,
+                    opacity: 0,
+                    x: Se.total.x,
+                    y: Se.total.y + 50,
+                    filter: "blur(10px)"
+                  }} animate={{
+                    scale: 1,
+                    opacity: 1,
+                    x: Se.total.x,
+                    y: Se.total.y,
+                    filter: "blur(0.01px)"
+                  }} exit={{
+                    scale: 0.5,
+                    opacity: 0,
+                    y: 50,
+                    filter: "blur(10px)"
+                  }} transition={{
+                    scale: {
+                      type: "spring",
+                      stiffness: 350,
+                      damping: 25,
+                      mass: 0.8
+                    },
+                    opacity: {
+                      duration: 0.2
+                    },
+                    y: {
+                      type: "spring",
+                      stiffness: 350,
+                      damping: 25,
+                      mass: 0.8
+                    },
+                    filter: {
+                      duration: 0.2,
+                      ease: "easeOut"
+                    }
+                  }} drag={!0} dragConstraints={{
+                    top: -800 - Se.total.y,
+                    left: -1200 - Se.total.x,
+                    right: 40 - Se.total.x,
+                    bottom: 40 - Se.total.y
+                  }} onDragEnd={(t, a) => rn("total", a.offset)} className="absolute bottom-10 right-10 z-[110] pointer-events-none flex items-center gap-4">{I === "Cash" && <div className="pointer-events-auto flex items-center pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md p-4 pr-8 rounded-[2.5rem]  group/cash-calculator relative min-w-[220px] hover:scale-105 transition-all duration-500"><div className="w-12 h-12 bg-primary/10 dark:bg-emerald-500/10 border border-primary/20 rounded-2xl flex items-center justify-center text-primary dark:text-emerald-400  group-hover/cash-calculator:rotate-12 transition-transform"><Comp_oa size={24} /></div><div className="flex flex-col ml-4"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-400/80 mb-0.5 whitespace-nowrap">Khách đưa (F1)</span><div className="flex items-center gap-3"><div className="relative flex items-center min-w-[80px] group/input-wrapper h-full"><span className="invisible whitespace-pre font-black text-2xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span><input id="cash-given-compact" ref={xr} type="text" className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-primary/20 focus:border-primary dark:focus:border-emerald-450 outline-none font-black text-2xl text-gray-900 dark:text-white p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} /></div>{V > 0 && <div className="flex flex-col items-end min-w-[100px] border-l border-primary/10 dark:border-emerald-500/10 pl-4 py-1"><span className="text-[9px] font-black text-primary/60 dark:text-emerald-400/60 uppercase leading-none mb-1 whitespace-nowrap">Tiền thối</span><span className={c("text-2xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span></div>}</div></div></div>}{(p || g === "remote_inspect") && <div className="w-[180px] pointer-events-auto flex items-center pos-card bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md p-1.5 rounded-[2.5rem]  group/payment-toggle relative h-[75px] transition-all duration-500"><x.div layout={!0} className="absolute inset-y-1.5 bg-[#059669] rounded-[2rem]  z-0" style={{
+                        width: "calc(50% - 6px)",
+                        left: (g === "remote_inspect" ? k?.payment_method || "Cash" : I) === "Cash" ? "6px" : "calc(50%)"
+                      }} transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30
+                      }} /><button onClick={t => {
+                        t.stopPropagation(), ge("Cash"), re($);
+                      }} className={c("flex-1 h-full rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Cash" ? "text-white" : "text-slate-400 hover:text-primary dark:hover:text-emerald-400")}><Comp_oa size={14} className={c(I === "Cash" ? "opacity-100" : "opacity-40")} /><span className="text-[10px] font-black uppercase tracking-wider">Tiền mặt</span></button><button onClick={t => {
+                        t.stopPropagation(), ge("Debt"), re(0);
+                      }} className={c("flex-1 h-full rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Debt" ? "text-white" : "text-slate-400 hover:text-primary dark:hover:text-emerald-400")}><Comp_ua size={14} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} /><span className="text-[10px] font-black uppercase tracking-wider">Ghi nợ</span></button></div>}<div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} className="px-10 py-6 rounded-[2.5rem] border border-border/50 bg-[#f8f4e8]/95 dark:bg-[#2a2217]/95 backdrop-blur-md hover:bg-[#f5eedb] dark:hover:bg-[#332a1e] flex flex-col items-end group/total pointer-events-auto relative overflow-hidden"><Va className="absolute -left-8 -bottom-8 w-40 h-40 text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" /><div className="flex items-center gap-2 mb-1 z-10 relative"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /><span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">Tổng cộng thanh toán</span></div><div className="text-4xl font-black tracking-tighter tabular-nums text-foreground flex items-baseline gap-1 z-10 relative">{z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}<span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-1">đ</span></div>{Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && <div className="mt-2 px-4 py-2 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-[1rem] flex items-center gap-2 border border-emerald-500/20 scale-105 z-10 relative"><Kn size={14} className="text-emerald-600 dark:text-emerald-400" /><span className="text-[11px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span></div>}</div></x.div></>}</P>{Ze === "bottom" && (() => {
+                const t = k?.total_amount || (k?.cart || []).reduce((S, w) => S + (Number(w.price || w.sale_price) || 0) * (Number(w.quantity) || 1), 0),
+                  a = g === "remote_inspect" ? Pe || k?.partner : p,
+                  r = g === "remote_inspect" ? k?.partner_name || a?.name || "Khách máy trạm" : p ? p.name : "Khách bán lẻ",
+                  s = a?.debt_balance || 0,
+                  n = g === "remote_inspect" ? k?.payment_method || "Cash" : I,
+                  l = g === "remote_inspect" ? t : $,
+                  d = g === "remote_inspect" ? (k?.cart || []).length : y.length,
+                  o = g === "remote_inspect" ? n === "Cash" ? l : k?.amount_paid || 0 : oe,
+                  u = g === "remote_inspect" ? k?.cash_given || 0 : V,
+                  h = g === "remote_inspect" ? s : de,
+                  b = g === "remote_inspect" ? n === "Debt" ? h + (l >= 0 ? l - o : l + o) : h : it;
+                return <div style={{
+                  minHeight: `${Jr}px`,
+                  height: `${Jr}px`
+                }} className={c("relative mt-1 bg-transparent border-0 rounded-[1.5rem] p-1 shadow-none shrink-0 no-print flex flex-col justify-center overflow-hidden transition-[height] duration-75", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
+                    Yr(105), localStorage.setItem("pos_bottom_summary_height", "105");
+                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch w-full h-full"><x.div initial={{
+                      opacity: 0,
+                      y: 10
+                    }} animate={{
+                      opacity: 1,
+                      y: 0
+                    }} transition={{
+                      duration: 0.3
+                    }} className="md:col-span-2 flex flex-col justify-between gap-1.5 min-w-0 h-full"><div onClick={() => {
+                        a ? kt(!0) : zt.current?.focus();
+                      }} className={c("flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card", s > 0 ? "bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-transparent border-rose-500/30 text-rose-700 dark:text-rose-300 shadow-rose-500/5" : s < 0 ? "bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-transparent border-emerald-500/30 text-emerald-700 dark:text-emerald-400 shadow-emerald-500/5" : "bg-black/[0.03] dark:bg-white/[0.03] border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40")} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.11] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">Dư nợ</span>{a && s !== 0 && <x.span initial={{
+                            opacity: 0,
+                            scale: 0.8
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal", s > 0 ? "bg-rose-500 text-white shadow-sm shadow-rose-500/20" : "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><x.div key={Math.abs(s || 0)} initial={{
+                          opacity: 0,
+                          y: -3
+                        }} animate={{
+                          opacity: 1,
+                          y: 0
+                        }} transition={{
+                          duration: 0.25
+                        }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 transition-colors duration-300 relative z-10", s > 0 ? "text-rose-600 dark:text-rose-400" : s < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span></x.div></div><div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5"><button onClick={() => ja(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] text-[9px] font-black hover:bg-[#8b6f47]/15 dark:hover:bg-white/10 transition-all text-center tracking-wider shadow-sm hover:scale-[1.02] active:scale-[0.98] group/sno" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] text-[9px] font-black hover:bg-[#8b6f47]/15 dark:hover:bg-white/10 transition-all text-center tracking-wider shadow-sm hover:scale-[1.02] active:scale-[0.98] group/thuchi" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
+                      opacity: 0,
+                      y: 10
+                    }} animate={{
+                      opacity: 1,
+                      y: 0
+                    }} transition={{
+                      duration: 0.3,
+                      delay: 0.05
+                    }} className="md:col-span-3 flex flex-col justify-between gap-1.5 h-full"><div className="flex-1 min-h-[30px] max-h-9 flex items-stretch w-full gap-1.5"><button onClick={() => {
+                          g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
+                            ...w,
+                            payment_method: "Cash"
+                          } : w)), M.post("/api/pos/terminal-state/edit-cart", {
+                            terminal_id: q,
+                            payment_method: "Cash",
+                            cart: k?.cart || []
+                          }).catch(() => {})) : (ge("Cash"), re($));
+                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/cash", n === "Cash" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-600/30 border border-emerald-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none", n === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Do size={34} strokeWidth={1.8} /></div><span className="relative z-10">TIỀN MẶT</span></button><button onClick={() => {
+                          g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
+                            ...w,
+                            payment_method: "Debt"
+                          } : w)), M.post("/api/pos/terminal-state/edit-cart", {
+                            terminal_id: q,
+                            payment_method: "Debt",
+                            cart: k?.cart || []
+                          }).catch(() => {})) : (ge("Debt"), re(0));
+                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/debt", n === "Debt" ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-rose-600/30 border border-rose-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none", n === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Po size={34} strokeWidth={1.8} /></div><span className="relative z-10">CÔNG NỢ</span></button><button onClick={() => ge("Transfer")} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/ck", n === "Transfer" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30 border border-blue-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none", n === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Es size={34} strokeWidth={1.8} /></div><span className="relative z-10">C/K</span></button></div>{n === "Transfer" ? <Comp_zn className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-black/[0.02] dark:bg-white/[0.02] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-sm" value={ss} onChange={S => ns(S.target.value)} options={ln.map(S => ({
+                        value: S.id,
+                        label: `${S.bank_name} - ${S.account_number}`
+                      }))} /> : <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-[#8b6f47]/20 dark:border-white/10 shadow-sm focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/15 group/pay-input transition-all duration-300"><div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-[#8b6f47] dark:text-[#d4a574] pointer-events-none -rotate-6 select-none overflow-hidden"><Comp_ca size={42} strokeWidth={1.5} /></div><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#8b6f47]/70 dark:text-[#d4a574]/70 uppercase tracking-widest pointer-events-none z-10">Thanh toán:</span><input type="text" readOnly={n === "Cash" || n === "Pending" || g === "remote_inspect"} className={c("w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10", n === "Cash" || n === "Pending" || g === "remote_inspect" ? "text-[#2d5016]/70 dark:text-emerald-400/70 cursor-not-allowed" : "text-[#2d5016] dark:text-emerald-400")} value={z(o)} onChange={S => re(parseFloat(S.target.value.replace(/,/g, "")) || 0)} />{g !== "remote_inspect" && (n === "Debt" || n === "Transfer" || n === "Combined" || I === "Debt" || I === "Transfer") && <button type="button" onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-md transition-all duration-200 active:scale-95 z-30 cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</button>}</div>}</x.div><x.div initial={{
+                      opacity: 0,
+                      y: 10
+                    }} animate={{
+                      opacity: 1,
+                      y: 0
+                    }} transition={{
+                      duration: 0.3,
+                      delay: 0.1
+                    }} className="md:col-span-3 h-full p-2 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-sm hover:border-[#8b6f47]/40 transition-all duration-300 relative overflow-hidden group/debt-change"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-[#8b6f47]/80 dark:text-[#d4a574]/80 uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <x.span initial={{
+                          opacity: 0,
+                          scale: 0.85
+                        }} animate={{
+                          opacity: 1,
+                          scale: 1
+                        }} className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 leading-normal">Thối lại</x.span> : <x.span key={b > h ? "up" : b < h ? "down" : "same"} initial={{
+                          opacity: 0,
+                          scale: 0.85
+                        }} animate={{
+                          opacity: 1,
+                          scale: 1
+                        }} className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal", b > h ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : b < h ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-black/[0.05] dark:bg-white/[0.05] text-slate-500")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</x.span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase shrink-0 leading-normal">Hết nợ</span>}</div><x.div key={Math.abs(h)} initial={{
+                            opacity: 0,
+                            scale: 0.95
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.25
+                          }} className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-slate-400")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><x.div key={u > l ? Math.max(0, u - l) : Math.abs(b)} initial={{
+                            opacity: 0,
+                            scale: 0.95
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.25
+                          }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", u > l ? "text-amber-700 dark:text-amber-400" : b > 0 ? "text-rose-600 dark:text-rose-400" : b < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>{z(u > l ? Math.max(0, u - l) : Math.abs(b))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div></div></x.div><x.div initial={{
+                      opacity: 0,
+                      y: 10
+                    }} animate={{
+                      opacity: 1,
+                      y: 0
+                    }} transition={{
+                      duration: 0.3,
+                      delay: 0.15
+                    }} className="md:col-span-4 flex items-stretch gap-2 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} className="flex-1 h-full p-2 px-3.5 rounded-xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.25)] dark:shadow-[0_0_20px_rgba(16,185,129,0.35)] group/total-main" title="Bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
+                            opacity: 0,
+                            scale: 0.8
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.2
+                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/15 text-emerald-100 backdrop-blur-sm">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
+                          opacity: 0,
+                          y: -4,
+                          scale: 0.98
+                        }} animate={{
+                          opacity: 1,
+                          y: 0,
+                          scale: 1
+                        }} transition={{
+                          type: "spring",
+                          stiffness: 450,
+                          damping: 25
+                        }} className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></x.div></div><div className="flex flex-col justify-between gap-1.5 shrink-0 min-w-[140px] h-full"><div className="flex-1 min-h-[32px] max-h-11 flex items-stretch gap-1.5 justify-between"><x.button whileTap={{
+                            scale: 0.95
+                          }} disabled={d === 0 || g === "remote_inspect"} onClick={wr} className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center justify-center border border-[#8b6f47]/25 dark:border-white/10 hover:bg-[#8b6f47]/15 transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause" title="Tạm đơn [F4]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none"><Comp_jt size={28} strokeWidth={1.8} /></div><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" /></x.button><x.button whileTap={{
+                            scale: 0.95
+                          }} disabled={d === 0 || Be} onClick={() => {
+                            g === "remote_inspect" ? et({
+                              title: "Xác nhận lưu hóa đơn",
+                              message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                              onConfirm: () => {
+                                et(null), M.post("/api/pos/terminal-state/action", {
+                                  terminal_id: q,
+                                  action: "save_order"
+                                }).then(() => {
+                                  Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
+                                }).catch(() => {
+                                  Ve.error("Không thể gửi lệnh lưu hóa đơn!");
+                                });
+                              }
+                            }) : Re(!1);
+                          }} className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/25 dark:border-emerald-400/25 hover:bg-emerald-500/15 transition-all shadow-sm group/btn-save" title="Lưu đơn [Ctrl+S]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none"><Er size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <Er size={16} strokeWidth={2.5} className="relative z-10" />}</x.button><x.button whileTap={{
+                            scale: 0.95
+                          }} disabled={d === 0 || Be} onClick={() => {
+                            g === "remote_inspect" ? et({
+                              title: "Xác nhận lưu hóa đơn",
+                              message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                              onConfirm: () => {
+                                et(null), M.post("/api/pos/terminal-state/action", {
+                                  terminal_id: q,
+                                  action: "save_order"
+                                }).then(() => {
+                                  Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
+                                }).catch(() => {
+                                  Ve.error("Không thể gửi lệnh lưu hóa đơn!");
+                                });
+                              }
+                            }) : Re(!0);
+                          }} className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/40 hover:scale-[1.02] active:scale-95 transition-all group/btn-print" title="Lưu và In hóa đơn [F9]"><div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none"><Fa size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <Fa size={17} strokeWidth={2.5} className="relative z-10" />}</x.button></div><div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full"><x.button onClick={() => na("prev")} whileHover={{
+                            scale: 1.03
+                          }} whileTap={{
+                            scale: 0.95
+                          }} className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow transition-all cursor-pointer" title="Xem đơn trước"><Comp_qs size={18} strokeWidth={2.8} /></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileHover={Ce === 0 ? {} : {
+                            scale: 1.03
+                          }} whileTap={Ce === 0 ? {} : {
+                            scale: 0.95
+                          }} className={c("flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all", Ce === 0 ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed" : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow cursor-pointer")} title="Xem đơn kế tiếp"><Dr size={18} strokeWidth={2.8} /></x.button></div></div></x.div></div></div>;
+              })()}</x.div>{Ze === "sidebar" && ka && <div onMouseDown={fl} className={c("w-1.5 h-full cursor-col-resize transition-all hover:bg-primary/20 flex items-center justify-center group relative z-[600]", wa && "bg-primary/30")}><div className="w-0.5 h-12 bg-slate-300 dark:bg-slate-700 rounded-full group-hover:bg-primary/50 transition-colors" /></div>}{Ze === "sidebar" && <x.div initial={!1} animate={{
+              width: ka ? `${100 - sn - 1}%` : "90px"
+            }} transition={wa ? {
               duration: 0
             } : {
               type: "spring",
               stiffness: 300,
               damping: 30
-            },
-            className: "flex flex-col bg-transparent min-h-0 relative z-[3000]",
-            children: e.jsx("div", {
-              className: "p-1 transition-colors relative flex-1 flex flex-col min-h-0",
-              children: e.jsx(T, {
-                mode: "wait",
-                children: Lt ? e.jsxs(m.div, {
-                  initial: {
+            }} className="flex flex-col bg-transparent min-h-0 relative z-[3000]"><div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0"><P mode="wait">{ka ? <x.div key="expanded-sidebar" initial={{
                     opacity: 0,
                     x: 20,
-                    scale: .98
-                  },
-                  animate: {
+                    scale: 0.98
+                  }} animate={{
                     opacity: 1,
                     x: 0,
                     scale: 1
-                  },
-                  exit: {
+                  }} exit={{
                     opacity: 0,
                     x: 20,
-                    scale: .98
-                  },
-                  transition: {
+                    scale: 0.98
+                  }} transition={{
                     type: "spring",
                     stiffness: 400,
                     damping: 30,
                     mass: 1
-                  },
-                  className: "h-full flex flex-col relative bg-transparent rounded-[2.5rem] py-4 px-0",
-                  children: [e.jsx(m.button, {
-                    whileHover: {
+                  }} className="h-full flex flex-col relative bg-[#f5efe6]/85 dark:bg-[#1a1714]/85 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-[2.5rem] py-4 px-0 shadow-lg"><x.button whileHover={{
                       scale: 1.2,
                       x: 2
-                    },
-                    whileTap: {
-                      scale: .9
-                    },
-                    onClick: () => $r(!1),
-                    className: "absolute -left-10 top-[32px] w-9 h-9 bg-transparent rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-[3px] border-white dark:border-slate-800 z-[60]  hover: ring-2 ring-[#d4a574]/30 transition-all group/toggle-open",
-                    children: e.jsx(Sr, {
-                      size: 18,
-                      strokeWidth: 4,
-                      className: "group-hover/toggle-open:translate-x-0.5 transition-transform"
-                    })
-                  }), e.jsxs("div", {
-                    className: "flex flex-col gap-3 relative z-10 flex-1 overflow-y-auto px-3 pb-2 scroll-smooth",
-                    children: [e.jsxs("div", {
-                      className: "space-y-3",
-                      children: [e.jsxs("div", {
-                        onClick: () => {
-                          p ? (Ca(p), Yt(!0)) : Vt.current?.focus()
-                        },
-                        className: "flex items-center gap-3.5 bg-transparent dark:bg-transparent p-3.5 rounded-3xl border border-[#d4a574]/30 dark:border-[#d4a574]/15 transition-all duration-300 ease-in-out hover:bg-white/30 dark:hover:bg-white/5 hover:scale-[1.01] active:scale-[0.99] group/partner-sidebar cursor-pointer relative",
-                        children: [e.jsxs("div", {
-                          className: "flex-1 min-w-0 relative z-10",
-                          children: [e.jsxs("div", {
-                            className: "flex items-center gap-2 mb-0.5 w-full",
-                            children: [e.jsx("div", {
-                              className: "text-[11px] font-black text-[#8b6f47]/60 dark:text-[#d4a574]/60 uppercase tracking-[0.1em]",
-                              children: "KHÁCH HÀNG"
-                            }), p && e.jsxs("div", {
-                              className: "bg-emerald-50 text-emerald-800 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-full border border-emerald-500 dark:border-emerald-700",
-                              children: ["#", p.id]
-                            }), p && e.jsx("button", {
-                              onClick: t => {
-                                t.stopPropagation(), Va(!da)
-                              },
-                              className: "ml-auto w-6 h-6 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 hover:bg-[#8b6f47]/20 text-[#8b6f47] dark:text-[#d4a574] flex items-center justify-center border border-[#d4a574]/35 transition-all cursor-pointer shrink-0 z-20 partner-popout-trigger",
-                              title: "Xem lịch sử giao dịch gần đây",
-                              children: e.jsx(ia, {
-                                size: 12,
-                                strokeWidth: 3
-                              })
-                            })]
-                          }), e.jsx("div", {
-                            className: "font-black text-[#2d5016] dark:text-white text-lg uppercase leading-normal py-1 truncate group-hover:text-primary transition-colors",
-                            children: p ? p.name : "KHÁCH BÁN LẺ"
-                          }), p && e.jsxs("div", {
-                            className: "flex flex-col gap-1 mt-1.5",
-                            children: [(p.phone || p.address) && e.jsxs("div", {
-                              className: "flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 truncate bg-white/50 dark:bg-slate-900/40 px-2 py-1 rounded-xl w-fit max-w-full",
-                              children: [e.jsx(na, {
-                                size: 11,
-                                strokeWidth: 3,
-                                className: "shrink-0 text-[#8b6f47] dark:text-[#d4a574]"
-                              }), e.jsx("span", {
-                                className: "truncate",
-                                children: displayPartner.phone || "N/A"
-                              }), p.address && e.jsxs(e.Fragment, {
-                                children: [e.jsx("div", {
-                                  className: "w-1 h-1 rounded-full bg-gray-300"
-                                }), e.jsx(Ha, {
-                                  size: 11,
-                                  strokeWidth: 3,
-                                  className: "shrink-0 text-emerald-500"
-                                }), e.jsx("span", {
-                                  className: "truncate",
-                                  children: displayPartner.address
-                                })]
-                              })]
-                            }), displayPartner.cccd && e.jsxs("div", {
-                              className: "flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 truncate bg-white/50 dark:bg-slate-900/40 px-2 py-1 rounded-xl w-fit max-w-full",
-                              children: [e.jsx(ra, {
-                                size: 11,
-                                strokeWidth: 3,
-                                className: "shrink-0 text-indigo-500"
-                              }), e.jsxs("span", {
-                                className: "truncate",
-                                children: ["CCCD: ", p.cccd]
-                              })]
-                            })]
-                          })]
-                        }), p && e.jsxs("div", {
-                          ref: be,
-                          onClick: t => t.stopPropagation(),
-                          className: u("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-gradient-to-br from-[#a7f3d0]/90 to-[#99f6e4]/90 dark:from-[#042f2e]/90 dark:to-[#115e59]/90 backdrop-blur-xl shadow-2xl border border-emerald-400/30 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-emerald-150 partner-popout-container", da ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2"),
-                          children: [e.jsx("div", {
-                            className: "border-b border-emerald-500/20 dark:border-emerald-300/10 pb-1.5 mb-2",
-                            children: e.jsx("div", {
-                              className: "text-[9px] font-black uppercase tracking-[0.15em] opacity-80 text-emerald-800 dark:text-emerald-250",
-                              children: "LỊCH SỬ GIAO DỊCH"
-                            })
-                          }), e.jsxs("div", {
-                            className: "flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg mb-2",
-                            children: [e.jsx("button", {
-                              onClick: () => gt("debt"),
-                              className: u("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", se === "debt" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white"),
-                              children: "Mua nợ"
-                            }), e.jsx("button", {
-                              onClick: () => gt("cash"),
-                              className: u("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", se === "cash" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white"),
-                              children: "Mua tiền"
-                            })]
-                          }), Or ? e.jsxs("div", {
-                            className: "flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider opacity-85",
-                            children: [e.jsx(Ts, {
-                              size: 14,
-                              className: "animate-spin text-emerald-750 dark:text-emerald-300"
-                            }), e.jsx("span", {
-                              children: "Đang tải..."
-                            })]
-                          }) : (se === "debt" ? Oe : We) ? e.jsxs("div", {
-                            onClick: () => {
-                              const t = se === "debt" ? Oe : We;
-                              t && t.obj && (Na(t.obj), Ct(!0))
-                            },
-                            className: "space-y-2 py-1 cursor-pointer hover:bg-white/20 dark:hover:bg-white/5 rounded-xl transition-all active:scale-[0.98] border border-transparent",
-                            children: [e.jsxs("div", {
-                              className: "flex items-center gap-2.5",
-                              children: [e.jsx("div", {
-                                className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                                children: e.jsx(bt, {
-                                  size: 15,
-                                  className: "text-emerald-750 dark:text-emerald-355"
-                                })
-                              }), e.jsxs("div", {
-                                children: [e.jsx("div", {
-                                  className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                                  children: "SỐ TIỀN"
-                                }), e.jsx("div", {
-                                  className: "text-xs font-black text-rose-600 dark:text-rose-400 uppercase",
-                                  children: (() => {
-                                    const t = se === "debt" ? Oe : We;
-                                    return it(t.increase || t.obj?.total_amount || 0)
-                                  })()
-                                })]
-                              })]
-                            }), e.jsxs("div", {
-                              className: "flex items-center gap-2.5",
-                              children: [e.jsx("div", {
-                                className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                                children: e.jsx(ra, {
-                                  size: 15,
-                                  className: "text-emerald-750 dark:text-emerald-355"
-                                })
-                              }), e.jsxs("div", {
-                                className: "min-w-0 flex-1",
-                                children: [e.jsx("div", {
-                                  className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                                  children: "NỘI DUNG"
-                                }), e.jsx("div", {
-                                  className: "text-[10px] font-black uppercase truncate text-slate-800 dark:text-emerald-100",
-                                  children: (se === "debt" ? Oe : We).desc
-                                })]
-                              })]
-                            }), e.jsxs("div", {
-                              className: "flex items-center gap-2.5",
-                              children: [e.jsx("div", {
-                                className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                                children: e.jsx(ia, {
-                                  size: 15,
-                                  className: "text-emerald-750 dark:text-emerald-355"
-                                })
-                              }), e.jsxs("div", {
-                                children: [e.jsx("div", {
-                                  className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                                  children: "THỜI GIAN"
-                                }), e.jsx("div", {
-                                  className: "text-[10px] font-black uppercase text-slate-800 dark:text-emerald-100",
-                                  children: Fe((se === "debt" ? Oe : We).date)
-                                })]
-                              })]
-                            })]
-                          }) : e.jsxs("div", {
-                            className: "py-4 text-center font-black uppercase text-xs tracking-wider opacity-60 italic",
-                            children: ["Không có giao dịch ", se === "debt" ? "nợ" : "tiền mặt", " gần đây"]
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "relative",
-                        children: [e.jsx("div", {
-                          className: "absolute left-3 top-3 text-primary/40 dark:text-[#d4a574]/40 z-10",
-                          children: e.jsx(ui, {
-                            size: 16
-                          })
-                        }), e.jsx("textarea", {
-                          placeholder: "Ghi chú đơn bán...",
-                          className: "w-full pl-9 p-3 bg-transparent border border-border rounded-[1.5rem] focus:border-primary/50 dark:focus:border-[#4a7c59] outline-none transition-all resize-none h-16 text-xs italic dark:text-gray-350 ",
-                          value: pe,
-                          onChange: t => Ve(t.target.value)
-                        })]
-                      })]
-                    }), e.jsxs("div", {
-                      className: "flex-1 space-y-3 pt-1",
-                      children: [e.jsxs("div", {
-                        className: "pos-card p-5 rounded-[1.5rem]  relative overflow-hidden group/total-main cursor-default hover:scale-[1.02] transition-all duration-300 ease-in-out flex flex-col items-center",
-                        children: [e.jsx("div", {
-                          className: "absolute inset-0 bg-white/10 opacity-0 group-hover/total-main:opacity-100 transition-opacity duration-300"
-                        }), e.jsx("div", {
-                          className: "text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.3em] mb-1 text-center relative z-10",
-                          children: "TỔNG THANH TOÁN"
-                        }), e.jsxs("div", {
-                          className: "font-black text-3xl text-center text-emerald-700 dark:text-emerald-300 whitespace-nowrap overflow-hidden relative z-10 drop-",
-                          children: [I(A), e.jsx("span", {
-                            className: "text-sm opacity-80 font-bold ml-1",
-                            children: "đ"
-                          })]
-                        })]
-                      }), e.jsxs("div", {
-                        className: "space-y-3 px-1",
-                        children: [e.jsxs("div", {
-                          className: "flex justify-between items-center pos-card p-3 rounded-[1.2rem]  hover:scale-[1.01] transition-all duration-300 ease-in-out",
-                          children: [e.jsx("span", {
-                            className: "text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                            children: "NỢ CŨ KH:"
-                          }), e.jsx("span", {
-                            className: "font-black text-sm text-red-500 dark:text-red-400/80",
-                            children: I(Dt)
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex justify-between items-center pos-card p-3 rounded-[1.2rem] border-indigo-500/20 dark:border-indigo-500/25  hover:scale-[1.01] transition-all duration-300 ease-in-out",
-                          children: [e.jsxs("div", {
-                            className: "flex items-center gap-2",
-                            children: [e.jsx(lt, {
-                              size: 16,
-                              className: "text-indigo-600 dark:text-indigo-500"
-                            }), e.jsx("span", {
-                              className: "text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest",
-                              children: "GIAO HÀNG TẬN NƠI:"
-                            })]
-                          }), e.jsxs("label", {
-                            onClick: t => {
-                              t.preventDefault(), Ee ? mt(null) : (mt("Shipping"), p && (St(p.address || ""), It(p.phone || "")))
-                            },
-                            className: "relative inline-flex items-center cursor-pointer",
-                            children: [e.jsx("input", {
-                              type: "checkbox",
-                              checked: !!Ee,
-                              readOnly: !0,
-                              className: "sr-only"
-                            }), e.jsx("div", {
-                              className: u("w-9 h-5 rounded-full transition-all duration-300 ease-in-out relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 after:ease-in-out", Ee ? "bg-indigo-600 after:translate-x-4" : "bg-gray-200 dark:bg-gray-700")
-                            })]
-                          })]
-                        }), e.jsxs("div", {
-                          className: u("transition-all duration-300 ease-in-out overflow-hidden space-y-2 pos-card rounded-[1.2rem] border-indigo-500/20 dark:border-indigo-500/25 ", Ee === "Shipping" ? "max-h-[160px] p-3 border mt-2 opacity-100" : "max-h-0 p-0 border-0 opacity-0 pointer-events-none"),
-                          children: [e.jsx("input", {
-                            type: "text",
-                            placeholder: "Địa chỉ giao hàng...",
-                            className: "w-full p-2.5 bg-white/20 dark:bg-slate-900/30 border border-white/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-white/40 focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition-all duration-300 ease-in-out",
-                            value: Sa,
-                            onChange: t => St(t.target.value)
-                          }), e.jsx("input", {
-                            type: "text",
-                            placeholder: "Số điện thoại nhận hàng...",
-                            className: "w-full p-2.5 bg-white/20 dark:bg-slate-900/30 border border-white/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-white/40 focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition-all duration-300 ease-in-out",
-                            value: Ia,
-                            onChange: t => It(t.target.value)
-                          })]
-                        }), e.jsxs("div", {
-                          className: u("transition-all duration-300 ease-in-out grid grid-cols-2 gap-2", p ? "max-h-[60px] mt-2 opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden pointer-events-none"),
-                          children: [e.jsxs(m.button, {
-                            whileHover: {
+                    }} whileTap={{
+                      scale: 0.9
+                    }} onClick={() => en(!1)} className="absolute -left-10 top-[32px] w-9 h-9 bg-transparent rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-[3px] border-white dark:border-slate-800 z-[60]  hover: ring-2 ring-[#d4a574]/30 transition-all group/toggle-open"><Dr size={18} strokeWidth={4} className="group-hover/toggle-open:translate-x-0.5 transition-transform" /></x.button><div className="flex flex-col gap-3 relative z-10 flex-1 overflow-y-auto px-3 pb-2 scroll-smooth"><div className="space-y-3"><div onClick={() => {
+                          p ? (fr(p), Oa(!0)) : Et.current?.focus();
+                        }} className="flex items-center gap-3.5 bg-transparent dark:bg-transparent p-3.5 rounded-3xl border border-[#d4a574]/30 dark:border-[#d4a574]/15 transition-all duration-300 ease-in-out hover:bg-white/30 dark:hover:bg-white/5 hover:scale-[1.01] active:scale-[0.99] group/partner-sidebar cursor-pointer relative"><div className="flex-1 min-w-0 relative z-10"><div className="flex items-center gap-2 mb-0.5 w-full"><div className="text-[11px] font-black text-[#8b6f47]/60 dark:text-[#d4a574]/60 uppercase tracking-[0.1em]">KHÁCH HÀNG</div>{p && <div className="bg-emerald-50 text-emerald-800 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-full border border-emerald-500 dark:border-emerald-700">#{p.id}</div>}{p && <button onClick={t => {
+                                t.stopPropagation(), Gr(!sr);
+                              }} className="ml-auto w-6 h-6 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 hover:bg-[#8b6f47]/20 text-[#8b6f47] dark:text-[#d4a574] flex items-center justify-center border border-[#d4a574]/35 transition-all cursor-pointer shrink-0 z-20 partner-popout-trigger" title="Xem lịch sử giao dịch gần đây"><Ja size={12} strokeWidth={3} /></button>}</div><div className="font-black text-[#2d5016] dark:text-white text-lg uppercase leading-normal py-1 truncate group-hover:text-primary transition-colors">{p ? p.name : "KHÁCH BÁN LẺ"}</div>{p && <div className="flex flex-col gap-1 mt-1.5">{(p.phone || p.address) && <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 truncate bg-white/50 dark:bg-slate-900/40 px-2 py-1 rounded-xl w-fit max-w-full"><Mr size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" /><span className="truncate">{Pe.phone || "N/A"}</span>{p.address && <><div className="w-1 h-1 rounded-full bg-gray-300" /><Us size={11} strokeWidth={3} className="shrink-0 text-emerald-500" /><span className="truncate">{Pe.address}</span></>}</div>}{Pe.cccd && <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 truncate bg-white/50 dark:bg-slate-900/40 px-2 py-1 rounded-xl w-fit max-w-full"><Comp_ca size={11} strokeWidth={3} className="shrink-0 text-indigo-500" /><span className="truncate">CCCD: {p.cccd}</span></div>}</div>}</div>{p && <div ref={Rr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-gradient-to-br from-[#a7f3d0]/90 to-[#99f6e4]/90 dark:from-[#042f2e]/90 dark:to-[#115e59]/90 backdrop-blur-xl shadow-2xl border border-emerald-400/30 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-emerald-150 partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-emerald-500/20 dark:border-emerald-300/10 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] opacity-80 text-emerald-800 dark:text-emerald-250">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", Ne === "debt" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", Ne === "cash" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider opacity-85"><Un size={14} className="animate-spin text-emerald-750 dark:text-emerald-300" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
+                              const t = Ne === "debt" ? st : nt;
+                              t && t.obj && (mr(t.obj), Yt(!0));
+                            }} className="space-y-2 py-1 cursor-pointer hover:bg-white/20 dark:hover:bg-white/5 rounded-xl transition-all active:scale-[0.98] border border-transparent"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Comp_oa size={15} className="text-emerald-750 dark:text-emerald-355" /></div><div><div className="text-[8px] font-black uppercase tracking-wider opacity-60">SỐ TIỀN</div><div className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">{(() => {
+                                      const t = Ne === "debt" ? st : nt;
+                                      return lt(t.increase || t.obj?.total_amount || 0);
+                                    })()}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Comp_ca size={15} className="text-emerald-750 dark:text-emerald-355" /></div><div className="min-w-0 flex-1"><div className="text-[8px] font-black uppercase tracking-wider opacity-60">NỘI DUNG</div><div className="text-[10px] font-black uppercase truncate text-slate-800 dark:text-emerald-100">{(Ne === "debt" ? st : nt).desc}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Ja size={15} className="text-emerald-750 dark:text-emerald-355" /></div><div><div className="text-[8px] font-black uppercase tracking-wider opacity-60">THỜI GIAN</div><div className="text-[10px] font-black uppercase text-slate-800 dark:text-emerald-100">{ot((Ne === "debt" ? st : nt).date)}</div></div></div></div> : <div className="py-4 text-center font-black uppercase text-xs tracking-wider opacity-60 italic">Không có giao dịch {Ne === "debt" ? "nợ" : "tiền mặt"} gần đây</div>}</div>}</div><div className="relative"><div className="absolute left-3 top-3 text-primary/40 dark:text-[#d4a574]/40 z-10"><Comp_zd size={16} /></div><textarea placeholder="Ghi chú đơn bán..." className="w-full pl-9 p-3 bg-transparent border border-border rounded-[1.5rem] focus:border-primary/50 dark:focus:border-[#4a7c59] outline-none transition-all resize-none h-16 text-xs italic dark:text-gray-350 " value={K} onChange={t => $e(t.target.value)} /></div></div><div className="flex-1 space-y-3 pt-1"><div className="pos-card p-5 rounded-[1.5rem]  relative overflow-hidden group/total-main cursor-default hover:scale-[1.02] transition-all duration-300 ease-in-out flex flex-col items-center"><div className="absolute inset-0 bg-white/10 opacity-0 group-hover/total-main:opacity-100 transition-opacity duration-300" /><div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.3em] mb-1 text-center relative z-10">TỔNG CỘNG ĐƠN HÀNG</div><div className="font-black text-3xl text-center text-emerald-700 dark:text-emerald-300 whitespace-nowrap overflow-hidden relative z-10 drop-">{z($)}<span className="text-sm opacity-80 font-bold ml-1">đ</span></div></div><div className="space-y-3 px-1"><div className="flex justify-between items-center pos-card p-3 rounded-[1.2rem]  hover:scale-[1.01] transition-all duration-300 ease-in-out"><span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">NỢ TRƯỚC ĐƠN:</span><span className="font-black text-sm text-red-500 dark:text-red-400/80">{z(de)}</span></div>{p && <div className="flex justify-between items-center pos-card p-3 rounded-[1.2rem]  hover:scale-[1.01] transition-all duration-300 ease-in-out"><span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">NỢ HIỆN TẠI:</span><span className="font-black text-sm text-amber-600 dark:text-amber-400">{z(p.debt_balance || 0)}</span></div>}<div className="flex justify-between items-center pos-card p-3 rounded-[1.2rem] border-indigo-500/20 dark:border-indigo-500/25  hover:scale-[1.01] transition-all duration-300 ease-in-out"><div className="flex items-center gap-2"><Comp_u_t size={16} className="text-indigo-600 dark:text-indigo-500" /><span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">GIAO HÀNG TẬN NƠI:</span></div><label onClick={t => {
+                              t.preventDefault(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
+                            }} className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={!!tt} readOnly={!0} className="sr-only" /><div className={c("w-9 h-5 rounded-full transition-all duration-300 ease-in-out relative after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 after:ease-in-out", tt ? "bg-indigo-600 after:translate-x-4" : "bg-gray-200 dark:bg-gray-700")} /></label></div><div className={c("transition-all duration-300 ease-in-out overflow-hidden space-y-2 pos-card rounded-[1.2rem] border-indigo-500/20 dark:border-indigo-500/25 ", tt === "Shipping" ? "max-h-[160px] p-3 border mt-2 opacity-100" : "max-h-0 p-0 border-0 opacity-0 pointer-events-none")}><input type="text" placeholder="Địa chỉ giao hàng..." className="w-full p-2.5 bg-white/20 dark:bg-slate-900/30 border border-white/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-white/40 focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition-all duration-300 ease-in-out" value={vr} onChange={t => ra(t.target.value)} /><input type="text" placeholder="Số điện thoại nhận hàng..." className="w-full p-2.5 bg-white/20 dark:bg-slate-900/30 border border-white/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:bg-white/40 focus:border-indigo-500 dark:focus:border-indigo-400 outline-none transition-all duration-300 ease-in-out" value={kr} onChange={t => sa(t.target.value)} /></div><div className={c("transition-all duration-300 ease-in-out grid grid-cols-2 gap-2", p ? "max-h-[60px] mt-2 opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden pointer-events-none")}><x.button whileHover={{
                               y: -2,
                               scale: 1.02
-                            },
-                            whileTap: {
-                              scale: .98
-                            },
-                            onClick: () => ha(!0),
-                            className: "flex items-center justify-center gap-1.5 py-2 px-3 bg-transparent text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ease-in-out hover:bg-emerald-50 dark:hover:bg-emerald-950/40",
-                            children: [e.jsx(Pr, {
-                              size: 14,
-                              strokeWidth: 2.5
-                            }), e.jsx("span", {
-                              children: "Ghi nợ"
-                            })]
-                          }), e.jsxs(m.button, {
-                            whileHover: {
+                            }} whileTap={{
+                              scale: 0.98
+                            }} onClick={() => ja(!0)} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-transparent text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ease-in-out hover:bg-emerald-50 dark:hover:bg-emerald-950/40"><Hs size={14} strokeWidth={2.5} /><span>Ghi nợ</span></x.button><x.button whileHover={{
                               y: -2,
                               scale: 1.02
-                            },
-                            whileTap: {
-                              scale: .98
-                            },
-                            onClick: () => fa(!0),
-                            className: "flex items-center justify-center gap-1.5 py-2 px-3 bg-transparent text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ease-in-out hover:bg-emerald-50 dark:hover:bg-emerald-950/40",
-                            children: [e.jsx(Er, {
-                              size: 14,
-                              strokeWidth: 2.5
-                            }), e.jsx("span", {
-                              children: "Thu/Chi"
-                            })]
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex flex-col gap-3",
-                          children: [e.jsxs("div", {
-                            className: "flex pos-card p-1.5 rounded-[1.2rem] gap-1 ",
-                            children: [e.jsx("button", {
-                              onClick: () => {
-                                me("Cash"), J(A)
-                              },
-                              className: u("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", D === "Cash" ? "bg-gradient-to-br from-emerald-600 to-emerald-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-400 hover:text-emerald-500 hover:bg-white/10"),
-                              children: "TIỀN MẶT"
-                            }), e.jsx("button", {
-                              onClick: () => {
-                                me("Debt"), J(0)
-                              },
-                              className: u("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", D === "Debt" ? "bg-gradient-to-br from-rose-600 to-rose-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-white/10"),
-                              children: "CÔNG NỢ"
-                            }), e.jsx("button", {
-                              onClick: () => me("Transfer"),
-                              className: u("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", D === "Transfer" ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-450 hover:text-blue-600 hover:bg-white/10"),
-                              children: "C/K"
-                            })]
-                          }), e.jsx(T, {
-                            children: D === "Transfer" && e.jsxs(m.div, {
-                              initial: {
+                            }} whileTap={{
+                              scale: 0.98
+                            }} onClick={() => _a(!0)} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-transparent text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-300 ease-in-out hover:bg-emerald-50 dark:hover:bg-emerald-950/40"><Ks size={14} strokeWidth={2.5} /><span>Thu/Chi</span></x.button></div><div className="flex flex-col gap-3"><div className="flex pos-card p-1.5 rounded-[1.2rem] gap-1 "><button onClick={() => {
+                                ge("Cash"), re($);
+                              }} className={c("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", I === "Cash" ? "bg-gradient-to-br from-emerald-600 to-emerald-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-400 hover:text-emerald-500 hover:bg-white/10")}>TIỀN MẶT</button><button onClick={() => {
+                                ge("Debt"), re(0);
+                              }} className={c("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", I === "Debt" ? "bg-gradient-to-br from-rose-600 to-rose-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-400 hover:text-rose-500 hover:bg-white/10")}>CÔNG NỢ</button><button onClick={() => ge("Transfer")} className={c("flex-1 py-1.5 rounded-lg text-[9px] font-black transition-all duration-300 ease-in-out hover:opacity-90 active:scale-95", I === "Transfer" ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white  hover:scale-[1.02]" : "text-slate-600 dark:text-slate-450 hover:text-blue-600 hover:bg-white/10")}>C/K</button></div><P>{I === "Transfer" && <x.div initial={{
                                 opacity: 0,
                                 height: 0,
                                 y: -10
-                              },
-                              animate: {
+                              }} animate={{
                                 opacity: 1,
                                 height: "auto",
                                 y: 0
-                              },
-                              exit: {
+                              }} exit={{
                                 opacity: 0,
                                 height: 0,
                                 y: -10
-                              },
-                              transition: {
+                              }} transition={{
                                 type: "spring",
                                 stiffness: 350,
                                 damping: 26
-                              },
-                              className: "relative overflow-hidden flex items-center justify-between p-2.5 pl-4 pos-card border-blue-200 dark:border-blue-900/30 rounded-[1.2rem]",
-                              children: [e.jsx("div", {
-                                className: "text-[9px] font-black text-blue-450 uppercase whitespace-nowrap",
-                                children: "TK Nhận:"
-                              }), e.jsx(CustomSelect, {
-                                className: "w-full min-w-0 border-none shadow-none text-right justify-end font-bold text-xs bg-transparent dark:text-white outline-none",
-                                value: Kr,
-                                onChange: t => Gr(t.target.value),
-                                options: Js.map(t => ({
+                              }} className="relative overflow-hidden flex items-center justify-between p-2.5 pl-4 pos-card border-blue-200 dark:border-blue-900/30 rounded-[1.2rem]"><div className="text-[9px] font-black text-blue-450 uppercase whitespace-nowrap">TK Nhận:</div><Comp_zn className="w-full min-w-0 border-none shadow-none text-right justify-end font-bold text-xs bg-transparent dark:text-white outline-none" value={ss} onChange={t => ns(t.target.value)} options={ln.map(t => ({
                                   value: t.id,
                                   label: `${t.bank_name} - ${t.account_number}`
-                                }))
-                              })]
-                            })
-                          }), e.jsxs("div", {
-                            className: "relative",
-                            children: [e.jsx("div", {
-                              className: "absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase z-10",
-                              children: "KHÁCH ĐƯA (F1):"
-                            }), e.jsx("input", {
-                              ref: _a,
-                              type: "number",
-                              className: "w-full p-2.5 pl-32 text-right rounded-[1.2rem] font-black text-xl outline-none  pos-card transition-all duration-300 text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-550/20",
-                              value: ne === 0 ? "" : ne,
-                              placeholder: "0",
-                              id: "cash-given-sidebar",
-                              autoComplete: "off",
-                              onChange: t => Xe(parseFloat(t.target.value) || 0),
-                              onFocus: t => t.target.select()
-                            })]
-                          }), e.jsxs("div", {
-                            className: "relative",
-                            children: [e.jsx("div", {
-                              className: "absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase z-10",
-                              children: "THANH TOÁN:"
-                            }), e.jsx("input", {
-                              type: "text",
-                              readOnly: D === "Cash" || D === "Pending",
-                              className: u("w-full p-2.5 pl-24 text-right rounded-[1.2rem] font-black text-xl outline-none  pos-card transition-all duration-300 ease-in-out", D === "Cash" || D === "Pending" ? "text-emerald-700/40 dark:text-emerald-400/40 cursor-not-allowed" : "text-emerald-700 dark:text-emerald-450 focus:ring-2 focus:ring-emerald-550/20"),
-                              value: I(Le),
-                              autoComplete: "off",
-                              onChange: t => J(parseFloat(t.target.value.replace(/,/g, "")) || 0)
-                            }), e.jsx(T, {
-                              children: (D === "Debt" || D === "Transfer") && e.jsx(m.button, {
-                                initial: {
+                                }))} /></x.div>}</P><div className="relative"><div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase z-10">KHÁCH ĐƯA (F1):</div><input ref={xr} type="number" className="w-full p-2.5 pl-32 text-right rounded-[1.2rem] font-black text-xl outline-none  pos-card transition-all duration-300 text-emerald-700 dark:text-emerald-400 focus:ring-2 focus:ring-emerald-550/20" value={V === 0 ? "" : V} placeholder="0" id="cash-given-sidebar" autoComplete="off" onChange={t => Ye(parseFloat(t.target.value) || 0)} onFocus={t => t.target.select()} /></div><div className="relative group/pay-sidebar"><div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase z-10">THANH TOÁN:</div><input type="text" readOnly={I === "Cash" || I === "Pending"} className={c("w-full p-2.5 pl-24 pr-4 text-right rounded-[1.2rem] font-black text-xl outline-none pos-card transition-all duration-300 ease-in-out", I === "Cash" || I === "Pending" ? "text-emerald-700/40 dark:text-emerald-400/40 cursor-not-allowed" : "text-emerald-700 dark:text-emerald-450 focus:ring-2 focus:ring-emerald-550/20")} value={z(oe)} autoComplete="off" onChange={t => re(parseFloat(t.target.value.replace(/,/g, "")) || 0)} /><P>{(I === "Debt" || I === "Transfer") && <x.button initial={{
                                   opacity: 0,
-                                  scale: .8,
-                                  y: 5
-                                },
-                                animate: {
+                                  scale: 0.8
+                                }} animate={{
                                   opacity: 1,
-                                  scale: 1,
-                                  y: 0
-                                },
-                                exit: {
+                                  scale: 1
+                                }} exit={{
                                   opacity: 0,
-                                  scale: .8,
-                                  y: 5
-                                },
-                                transition: {
+                                  scale: 0.8
+                                }} transition={{
                                   type: "spring",
                                   stiffness: 450,
                                   damping: 25
-                                },
-                                onClick: () => J(A + (Dt > 0 ? Dt : 0)),
-                                className: "absolute right-4 -top-2.5 px-2.5 py-0.5 bg-transparent text-emerald-600 dark:text-emerald-400 text-[9px] font-black rounded-full transition-all duration-300 ease-in-out border border-emerald-500/30 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-400 dark:hover:text-slate-900  hover:scale-105 active:scale-95 z-30 uppercase",
-                                children: "Trả hết"
-                              })
-                            })]
-                          }), e.jsx(T, {
-                            children: ne > A && e.jsxs(m.div, {
-                              initial: {
+                                }} onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-3 -top-2.5 opacity-0 group-hover/pay-sidebar:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[9px] font-black rounded-full transition-all duration-200 border border-white/40 dark:border-emerald-400 shadow-md hover:scale-105 active:scale-95 z-30 uppercase cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</x.button>}</P></div><P>{V > $ && <x.div initial={{
                                 opacity: 0,
-                                scale: .95,
+                                scale: 0.95,
                                 height: 0
-                              },
-                              animate: {
+                              }} animate={{
                                 opacity: 1,
                                 scale: 1,
                                 height: "auto"
-                              },
-                              exit: {
+                              }} exit={{
                                 opacity: 0,
-                                scale: .95,
+                                scale: 0.95,
                                 height: 0
-                              },
-                              transition: {
+                              }} transition={{
                                 type: "spring",
                                 stiffness: 350,
                                 damping: 26
-                              },
-                              className: "flex justify-between items-center pos-card p-4 rounded-[1.2rem]  overflow-hidden",
-                              children: [e.jsx("span", {
-                                className: "text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest",
-                                children: "TIỀN THỐI LẠI:"
-                              }), e.jsx("span", {
-                                className: "font-black text-sm text-emerald-600 dark:text-emerald-400",
-                                children: I(Math.max(0, ne - A))
-                              })]
-                            })
-                          })]
-                        })]
-                      })]
-                    }), e.jsxs("div", {
-                      className: u("pos-card py-4 px-6 rounded-3xl flex items-center justify-between  hover:scale-[1.02] transition-all duration-300 ease-in-out relative z-20 min-h-[76px]", zt > 0 ? "border-red-500/30 bg-red-500/5 dark:bg-red-950/10 text-red-600 dark:text-red-400" : "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10 text-emerald-600 dark:text-emerald-400"),
-                      children: [e.jsxs("div", {
-                        className: "min-w-0 flex flex-col justify-center",
-                        children: [e.jsx("span", {
-                          className: "text-[10px] font-black uppercase opacity-80 tracking-[0.1em] block mb-0.5 leading-tight",
-                          children: "NỢ SAU ĐƠN:"
-                        }), e.jsx("span", {
-                          className: "text-3xl font-black tracking-tighter block leading-tight",
-                          children: I(zt)
-                        })]
-                      }), e.jsx(bt, {
-                        className: "opacity-20 shrink-0 ml-2",
-                        size: 32
-                      })]
-                    }), e.jsxs("div", {
-                      className: "flex flex-col gap-2 pt-2",
-                      children: [e.jsxs("div", {
-                        className: "flex gap-2.5",
-                        children: [e.jsxs(m.button, {
-                          whileTap: {
-                            scale: .95
-                          },
-                          disabled: b.length === 0,
-                          onClick: gr,
-                          className: "flex-1 pos-card text-emerald-700 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-400/30 rounded-2xl font-black hover:bg-emerald-500/10 hover:border-emerald-600/60 dark:hover:border-emerald-400/60 hover:scale-[1.02] transition-all duration-300 ease-in-out flex items-center justify-center gap-2 py-3 text-lg uppercase tracking-widest whitespace-nowrap",
-                          children: [e.jsx(At, {
-                            size: 20,
-                            strokeWidth: 3
-                          }), e.jsx("span", {
-                            children: "TẠM"
-                          })]
-                        }), e.jsxs(m.button, {
-                          whileTap: {
-                            scale: .95
-                          },
-                          disabled: b.length === 0 || tt,
-                          onClick: () => $e(!1),
-                          className: "flex-1 pos-card text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/10 hover:border-emerald-600/60 dark:hover:border-emerald-400/60 hover:scale-[1.02] transition-all duration-300 ease-in-out flex items-center justify-center gap-2 py-3 text-lg uppercase tracking-widest whitespace-nowrap",
-                          children: [e.jsx(Ss, {
-                            size: 20,
-                            strokeWidth: 3
-                          }), e.jsx("span", {
-                            children: "LƯU"
-                          })]
-                        })]
-                      }), e.jsx(m.button, {
-                        whileTap: {
-                          scale: .98
-                        },
-                        disabled: b.length === 0 || tt,
-                        onClick: () => $e(!0),
-                        className: "w-full bg-emerald-600 dark:bg-emerald-500/30 hover:bg-emerald-700 dark:hover:bg-emerald-500/50 text-white dark:text-emerald-200 border border-emerald-600 dark:border-emerald-400/40 shadow-md shadow-emerald-600/20 rounded-2xl flex items-center justify-center transition-all duration-300 ease-in-out py-4.5 h-16 text-3xl font-black uppercase tracking-widest gap-3 hover:scale-[1.01] active:scale-[0.99]",
-                        children: tt ? e.jsx("div", {
-                          className: "w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"
-                        }) : e.jsxs(e.Fragment, {
-                          children: [e.jsx(Dr, {
-                            size: 28,
-                            strokeWidth: 3
-                          }), e.jsx("span", {
-                            children: "IN"
-                          })]
-                        })
-                      })]
-                    })]
-                  })]
-                }, "expanded-sidebar") : e.jsxs(m.div, {
-                  initial: {
+                              }} className="flex justify-between items-center pos-card p-4 rounded-[1.2rem]  overflow-hidden"><span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">TIỀN THỐI LẠI:</span><span className="font-black text-sm text-emerald-600 dark:text-emerald-400">{z(Math.max(0, V - $))}</span></x.div>}</P></div></div></div><div className={c("pos-card py-4 px-6 rounded-3xl flex items-center justify-between  hover:scale-[1.02] transition-all duration-300 ease-in-out relative z-20 min-h-[76px]", it > 0 ? "border-red-500/30 bg-red-500/5 dark:bg-red-950/10 text-red-600 dark:text-red-400" : "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/10 text-emerald-600 dark:text-emerald-400")}><div className="min-w-0 flex flex-col justify-center"><span className="text-[10px] font-black uppercase opacity-80 tracking-[0.1em] block mb-0.5 leading-tight">NỢ SAU ĐƠN:</span><span className="text-3xl font-black tracking-tighter block leading-tight">{z(it)}</span></div><Comp_oa className="opacity-20 shrink-0 ml-2" size={32} /></div><div className="flex flex-col gap-2 pt-2"><div className="flex gap-2.5"><x.button whileTap={{
+                            scale: 0.95
+                          }} disabled={y.length === 0} onClick={wr} className="flex-1 pos-card text-emerald-700 dark:text-emerald-300 border border-emerald-600/30 dark:border-emerald-400/30 rounded-2xl font-black hover:bg-emerald-500/10 hover:border-emerald-600/60 dark:hover:border-emerald-400/60 hover:scale-[1.02] transition-all duration-300 ease-in-out flex items-center justify-center gap-2 py-3 text-lg uppercase tracking-widest whitespace-nowrap"><Comp_jt size={20} strokeWidth={3} /><span>TẠM</span></x.button><x.button whileTap={{
+                            scale: 0.95
+                          }} disabled={y.length === 0 || Be} onClick={() => Re(!1)} className="flex-1 pos-card text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/10 hover:border-emerald-600/60 dark:hover:border-emerald-400/60 hover:scale-[1.02] transition-all duration-300 ease-in-out flex items-center justify-center gap-2 py-3 text-lg uppercase tracking-widest whitespace-nowrap"><Er size={20} strokeWidth={3} /><span>LƯU</span></x.button></div><x.button whileTap={{
+                          scale: 0.98
+                        }} disabled={y.length === 0 || Be} onClick={() => Re(!0)} className="w-full bg-emerald-600 dark:bg-emerald-500/30 hover:bg-emerald-700 dark:hover:bg-emerald-500/50 text-white dark:text-emerald-200 border border-emerald-600 dark:border-emerald-400/40 shadow-md shadow-emerald-600/20 rounded-2xl flex items-center justify-center transition-all duration-300 ease-in-out py-4.5 h-16 text-3xl font-black uppercase tracking-widest gap-3 hover:scale-[1.01] active:scale-[0.99]">{Be ? <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <><Fa size={28} strokeWidth={3} /><span>IN</span></>}</x.button></div></div></x.div> : <x.div key="mini-sidebar" initial={{
                     opacity: 0,
                     x: -20,
-                    scale: .95
-                  },
-                  animate: {
+                    scale: 0.95
+                  }} animate={{
                     opacity: 1,
                     x: 0,
                     scale: 1
-                  },
-                  exit: {
+                  }} exit={{
                     opacity: 0,
                     x: -20,
-                    scale: .95
-                  },
-                  transition: {
+                    scale: 0.95
+                  }} transition={{
                     type: "spring",
                     stiffness: 400,
                     damping: 30,
                     mass: 1
-                  },
-                  className: "flex flex-col items-center py-6 gap-6 h-full relative z-10 no-print bg-transparent",
-                  children: [e.jsxs("div", {
-                    onClick: () => p && Va(!da),
-                    className: u("w-14 h-14 rounded-full flex items-center justify-center border transition-all relative cursor-pointer partner-popout-trigger shadow-sm", p ? "bg-transparent text-emerald-600 dark:text-emerald-400 border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40" : "bg-transparent text-[#8b6f47]/60 dark:text-[#d4a574] border-slate-300 dark:border-white/30 hover:bg-white/40 dark:hover:bg-white/10"),
-                    children: [e.jsx(Cs, {
-                      size: 24,
-                      className: u("")
-                    }), p && e.jsxs("div", {
-                      className: "absolute -top-2 -right-3 bg-emerald-50 text-emerald-800 text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border-2 border-emerald-500 dark:border-emerald-700 transition-transform z-20",
-                      children: ["#", p.id]
-                    }), p && e.jsxs("div", {
-                      ref: w,
-                      onClick: t => t.stopPropagation(),
-                      className: u("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-gradient-to-br from-[#a7f3d0]/90 to-[#99f6e4]/90 dark:from-[#042f2e]/90 dark:to-[#115e59]/90 backdrop-blur-xl shadow-2xl border border-emerald-400/30 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-emerald-150 partner-popout-container", da ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2"),
-                      children: [e.jsx("div", {
-                        className: "border-b border-emerald-500/20 dark:border-emerald-300/10 pb-1.5 mb-2",
-                        children: e.jsx("div", {
-                          className: "text-[9px] font-black uppercase tracking-[0.15em] opacity-80 text-emerald-800 dark:text-emerald-250",
-                          children: "LỊCH SỬ GIAO DỊCH"
-                        })
-                      }), e.jsxs("div", {
-                        className: "flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg mb-2",
-                        children: [e.jsx("button", {
-                          onClick: () => gt("debt"),
-                          className: u("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", se === "debt" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white"),
-                          children: "Mua nợ"
-                        }), e.jsx("button", {
-                          onClick: () => gt("cash"),
-                          className: u("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", se === "cash" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white"),
-                          children: "Mua tiền"
-                        })]
-                      }), Or ? e.jsxs("div", {
-                        className: "flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider opacity-85",
-                        children: [e.jsx(Ts, {
-                          size: 14,
-                          className: "animate-spin text-emerald-750 dark:text-emerald-300"
-                        }), e.jsx("span", {
-                          children: "Đang tải..."
-                        })]
-                      }) : (se === "debt" ? Oe : We) ? e.jsxs("div", {
-                        onClick: () => {
-                          const t = se === "debt" ? Oe : We;
-                          t && t.obj && (Na(t.obj), Ct(!0))
-                        },
-                        className: "space-y-2 py-1 cursor-pointer hover:bg-white/20 dark:hover:bg-white/5 rounded-xl transition-all active:scale-[0.98] border border-transparent",
-                        children: [e.jsxs("div", {
-                          className: "flex items-center gap-2.5",
-                          children: [e.jsx("div", {
-                            className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                            children: e.jsx(bt, {
-                              size: 15,
-                              className: "text-emerald-750 dark:text-emerald-350"
-                            })
-                          }), e.jsxs("div", {
-                            children: [e.jsx("div", {
-                              className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                              children: "SỐ TIỀN"
-                            }), e.jsx("div", {
-                              className: "text-xs font-black text-rose-600 dark:text-rose-400 uppercase",
-                              children: (() => {
-                                const t = se === "debt" ? Oe : We;
-                                return it(t.increase || t.obj?.total_amount || 0)
-                              })()
-                            })]
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex items-center gap-2.5",
-                          children: [e.jsx("div", {
-                            className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                            children: e.jsx(ra, {
-                              size: 15,
-                              className: "text-emerald-750 dark:text-emerald-355"
-                            })
-                          }), e.jsxs("div", {
-                            className: "min-w-0 flex-1",
-                            children: [e.jsx("div", {
-                              className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                              children: "NỘI DUNG"
-                            }), e.jsx("div", {
-                              className: "text-[10px] font-black uppercase truncate text-slate-800 dark:text-emerald-100",
-                              children: (se === "debt" ? Oe : We).desc
-                            })]
-                          })]
-                        }), e.jsxs("div", {
-                          className: "flex items-center gap-2.5",
-                          children: [e.jsx("div", {
-                            className: "w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0",
-                            children: e.jsx(ia, {
-                              size: 15,
-                              className: "text-emerald-750 dark:text-emerald-355"
-                            })
-                          }), e.jsxs("div", {
-                            children: [e.jsx("div", {
-                              className: "text-[8px] font-black uppercase tracking-wider opacity-60",
-                              children: "THỜI GIAN"
-                            }), e.jsx("div", {
-                              className: "text-[10px] font-black uppercase text-slate-800 dark:text-emerald-100",
-                              children: Fe((se === "debt" ? Oe : We).date)
-                            })]
-                          })]
-                        })]
-                      }) : e.jsxs("div", {
-                        className: "py-4 text-center font-black uppercase text-xs tracking-wider opacity-60 italic",
-                        children: ["Không có giao dịch ", se === "debt" ? "nợ" : "tiền mặt", " gần đây"]
-                      })]
-                    })]
-                  }), e.jsxs("div", {
-                    className: "flex flex-col items-center gap-4 shrink-0 relative z-[50]",
-                    children: [p && e.jsxs(m.button, {
-                      whileHover: {
+                  }} className="flex flex-col items-center py-6 gap-6 h-full relative z-10 no-print bg-transparent"><div onClick={() => p && Gr(!sr)} className={c("w-14 h-14 rounded-full flex items-center justify-center border transition-all relative cursor-pointer partner-popout-trigger shadow-sm", p ? "bg-transparent text-emerald-600 dark:text-emerald-400 border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40" : "bg-transparent text-[#8b6f47]/60 dark:text-[#d4a574] border-slate-300 dark:border-white/30 hover:bg-white/40 dark:hover:bg-white/10")}><Gn size={24} className={c("")} />{p && <div className="absolute -top-2 -right-3 bg-emerald-50 text-emerald-800 text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border-2 border-emerald-500 dark:border-emerald-700 transition-transform z-20">#{p.id}</div>}{p && <div ref={Wr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-gradient-to-br from-[#a7f3d0]/90 to-[#99f6e4]/90 dark:from-[#042f2e]/90 dark:to-[#115e59]/90 backdrop-blur-xl shadow-2xl border border-emerald-400/30 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-emerald-150 partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-emerald-500/20 dark:border-emerald-300/10 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] opacity-80 text-emerald-800 dark:text-emerald-250">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", Ne === "debt" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-0.5 rounded-md text-[8px] font-black uppercase transition-all", Ne === "cash" ? "bg-white/60 dark:bg-white/10 text-emerald-800 dark:text-white shadow-sm" : "text-emerald-700/60 dark:text-emerald-300/60 hover:text-emerald-900 dark:hover:text-white")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider opacity-85"><Un size={14} className="animate-spin text-emerald-750 dark:text-emerald-300" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
+                          const t = Ne === "debt" ? st : nt;
+                          t && t.obj && (mr(t.obj), Yt(!0));
+                        }} className="space-y-2 py-1 cursor-pointer hover:bg-white/20 dark:hover:bg-white/5 rounded-xl transition-all active:scale-[0.98] border border-transparent"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Comp_oa size={15} className="text-emerald-750 dark:text-emerald-350" /></div><div><div className="text-[8px] font-black uppercase tracking-wider opacity-60">SỐ TIỀN</div><div className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">{(() => {
+                                  const t = Ne === "debt" ? st : nt;
+                                  return lt(t.increase || t.obj?.total_amount || 0);
+                                })()}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Comp_ca size={15} className="text-emerald-750 dark:text-emerald-355" /></div><div className="min-w-0 flex-1"><div className="text-[8px] font-black uppercase tracking-wider opacity-60">NỘI DUNG</div><div className="text-[10px] font-black uppercase truncate text-slate-800 dark:text-emerald-100">{(Ne === "debt" ? st : nt).desc}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-white/40 dark:bg-white/10 flex items-center justify-center shrink-0"><Ja size={15} className="text-emerald-750 dark:text-emerald-355" /></div><div><div className="text-[8px] font-black uppercase tracking-wider opacity-60">THỜI GIAN</div><div className="text-[10px] font-black uppercase text-slate-800 dark:text-emerald-100">{ot((Ne === "debt" ? st : nt).date)}</div></div></div></div> : <div className="py-4 text-center font-black uppercase text-xs tracking-wider opacity-60 italic">Không có giao dịch {Ne === "debt" ? "nợ" : "tiền mặt"} gần đây</div>}</div>}</div><div className="flex flex-col items-center gap-4 shrink-0 relative z-[50]">{p && <x.button whileHover={{
                         scale: 1.12,
                         rotate: 5
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => ha(!0),
-                      className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all group/qd relative overflow-hidden shadow-sm",
-                      title: "Ghi nợ nhanh",
-                      children: [e.jsx("div", {
-                        className: "absolute inset-0 bg-white/20 translate-y-full group-hover/qd:translate-y-0 transition-transform duration-300 z-10"
-                      }), e.jsx(Pr, {
-                        size: 22,
-                        strokeWidth: 2.5,
-                        className: "relative z-20"
-                      })]
-                    }), p && e.jsxs(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => ja(!0)} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all group/qd relative overflow-hidden shadow-sm" title="Ghi nợ nhanh"><div className="absolute inset-0 bg-white/20 translate-y-full group-hover/qd:translate-y-0 transition-transform duration-300 z-10" /><Hs size={22} strokeWidth={2.5} className="relative z-20" /></x.button>}{p && <x.button whileHover={{
                         scale: 1.12,
                         rotate: -5
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => fa(!0),
-                      className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-teal-600 dark:text-teal-400 border border-teal-500/40 dark:border-teal-400/60 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-all group/qv relative overflow-hidden shadow-sm",
-                      title: "Lập phiếu nhanh",
-                      children: [e.jsx("div", {
-                        className: "absolute inset-0 bg-white/20 translate-y-full group-hover/qv:translate-y-0 transition-transform duration-300 z-10"
-                      }), e.jsx(Er, {
-                        size: 22,
-                        strokeWidth: 2.5,
-                        className: "relative z-20"
-                      })]
-                    }), e.jsxs("div", {
-                      className: "relative group/ship-mini",
-                      children: [e.jsxs(m.button, {
-                        whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => _a(!0)} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-teal-600 dark:text-teal-400 border border-teal-500/40 dark:border-teal-400/60 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-all group/qv relative overflow-hidden shadow-sm" title="Lập phiếu nhanh"><div className="absolute inset-0 bg-white/20 translate-y-full group-hover/qv:translate-y-0 transition-transform duration-300 z-10" /><Ks size={22} strokeWidth={2.5} className="relative z-20" /></x.button>}<div className="relative group/ship-mini"><x.button whileHover={{
                           scale: 1.12,
                           rotate: 10
-                        },
-                        whileTap: {
-                          scale: .9
-                        },
-                        onClick: () => ss(!0),
-                        className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-700 dark:text-emerald-400 border border-emerald-600/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all group/ship relative overflow-hidden shadow-sm",
-                        title: "Quản lý giao hàng",
-                        children: [e.jsx("div", {
-                          className: "absolute inset-0 bg-white/20 translate-y-full group-hover/ship:translate-y-0 transition-transform duration-300 z-10"
-                        }), e.jsx(lt, {
-                          size: 22,
-                          strokeWidth: 2.5,
-                          className: "relative z-20"
-                        })]
-                      }), ve > 0 && e.jsxs("div", {
-                        className: "absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] bg-emerald-50 text-emerald-800 text-[10px] font-black tracking-wider rounded-full border-2 border-emerald-500 dark:border-emerald-700 flex items-center justify-center px-1.5 z-20",
-                        children: [e.jsx("span", {
-                          className: "relative flex h-2 w-2 mr-0.5",
-                          children: e.jsx("span", {
-                            className: "relative inline-flex rounded-full h-2 w-2 bg-emerald-600"
-                          })
-                        }), ve]
-                      })]
-                    })]
-                  }), e.jsx("div", {
-                    className: "flex-1 flex items-center justify-center w-full min-h-[80px] relative",
-                    children: e.jsxs(m.button, {
-                      whileHover: {
+                        }} whileTap={{
+                          scale: 0.9
+                        }} onClick={() => vn(!0)} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-700 dark:text-emerald-400 border border-emerald-600/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all group/ship relative overflow-hidden shadow-sm" title="Quản lý giao hàng"><div className="absolute inset-0 bg-white/20 translate-y-full group-hover/ship:translate-y-0 transition-transform duration-300 z-10" /><Comp_u_t size={22} strokeWidth={2.5} className="relative z-20" /></x.button>{D > 0 && <div className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] bg-emerald-50 text-emerald-800 text-[10px] font-black tracking-wider rounded-full border-2 border-emerald-500 dark:border-emerald-700 flex items-center justify-center px-1.5 z-20"><span className="relative flex h-2 w-2 mr-0.5"><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" /></span>{D}</div>}</div></div><div className="flex-1 flex items-center justify-center w-full min-h-[80px] relative"><x.button whileHover={{
                         scale: 1.12,
                         x: -3
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => $r(!0),
-                      className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/50 dark:border-[#d4a574]/60 hover:bg-white/40 dark:hover:bg-white/10 transition-all group/toggle z-10 relative shadow-sm",
-                      children: [e.jsx("div", {
-                        className: "absolute inset-0 rounded-full bg-gradient-to-tr from-[#d4a574]/10 to-transparent pointer-events-none"
-                      }), e.jsx(js, {
-                        size: 28,
-                        strokeWidth: 3,
-                        className: "group-hover/toggle:-translate-x-1 transition-transform drop-shadow"
-                      })]
-                    })
-                  }), e.jsxs("div", {
-                    className: "flex flex-col gap-4 pb-6 px-3",
-                    children: [e.jsx(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => en(!0)} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/50 dark:border-[#d4a574]/60 hover:bg-white/40 dark:hover:bg-white/10 transition-all group/toggle z-10 relative shadow-sm"><div className="absolute inset-0 rounded-full bg-gradient-to-tr from-[#d4a574]/10 to-transparent pointer-events-none" /><Comp_qs size={28} strokeWidth={3} className="group-hover/toggle:-translate-x-1 transition-transform drop-shadow" /></x.button></div><div className="flex flex-col gap-4 pb-6 px-3"><x.button whileHover={{
                         scale: 1.12
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: gr,
-                      disabled: b.length === 0,
-                      className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600/80 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-sm",
-                      title: "Treo đơn",
-                      children: e.jsx(At, {
-                        size: 18,
-                        strokeWidth: 2.5
-                      })
-                    }), e.jsx(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={wr} disabled={y.length === 0} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600/80 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-sm" title="Treo đơn"><Comp_jt size={18} strokeWidth={2.5} /></x.button><x.button whileHover={{
                         scale: 1.12
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => $e(!1),
-                      disabled: b.length === 0 || tt,
-                      className: "w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-sm",
-                      title: "Lưu đơn",
-                      children: tt ? e.jsx("div", {
-                        className: "w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"
-                      }) : e.jsx(Ss, {
-                        size: 22,
-                        strokeWidth: 2.5
-                      })
-                    }), e.jsxs(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => Re(!1)} disabled={y.length === 0 || Be} className="w-14 h-14 bg-transparent rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 dark:border-emerald-400/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-all shadow-sm" title="Lưu đơn">{Be ? <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" /> : <Er size={22} strokeWidth={2.5} />}</x.button><x.button whileHover={{
                         scale: 1.12,
                         y: -2
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => $e(!0),
-                      disabled: b.length === 0 || tt,
-                      className: "w-14 h-14 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-all relative overflow-hidden group/print-mini border border-emerald-500/50 dark:border-emerald-300/80",
-                      children: [e.jsx("div", {
-                        className: "absolute inset-0 bg-white/20 translate-y-full group-hover/print-mini:translate-y-0 transition-transform duration-300"
-                      }), tt ? e.jsx("div", {
-                        className: "w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"
-                      }) : e.jsx(Dr, {
-                        size: 26,
-                        strokeWidth: 2.5,
-                        className: "relative z-10"
-                      })]
-                    }), b.length > 0 && e.jsxs(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => Re(!0)} disabled={y.length === 0 || Be} className="w-14 h-14 bg-emerald-600 dark:bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-all relative overflow-hidden group/print-mini border border-emerald-500/50 dark:border-emerald-300/80"><div className="absolute inset-0 bg-white/20 translate-y-full group-hover/print-mini:translate-y-0 transition-transform duration-300" />{Be ? <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Fa size={26} strokeWidth={2.5} className="relative z-10" />}</x.button>{y.length > 0 && <x.button whileHover={{
                         scale: 1.12,
                         y: -2
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: () => ar(!0),
-                      className: "w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl flex items-center justify-center  shadow-purple-500/30 hover:shadow-purple-500/50 transition-all relative overflow-hidden group/tax-mini",
-                      title: "Quy đổi tiền CK",
-                      children: [e.jsx("div", {
-                        className: "absolute inset-0 bg-white/20 translate-y-full group-hover/tax-mini:translate-y-0 transition-transform duration-300"
-                      }), e.jsx(di, {
-                        size: 26,
-                        strokeWidth: 2.5,
-                        className: "relative z-10"
-                      })]
-                    }), f && e.jsx(m.button, {
-                      whileHover: {
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={() => ts(!0)} className="w-14 h-14 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl flex items-center justify-center  shadow-purple-500/30 hover:shadow-purple-500/50 transition-all relative overflow-hidden group/tax-mini" title="Quy đổi tiền CK"><div className="absolute inset-0 bg-white/20 translate-y-full group-hover/tax-mini:translate-y-0 transition-transform duration-300" /><Td size={26} strokeWidth={2.5} className="relative z-10" /></x.button>}{v && <x.button whileHover={{
                         scale: 1.1,
                         rotate: 180
-                      },
-                      whileTap: {
-                        scale: .9
-                      },
-                      onClick: f,
-                      className: "w-14 h-14 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700/50  hover: transition-all group/toggle-theme",
-                      title: "Chuyển đổi giao diện",
-                      children: e.jsx(pi, {
-                        size: 22,
-                        strokeWidth: 2.5
-                      })
-                    })]
-                  })]
-                }, "mini-sidebar")
-              })
-            })
-          })]
-        }), e.jsx(T, {
-          children: ya && e.jsx(gs, {
-            isOpen: ya,
-            partner: {
-              name: Qr,
+                      }} whileTap={{
+                        scale: 0.9
+                      }} onClick={v} className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700/50  hover: transition-all group/toggle-theme" title="Chuyển đổi giao diện"><Bn size={22} strokeWidth={2.5} /></x.button>}</div></x.div>}</P></div></x.div>}</div><P>{dr && <Wn isOpen={dr} partner={{
+              name: on,
               is_customer: !0,
               is_supplier: !1
-            },
-            onClose: () => wa(!1),
-            onSave: t => {
-              vr(), wa(!1), t && (L(t), je(""), setTimeout(() => ue.current?.focus(), 100))
-            }
-          })
-        }), e.jsx(T, {
-          children: va && e.jsx(ms, {
-            isOpen: va,
-            product: {
-              name: Qr
-            },
-            onClose: () => ka(!1),
-            onSave: () => {
-              wr(), ka(!1)
-            }
-          })
-        }), e.jsx(T, {
-          children: ir && e.jsx(An, {
-            message: ir.message,
-            type: ir.type,
-            onClose: () => G(null)
-          })
-        }), e.jsx("div", {
-          className: "fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none",
-          children: e.jsx(T, {
-            children: K.map(t => e.jsxs(m.div, {
-              initial: {
+            }} onClose={() => cr(!1)} onSave={t => {
+              Ua(), cr(!1), t && (F(t), Ge(""), setTimeout(() => se.current?.focus(), 100));
+            }} />}</P><P>{pr && <An isOpen={pr} product={{
+              name: on
+            }} onClose={() => ur(!1)} onSave={() => {
+              Ga(), ur(!1);
+            }} />}</P><P>{is && <Comp_td message={is.message} type={is.type} onClose={() => G(null)} />}</P><div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"><P>{hi.map(t => <x.div key={t.id} initial={{
                 opacity: 0,
                 x: 100,
-                scale: .9
-              },
-              animate: {
+                scale: 0.9
+              }} animate={{
                 opacity: 1,
                 x: 0,
                 scale: 1
-              },
-              exit: {
+              }} exit={{
                 opacity: 0,
                 x: 50,
-                scale: .9,
+                scale: 0.9,
                 transition: {
-                  duration: .15
+                  duration: 0.15
                 }
-              },
-              className: "bg-slate-900/90 text-white px-4 py-3 rounded-2xl shadow-xl border border-white/10 dark:border-white/10 backdrop-blur-md text-xs font-black flex items-center gap-3 pointer-events-auto",
-              children: [e.jsx("div", {
-                className: "w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"
-              }), e.jsxs("div", {
-                children: [e.jsx("div", {
-                  className: "text-[10px] text-slate-400 uppercase tracking-wider leading-none",
-                  children: "Quét từ xa"
-                }), e.jsxs("div", {
-                  className: "mt-1",
-                  children: [t.productName, " ", e.jsxs("span", {
-                    className: "text-amber-400",
-                    children: ["x", t.qty]
-                  }), " → ", e.jsx("span", {
-                    className: "underline text-blue-400",
-                    children: t.tabName
-                  })]
-                })]
-              })]
-            }, t.id))
-          })
-        }), e.jsx(Vn, {
-          isOpen: Xs,
-          onClose: () => ar(!1),
-          totalAmount: A,
-          partnerName: p?.name || ""
-        }), e.jsx(ms, {
-          isOpen: dr,
-          product: an,
-          onClose: () => dt(!1),
-          onSave: wr
-        }), e.jsx(gs, {
-          isOpen: ln,
-          partner: on,
-          onClose: () => Yt(!1),
-          onSave: async t => {
-            await vr(), t && (L(t), je(""), setTimeout(() => ue.current?.focus(), 100))
-          }
-        }), e.jsx(Be, {
-          children: e.jsx(fi, {
-            isOpen: Qs || le && le.type === "DebtIncrease",
-            partner: p,
-            initialData: le && le.type === "DebtIncrease" ? le : null,
-            onClose: () => {
-              ha(!1), Kt(null)
-            },
-            onSave: async t => {
-              le ? await ps() : (L(t), F.invalidateQueries(["partners"])), G({
-                message: le ? "Đã cập nhật khoản nợ thành công!" : "Đã lưu khoản nợ mới thành công!",
+              }} className="bg-slate-900/90 text-white px-4 py-3 rounded-2xl shadow-xl border border-white/10 dark:border-white/10 backdrop-blur-md text-xs font-black flex items-center gap-3 pointer-events-auto"><div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" /><div><div className="text-[10px] text-slate-400 uppercase tracking-wider leading-none">Quét từ xa</div><div className="mt-1">{t.productName} <span className="text-amber-400">x{t.qty}</span> → <span className="underline text-blue-400">{t.tabName}</span></div></div></x.div>)}</P></div><Comp_ed isOpen={Ri} onClose={() => ts(!1)} totalAmount={$} partnerName={p?.name || ""} /><An isOpen={ps} product={Hi} onClose={() => vt(!1)} onSave={Ga} /><Wn isOpen={Xi} partner={Ji} onClose={() => Oa(!1)} onSave={async t => {
+            await Ua(), t && (F(t), Ge(""), setTimeout(() => se.current?.focus(), 100));
+          }} /><Ee><Comp_nd isOpen={Mi || ye && ye.type === "DebtIncrease"} partner={p} initialData={ye && ye.type === "DebtIncrease" ? ye : null} onClose={() => {
+              ja(!1), Ia(null);
+            }} onSave={async t => {
+              ye ? await jr() : (F(t), E.invalidateQueries(["partners"])), G({
+                message: ye ? "Đã cập nhật khoản nợ thành công!" : "Đã lưu khoản nợ mới thành công!",
                 type: "success"
-              }), Kt(null), ha(!1), le || xt(!1)
-            }
-          })
-        }), e.jsx(Be, {
-          children: e.jsx(Ki, {
-            isOpen: mn,
-            onClose: () => ss(!1),
-            onViewOrder: t => {
-              Na(t), Ct(!0)
-            }
-          })
-        }), e.jsx(Be, {
-          children: e.jsx(bi, {
-            isOpen: Vs || le && (le.type === "Receipt" || le.type === "Payment"),
-            partner: p,
-            initialData: le && (le.type === "Receipt" || le.type === "Payment") ? le : null,
-            onClose: () => {
-              fa(!1), Kt(null)
-            },
-            onSave: async t => {
-              await ps(), G({
-                message: le ? "Đã cập nhật phiếu thành công!" : "Đã lập phiếu thành công!",
+              }), Ia(null), ja(!1), ye || kt(!1);
+            }} /></Ee><Ee><Comp_ac isOpen={al} onClose={() => vn(!1)} onViewOrder={t => {
+              mr(t), Yt(!0);
+            }} /></Ee><Ee><Comp_id isOpen={Wi || ye && (ye.type === "Receipt" || ye.type === "Payment")} partner={p} initialData={ye && (ye.type === "Receipt" || ye.type === "Payment") ? ye : null} onClose={() => {
+              _a(!1), Ia(null);
+            }} onSave={async t => {
+              await jr(), G({
+                message: ye ? "Đã cập nhật phiếu thành công!" : "Đã lập phiếu thành công!",
                 type: "success"
-              }), Kt(null), fa(!1)
-            }
-          })
-        }), e.jsx(T, {
-          children: or && Jr && e.jsx(Be, {
-            children: e.jsxs("div", {
-              className: "fixed inset-0 z-[1000] flex bg-[radial-gradient(circle_at_25%_center,_#1e293b_0%,_#020617_100%)] animate-in fade-in duration-700 font-sans overflow-hidden",
-              children: [e.jsxs("div", {
-                className: "absolute inset-0 overflow-hidden pointer-events-none",
-                children: [e.jsx("div", {
-                  className: "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden"
-                }), e.jsx("div", {
-                  className: "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden"
-                })]
-              }), e.jsxs(m.div, {
-                initial: {
+              }), ye && (Ia(null), _a(!1));
+            }} /></Ee><P>{ds && Ta && <Ee><div className="fixed inset-0 z-[1000] flex bg-[radial-gradient(circle_at_25%_center,_#1e293b_0%,_#020617_100%)] animate-in fade-in duration-700 font-sans overflow-hidden"><div className="absolute inset-0 overflow-hidden pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" /><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" /></div><x.div initial={{
                   x: -100,
                   opacity: 0
-                },
-                animate: {
+                }} animate={{
                   x: 0,
                   opacity: 1
-                },
-                exit: {
+                }} exit={{
                   x: -100,
                   opacity: 0
-                },
-                transition: {
+                }} transition={{
                   type: "spring",
                   stiffness: 200,
                   damping: 25
-                },
-                className: "w-80 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-50  relative",
-                onClick: t => t.stopPropagation(),
-                children: [e.jsxs("div", {
-                  className: "p-8 border-b border-white/10",
-                  children: [e.jsx("h3", {
-                    className: "text-xl font-black text-white uppercase tracking-tighter",
-                    children: "Thiết lập in"
-                  }), e.jsx("p", {
-                    className: "text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1",
-                    children: "Tùy chỉnh nội dung hiển thị"
-                  })]
-                }), e.jsx("div", {
-                  className: "flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar",
-                  children: e.jsxs("div", {
-                    className: "space-y-4",
-                    children: [e.jsxs("div", {
-                      className: "flex items-center justify-between px-2",
-                      children: [e.jsx("label", {
-                        className: "text-[10px] font-black text-rose-500/60 uppercase tracking-[0.2em]",
-                        children: "Thông tin tài chính"
-                      }), e.jsx("div", {
-                        className: "h-[1px] flex-1 bg-gradient-to-r from-rose-500/20 to-transparent ml-4"
-                      })]
-                    }), e.jsx("div", {
-                      className: "grid gap-3",
-                      children: [{
-                        id: "showOldDebt",
-                        label: "Hiển thị nợ cũ",
-                        icon: Ot,
-                        color: "text-rose-400",
-                        glow: "shadow-rose-500/20",
-                        baseColor: "rose"
-                      }, {
-                        id: "showPayment",
-                        label: "Hiển thị thanh toán",
-                        icon: La,
-                        color: "text-emerald-400",
-                        glow: "shadow-emerald-500/20",
-                        baseColor: "emerald"
-                      }, {
-                        id: "showRemaining",
-                        label: "Hiển thị còn lại",
-                        icon: bt,
-                        color: "text-blue-400",
-                        glow: "shadow-blue-500/20",
-                        baseColor: "blue"
-                      }, {
-                        id: "showCashGiven",
-                        label: "Hiển thị khách đưa",
-                        icon: xi,
-                        color: "text-amber-400",
-                        glow: "shadow-amber-500/20",
-                        baseColor: "amber"
-                      }, {
-                        id: "showChange",
-                        label: "Hiển thị tiền thối",
-                        icon: mi,
-                        color: "text-cyan-400",
-                        glow: "shadow-cyan-500/20",
-                        baseColor: "cyan"
-                      }].map(t => {
-                        const a = t.icon,
-                          r = we[t.id];
-                        return e.jsxs(m.button, {
-                          whileHover: {
-                            x: 8,
-                            backgroundColor: "rgba(255,255,255,0.08)"
-                          },
-                          whileTap: {
-                            scale: .96
-                          },
-                          onClick: () => hn(s => ({
-                            ...s,
-                            [t.id]: !s[t.id]
-                          })),
-                          className: u("w-full p-4 rounded-[1.8rem] flex items-center justify-between transition-all duration-500 border border-white/5 group relative overflow-hidden", r ? "bg-white/10 " : "bg-transparent"),
-                          children: [r && e.jsx("div", {
-                            className: u("absolute inset-0 opacity-5 bg-current", t.color)
-                          }), e.jsxs("div", {
-                            className: "flex items-center gap-4 relative z-10",
-                            children: [e.jsx("div", {
-                              className: u("w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500", r ? `bg-white/10 ${t.color}  ${t.glow} scale-110` : "bg-white/5 text-white/20 group-hover:text-white/40 dark:text-white/20 group-hover:text-slate-600 dark:group-hover:text-white/40"),
-                              children: e.jsx(a, {
-                                size: 20,
-                                strokeWidth: 2.5,
-                                className: u("transition-transform duration-700", r ? "rotate-0 scale-110" : "rotate-[-10deg]")
-                              })
-                            }), e.jsxs("div", {
-                              className: "flex flex-col items-start gap-0.5",
-                              children: [e.jsx("span", {
-                                className: u("text-[11px] font-black uppercase tracking-[0.05em] transition-colors duration-500", r ? "text-white" : "text-white/30 group-hover:text-white/60 group-hover:text-slate-600 dark:group-hover:text-white/60"),
-                                children: t.label
-                              }), e.jsx("span", {
-                                className: "text-[8px] font-bold text-white/10 uppercase tracking-widest leading-none",
-                                children: r ? "ĐANG HIỆN" : "ĐANG ẨN"
-                              })]
-                            })]
-                          }), e.jsxs("div", {
-                            className: u("w-12 h-6 rounded-full relative p-1 transition-all duration-700 overflow-hidden ring-1 ring-white/10", r ? "bg-emerald-500/20 " : "bg-white/5 shadow-none"),
-                            children: [e.jsx("div", {
-                              className: u("absolute top-1/2 left-3 right-3 h-[2px] rounded-full transition-colors duration-700", r ? "bg-emerald-500/40" : "bg-white/10")
-                            }), e.jsxs(m.div, {
-                              layout: !0,
-                              animate: {
-                                x: r ? 24 : 0,
-                                backgroundColor: r ? "#10b981" : "#475569"
-                              },
-                              transition: {
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 30
-                              },
-                              className: "w-4 h-4 rounded-full  flex items-center justify-center relative z-10",
-                              children: [e.jsx("div", {
-                                className: "w-1.5 h-1.5 rounded-full bg-white opacity-40 shadow-none"
-                              }), r && e.jsx("div", {
-                                className: "absolute inset-0 rounded-full bg-emerald-400 opacity-10"
-                              })]
-                            })]
-                          })]
-                        }, t.id)
-                      })
-                    })]
-                  })
-                }), e.jsxs("div", {
-                  className: "p-8 border-t border-white/10 space-y-3 bg-slate-900",
-                  children: [e.jsxs(m.button, {
-                    whileHover: {
+                }} className="w-80 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-50  relative" onClick={t => t.stopPropagation()}><div className="p-8 border-b border-white/10"><h3 className="text-xl font-black text-white uppercase tracking-tighter">Thiết lập in</h3><p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Tùy chỉnh nội dung hiển thị</p></div><div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"><div className="space-y-4"><div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 mb-3 gap-1"><button onClick={() => un("Sale")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", Jt === "Sale" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-white/60 hover:text-white hover:bg-white/5")}><Lo size={14} className="shrink-0" strokeWidth={2.5} /><span>Hóa đơn</span></button><button onClick={() => un("Delivery")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", Jt === "Delivery" ? "bg-amber-600 text-white shadow-md shadow-amber-600/30" : "text-white/60 hover:text-white hover:bg-white/5")}><ko size={14} className="shrink-0" strokeWidth={2.5} /><span>Xuất kho</span></button></div>{Jt === "Delivery" ? <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300 font-bold leading-relaxed">Phiếu xuất kho tự động ẩn đơn giá, thành tiền và toàn bộ thông tin công nợ thanh toán.</div> : <div className="space-y-4"><div className="flex items-center justify-between px-2"><label className="text-[10px] font-black text-rose-500/60 uppercase tracking-[0.2em]">Thông tin tài chính</label><div className="h-[1px] flex-1 bg-gradient-to-r from-rose-500/20 to-transparent ml-4" /></div><div className="grid gap-3">{[{
+                            id: "showOldDebt",
+                            label: "Hiển thị nợ cũ",
+                            icon: ua,
+                            color: "text-rose-400",
+                            glow: "shadow-rose-500/20",
+                            baseColor: "rose"
+                          }, {
+                            id: "showPayment",
+                            label: "Hiển thị thanh toán",
+                            icon: Va,
+                            color: "text-emerald-400",
+                            glow: "shadow-emerald-500/20",
+                            baseColor: "emerald"
+                          }, {
+                            id: "showRemaining",
+                            label: "Hiển thị còn lại",
+                            icon: oa,
+                            color: "text-blue-400",
+                            glow: "shadow-blue-500/20",
+                            baseColor: "blue"
+                          }, {
+                            id: "showCashGiven",
+                            label: "Hiển thị khách đưa",
+                            icon: Id,
+                            color: "text-amber-400",
+                            glow: "shadow-amber-500/20",
+                            baseColor: "amber"
+                          }, {
+                            id: "showChange",
+                            label: "Hiển thị tiền thối",
+                            icon: Dd,
+                            color: "text-cyan-400",
+                            glow: "shadow-cyan-500/20",
+                            baseColor: "cyan"
+                          }].map(t => {
+                            const IconComp = t.icon,
+                              r = Ke[t.id];
+                            return <x.button key={t.id} whileHover={{
+                              x: 8,
+                              backgroundColor: "rgba(255,255,255,0.08)"
+                            }} whileTap={{
+                              scale: 0.96
+                            }} onClick={() => rl(s => ({
+                              ...s,
+                              [t.id]: !s[t.id]
+                            }))} className={c("w-full p-4 rounded-[1.8rem] flex items-center justify-between transition-all duration-500 border border-white/5 group relative overflow-hidden", r ? "bg-white/10 " : "bg-transparent")}>{r && <div className={c("absolute inset-0 opacity-5 bg-current", t.color)} />}<div className="flex items-center gap-4 relative z-10"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500", r ? `bg-white/10 ${t.color}  ${t.glow} scale-110` : "bg-white/5 text-white/20 group-hover:text-white/40 dark:text-white/20 group-hover:text-slate-600 dark:group-hover:text-white/40")}><IconComp size={20} strokeWidth={2.5} className={c("transition-transform duration-700", r ? "rotate-0 scale-110" : "rotate-[-10deg]")} /></div><div className="flex flex-col items-start gap-0.5"><span className={c("text-[11px] font-black uppercase tracking-[0.05em] transition-colors duration-500", r ? "text-white" : "text-white/30 group-hover:text-white/60 group-hover:text-slate-600 dark:group-hover:text-white/60")}>{t.label}</span><span className="text-[8px] font-bold text-white/10 uppercase tracking-widest leading-none">{r ? "ĐANG HIỆN" : "ĐANG ẨN"}</span></div></div><div className={c("w-12 h-6 rounded-full relative p-1 transition-all duration-700 overflow-hidden ring-1 ring-white/10", r ? "bg-emerald-500/20 " : "bg-white/5 shadow-none")}><div className={c("absolute top-1/2 left-3 right-3 h-[2px] rounded-full transition-colors duration-700", r ? "bg-emerald-500/40" : "bg-white/10")} /><x.div layout={!0} animate={{
+                                  x: r ? 24 : 0,
+                                  backgroundColor: r ? "#10b981" : "#475569"
+                                }} transition={{
+                                  type: "spring",
+                                  stiffness: 500,
+                                  damping: 30
+                                }} className="w-4 h-4 rounded-full  flex items-center justify-center relative z-10"><div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 shadow-none" />{r && <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-10" />}</x.div></div></x.button>;
+                          })}</div></div>}</div></div><div className="p-8 border-t border-white/10 space-y-3 bg-slate-900"><x.button whileHover={{
                       scale: 1.02
-                    },
-                    whileTap: {
-                      scale: .98
-                    },
-                    onClick: () => {
-                      Bt(!1), $e(!0)
-                    },
-                    className: "group w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px]  shadow-emerald-500/20 flex items-center justify-center gap-3",
-                    children: [e.jsx(Dr, {
-                      size: 18,
-                      strokeWidth: 2.5,
-                      className: "group-hover:rotate-12 transition-transform"
-                    }), "Lưu & In Ngay"]
-                  }), e.jsxs(m.button, {
-                    whileHover: {
+                    }} whileTap={{
+                      scale: 0.98
+                    }} onClick={() => {
+                      Sa(!1), Re(!0, Jt);
+                    }} className="group w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px]  shadow-emerald-500/20 flex items-center justify-center gap-3"><Fa size={18} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />{Jt === "Delivery" ? "Lưu & In Xuất Kho" : "Lưu & In Ngay"}</x.button><x.button whileHover={{
                       scale: 1.02,
                       backgroundColor: "rgba(236, 72, 153, 0.2)"
-                    },
-                    whileTap: {
-                      scale: .98
-                    },
-                    onClick: () => {
-                      if (Jr && Jr.details) {
-                        playPackingQueue(Jr.details, z);
-                      }
-                    },
-                    className: "w-full py-4 bg-pink-500/10 text-pink-400 hover:text-pink-300 rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-pink-500/20 flex items-center justify-center gap-3",
-                    children: [e.jsx(Volume2, {
-                      size: 18
-                    }), "Đọc Soạn Hàng"]
-                  }), e.jsxs(m.button, {
-                    whileHover: {
+                    }} whileTap={{
+                      scale: 0.98
+                    }} onClick={() => {
+                      Ta && Ta.details && qn(Ta.details, T);
+                    }} className="w-full py-4 bg-pink-500/10 text-pink-400 hover:text-pink-300 rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-pink-500/20 flex items-center justify-center gap-3"><Comp_la size={18} />Đọc Soạn Hàng</x.button><x.button whileHover={{
                       scale: 1.02,
                       backgroundColor: "rgba(255,255,255,0.1)"
-                    },
-                    whileTap: {
-                      scale: .98
-                    },
-                    onClick: () => Bt(!1),
-                    className: "w-full py-4 bg-white/5 text-white/50 hover:text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-white/5 flex items-center justify-center gap-3",
-                    children: [e.jsx(Se, {
-                      size: 18
-                    }), "Đóng nhanh"]
-                  })]
-                })]
-              }), e.jsxs("div", {
-                className: "fixed bottom-10 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-2 bg-slate-900/80 rounded-[2rem] border border-white/10 ",
-                children: [e.jsx(m.button, {
-                  whileHover: {
+                    }} whileTap={{
+                      scale: 0.98
+                    }} onClick={() => Sa(!1)} className="w-full py-4 bg-white/5 text-white/50 hover:text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-white/5 flex items-center justify-center gap-3"><Comp_ke size={18} />Đóng nhanh</x.button></div></x.div><div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-2 bg-slate-900/80 rounded-[2rem] border border-white/10 "><x.button whileHover={{
                     scale: 1.1
-                  },
-                  whileTap: {
-                    scale: .9
-                  },
-                  onClick: () => cr(t => Math.max(.5, t - .1)),
-                  className: "w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors",
-                  title: "Thu nhỏ",
-                  children: e.jsx(hi, {
-                    size: 20
-                  })
-                }), e.jsxs("div", {
-                  className: "px-4 text-[13px] font-black text-white min-w-[60px] text-center",
-                  children: [Math.round(Yr * 100), "%"]
-                }), e.jsx(m.button, {
-                  whileHover: {
+                  }} whileTap={{
+                    scale: 0.9
+                  }} onClick={() => cs(t => Math.max(0.5, t - 0.1))} className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors" title="Thu nhỏ"><Comp_ui size={20} /></x.button><div className="px-4 text-[13px] font-black text-white min-w-[60px] text-center">{Math.round(cn * 100)}%</div><x.button whileHover={{
                     scale: 1.1
-                  },
-                  whileTap: {
-                    scale: .9
-                  },
-                  onClick: () => cr(t => Math.min(2, t + .1)),
-                  className: "w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors",
-                  title: "Phóng to",
-                  children: e.jsx(ft, {
-                    size: 20
-                  })
-                }), e.jsx("div", {
-                  className: "w-[1px] h-6 bg-white/10 mx-1"
-                }), e.jsx(m.button, {
-                  whileHover: {
+                  }} whileTap={{
+                    scale: 0.9
+                  }} onClick={() => cs(t => Math.min(2, t + 0.1))} className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors" title="Phóng to"><Ot size={20} /></x.button><div className="w-[1px] h-6 bg-white/10 mx-1" /><x.button whileHover={{
                     scale: 1.1
-                  },
-                  whileTap: {
-                    scale: .9
-                  },
-                  onClick: () => cr(1),
-                  className: "w-12 h-12 flex items-center justify-center rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-colors",
-                  title: "Reset",
-                  children: e.jsx(Ir, {
-                    size: 18
-                  })
-                })]
-              }), e.jsxs("div", {
-                className: "flex-1 h-full overflow-auto no-scrollbar py-20 px-4 flex flex-col items-center cursor-zoom-out",
-                onClick: () => Bt(!1),
-                children: [e.jsx(m.div, {
-                  initial: {
-                    scale: .9,
+                  }} whileTap={{
+                    scale: 0.9
+                  }} onClick={() => cs(1)} className="w-12 h-12 flex items-center justify-center rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-colors" title="Reset"><Ms size={18} /></x.button></div><div className="flex-1 h-full overflow-auto no-scrollbar py-20 px-4 flex flex-col items-center cursor-zoom-out" onClick={() => Sa(!1)}><x.div initial={{
+                    scale: 0.9,
                     opacity: 0,
                     y: 30
-                  },
-                  animate: {
-                    scale: Yr,
+                  }} animate={{
+                    scale: cn,
                     opacity: 1,
                     y: 0
-                  },
-                  exit: {
-                    scale: .95,
+                  }} exit={{
+                    scale: 0.95,
                     opacity: 0,
                     y: 20
-                  },
-                  transition: {
+                  }} transition={{
                     type: "spring",
                     stiffness: 200,
                     damping: 25
-                  },
-                  onClick: t => t.stopPropagation(),
-                  className: "relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top",
-                  children: e.jsx(bs, {
-                    data: Jr,
-                    settings: X,
-                    type: "Sale",
-                    isPreview: !0,
-                    showOldDebt: we.showOldDebt,
-                    showPayment: we.showPayment,
-                    showRemaining: we.showRemaining,
-                    showCashGiven: we.showCashGiven,
-                    showChange: we.showChange
-                  })
-                }), e.jsx("p", {
-                  className: "mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans",
-                  children: "Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio"
-                })]
-              })]
-            })
-          })
-        }), e.jsx(qn, {
-          isVisible: tt && z.length === 0,
-          message: "Đang nạp dữ liệu POS..."
-        }), e.jsx(Be, {
-          children: e.jsx(ki, {
-            isOpen: xn,
-            partner: p,
-            onClose: () => xt(!1),
-            onViewOrder: t => {
-              Na(t), Ct(!0)
-            },
-            onEditOrder: t => {
-              Da(t), xt(!1), G({
+                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top"><Mn data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
+              mr(t), Yt(!0);
+            }} onEditOrder={t => {
+              Ka(t), kt(!1), G({
                 message: "Đã mang hóa đơn ra màn hình để sửa!",
                 type: "success"
-              })
-            },
-            onDeleteOrder: zn,
-            onEditVoucher: t => {
-              Kt({
+              });
+            }} onDeleteOrder={Sn} onEditVoucher={t => {
+              Ia({
                 ...t,
                 id: t.id.toString().replace("v_", ""),
                 amount: t.total_amount
-              })
-            },
-            onDeleteVoucher: Dn,
-            onAddToCart: t => {
-              const a = z.find(r => r.id === t.id);
-              a && Pt(a)
-            }
-          })
-        })]
-      }), pa && pa.details && pa.details.length > 0 && e.jsx("div", {
-        className: "only-print",
-        children: e.jsx(bs, {
-          data: pa,
-          settings: X,
-          type: "Sale",
-          showOldDebt: we.showOldDebt,
-          showPayment: we.showPayment,
-          showRemaining: we.showRemaining,
-          showCashGiven: we.showCashGiven,
-          showChange: we.showChange
-        })
-      }), e.jsx(T, {
-        children: hr && e.jsx(Be, {
-          children: e.jsx("div", {
-            className: "fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto",
-            children: e.jsxs(m.div, {
-              initial: {
-                scale: .95,
+              });
+            }} onDeleteVoucher={gl} onAddToCart={t => {
+              const a = T.find(r => r.id === t.id);
+              a && ia(a);
+            }} /></Ee><P>{gs && <Ee><div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto"><x.div initial={{
+                  scale: 0.95,
+                  opacity: 0,
+                  y: 10
+                }} animate={{
+                  scale: 1,
+                  opacity: 1,
+                  y: 0
+                }} exit={{
+                  scale: 0.95,
+                  opacity: 0,
+                  y: 10
+                }} className="bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden"><div className="p-5 flex items-center justify-between border-b border-border bg-card shrink-0"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20"><Ot className="text-primary" size={20} /></div><div><h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Thêm món ngoài</h3><p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Phím tắt F6</p></div></div><button onClick={() => La(!1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"><Comp_ke size={16} strokeWidth={2.5} /></button></div><div className="p-5 space-y-4 bg-card/50"><div className="space-y-1"><label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1">Tên món / Nội dung</label><input ref={ys} type="text" className="w-full h-12 px-4 bg-background border border-border focus:border-primary rounded-xl font-bold text-foreground outline-none transition-all placeholder:text-muted-foreground uppercase" placeholder="GÕ TÊN MÓN..." value={ut.name} onChange={t => $a({
+                        ...ut,
+                        name: t.target.value
+                      })} onKeyDown={t => {
+                        t.key === "Enter" && (t.preventDefault(), bn.current?.focus());
+                      }} /></div><div className="space-y-1"><label className="text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1">Giá tiền</label><input ref={bn} type="text" className="w-full h-12 px-4 bg-background border border-border focus:border-primary rounded-xl font-black text-xl text-primary outline-none transition-all" placeholder="0" value={ut.price ? parseFloat(ut.price).toLocaleString("en-US") : ""} onChange={t => {
+                        const a = t.target.value.replace(/,/g, "");
+                        /^\d*$/.test(a) && $a({
+                          ...ut,
+                          price: a
+                        });
+                      }} onKeyDown={t => {
+                        t.key === "Enter" && (t.preventDefault(), Cn(ut.name, parseFloat(ut.price) || 0));
+                      }} /></div></div><div className="p-6 bg-card border-t border-border flex flex-col items-center"><button onClick={() => Cn(ut.name, parseFloat(ut.price) || 0)} className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"><Ot size={18} /> THÊM VÀO GIỎ (ENTER)</button></div></x.div></div></Ee>}</P><P>{Ui && us && <Comp_rd order={us} partner={Y.find(t => t.id === us.partner_id)} onClose={() => Yt(!1)} onSave={() => {
+              Yt(!1), _e && E.invalidateQueries(["orders"]);
+            }} />}</P><P>{Da && <Comp_sd isOpen={!!Da} title={Da.title} message={Da.message} onConfirm={Da.onConfirm} onCancel={() => et(null)} />}</P><Ee><P>{Qt && pt && <Comp_ld product={pt} isOpen={Qt} onClose={() => Dt(!1)} onSave={ml} coordinates={Ki} />}</P></Ee><Ee><P>{Fi && <x.div initial={{
                 opacity: 0,
-                y: 10
-              },
-              animate: {
-                scale: 1,
+                y: -20,
+                scale: 0.9
+              }} animate={{
                 opacity: 1,
-                y: 0
-              },
-              exit: {
-                scale: .95,
+                y: 0,
+                scale: 1
+              }} exit={{
                 opacity: 0,
-                y: 10
-              },
-              className: "bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden",
-              children: [e.jsxs("div", {
-                className: "p-5 flex items-center justify-between border-b border-border bg-card shrink-0",
-                children: [e.jsxs("div", {
-                  className: "flex items-center gap-3",
-                  children: [e.jsx("div", {
-                    className: "w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20",
-                    children: e.jsx(ft, {
-                      className: "text-primary",
-                      size: 20
-                    })
-                  }), e.jsxs("div", {
-                    children: [e.jsx("h3", {
-                      className: "text-base font-bold text-foreground uppercase tracking-wide leading-tight",
-                      children: "Thêm món ngoài"
-                    }), e.jsx("p", {
-                      className: "text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5",
-                      children: "Phím tắt F6"
-                    })]
-                  })]
-                }), e.jsx("button", {
-                  onClick: () => Zt(!1),
-                  className: "w-8 h-8 flex items-center justify-center rounded-lg bg-transparent hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors",
-                  children: e.jsx(Se, {
-                    size: 16,
-                    strokeWidth: 2.5
-                  })
-                })]
-              }), e.jsxs("div", {
-                className: "p-5 space-y-4 bg-card/50",
-                children: [e.jsxs("div", {
-                  className: "space-y-1",
-                  children: [e.jsx("label", {
-                    className: "text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1",
-                    children: "Tên món / Nội dung"
-                  }), e.jsx("input", {
-                    ref: fr,
-                    type: "text",
-                    className: "w-full h-12 px-4 bg-background border border-border focus:border-primary rounded-xl font-bold text-foreground outline-none transition-all placeholder:text-muted-foreground uppercase",
-                    placeholder: "GÕ TÊN MÓN...",
-                    value: Ze.name,
-                    onChange: t => ea({
-                      ...Ze,
-                      name: t.target.value
-                    }),
-                    onKeyDown: t => {
-                      t.key === "Enter" && (t.preventDefault(), Zr.current?.focus())
-                    }
-                  })]
-                }), e.jsxs("div", {
-                  className: "space-y-1",
-                  children: [e.jsx("label", {
-                    className: "text-[10px] font-bold uppercase text-muted-foreground tracking-wider ml-1",
-                    children: "Giá tiền"
-                  }), e.jsx("input", {
-                    ref: Zr,
-                    type: "text",
-                    className: "w-full h-12 px-4 bg-background border border-border focus:border-primary rounded-xl font-black text-xl text-primary outline-none transition-all",
-                    placeholder: "0",
-                    value: Ze.price ? parseFloat(Ze.price).toLocaleString("en-US") : "",
-                    onChange: t => {
-                      const a = t.target.value.replace(/,/g, "");
-                      /^\d*$/.test(a) && ea({
-                        ...Ze,
-                        price: a
-                      })
-                    },
-                    onKeyDown: t => {
-                      t.key === "Enter" && (t.preventDefault(), us(Ze.name, parseFloat(Ze.price) || 0))
-                    }
-                  })]
-                })]
-              }), e.jsx("div", {
-                className: "p-6 bg-card border-t border-border flex flex-col items-center",
-                children: e.jsxs("button", {
-                  onClick: () => us(Ze.name, parseFloat(Ze.price) || 0),
-                  className: "w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2",
-                  children: [e.jsx(ft, {
-                    size: 18
-                  }), " THÊM VÀO GIỎ (ENTER)"]
-                })
-              })]
-            })
-          })
-        })
-      }), e.jsx(T, {
-        children: sn && pr && e.jsx(Rn, {
-          order: pr,
-          partner: Q.find(t => t.id === pr.partner_id),
-          onClose: () => Ct(!1),
-          onSave: () => {
-            Ct(!1), B && F.invalidateQueries(["orders"])
-          }
-        })
-      }), e.jsx(T, {
-        children: Gt && e.jsx(Mn, {
-          isOpen: !!Gt,
-          title: Gt.title,
-          message: Gt.message,
-          onConfirm: Gt.onConfirm,
-          onCancel: () => Qt(null)
-        })
-      }), e.jsx(Be, {
-        children: e.jsx(T, {
-          children: Nt && Ye && e.jsx(gi, {
-            product: Ye,
-            isOpen: Nt,
-            onClose: () => pt(!1),
-            onSave: Cn,
-            coordinates: rn
-          })
-        })
-      }), e.jsx(Be, {
-        children: e.jsx(T, {
-          children: showDeletePrompt && e.jsxs(m.div, {
-            initial: {
-              opacity: 0,
-              y: -20,
-              scale: 0.9
-            },
-            animate: {
-              opacity: 1,
-              y: 0,
-              scale: 1
-            },
-            exit: {
-              opacity: 0,
-              y: -20,
-              scale: 0.9
-            },
-            className: "fixed top-6 right-6 z-[2000000] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border border-rose-500/20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl no-print overflow-hidden",
-            children: [
-              e.jsx("div", {
-                className: "p-2 rounded-xl text-white shadow-lg bg-rose-500 shadow-rose-500/25 shrink-0",
-                children: e.jsx(Ar, {
-                  size: 20
-                })
-              }),
-              e.jsxs("div", {
-                className: "flex flex-col min-w-[140px] max-w-[180px]",
-                children: [
-                  e.jsx("span", {
-                    className: "text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-70",
-                    children: "Hành động"
-                  }),
-                  e.jsx("span", {
-                    className: "font-bold text-xs tracking-tight text-slate-800 dark:text-white/95 leading-snug",
-                    children: "Xóa dòng thứ mấy?"
-                  })
-                ]
-              }),
-              e.jsx("input", {
-                type: "text",
-                autoFocus: true,
-                value: deleteRowInput,
-                onChange: s => setDeleteRowInput(s.target.value),
-                onKeyDown: s => {
-                  if (s.key === "Enter") {
-                    s.preventDefault();
-                    handleConfirmDeleteRow();
-                  } else if (s.key === "Escape") {
-                    setShowDeletePrompt(false);
-                    setDeleteRowInput("");
-                  }
-                },
-                placeholder: "Số...",
-                className: "w-16 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center text-sm font-black text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all"
-              }),
-              e.jsx("button", {
-                onClick: () => {
-                  setShowDeletePrompt(false);
-                  setDeleteRowInput("");
-                },
-                className: "ml-2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white",
-                children: e.jsx(Se, {
-                  size: 16
-                })
-              })
-            ]
-          })
-        })
-      }), e.jsx(Be, {
-        children: e.jsx(T, {
-          children: cn && e.jsx("div", {
-            className: "fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200",
-            children: e.jsxs(m.div, {
-              initial: {
-                scale: .9,
-                opacity: 0,
-                y: 20
-              },
-              animate: {
-                scale: 1,
-                opacity: 1,
-                y: 0
-              },
-              exit: {
-                scale: .9,
-                opacity: 0,
-                y: 20
-              },
-              className: "bg-white dark:bg-slate-900 backdrop-blur-2xl w-full max-w-sm rounded-[2rem] border border-white dark:border-white/10 overflow-hidden relative p-6 space-y-4",
-              children: [e.jsxs("div", {
-                className: "flex justify-between items-start",
-                children: [e.jsxs("div", {
-                  className: "flex items-center gap-2 text-primary dark:text-[#d4a574]",
-                  children: [e.jsx(ks, {
-                    size: 20,
-                    className: "shrink-0"
-                  }), e.jsx("h3", {
-                    className: "font-black text-lg uppercase tracking-tight",
-                    children: "Màn hình soạn hàng"
-                  })]
-                }), e.jsx("button", {
-                  onClick: () => Ta(!1),
-                  className: "p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all",
-                  children: e.jsx(Se, {
-                    size: 18
-                  })
-                })]
-              }), e.jsxs("p", {
-                className: "text-xs text-gray-500 dark:text-gray-400 font-bold leading-normal",
-                children: ["Chọn phương thức hiển thị màn hình soạn hàng. Sử dụng trình duyệt Chrome/Edge nếu bạn muốn ", e.jsx("span", {
-                  className: "text-[#059669] dark:text-[#34d399] font-black",
-                  children: "truyền màn hình (Cast) lên TV"
-                }), "."]
-              }), e.jsxs("div", {
-                className: "flex flex-col gap-2.5 pt-2",
-                children: [e.jsx("button", {
-                  onClick: async () => {
-                    Ta(!1);
-                    const t = "packing-display-" + Date.now(),
-                      a = "/#/packing-display",
-                      r = window.__TAURI__?.webviewWindow?.WebviewWindow || window.__TAURI__?.window?.WebviewWindow;
-                    if (r) try {
-                      new r(t, {
-                        url: a,
-                        title: "Màn hình soạn hàng",
-                        width: 1e3,
-                        height: 800,
-                        center: !0
-                      });
-                      return
-                    } catch (s) {
-                      console.error("Failed to create WebviewWindow from global namespace", s)
-                    }
-                    if (window.__TAURI_INTERNALS__) try {
-                      const {
-                        WebviewWindow: s
-                      } = await hs(async () => {
+                y: -20,
+                scale: 0.9
+              }} className="fixed top-6 right-6 z-[2000000] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border border-rose-500/20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl no-print overflow-hidden"><div className="p-2 rounded-xl text-white shadow-lg bg-rose-500 shadow-rose-500/25 shrink-0"><Comp_pa size={20} /></div><div className="flex flex-col min-w-[140px] max-w-[180px]"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-70">Hành động</span><span className="font-bold text-xs tracking-tight text-slate-800 dark:text-white/95 leading-snug">Xóa dòng thứ mấy?</span></div><input type="text" autoFocus={!0} value={mn} onChange={t => Wa(t.target.value)} onKeyDown={t => {
+                  t.key === "Enter" ? (t.preventDefault(), Vi()) : t.key === "Escape" && (gr(!1), Wa(""));
+                }} placeholder="Số..." className="w-16 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center text-sm font-black text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all" /><button onClick={() => {
+                  gr(!1), Wa("");
+                }} className="ml-2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white"><Comp_ke size={16} /></button></x.div>}</P></Ee><Ee><P>{Ti && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-150" onClick={() => Bt(!1)}><x.div onClick={t => t.stopPropagation()} initial={{
+                  scale: 0.92,
+                  opacity: 0,
+                  y: 15
+                }} animate={{
+                  scale: 1,
+                  opacity: 1,
+                  y: 0
+                }} exit={{
+                  scale: 0.92,
+                  opacity: 0,
+                  y: 15
+                }} transition={{
+                  type: "spring",
+                  stiffness: 350,
+                  damping: 25
+                }} className="bg-[#fcfbf9]/95 dark:bg-[#1a1612]/95 backdrop-blur-2xl w-full max-w-lg rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl overflow-hidden p-6 space-y-4"><div className="flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 pb-3"><div className="flex items-center gap-2.5"><div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"><Comp_ri size={18} /></div><div><h3 className="font-black text-base uppercase tracking-tight text-[#2d5016] dark:text-emerald-300">Ghi chú đơn hàng</h3><p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{p ? `Áp dụng cho đơn của: ${p.name}` : "Ghi chú sẽ được in lên hoá đơn bán hàng"}</p></div></div><button onClick={() => Bt(!1)} className="p-2 hover:bg-rose-500/15 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} /></button></div><div className="relative"><textarea autoFocus={!0} rows={5} value={K} onChange={t => $e(t.target.value)} onKeyDown={t => {
+                      (t.key === "Escape" || t.key === "Enter" && t.ctrlKey) && (t.preventDefault(), Bt(!1));
+                    }} placeholder={`Nhập ghi chú chi tiết cho đơn hàng tại đây...
+(Ví dụ: Giao hàng buổi chiều, bọc hàng cẩn thận, chiết khấu đặc biệt...)`} className="w-full p-4 bg-white/70 dark:bg-slate-900/70 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-semibold text-foreground placeholder:text-slate-400 placeholder:italic focus:border-[#8b6f47]/60 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-4 focus:ring-[#8b6f47]/10 transition-all resize-none leading-relaxed custom-scrollbar shadow-inner" /></div><div className="flex items-center justify-between pt-1">{K ? <button onClick={() => $e("")} className="px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-1.5"><Comp_pa size={14} />Xóa ghi chú</button> : <div />}<div className="flex items-center gap-2"><button onClick={() => Bt(!1)} className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-xl transition-all">Đóng (Esc)</button><button onClick={() => Bt(!1)} className="px-5 py-2 text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 rounded-xl shadow-md hover:shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5"><Hn size={14} strokeWidth={3} />Xong</button></div></div></x.div></div>}</P></Ee><Ee><P>{Yi && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"><x.div initial={{
+                  scale: 0.9,
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  scale: 1,
+                  opacity: 1,
+                  y: 0
+                }} exit={{
+                  scale: 0.9,
+                  opacity: 0,
+                  y: 20
+                }} className="bg-white dark:bg-slate-900 backdrop-blur-2xl w-full max-w-sm rounded-[2rem] border border-white dark:border-white/10 overflow-hidden relative p-6 space-y-4"><div className="flex justify-between items-start"><div className="flex items-center gap-2 text-primary dark:text-[#d4a574]"><Ln size={20} className="shrink-0" /><h3 className="font-black text-lg uppercase tracking-tight">Màn hình soạn hàng</h3></div><button onClick={() => fs(!1)} className="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} /></button></div><p className="text-xs text-gray-500 dark:text-gray-400 font-bold leading-normal">Chọn phương thức hiển thị màn hình soạn hàng. Sử dụng trình duyệt Chrome/Edge nếu bạn muốn <span className="text-[#059669] dark:text-[#34d399] font-black">truyền màn hình (Cast) lên TV</span>.</p><div className="flex flex-col gap-2.5 pt-2"><button onClick={async () => {
+                      fs(!1);
+                      const t = "packing-display-" + Date.now(),
+                        a = "/#/packing-display",
+                        r = window.__TAURI__?.webviewWindow?.WebviewWindow || window.__TAURI__?.window?.WebviewWindow;
+                      if (r) try {
+                        new r(t, {
+                          url: a,
+                          title: "Màn hình soạn hàng",
+                          width: 1e3,
+                          height: 800,
+                          center: !0
+                        });
+                        return;
+                      } catch (s) {
+                        console.error("Failed to create WebviewWindow from global namespace", s);
+                      }
+                      if (window.__TAURI_INTERNALS__) try {
                         const {
-                          WebviewWindow: n
-                        } = await import("@tauri-apps/api/webviewWindow");
-                        return {
-                          WebviewWindow: n
-                        }
-                      }, []);
-                      new s(t, {
-                        url: a,
-                        title: "Màn hình soạn hàng",
-                        width: 1e3,
-                        height: 800,
-                        center: !0
-                      });
-                      return
-                    } catch (s) {
-                      console.error("Failed to dynamically import WebviewWindow", s)
-                    }
-                    window.open(window.location.origin + "/#/packing-display", "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no")
-                  },
-                  className: "w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all  active:scale-98 cursor-pointer",
-                  children: "📺 Mở trong cửa sổ App (Tauri)"
-                }), e.jsx("button", {
-                  onClick: async () => {
-                    Ta(!1);
-                    const t = localStorage.getItem("server_ip"),
-                      r = (t ? `http://${t}:3579` : "http://localhost:3579") + "/#/packing-display";
-                    try {
-                      await q.post("/api/open-external-chrome", {
-                        url: r
-                      });
-                      return
-                    } catch (s) {
-                      console.error("Failed to open Chrome in app mode via backend API, falling back", s)
-                    }
-                    if (window.__TAURI_INTERNALS__) try {
-                      const {
-                        open: s
-                      } = await hs(async () => {
+                          WebviewWindow: s
+                        } = await Rn(async () => {
+                          const {
+                            WebviewWindow: n
+                          } = await Ts(async () => {
+                            const {
+                              WebviewWindow: l
+                            } = await import("@tauri-apps/api/webviewWindow");
+                            return {
+                              WebviewWindow: l
+                            };
+                          }, []);
+                          return {
+                            WebviewWindow: n
+                          };
+                        }, []);
+                        new s(t, {
+                          url: a,
+                          title: "Màn hình soạn hàng",
+                          width: 1e3,
+                          height: 800,
+                          center: !0
+                        });
+                        return;
+                      } catch (s) {
+                        console.error("Failed to dynamically import WebviewWindow", s);
+                      }
+                      window.open(window.location.origin + "/#/packing-display", "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no");
+                    }} className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Ln size={16} strokeWidth={2.5} /><span>Mở trong cửa sổ App (Tauri)</span></button><button onClick={async () => {
+                      fs(!1);
+                      const t = localStorage.getItem("server_ip"),
+                        a = (t ? `http://${t}:3579` : "http://localhost:3579") + "/#/packing-display";
+                      try {
+                        await M.post("/api/open-external-chrome", {
+                          url: a
+                        });
+                        return;
+                      } catch (r) {
+                        console.error("Failed to open Chrome in app mode via backend API, falling back", r);
+                      }
+                      if (window.__TAURI_INTERNALS__) try {
                         const {
-                          open: n
-                        } = await import("@tauri-apps/plugin-shell");
-                        return {
-                          open: n
-                        }
-                      }, []);
-                      await s(r);
-                      return
-                    } catch (s) {
-                      console.error("Failed to open URL using tauri shell", s)
-                    }
-                    window.open(r, "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no")
-                  },
-                  className: "w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all  active:scale-98 cursor-pointer",
-                  children: "🌐 Mở trong Trình duyệt (Để Cast TV)"
-                })]
-              })]
-            })
-          })
-        })
-      })]
-    })
-  })
+                          open: r
+                        } = await Rn(async () => {
+                          const {
+                            open: s
+                          } = await Ts(async () => {
+                            const {
+                              open: n
+                            } = await import("@tauri-apps/plugin-shell");
+                            return {
+                              open: n
+                            };
+                          }, []);
+                          return {
+                            open: s
+                          };
+                        }, []);
+                        await r(a);
+                        return;
+                      } catch (r) {
+                        console.error("Failed to open URL using tauri shell", r);
+                      }
+                      window.open(a, "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no");
+                    }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Xo size={16} strokeWidth={2.5} /><span>Mở trong Trình duyệt (Để Cast TV)</span></button></div></x.div></div>}</P></Ee><Ee><P>{Lr && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => ba(!1)}><x.div initial={{
+                  scale: 0.92,
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  scale: 1,
+                  opacity: 1,
+                  y: 0
+                }} exit={{
+                  scale: 0.92,
+                  opacity: 0,
+                  y: 20
+                }} onClick={t => t.stopPropagation()} className="bg-white dark:bg-slate-900 backdrop-blur-2xl w-full max-w-lg rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden relative p-6 space-y-4 text-foreground max-h-[90vh] flex flex-col"><div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><Comp_la size={20} strokeWidth={2.5} /></div><div><h3 className="font-black text-lg uppercase tracking-tight">Cài đặt giọng đọc (Loa)</h3><p className="text-[11px] font-bold text-slate-400">Tùy chỉnh thông báo âm thanh & câu đọc</p></div></div><button onClick={() => ba(!1)} className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} strokeWidth={2.5} /></button></div><div className="flex p-1 bg-slate-100 dark:bg-slate-800/70 rounded-2xl gap-1"><button type="button" onClick={() => cc("general")} className={c("flex-1 py-2 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", dc === "general" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}><SetIcon size={14} strokeWidth={2.5} /><span>Cài đặt chung</span></button><button type="button" onClick={() => cc("templates")} className={c("flex-1 py-2 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", dc === "templates" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}><MsgQuote size={14} strokeWidth={2.5} /><span>Mẫu câu đọc</span></button></div>{dc === "general" ? <div className="space-y-4 overflow-y-auto pr-1"><div className="space-y-2"><label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Giọng đọc chính</label><div className="grid grid-cols-3 gap-2"><button type="button" onClick={() => Ar("off")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "off" ? "bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Uo size={18} strokeWidth={2.5} />Tắt âm</button><button type="button" onClick={() => Ar("female")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "female" ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Comp_la size={18} strokeWidth={2.5} />Giọng Nữ</button><button type="button" onClick={() => Ar("male")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "male" ? "bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Comp_la size={18} strokeWidth={2.5} />Giọng Nam</button></div></div><div className="space-y-2 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800"><div className="flex justify-between items-center text-xs font-black"><span className="uppercase tracking-wider text-slate-500 dark:text-slate-400">Tốc độ đọc</span><span className="text-emerald-600 dark:text-emerald-400 font-mono">{Or}x</span></div><input type="range" min="1.0" max="2.0" step="0.1" value={Or} onChange={ji} className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg" /></div><div className="space-y-2"><label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Nội dung thông báo</label><div className="grid grid-cols-2 gap-2 text-xs font-bold"><button type="button" onClick={() => {
+                        const t = !Za;
+                        gi(t), localStorage.setItem("pos_tts_read_product", t.toString());
+                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", Za ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={Za} readOnly={!0} className="accent-emerald-600 rounded" /><span>Tên sản phẩm</span></button><button type="button" onClick={() => {
+                        const t = !er;
+                        fi(t), localStorage.setItem("pos_tts_read_qty", t.toString());
+                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", er ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={er} readOnly={!0} className="accent-emerald-600 rounded" /><span>Số lượng</span></button><button type="button" onClick={() => {
+                        const t = !xa;
+                        yi(t), localStorage.setItem("pos_tts_read_total", t.toString());
+                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", xa ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={xa} readOnly={!0} className="accent-emerald-600 rounded" /><span>Tổng tiền thanh toán</span></button><button type="button" onClick={() => {
+                        const t = !ha;
+                        vi(t), localStorage.setItem("pos_tts_read_thanks", t.toString());
+                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", ha ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={ha} readOnly={!0} className="accent-emerald-600 rounded" /><span>Lời cảm ơn</span></button></div></div></div> : <div className="space-y-4 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar"><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><div className="flex items-center justify-between"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Comp_uo size={15} strokeWidth={2.5} className="shrink-0" /> Đọc khi quét / thêm món</label><span className="text-[10px] text-slate-400 font-semibold">Thứ tự đọc</span></div><div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => {
+                        Wc("name_first");
+                        localStorage.setItem("pos_tts_cart_speech_order", "name_first");
+                      }} className={c("py-2 px-2.5 rounded-xl text-xs font-bold border transition-all", Mc === "name_first" ? "bg-emerald-600 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700")}>Tên món ➜ Số lượng</button><button type="button" onClick={() => {
+                        Wc("qty_first");
+                        localStorage.setItem("pos_tts_cart_speech_order", "qty_first");
+                      }} className={c("py-2 px-2.5 rounded-xl text-xs font-bold border transition-all", Mc === "qty_first" ? "bg-emerald-600 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700")}>Số lượng ➜ Tên món</button></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Do size={15} strokeWidth={2.5} className="shrink-0" /> Đọc tổng tiền thanh toán</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu (Khách lẻ):</span><span className="text-[10px] text-slate-400">Dùng: {'{amount}'}</span></div><input type="text" value={pc} onChange={t => {
+                        uc(t.target.value);
+                        localStorage.setItem("pos_tts_currency_template", t.target.value);
+                      }} placeholder="số tiền của quý khách là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}, {'{amount}'}</span></div><input type="text" value={mc} onChange={t => {
+                        xc(t.target.value);
+                        localStorage.setItem("pos_tts_currency_partner_template", t.target.value);
+                      }} placeholder="số tiền của {partner} là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Po size={15} strokeWidth={2.5} className="shrink-0" /> Đọc chuyển khoản (VietQR / Ngân hàng)</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu chuyển khoản:</span><span className="text-[10px] text-slate-400">Dùng: {'{amount}'}</span></div><input type="text" value={Nc} onChange={t => {
+                        Cc(t.target.value);
+                        localStorage.setItem("pos_tts_transfer_template", t.target.value);
+                      }} placeholder="số tiền cần chuyển khoản là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu chuyển khoản (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}, {'{amount}'}</span></div><input type="text" value={Sc} onChange={t => {
+                        Tc(t.target.value);
+                        localStorage.setItem("pos_tts_transfer_partner_template", t.target.value);
+                      }} placeholder="số tiền cần chuyển khoản của {partner} là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Es size={15} strokeWidth={2.5} className="shrink-0" /> Lời cảm ơn sau bán hàng</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Lời cảm ơn (Khách lẻ):</span></div><input type="text" value={hc} onChange={t => {
+                        bc(t.target.value);
+                        localStorage.setItem("pos_tts_thankyou_template", t.target.value);
+                      }} placeholder="Cảm ơn quý khách đã mua hàng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Lời cảm ơn (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}</span></div><input type="text" value={gc} onChange={t => {
+                        fc(t.target.value);
+                        localStorage.setItem("pos_tts_thankyou_partner_template", t.target.value);
+                      }} placeholder="Cảm ơn {partner} đã mua hàng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div></div>}<div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800"><button type="button" onClick={() => {
+                      const sampleAmount = "năm mươi nghìn đồng",
+                        samplePartner = "anh Nam",
+                        sampleTotal = (pc || "số tiền của quý khách là {amount} đồng").replace("{amount}", sampleAmount).replace(/{partner}/gi, samplePartner),
+                        sampleThanks = (hc || "Xin cảm ơn quý khách!").replace(/{partner}/gi, samplePartner),
+                        sampleText = dc === "templates" ? `${sampleTotal}. ${sampleThanks}` : "Đã thêm 2 chai nước khoáng, tổng tiền năm mươi nghìn đồng. Xin cảm ơn quý khách!",
+                        a = Ls(sampleText, ki || (ft === "male" ? "edge-vi-male" : "edge-vi-female")),
+                        r = new Audio(a);
+                      r.playbackRate = Or || 1.4, r.play().catch(s => console.error("Test voice play failed:", s));
+                    }} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-700 dark:text-slate-200 transition-all flex items-center justify-center gap-2"><Comp_la size={16} />Phát thử giọng</button><button type="button" onClick={() => ba(!1)} className="py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-600/20 active:scale-98">Xong</button></div></x.div></div>}</P></Ee><P>{C && <Ee><div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"><x.div initial={{
+                  opacity: 0
+                }} animate={{
+                  opacity: 1
+                }} exit={{
+                  opacity: 0
+                }} className="fixed inset-0" onClick={() => {
+                  X(!1), we([]);
+                }} /><x.div initial={{
+                  opacity: 0,
+                  scale: 0.95,
+                  y: 10
+                }} animate={{
+                  opacity: 1,
+                  scale: 1,
+                  y: 0
+                }} exit={{
+                  opacity: 0,
+                  scale: 0.95,
+                  y: 10
+                }} transition={{
+                  duration: 0.22,
+                  ease: [0.22, 1, 0.36, 1]
+                }} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-700/80 shadow-2xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col relative z-10 overflow-hidden max-h-[90vh]"><div className="p-4 px-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/80 shrink-0"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-sm"><En size={20} /></div><div className="flex flex-col min-w-0"><h3 className="text-base font-black text-foreground uppercase tracking-tight leading-relaxed py-0.5 truncate">Quét Đơn Hàng / Hóa Đơn AI</h3><p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-0.5">Tự động nhận dạng toa hàng & thêm vào giỏ bán bằng Gemini</p></div></div><button onClick={() => {
+                      X(!1), we([]);
+                    }} className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-muted-foreground transition-colors"><Comp_ke size={16} strokeWidth={2.5} /></button></div><div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">{!J?.gemini_api_key && <div className="p-4 bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-2xl space-y-2"><div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-xs uppercase"><As size={16} />Cần cấu hình API Key</div><p className="text-xs text-slate-600 dark:text-slate-400">Vui lòng nhập <strong>Gemini API Key</strong> của bạn để tiếp tục.</p><input type="password" value={te} onChange={t => at(t.target.value)} placeholder="Nhập Gemini API Key..." className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono outline-none focus:border-emerald-500 text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500/35 transition-all" /></div>}<div className="space-y-4 flex flex-col"><div className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/50 rounded-[2rem] p-6 bg-slate-50/50 dark:bg-slate-800/20 min-h-[260px] relative overflow-hidden group transition-all duration-300">{pe.length > 0 ? <div className="w-full h-full flex flex-col space-y-4"><div className="grid grid-cols-3 gap-3 max-h-[240px] overflow-y-auto p-1 custom-scrollbar">{pe.map((t, a) => <div key={a} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 group/thumb shadow-sm"><img src={t} alt={`Preview ${a + 1}`} className="w-full h-full object-cover" /><button type="button" onClick={() => we(r => r.filter((s, n) => n !== a))} className="absolute top-1.5 right-1.5 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow opacity-0 group-hover/thumb:opacity-100 duration-200"><Comp_ke size={10} /></button></div>)}</div><div className="flex justify-center gap-3"><label htmlFor="pos-scan-image-upload" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl cursor-pointer transition-all uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95"><Zn size={14} strokeWidth={3} />Thêm ảnh</label><button type="button" onClick={() => we([])} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-sm active:scale-95">Xóa tất cả</button></div></div> : <label htmlFor="pos-scan-image-upload" className="flex flex-col items-center justify-center cursor-pointer space-y-4 w-full h-full py-8"><div className="p-5 bg-emerald-500/10 text-emerald-600 rounded-full group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300"><Bo size={36} /></div><div className="text-center space-y-1.5"><p className="text-sm font-black text-slate-700 dark:text-slate-300">Chụp hoặc tải ảnh toa hàng / hóa đơn</p><p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hỗ trợ nhiều ảnh chụp tay, hóa đơn giấy</p></div></label>}<input type="file" accept="image/*" multiple={!0} capture="environment" onChange={Nt} className="hidden" id="pos-scan-image-upload" /></div>{pe.length > 0 && <x.button whileTap={{
+                        scale: 0.98
+                      }} onClick={Lt} disabled={Oe || !J?.gemini_api_key && !te} className="w-full p-4 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-700 hover:brightness-110 disabled:opacity-50 text-white font-black uppercase text-xs tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all">{Oe ? <><Comp_ai size={16} className="animate-spin text-white" />Đang nhận dạng toa hàng bằng AI...</> : <><Es size={16} className="text-white" />Bắt đầu quét và thêm vào giỏ hàng (AI)</>}</x.button>}</div></div></x.div></div></Ee>}</P><Ee><Xl isOpen={Si} settings={J} onClose={() => Xr(!1)} onEditOrder={t => {
+              Ka(t), G({
+                message: `Đã nạp hóa đơn #${t.display_id || t.id} ra giỏ hàng!`,
+                type: "success"
+              });
+            }} onPrintOrder={(t, a = "Sale") => {
+              pn(a || "Sale");
+              const r = Y.find(n => n.id === t.partner_id),
+                s = {
+                  ...t,
+                  old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
+                  partner: r || t.partner || null
+                };
+              Ur(s), setTimeout(() => window.print(), 300);
+            }} onDeleteOrder={t => {
+              Sn(t);
+            }} /></Ee></div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><Mn data={fa || ya} settings={J} type={Gi || "Sale"} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }
-export default ol;
+export { a0 as default };

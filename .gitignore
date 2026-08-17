@@ -32,6 +32,9 @@ dist/
 dist-ssr/
 build/
 .vercel/
+extracted_build/
+*.backup*
+
 
 # Tauri, Rust & Native
 frontend/src-tauri/

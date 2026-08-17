@@ -162,9 +162,9 @@ export default function PartnerEditModal({ partner, isOpen, onClose, onSave }) {
                                             <input
                                                 required
                                                 type="text"
-                                                className="input-premium w-full pr-4 py-3.5 font-black uppercase"
+                                                className="input-premium w-full pr-4 py-3.5 font-black"
                                                 style={{ paddingLeft: '3.5rem' }}
-                                                placeholder="VÍ DỤ: NGUYỄN VĂN A"
+                                                placeholder="Ví dụ: Nguyễn Văn A"
                                                 value={formData.name}
                                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                                                 autoComplete="off"

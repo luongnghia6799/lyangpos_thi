@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { m } from 'framer-motion';
 import { X, CreditCard, Calendar, Clock } from 'lucide-react';
-import { cn, formatNumber } from '../lib/utils';
+import { cn, formatNumber, getLocalDateString } from '../lib/utils';
 
 const QuickDebtModal = ({ isOpen, onClose, partner, onSave, initialData = null }) => {
     const [amount, setAmount] = useState('');
-    const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(() => getLocalDateString());
     const [day, setDay] = useState(new Date().getDate().toString().padStart(2, '0'));
     const [month, setMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
     const [year, setYear] = useState(new Date().getFullYear().toString());
@@ -26,15 +26,15 @@ const QuickDebtModal = ({ isOpen, onClose, partner, onSave, initialData = null }
                 const val = initialData.amount;
                 setAmount(Math.abs(val).toString());
                 setDebtType(val >= 0 ? 'plus' : 'minus');
-                const d = initialData.date.split('T')[0];
-                dObj = new Date(d);
+                const d = getLocalDateString(initialData.date);
+                dObj = new Date(initialData.date);
                 setDate(d);
                 setNote(initialData.note || '');
             } else {
                 setAmount('');
                 setDebtType('plus');
-                const d = new Date().toISOString().split('T')[0];
-                dObj = new Date(d);
+                const d = getLocalDateString();
+                dObj = new Date();
                 setDate(d);
                 setNote('');
             }
@@ -129,12 +129,12 @@ const QuickDebtModal = ({ isOpen, onClose, partner, onSave, initialData = null }
     };
 
     return (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-transparent animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <m.div
                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                className="bg-card/75 dark:bg-slate-950/75 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white/10 dark:border-white/15 flex flex-col relative z-10 overflow-hidden"
+                className="bg-card/90 dark:bg-slate-950/90 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white/10 dark:border-white/15 flex flex-col relative z-10 overflow-hidden"
             >
                 <div className="p-5 flex items-center justify-between border-b border-border/50 bg-transparent relative z-10">
                     <div className="flex items-center gap-3">

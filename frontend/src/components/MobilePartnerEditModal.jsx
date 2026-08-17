@@ -136,9 +136,9 @@ export default function MobilePartnerEditModal({ partner, isOpen, onClose, onSav
                                                 <input
                                                     required
                                                     type="text"
-                                                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pr-4 py-3 font-extrabold uppercase text-sm focus:border-primary outline-none transition-all text-slate-900 dark:text-white"
+                                                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl pr-4 py-3 font-extrabold text-sm focus:border-primary outline-none transition-all text-slate-900 dark:text-white"
                                                     style={{ paddingLeft: '2.8rem' }}
-                                                    placeholder="VÍ DỤ: NGUYỄN VĂN A"
+                                                    placeholder="Ví dụ: Nguyễn Văn A"
                                                     value={formData.name}
                                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                                 />

@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { m } from 'framer-motion';
 import { X, ReceiptIcon, Wallet, Calendar } from 'lucide-react';
-import { cn, formatNumber } from '../lib/utils';
+import { cn, formatNumber, getLocalDateString } from '../lib/utils';
 
 const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) => {
     const [amount, setAmount] = useState('');
     const [type, setType] = useState('Receipt'); // 'Receipt' or 'Payment'
     const [note, setNote] = useState('');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(() => getLocalDateString());
     const [day, setDay] = useState(new Date().getDate().toString().padStart(2, '0'));
     const [month, setMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
     const [year, setYear] = useState(new Date().getFullYear().toString());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    const [livePartner, setLivePartner] = useState(partner);
 
     const dayRef = React.useRef(null);
     const monthRef = React.useRef(null);
@@ -21,27 +23,30 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
 
     useEffect(() => {
         if (isOpen) {
+            setLivePartner(partner);
             let dObj = new Date();
             if (initialData) {
                 setAmount(initialData.amount || '');
                 setType(initialData.type || 'Receipt');
                 setNote(initialData.note || '');
-                const dateStr = initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0];
-                dObj = new Date(dateStr);
+                const dateStr = initialData.date ? getLocalDateString(initialData.date) : getLocalDateString();
+                dObj = new Date(initialData.date || new Date());
                 setDate(dateStr);
             } else {
                 setAmount('');
                 setType('Receipt');
                 setNote('');
-                const d = new Date().toISOString().split('T')[0];
+                const d = getLocalDateString();
+                dObj = new Date();
                 setDate(d);
             }
             setDay(dObj.getDate().toString().padStart(2, '0'));
             setMonth((dObj.getMonth() + 1).toString().padStart(2, '0'));
             setYear(dObj.getFullYear().toString());
             setError(null);
+            setSuccessMessage(null);
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, partner]);
 
     useEffect(() => {
         if (day.length === 2 && month.length === 2 && year.length === 4) {
@@ -83,9 +88,12 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
 
     if (!isOpen || !partner) return null;
 
+    const currentPartner = livePartner || partner;
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
+        setSuccessMessage(null);
         if (!amount || parseFloat(amount) <= 0) {
             setError("Vui lòng nhập số tiền hợp lệ");
             return;
@@ -93,9 +101,10 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
 
         setLoading(true);
         try {
+            const parsedAmount = parseFloat(amount);
             const payload = {
                 partner_id: partner.id,
-                amount: parseFloat(amount),
+                amount: parsedAmount,
                 type,
                 note,
                 date,
@@ -114,8 +123,15 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
             syncChannel.postMessage({ type: 'PARTNER_UPDATED', partnerId: partner.id });
             syncChannel.close();
 
+            // Update live partner balance inside modal
+            const delta = type === 'Receipt' ? -parsedAmount : parsedAmount;
+            setLivePartner(prev => prev ? ({ ...prev, debt_balance: (prev.debt_balance || 0) + delta }) : null);
+
             onSave(res.data);
-            onClose();
+            setAmount('');
+            setNote('');
+            setSuccessMessage(`Đã lập ${type === 'Receipt' ? 'phiếu thu' : 'phiếu chi'} ${formatNumber(parsedAmount)} đ thành công!`);
+            setTimeout(() => setSuccessMessage(null), 3500);
         } catch (err) {
             setError(err.response?.data?.error || "Có lỗi xảy ra khi xử lý phiếu");
         } finally {
@@ -124,12 +140,12 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
     };
 
     return (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-transparent animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <m.div
                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                className="bg-card/75 dark:bg-slate-950/75 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white/10 dark:border-white/15 flex flex-col relative z-10 overflow-hidden"
+                className="bg-card/90 dark:bg-slate-950/90 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] border border-white/10 dark:border-white/15 flex flex-col relative z-10 overflow-hidden"
             >
 
                 <div className="p-5 flex items-center justify-between border-b border-border/50 bg-transparent relative z-10">
@@ -140,7 +156,7 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
                         <div className="flex flex-col min-w-0">
                             <h3 className="text-base font-bold text-primary uppercase tracking-wide leading-tight truncate">Lập Phiếu Nhanh</h3>
                             <div className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5 flex flex-wrap items-center gap-1.5 leading-tight">
-                                <span className="truncate">Đối tác: <span className="text-foreground font-bold">{partner.name}</span></span>
+                                <span className="truncate">Đối tác: <span className="text-foreground font-bold">{currentPartner.name}</span></span>
                             </div>
                         </div>
                     </div>
@@ -158,6 +174,13 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
                         {error && (
                             <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-xs font-bold border border-red-200 dark:border-red-900/50">
                                 {error}
+                            </div>
+                        )}
+
+                        {successMessage && (
+                            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-bold border border-emerald-300 dark:border-emerald-800/60 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                                <span>{successMessage}</span>
                             </div>
                         )}
 
@@ -255,7 +278,7 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
                                 Nợ hiện tại
                             </label>
                             <div className="w-full bg-slate-100/50 dark:bg-slate-900/50 border border-border rounded-2xl px-5 py-3.5 font-black text-lg text-foreground/80 select-none">
-                                {formatNumber(Math.abs(partner.debt_balance || 0))} đ {partner.debt_balance > 0 ? '(Khách nợ)' : partner.debt_balance < 0 ? '(Mình nợ)' : ''}
+                                {formatNumber(Math.abs(currentPartner.debt_balance || 0))} đ {currentPartner.debt_balance > 0 ? '(Khách nợ)' : currentPartner.debt_balance < 0 ? '(Mình nợ)' : ''}
                             </div>
                         </div>
 
@@ -282,7 +305,7 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
                         </div>
 
                         {(() => {
-                            const currentDebt = partner.debt_balance || 0;
+                            const currentDebt = currentPartner.debt_balance || 0;
                             const val = parseFloat(amount) || 0;
                             const projected = type === 'Receipt' ? currentDebt - val : currentDebt + val;
                             return (

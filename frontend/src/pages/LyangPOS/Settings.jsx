@@ -6,13 +6,14 @@ import {
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone
+    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
 import PasswordConfirmModal from '../../components/PasswordConfirmModal';
 import CategoryManager from '../../components/CategoryManager';
+import SidebarManager from '../../components/SidebarManager';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 
@@ -35,6 +36,7 @@ export default function Settings() {
         ui_custom_cursor_enabled: localStorage.getItem('pos_cursor_disabled') !== 'true' ? 'true' : 'false',
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,
+        sidebar_hidden_items: localStorage.getItem('sidebar_hidden_items') || '[]',
         repair_on_startup: 'false',
         ram_cleanup_auto_enabled: 'false',
         ram_cleanup_interval_minutes: '10',
@@ -55,14 +57,15 @@ export default function Settings() {
     const [unlockingFirewall, setUnlockingFirewall] = useState(false);
     const [isAutostart, setIsAutostart] = useState(false);
     
-    // UI Navigation Tab
+    // UI Navigation Tab & SubTab
     const [activeTab, setActiveTab] = useState('general');
+    const [uiSubTab, setUiSubTab] = useState('sidebar');
 
     const TABS = [
         { id: 'general', label: 'Cửa hàng & Ngân quỹ', icon: Building, desc: 'Tên trang trại, hotline, địa chỉ và ngân quỹ' },
         { id: 'network', label: 'Mạng & Đồng bộ LAN', icon: Wifi, desc: 'Cấu hình máy chủ, máy trạm và cổng nội bộ' },
         { id: 'database', label: 'Cơ sở dữ liệu', icon: Database, desc: 'Sao lưu, phục hồi, dọn dẹp và tối ưu máy chủ' },
-        { id: 'ui', label: 'Cá nhân hóa UI/UX', icon: Monitor, desc: 'Mascot, phân hệ kế toán và danh mục hàng hóa' },
+        { id: 'ui', label: 'Cá nhân hóa UI/UX', icon: Monitor, desc: 'Ẩn/Hiện Menu Sidebar, Mascot, phân hệ & danh mục' },
         { id: 'shortcuts', label: 'Phím tắt thao tác', icon: Keyboard, desc: 'Tùy biến phím tắt bán hàng nhanh (F1 - F12)' }
     ];
 
@@ -337,6 +340,13 @@ export default function Settings() {
 
                 const localCursor = localStorage.getItem('pos_cursor_disabled');
                 if (localCursor !== null) combined.ui_custom_cursor_enabled = localCursor === 'true' ? 'false' : 'true';
+
+                const localHidden = localStorage.getItem('sidebar_hidden_items');
+                if (localHidden !== null) {
+                    combined.sidebar_hidden_items = localHidden;
+                } else if (combined.sidebar_hidden_items) {
+                    localStorage.setItem('sidebar_hidden_items', combined.sidebar_hidden_items);
+                }
 
                 setSettings(prev => ({
                     ...prev,
@@ -1046,257 +1056,298 @@ export default function Settings() {
                                 </div>
                             )}
 
-                            {/* TAB CONTENT: PERSONALIZATION (Cá nhân hóa & CategoryManager) */}
+                            {/* TAB CONTENT: PERSONALIZATION (Cá nhân hóa với Subtabs) */}
                             {activeTab === 'ui' && (
                                 <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-                                    <div className="flex items-center gap-3.5 pb-3 border-b border-[#d4a574]/10">
-                                        <div className="p-2.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl text-[#2d5016] dark:text-emerald-400">
-                                            <Monitor size={20} />
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[#d4a574]/10">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="p-2.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl text-[#2d5016] dark:text-emerald-400">
+                                                <Monitor size={20} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-black text-gray-800 dark:text-emerald-50 uppercase tracking-tight">Cá nhân hóa Trải nghiệm UI/UX</h2>
+                                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Tùy biến hiển thị Sidebar, bật/tắt trợ lý ảo và quản lý danh mục</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h2 className="text-lg font-black text-gray-800 dark:text-emerald-50 uppercase tracking-tight">Cá nhân hóa Trải nghiệm UI/UX</h2>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Bật/tắt các trợ lý ảo, phân hệ chức năng và quản lý danh mục</p>
+
+                                        {/* Subtab Navigation Pill Switcher */}
+                                        <div className="flex items-center gap-1.5 p-1 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-900/10 dark:border-slate-800 self-start sm:self-auto overflow-x-auto no-scrollbar">
+                                            {[
+                                                { id: 'sidebar', label: 'Menu Sidebar', icon: Layers, desc: 'Ẩn/hiện các trang' },
+                                                { id: 'general', label: 'Mascot & Hệ thống', icon: Monitor, desc: 'Con trỏ, Mascot, Kế toán' },
+                                                { id: 'categories', label: 'Ngành hàng', icon: Leaf, desc: 'Danh mục Categories' },
+                                            ].map(sub => {
+                                                const Icon = sub.icon;
+                                                const isActive = uiSubTab === sub.id;
+                                                return (
+                                                    <button
+                                                        key={sub.id}
+                                                        type="button"
+                                                        onClick={() => setUiSubTab(sub.id)}
+                                                        className={cn(
+                                                            "flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all shrink-0",
+                                                            isActive
+                                                                ? "bg-[#2d5016] text-white dark:bg-emerald-600 shadow-md shadow-emerald-950/20 border border-white/10"
+                                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                                                        )}
+                                                    >
+                                                        <Icon size={14} />
+                                                        <span>{sub.label}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                        {/* Dynamic Mascot Toggles */}
-                                        <div className="space-y-3.5">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <Monitor size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Tùy chọn Ẩn/Hiện Mascot & Tính năng App
-                                            </h3>
-                                            
-                                            <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                        <Monitor size={18} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Khởi động cùng Windows</div>
-                                                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">App tự động chạy khi bật máy tính</div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={toggleAutostart}
-                                                    className={cn(
-                                                        "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                        isAutostart ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                        isAutostart ? "translate-x-[18px]" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
-                                            
-                                            <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                        <Bot size={18} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Trợ lý ảo Doraemon</div>
-                                                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Trợ giúp trực quan mọi trang</div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newVal = settings.ui_show_doraemon === 'true' ? 'false' : 'true';
-                                                        updateSetting('ui_show_doraemon', newVal);
-                                                        localStorage.setItem('ui_show_doraemon', newVal);
-                                                        window.dispatchEvent(new Event('storage'));
-                                                    }}
-                                                    className={cn(
-                                                        "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                        settings.ui_show_doraemon === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                        settings.ui_show_doraemon === 'true' ? "translate-x-[18px]" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
+                                    {/* SUBTAB 1: SIDEBAR MANAGER */}
+                                    {uiSubTab === 'sidebar' && (
+                                        <div className="animate-[fadeIn_0.2s_ease-out]">
+                                            <SidebarManager onToast={setToast} onUpdateSetting={updateSetting} />
+                                        </div>
+                                    )}
 
-                                            <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                        <Monitor size={18} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Hiệu ứng con trỏ chuột</div>
-                                                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Con trỏ chuột tùy biến sinh động (Custom Cursor)</div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newVal = settings.ui_custom_cursor_enabled === 'true' ? 'false' : 'true';
-                                                        updateSetting('ui_custom_cursor_enabled', newVal);
-                                                        localStorage.setItem('pos_cursor_disabled', newVal === 'true' ? 'false' : 'true');
-                                                        window.dispatchEvent(new Event('storage'));
-                                                    }}
-                                                    className={cn(
-                                                        "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                        settings.ui_custom_cursor_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                        settings.ui_custom_cursor_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
-                                            {settings.ui_custom_cursor_enabled === 'true' && (
-                                                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 mt-2 bg-white/60 dark:bg-slate-900/60 rounded-xl border border-emerald-900/10 dark:border-slate-700/80">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-3 h-3 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }} />
-                                                        <span className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
-                                                            Màu sắc con trỏ chuột
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        {[
-                                                            { name: 'Xanh ngọc', color: '#10b981' },
-                                                            { name: 'Vàng đất', color: '#8b6f47' },
-                                                            { name: 'Xanh dương', color: '#3b82f6' },
-                                                            { name: 'Đỏ tươi', color: '#ef4444' },
-                                                            { name: 'Vàng rực', color: '#f59e0b' },
-                                                            { name: 'Tím', color: '#8b5cf6' },
-                                                            { name: 'Hồng', color: '#ec4899' },
-                                                        ].map(c => (
-                                                            <button
-                                                                key={c.color}
-                                                                type="button"
-                                                                title={c.name}
-                                                                onClick={() => {
-                                                                    updateSetting('ui_custom_cursor_color', c.color);
-                                                                    localStorage.setItem('pos_cursor_color', c.color);
-                                                                    window.dispatchEvent(new Event('storage'));
-                                                                    window.dispatchEvent(new Event('cursor_color_changed'));
-                                                                }}
-                                                                className={cn(
-                                                                    "w-6 h-6 rounded-full transition-all duration-200 border-2 relative hover:scale-110 shadow-sm",
-                                                                    (settings.ui_custom_cursor_color || '#10b981') === c.color ? "border-white dark:border-slate-900 ring-2 ring-emerald-500 scale-110" : "border-transparent"
-                                                                )}
-                                                                style={{ backgroundColor: c.color }}
-                                                            />
-                                                        ))}
-                                                        <div className="relative flex items-center justify-center cursor-pointer group" title="Màu tùy chỉnh">
-                                                            <input
-                                                                type="color"
-                                                                value={settings.ui_custom_cursor_color || '#10b981'}
-                                                                onChange={(e) => {
-                                                                    const newColor = e.target.value;
-                                                                    updateSetting('ui_custom_cursor_color', newColor);
-                                                                    localStorage.setItem('pos_cursor_color', newColor);
-                                                                    window.dispatchEvent(new Event('storage'));
-                                                                    window.dispatchEvent(new Event('cursor_color_changed'));
-                                                                }}
-                                                                className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
-                                                            />
-                                                            <div 
-                                                                className="w-6 h-6 rounded-full border-2 border-dashed border-gray-400 dark:border-slate-500 flex items-center justify-center text-[10px] font-black text-gray-700 dark:text-gray-200 group-hover:scale-110 transition-all overflow-hidden shadow-sm"
-                                                                style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }}
-                                                            >
-                                                                +
+                                    {/* SUBTAB 2: GENERAL UI & MASCOTS */}
+                                    {uiSubTab === 'general' && (
+                                        <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                                {/* Dynamic Mascot Toggles */}
+                                                <div className="space-y-3.5">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
+                                                        <Monitor size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Tùy chọn Mascot, Con trỏ & Hệ thống
+                                                    </h3>
+                                                    
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Monitor size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Khởi động cùng Windows</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">App tự động chạy khi bật máy tính</div>
                                                             </div>
                                                         </div>
+                                                        <button
+                                                            onClick={toggleAutostart}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                isAutostart ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                isAutostart ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
                                                     </div>
-                                                </div>
-                                            )}
+                                                    
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Bot size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Trợ lý ảo Doraemon</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Trợ giúp trực quan mọi trang</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newVal = settings.ui_show_doraemon === 'true' ? 'false' : 'true';
+                                                                updateSetting('ui_show_doraemon', newVal);
+                                                                localStorage.setItem('ui_show_doraemon', newVal);
+                                                                window.dispatchEvent(new Event('storage'));
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                settings.ui_show_doraemon === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                settings.ui_show_doraemon === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
+                                                    </div>
 
-                                            <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                        <Sparkles size={18} />
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Monitor size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Hiệu ứng con trỏ chuột</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Con trỏ chuột tùy biến sinh động (Custom Cursor)</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newVal = settings.ui_custom_cursor_enabled === 'true' ? 'false' : 'true';
+                                                                updateSetting('ui_custom_cursor_enabled', newVal);
+                                                                localStorage.setItem('pos_cursor_disabled', newVal === 'true' ? 'false' : 'true');
+                                                                window.dispatchEvent(new Event('storage'));
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                settings.ui_custom_cursor_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                settings.ui_custom_cursor_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot chào mừng</div>
-                                                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Nhân vật chào mừng trên Bảng tin</div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newVal = settings.ui_show_dashboard_mascot === 'true' ? 'false' : 'true';
-                                                        updateSetting('ui_show_dashboard_mascot', newVal);
-                                                        localStorage.setItem('ui_show_dashboard_mascot', newVal);
-                                                        window.dispatchEvent(new Event('storage'));
-                                                    }}
-                                                    className={cn(
-                                                        "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                        settings.ui_show_dashboard_mascot === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                    {settings.ui_custom_cursor_enabled === 'true' && (
+                                                        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 mt-2 bg-white/60 dark:bg-slate-900/60 rounded-xl border border-emerald-900/10 dark:border-slate-700/80">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }} />
+                                                                <span className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
+                                                                    Màu sắc con trỏ chuột
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                {[
+                                                                    { name: 'Xanh ngọc', color: '#10b981' },
+                                                                    { name: 'Vàng đất', color: '#8b6f47' },
+                                                                    { name: 'Xanh dương', color: '#3b82f6' },
+                                                                    { name: 'Đỏ tươi', color: '#ef4444' },
+                                                                    { name: 'Vàng rực', color: '#f59e0b' },
+                                                                    { name: 'Tím', color: '#8b5cf6' },
+                                                                    { name: 'Hồng', color: '#ec4899' },
+                                                                ].map(c => (
+                                                                    <button
+                                                                        key={c.color}
+                                                                        type="button"
+                                                                        title={c.name}
+                                                                        onClick={() => {
+                                                                            updateSetting('ui_custom_cursor_color', c.color);
+                                                                            localStorage.setItem('pos_cursor_color', c.color);
+                                                                            window.dispatchEvent(new Event('storage'));
+                                                                            window.dispatchEvent(new Event('cursor_color_changed'));
+                                                                        }}
+                                                                        className={cn(
+                                                                            "w-6 h-6 rounded-full transition-all duration-200 border-2 relative hover:scale-110 shadow-sm",
+                                                                            (settings.ui_custom_cursor_color || '#10b981') === c.color ? "border-white dark:border-slate-900 ring-2 ring-emerald-500 scale-110" : "border-transparent"
+                                                                        )}
+                                                                        style={{ backgroundColor: c.color }}
+                                                                    />
+                                                                ))}
+                                                                <div className="relative flex items-center justify-center cursor-pointer group" title="Màu tùy chỉnh">
+                                                                    <input
+                                                                        type="color"
+                                                                        value={settings.ui_custom_cursor_color || '#10b981'}
+                                                                        onChange={(e) => {
+                                                                            const newColor = e.target.value;
+                                                                            updateSetting('ui_custom_cursor_color', newColor);
+                                                                            localStorage.setItem('pos_cursor_color', newColor);
+                                                                            window.dispatchEvent(new Event('storage'));
+                                                                            window.dispatchEvent(new Event('cursor_color_changed'));
+                                                                        }}
+                                                                        className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
+                                                                    />
+                                                                    <div 
+                                                                        className="w-6 h-6 rounded-full border-2 border-dashed border-gray-400 dark:border-slate-500 flex items-center justify-center text-[10px] font-black text-gray-700 dark:text-gray-200 group-hover:scale-110 transition-all overflow-hidden shadow-sm"
+                                                                        style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }}
+                                                                    >
+                                                                        +
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     )}
-                                                >
-                                                    <div className={cn(
-                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                        settings.ui_show_dashboard_mascot === 'true' ? "translate-x-[18px]" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
 
-                                            <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                        <CalculatorIcon size={18} />
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Sparkles size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot chào mừng</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Nhân vật chào mừng trên Bảng tin</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newVal = settings.ui_show_dashboard_mascot === 'true' ? 'false' : 'true';
+                                                                updateSetting('ui_show_dashboard_mascot', newVal);
+                                                                localStorage.setItem('ui_show_dashboard_mascot', newVal);
+                                                                window.dispatchEvent(new Event('storage'));
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                settings.ui_show_dashboard_mascot === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                settings.ui_show_dashboard_mascot === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Phân hệ Kế toán</div>
-                                                        <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Bật tính năng đối soát & kho kế toán</div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <CalculatorIcon size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Phân hệ Kế toán</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Bật tính năng đối soát & kho kế toán</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newVal = settings.feature_accounting_enabled === 'true' ? 'false' : 'true';
+                                                                updateSetting('feature_accounting_enabled', newVal);
+                                                                localStorage.setItem('feature_accounting_enabled', newVal);
+                                                                window.dispatchEvent(new Event('storage'));
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                settings.feature_accounting_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                settings.feature_accounting_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newVal = settings.feature_accounting_enabled === 'true' ? 'false' : 'true';
-                                                        updateSetting('feature_accounting_enabled', newVal);
-                                                        localStorage.setItem('feature_accounting_enabled', newVal);
-                                                        window.dispatchEvent(new Event('storage'));
-                                                    }}
-                                                    className={cn(
-                                                        "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                        settings.feature_accounting_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                        settings.feature_accounting_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
-                                                    )} />
-                                                </button>
-                                            </div>
-                                            
-                                            {/* Brands Directory Settings */}
-                                            <div className="p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/5 dark:border-slate-700/80 space-y-3 text-left">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className="w-8 h-8 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400">
-                                                        <Tractor size={16} />
+
+                                                {/* Brands Directory Settings */}
+                                                <div className="p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/5 dark:border-slate-700/80 space-y-3 text-left">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400">
+                                                            <Tractor size={16} />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Danh mục hãng sản xuất</h4>
+                                                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Quản lý danh sách nhà sản xuất / hãng sản phẩm</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h4 className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Danh mục hãng sản xuất</h4>
-                                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Quản lý danh sách nhà sản xuất / hãng sản phẩm</p>
-                                                    </div>
+                                                    <p className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 leading-normal uppercase">
+                                                        Nhập các tên hãng (cách nhau bằng dấu phẩy) để tự động hiển thị gợi ý khi thêm/sửa sản phẩm.
+                                                    </p>
+                                                    <textarea
+                                                        name="brands_directory"
+                                                        value={settings.brands_directory || ''}
+                                                        onChange={handleChange}
+                                                        placeholder="Ví dụ: Syngenta, Bayer, Lộc Trời, Đầu Trâu..."
+                                                        rows={3}
+                                                        className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-gray-800 dark:text-slate-200 focus:border-[#4a7c59] outline-none shadow-inner transition-all resize-none"
+                                                    />
                                                 </div>
-                                                <p className="text-[8.5px] font-bold text-gray-400 dark:text-slate-400 leading-normal uppercase">
-                                                    Nhập các tên hãng (cách nhau bằng dấu phẩy) để tự động hiển thị gợi ý khi thêm/sửa sản phẩm.
-                                                </p>
-                                                <textarea
-                                                    name="brands_directory"
-                                                    value={settings.brands_directory || ''}
-                                                    onChange={handleChange}
-                                                    placeholder="Ví dụ: Syngenta, Bayer, Lộc Trời, Đầu Trâu..."
-                                                    rows={3}
-                                                    className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-gray-800 dark:text-slate-200 focus:border-[#4a7c59] outline-none shadow-inner transition-all resize-none"
-                                                />
                                             </div>
                                         </div>
+                                    )}
 
-                                        {/* Embedded Category Manager */}
-                                        <div className="space-y-3">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <Leaf size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Nhóm ngành hàng (Categories)
-                                            </h3>
+                                    {/* SUBTAB 3: CATEGORIES MANAGER */}
+                                    {uiSubTab === 'categories' && (
+                                        <div className="space-y-4 animate-[fadeIn_0.2s_ease-out]">
                                             <CategoryManager onToast={setToast} />
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
 

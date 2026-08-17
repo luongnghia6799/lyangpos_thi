@@ -122,7 +122,7 @@ const EditableWrapper = ({
                     onClick={(e) => e.stopPropagation()} // Prevent closing/re-selecting when clicking toolbar
                 >
                     {/* Text editor input if settingKey is editable text */}
-                    {settingKey && ['shop_name', 'shop_address', 'shop_phone', 'shop_bank', 'shop_bank_account', 'shop_bank_user', 'invoice_thank_you_message'].includes(settingKey) && (
+                    {settingKey && ['shop_name', 'shop_address', 'shop_phone', 'shop_bank', 'shop_bank_account', 'shop_bank_user', 'invoice_thank_you_message', 'invoice_custom_title', 'invoice_custom_notes', 'invoice_delivery_title', 'invoice_sale_title', 'invoice_purchase_title'].includes(settingKey) && (
                         <input
                             type="text"
                             value={value}
@@ -135,7 +135,7 @@ const EditableWrapper = ({
                                 padding: '2px 6px',
                                 fontSize: '11px',
                                 outline: 'none',
-                                width: '120px'
+                                width: '130px'
                             }}
                             placeholder="Sửa văn bản..."
                         />
@@ -231,6 +231,26 @@ const EditableWrapper = ({
                         </button>
                     )}
 
+                    {/* Jump to Sidebar Tab */}
+                    {tab && (
+                        <button
+                            onClick={() => onUpdateSetting && onUpdateSetting('activeTab', tab)}
+                            style={{
+                                backgroundColor: '#3b82f6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '9px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}
+                            title="Mở cài đặt chi tiết trên thanh bên"
+                        >
+                            Cài đặt
+                        </button>
+                    )}
+
                     {/* Close Selection button */}
                     <button
                         onClick={() => setActiveKey(null)}
@@ -243,10 +263,10 @@ const EditableWrapper = ({
                             fontSize: '9px',
                             fontWeight: 'bold',
                             cursor: 'pointer',
-                            marginLeft: '4px'
+                            marginLeft: '2px'
                         }}
                     >
-                        Đóng
+                        ✕
                     </button>
                 </div>
             )}
@@ -424,6 +444,7 @@ const PrintTemplate = forwardRef(({
 
     if (!data) return null;
     const isVoucher = type === 'Receipt' || type === 'Payment';
+    const isDelivery = type === 'Delivery' || type === 'StockOut';
     if (!isVoucher && (!data.details || data.details.length === 0)) return null;
 
     // Merge settings with defaults safely
@@ -611,6 +632,7 @@ const PrintTemplate = forwardRef(({
     const mr = useDefaultMargins ? 0 : parseFloat(s.invoice_margin_right || 0);
     const mb = useDefaultMargins ? 0 : parseFloat(s.invoice_margin_bottom || 0);
     const ml = useDefaultMargins ? 0 : parseFloat(s.invoice_margin_left || 0);
+    const printPaddingTop = parseFloat(s.invoice_padding_top || 0);
 
     const watermarkBottom = (String(s.invoice_show_watermark) === 'true')
         ? (parseInt(s.invoice_watermark_y) || 200) + (parseInt(s.invoice_watermark_size) || 100)
@@ -638,12 +660,12 @@ const PrintTemplate = forwardRef(({
             if (isVoucher) {
                 summaryRowsCount = 1;
             } else {
-                if (type !== 'PartnerLedger') {
+                if (type !== 'PartnerLedger' && !isDelivery) {
                     summaryRowsCount += 1;
                 }
                 if (type === 'PartnerLedger') {
                     summaryRowsCount += 3;
-                } else if (type === 'Sale' || type === 'Purchase' || type === 'Report') {
+                } else if (!isDelivery && (type === 'Sale' || type === 'Purchase' || type === 'Report')) {
                     const hasOldDebt = ((showOldDebt ?? s.invoice_show_old_debt === 'true')) && data.partner_id && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
                     if (hasOldDebt) summaryRowsCount += 1;
 
@@ -659,8 +681,8 @@ const PrintTemplate = forwardRef(({
                     const balance = type === 'Sale'
                         ? (data.total_amount + (data.old_debt || 0)) - (data.amount_paid || 0)
                         : (data.old_debt || 0) - (data.total_amount - (data.amount_paid || 0));
-                    const isDebtOrPartial = (type === 'Sale' && data.payment_method === 'Debt') || (balance !== 0);
-                    const hasBalance = ((showRemaining ?? s.invoice_show_balance === 'true')) && data.partner_id && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
+                    const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || ((data.old_debt || 0) !== 0);
+                    const hasBalance = ((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
                     if (hasBalance) summaryRowsCount += 1;
                 }
             }
@@ -684,11 +706,11 @@ const PrintTemplate = forwardRef(({
         fontSize: `${s.invoice_table_content_size || s.invoice_font_size}px`,
         lineHeight: s.invoice_line_spacing || '1.4',
         color: '#000',
-        padding: isPreview ? `${mt}mm ${mr}mm ${mb}mm ${ml}mm` : '0',
+        padding: isPreview ? `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm` : (printPaddingTop > 0 ? `${printPaddingTop}mm 0 0 0` : '0'),
         maxWidth: 'none',
         width: isPreview ? width : (isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`),
         minHeight: isPreview ? height : (watermarkBottom > 0 ? `${watermarkBottom}px` : '0'),
-        height: isPreview ? (height === 'auto' ? 'auto' : height) : 'auto',
+        height: 'auto',
         backgroundColor: '#fff',
         margin: isPreview ? '0' : '0 auto',
         boxSizing: 'border-box',
@@ -750,7 +772,7 @@ const PrintTemplate = forwardRef(({
                     @page {
                         size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : s.paper_size || 'A4')} ${s.invoice_orientation || 'portrait'} !important;
                         ${useDefaultMargins 
-                            ? (s.invoice_show_page_number === 'true' ? 'margin: 5mm 5mm 15mm 5mm !important;' : 'margin: 0 !important;') 
+                            ? (s.invoice_show_page_number === 'true' ? 'margin: 0mm 5mm 15mm 5mm !important;' : 'margin: 0mm 5mm !important;') 
                             : `margin: ${mt}mm ${mr}mm ${s.invoice_show_page_number === 'true' ? Math.max(mb, 15) : mb}mm ${ml}mm !important;`
                         }
                         ${s.invoice_show_page_number === 'true' ? `
@@ -762,12 +784,6 @@ const PrintTemplate = forwardRef(({
                             font-family: ${fontFamily} !important;
                         }
                         ` : ''}
-                    }
-                    @page :first {
-                        ${useDefaultMargins 
-                            ? (s.invoice_show_page_number === 'true' ? 'margin: 5mm 5mm 15mm 5mm !important;' : 'margin: 0 !important;') 
-                            : `margin-top: ${mt}mm !important;`
-                        }
                     }
                     .print-page-number {
                         display: none !important;
@@ -786,7 +802,7 @@ const PrintTemplate = forwardRef(({
                         max-width: 100% !important;
                         overflow-x: hidden !important;
                         position: relative !important;
-                        padding: 0 !important;
+                        padding-top: ${printPaddingTop > 0 ? `${printPaddingTop}mm` : '0'} !important;
                     }
                     .print-layout-table,
                     .print-layout-table > thead, .print-layout-table > thead > tr, .print-layout-table > thead > tr > td, .print-layout-table > thead > tr > th,
@@ -795,6 +811,14 @@ const PrintTemplate = forwardRef(({
                         padding: 0 !important;
                         margin: 0 !important;
                         background: transparent !important;
+                    }
+                    .print-layout-table > thead > tr > td {
+                        padding-top: 0 !important;
+                    }
+                    .print-layout-table tr,
+                    .invoice-items-table tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     .invoice-items-table {
                         width: 100% !important;
@@ -807,8 +831,8 @@ const PrintTemplate = forwardRef(({
                         border-bottom: ${isHeaderBadge ? badgeHeaderBorder : headerBorderValue} !important;
                         border-right: ${(!isHeaderBadge && s.invoice_table_border_cols === 'true') ? borderValue : 'none'} !important;
                         border-left: ${(!isHeaderBadge && s.invoice_table_border === 'true') ? borderValue : 'none'} !important;
-                        padding: ${isHeaderBadge ? `${Math.max(3, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(2, Math.floor(parseInt(s.invoice_row_padding || 4) * 0.8))}px ${s.invoice_row_padding || 4}px`} !important;
-                        line-height: 1.25 !important;
+                        padding: ${isHeaderBadge ? `${Math.max(2, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(1, Math.floor(parseInt(s.invoice_row_padding || 4) * 0.8))}px ${s.invoice_row_padding || 4}px`} !important;
+                        line-height: ${s.invoice_table_line_height || '1.15'} !important;
                     }
                     ${isHeaderBadge ? `
                     .invoice-items-table th:first-child {
@@ -822,21 +846,23 @@ const PrintTemplate = forwardRef(({
                         border-bottom: ${s.invoice_table_border_rows === 'true' ? borderValue : 'none'} !important;
                         border-right: ${s.invoice_table_border_cols === 'true' ? borderValue : 'none'} !important;
                         border-left: ${s.invoice_table_border === 'true' ? borderValue : 'none'} !important;
-                        padding: ${(s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? Math.max(2, parseInt(s.invoice_row_padding || 4) - 2) : (parseInt(s.invoice_row_padding || 4))}px !important;
-                        line-height: 1.35 !important;
+                        padding: ${(s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? Math.max(1, parseInt(s.invoice_row_padding || 4) - 2) : (parseInt(s.invoice_row_padding || 4))}px !important;
+                        line-height: ${s.invoice_table_line_height || '1.15'} !important;
                     }
                     .invoice-items-table .invoice-summary-row td {
                         border-top: ${s.invoice_table_border_rows === 'true' ? borderValue : (s.invoice_table_border === 'true' ? borderValue : 'none')} !important;
                         border-bottom: ${s.invoice_table_border === 'true' ? borderValue : 'none'} !important;
                         border-left: ${s.invoice_table_border === 'true' ? borderValue : 'none'} !important;
                         border-right: ${s.invoice_table_border === 'true' ? borderValue : 'none'} !important;
-                        padding: 6px 10px !important;
+                        padding: ${Math.max(3, parseInt(s.invoice_row_padding || 4))}px 8px !important;
                         background-color: #fafafa !important;
                     }
                 }
             `}
         </style>
     ) : null;
+
+    const useTitleBadge = s.invoice_title_badge === 'true';
 
     const headerStyle = {
         marginBottom: `${s.invoice_header_spacing || 10}px`,
@@ -846,65 +872,58 @@ const PrintTemplate = forwardRef(({
         gap: '15px',
         borderBottom: '1px solid #eee',
         paddingBottom: '10px',
-        paddingTop: '0',
+        paddingTop: isPreview ? '4px' : '0px',
         pageBreakInside: 'avoid',
+        breakInside: 'avoid',
         overflow: 'visible'
-    };
-
-    const useTitleBadge = s.invoice_title_badge === 'true';
-
-    const shopNameStyle = {
-        fontSize: `${s.invoice_store_name_size || 16}px`,
-        fontWeight: '900',
-        marginBottom: '2px',
-        lineHeight: '1.6',
-        paddingTop: '0',
-        color: s.invoice_color_store_info || '#000',
-        overflow: 'visible'
-    };
-
-    const shopInfoStyle = {
-        fontSize: `${s.invoice_store_info_size || 10}px`,
-        color: s.invoice_color_store_info || '#333',
-        lineHeight: '1.3'
-    };
-
-    const invoiceTitleStyle = {
-        fontSize: `${s.invoice_title_size || '20'}px`,
-        fontWeight: '900',
-        textAlign: useTitleBadge ? 'center' : 'right',
-        textTransform: 'uppercase',
-        letterSpacing: '1px',
-        flexShrink: 0,
-        maxWidth: useTitleBadge ? '100%' : '50%',
-        color: useTitleBadge ? (s.invoice_title_badge_text_color || '#fff') : (s.invoice_color_title || '#000'),
-        padding: useTitleBadge ? '8px 16px' : '0',
-        backgroundColor: useTitleBadge ? (s.invoice_title_badge_bg || '#2d5016') : 'transparent',
-        border: useTitleBadge ? `0.5px solid ${s.invoice_title_badge_border || '#86efac'}` : 'none',
-        borderRadius: useTitleBadge ? '50px' : '0',
-        lineHeight: '1.5',
-        display: useTitleBadge ? 'inline-block' : 'block',
-        cursor: isPreview ? 'pointer' : 'default',
-        transition: 'all 0.2s ease',
-        overflow: 'visible',
-        whiteSpace: 'nowrap'
-    };
-
-    const infoGridStyle = {
-        display: 'grid',
-        gridTemplateColumns: '1.2fr 0.8fr',
-        gap: '4px',
-        marginBottom: '1.3mm'
     };
 
     const labelStyle = {
         fontWeight: 'bold',
-        fontSize: `${s.invoice_customer_info_size}px`,
+        fontSize: `${s.invoice_customer_info_size || 12}px`,
         color: s.invoice_color_customer_info || '#000'
     };
 
+    const shopNameStyle = {
+        fontWeight: 'bold',
+        fontSize: `${s.invoice_store_name_size || '24'}px`,
+        color: s.invoice_color_store_info || '#333333',
+        lineHeight: '1.25',
+        paddingTop: isPreview ? '2px' : '0px'
+    };
+    const shopInfoStyle = {
+        fontSize: `${s.invoice_store_info_size || '11'}px`,
+        color: s.invoice_color_store_info || '#333333',
+        lineHeight: '1.4'
+    };
+    const invoiceTitleStyle = {
+        fontWeight: '900',
+        fontSize: `${s.invoice_title_size || '22'}px`,
+        textAlign: isDelivery ? 'center' : 'right',
+        color: useTitleBadge ? (s.invoice_title_badge_text_color || '#fff') : (s.invoice_color_title || '#000'),
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        lineHeight: '1.25',
+        paddingTop: isPreview ? '2px' : '0px',
+        ...(useTitleBadge ? {
+            background: s.invoice_title_badge_bg || '#2d5016',
+            border: `1px solid ${s.invoice_title_badge_border || '#86efac'}`,
+            borderRadius: '9999px',
+            padding: '6px 20px',
+            display: 'inline-block',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        } : {})
+    };
+    const infoGridStyle = {
+        display: 'grid',
+        gridTemplateColumns: '1.2fr 0.8fr',
+        gap: '4px',
+        marginBottom: '1.3mm',
+        pageBreakInside: 'avoid',
+        breakInside: 'avoid'
+    };
     const generalInfoTextStyle = {
-        fontSize: `${s.invoice_customer_info_size || 11}px`,
+        fontSize: `${s.invoice_customer_info_size || '12'}px`,
         color: s.invoice_color_customer_info || '#000',
         lineHeight: '1.4'
     };
@@ -914,14 +933,14 @@ const PrintTemplate = forwardRef(({
         borderSpacing: 0,
         fontSize: `${s.invoice_table_font_size_preset === 'small' ? (parseInt(s.invoice_table_content_size) - 2) : s.invoice_table_content_size}px`,
         border: (s.invoice_table_border === 'true' && !isHeaderBadge) ? borderValue : 'none',
-        marginTop: '1.3mm',
+        marginTop: s.invoice_table_margin_top ? `${s.invoice_table_margin_top}px` : '1.3mm',
         tableLayout: 'auto'
     };
     const thStyle = {
         borderTop: isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : 'none'),
         borderBottom: isHeaderBadge ? badgeHeaderBorder : headerBorderValue,
         borderRight: (!isHeaderBadge && s.invoice_table_border_cols === 'true') ? borderValue : 'none',
-        padding: isHeaderBadge ? `${Math.max(2, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding}px` : `${Math.max(1, Math.floor(parseInt(s.invoice_row_padding || 4) * 0.8))}px ${s.invoice_row_padding}px`,
+        padding: isHeaderBadge ? `${Math.max(2, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(1, Math.floor(parseInt(s.invoice_row_padding || 4) * 0.8))}px ${s.invoice_row_padding || 4}px`,
         backgroundColor: isHeaderBadge ? (s.invoice_table_header_badge_bg || '#2d5016') : (s.invoice_table_header_bg_enabled === 'true' ? (s.invoice_table_header_bg_color || '#f2f2f2') : 'transparent'),
         fontWeight: 'bold',
         fontSize: `${s.invoice_table_header_size}px`,
@@ -930,7 +949,7 @@ const PrintTemplate = forwardRef(({
         transition: 'all 0.2s ease',
         whiteSpace: (s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? 'normal' : 'nowrap',
         wordBreak: 'break-word',
-        lineHeight: '1.2'
+        lineHeight: s.invoice_table_line_height || '1.15'
     };
 
     const getThStyle = (isFirst, isLast) => {
@@ -960,11 +979,12 @@ const PrintTemplate = forwardRef(({
     const tdStyle = {
         borderBottom: s.invoice_table_border_rows === 'true' ? borderValue : 'none',
         borderRight: s.invoice_table_border_cols === 'true' ? borderValue : 'none',
-        padding: `${(s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? Math.max(2, parseInt(s.invoice_row_padding || 4) - 2) : (s.invoice_row_padding || '4')}px`,
+        padding: `${(s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? Math.max(1, parseInt(s.invoice_row_padding || 4) - 2) : (s.invoice_row_padding || '4')}px`,
         verticalAlign: 'middle',
         color: s.invoice_color_table_body || '#000',
         borderLeft: (isHeaderBadge && s.invoice_table_border === 'true') ? borderValue : 'none',
-        wordBreak: 'break-word'
+        wordBreak: 'break-word',
+        lineHeight: s.invoice_table_line_height || '1.15'
     };
 
     const getTdStyle = (isFirst, isLast) => {
@@ -1017,10 +1037,12 @@ const PrintTemplate = forwardRef(({
     };
 
     const getInvoiceTitle = () => {
+        if (s.invoice_custom_title && s.invoice_custom_title.trim() !== '') return s.invoice_custom_title;
         if (data.display_id === '#NODAU') return 'GHI NHẬN NỢ ĐẦU KỲ';
         if (data.type === 'DebtIncrease') return 'PHIẾU GHI NỢ SỔ TAY';
-        if (type === 'Sale') return 'HÓA ĐƠN BÁN HÀNG';
-        if (type === 'Purchase') return 'PHIẾU NHẬP HÀNG';
+        if (isDelivery) return s.invoice_delivery_title || 'PHIẾU XUẤT KHO';
+        if (type === 'Sale') return s.invoice_sale_title || 'HÓA ĐƠN BÁN HÀNG';
+        if (type === 'Purchase') return s.invoice_purchase_title || 'PHIẾU NHẬP HÀNG';
         if (type === 'History') return 'CHI TIẾT GIAO DỊCH';
         if (type === 'Receipt') return 'PHIẾU THU TIỀN';
         if (type === 'Payment') return 'PHIẾU CHI TIỀN';
@@ -1029,7 +1051,7 @@ const PrintTemplate = forwardRef(({
         return 'HÓA ĐƠN';
     };
 
-    const partnerLabel = (type === 'Sale' || type === 'Receipt' || type === 'History') ? 'Khách hàng' : 'Nhà cung cấp';
+    const partnerLabel = (type === 'Sale' || type === 'Receipt' || type === 'History' || isDelivery) ? 'Khách hàng' : 'Nhà cung cấp';
 
     // Stats
     const totalQty = (data.details || []).reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
@@ -1071,7 +1093,7 @@ const PrintTemplate = forwardRef(({
     const shopNameEl = s.invoice_show_shop_name === 'true' && wrap(
         "Tên Cửa Hàng", 
         "shop_name", 
-        { sizeKey: "invoice_store_name_size", colorKey: "invoice_color_store_info", toggleKey: "invoice_show_shop_name", tab: "content" },
+        { sizeKey: "invoice_store_name_size", colorKey: "invoice_color_store_info", toggleKey: "invoice_show_shop_name", tab: "text" },
         <div style={{ ...shopNameStyle, marginBottom: '2px' }}>
             {s.shop_name?.toUpperCase()}
         </div>
@@ -1082,19 +1104,19 @@ const PrintTemplate = forwardRef(({
             {s.invoice_show_address === 'true' && s.shop_address && s.shop_address.trim() !== "" && wrap(
                 "Địa chỉ", 
                 "shop_address", 
-                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_address", tab: "content" },
+                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_address", tab: "text" },
                 <div>{s.shop_address}</div>
             )}
             {s.invoice_show_phone === 'true' && s.shop_phone && wrap(
                 "Số điện thoại", 
                 "shop_phone", 
-                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_phone", tab: "content" },
+                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_phone", tab: "text" },
                 <div>ĐT: {s.shop_phone}</div>
             )}
             {s.invoice_show_bank_info === 'true' && (s.shop_bank || s.shop_bank_account) && wrap(
                 "Tài khoản ngân hàng", 
                 "shop_bank_account", 
-                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_bank_info", tab: "content" },
+                { colorKey: "invoice_color_store_info", toggleKey: "invoice_show_bank_info", tab: "text" },
                 <div style={{ marginTop: '2px', borderTop: '1px dashed #ccc', paddingTop: '2px' }}>
                     {s.shop_bank && <span>{s.shop_bank}: </span>}
                     {s.shop_bank_account && <strong style={{ letterSpacing: '0.5px' }}>{s.shop_bank_account}</strong>}
@@ -1105,9 +1127,9 @@ const PrintTemplate = forwardRef(({
     );
 
     const titleEl = s.invoice_show_title !== 'false' && wrap(
-        "Tiêu đề",
-        "invoice_color_title",
-        { sizeKey: "invoice_title_size", colorKey: "invoice_color_title", tab: "content" },
+        "Tiêu đề hóa đơn",
+        "invoice_custom_title",
+        { sizeKey: "invoice_title_size", colorKey: "invoice_color_title", toggleKey: "invoice_show_title", tab: "text" },
         <div
             style={{
                 ...invoiceTitleStyle,
@@ -1266,8 +1288,8 @@ const PrintTemplate = forwardRef(({
                                 if (getShowColSetting('invoice_show_col_unit') === 'true') cols.push({ id: 'unit', label: 'ĐVT', width: getColWidthSetting('invoice_col_unit') });
                                 if (getShowColSetting('invoice_show_secondary_qty') === 'true') cols.push({ id: 'sqty', label: 'Quy đổi', width: getColWidthSetting('invoice_col_secondary_qty_width'), align: 'center' });
                                 if (getShowColSetting('invoice_show_col_qty') === 'true') cols.push({ id: 'qty', label: 'SL', width: getColWidthSetting('invoice_col_qty'), align: 'center' });
-                                if (getShowColSetting('invoice_show_col_price') === 'true') cols.push({ id: 'price', label: 'Đơn giá', width: getColWidthSetting('invoice_col_price'), align: 'right' });
-                                if (getShowColSetting('invoice_show_col_total') === 'true') cols.push({ id: 'total', label: 'Thành tiền', width: getColWidthSetting('invoice_col_total'), align: 'right' });
+                                if (!isDelivery && getShowColSetting('invoice_show_col_price') === 'true') cols.push({ id: 'price', label: 'Đơn giá', width: getColWidthSetting('invoice_col_price'), align: 'right' });
+                                if (!isDelivery && getShowColSetting('invoice_show_col_total') === 'true') cols.push({ id: 'total', label: 'Thành tiền', width: getColWidthSetting('invoice_col_total'), align: 'right' });
                             }
 
                             if (typeof window !== 'undefined') {
@@ -1362,9 +1384,9 @@ const PrintTemplate = forwardRef(({
                                         if (getShowColSetting('invoice_show_col_unit') === 'true') colsCount.push('unit');
                                         if (getShowColSetting('invoice_show_secondary_qty') === 'true') colsCount.push('sqty');
                                         if (getShowColSetting('invoice_show_col_qty') === 'true') colsCount.push('qty');
-                                        if (getShowColSetting('invoice_show_col_price') === 'true') colsCount.push('price');
+                                        if (!isDelivery && getShowColSetting('invoice_show_col_price') === 'true') colsCount.push('price');
                                     }
-                                    if (getShowColSetting('invoice_show_col_total') === 'true') colsCount.push('total');
+                                    if (!isDelivery && getShowColSetting('invoice_show_col_total') === 'true') colsCount.push('total');
 
                                     const isFirst = (id) => colsCount[0] === id;
                                     const isLast = (id) => colsCount[colsCount.length - 1] === id;
@@ -1441,12 +1463,12 @@ const PrintTemplate = forwardRef(({
                                                                     }
                                                                 }
                                                                 return '-';
-                                                            })()}
+                                                             })()}
                                                         </td>
                                                     )}
                                                     {getShowColSetting('invoice_show_col_qty') === 'true' && <td style={{ ...getTdStyle(isFirst('qty'), isLast('qty')), textAlign: 'center' }}>{item.quantity}</td>}
-                                                    {getShowColSetting('invoice_show_col_price') === 'true' && <td style={{ ...getTdStyle(isFirst('price'), isLast('price')), textAlign: 'right' }}>{formatNumber(item.price)}</td>}
-                                                    {getShowColSetting('invoice_show_col_total') === 'true' && <td style={{ ...getTdStyle(isFirst('total'), isLast('total')), textAlign: 'right', fontWeight: 'bold' }}>{formatNumber(item.price * item.quantity)}</td>}
+                                                    {!isDelivery && getShowColSetting('invoice_show_col_price') === 'true' && <td style={{ ...getTdStyle(isFirst('price'), isLast('price')), textAlign: 'right' }}>{formatNumber(item.price)}</td>}
+                                                    {!isDelivery && getShowColSetting('invoice_show_col_total') === 'true' && <td style={{ ...getTdStyle(isFirst('total'), isLast('total')), textAlign: 'right', fontWeight: 'bold' }}>{formatNumber(item.price * item.quantity)}</td>}
                                                 </>
                                             )}
                                         </>
@@ -1623,16 +1645,17 @@ const PrintTemplate = forwardRef(({
         </div>
     );
 
-    const notesEl = s.invoice_show_notes === 'true' && data.note && !isVoucher && wrap(
+    const noteText = data.note || s.invoice_custom_notes;
+    const notesEl = s.invoice_show_notes === 'true' && noteText && !isVoucher && wrap(
         "Ghi chú",
-        "invoice_color_notes",
-        { colorKey: "invoice_color_notes", toggleKey: "invoice_show_notes", tab: "content" },
+        "invoice_custom_notes",
+        { colorKey: "invoice_color_notes", toggleKey: "invoice_show_notes", tab: "text" },
         <div style={{ fontSize: '11px', fontStyle: 'italic', color: s.invoice_color_notes || '#555', borderLeft: '3px solid #ddd', paddingLeft: '8px' }}>
-            <strong>Ghi chú:</strong> {data.note}
+            <strong>Ghi chú:</strong> {noteText}
         </div>
     );
 
-    const summaryEl = s.invoice_show_total_amount === 'true' && (
+    const summaryEl = !isDelivery && s.invoice_show_total_amount === 'true' && (
         <div style={{ width: '100%' }}>
             {!isVoucher ? (
                 <>
@@ -1667,7 +1690,7 @@ const PrintTemplate = forwardRef(({
                                 </div>
                             ) : (
                                 <>
-                                    {((showOldDebt ?? s.invoice_show_old_debt === 'true')) && data.partner_id && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
+                                    {((showOldDebt ?? s.invoice_show_old_debt === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Nợ cũ:</div>
                                             <div style={summaryValueStyle}>{formatNumber(data.old_debt || 0)}</div>
@@ -1697,8 +1720,8 @@ const PrintTemplate = forwardRef(({
                                             : (data.old_debt || 0) - (data.total_amount - (data.amount_paid || 0));
 
                                         // Show "Remaining" if balance is non-zero or explicitly requested, even if old debt was zero
-                                        const isDebtOrPartial = (type === 'Sale' && data.payment_method === 'Debt') || (balance !== 0);
-                                        if (((showRemaining ?? s.invoice_show_balance === 'true')) && data.partner_id && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
+                                        const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || ((data.old_debt || 0) !== 0);
+                                        if (((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
                                             return wrap(
                                                 "Còn lại / Dư nợ",
                                                 "invoice_total_balance_size",
@@ -1738,20 +1761,37 @@ const PrintTemplate = forwardRef(({
                     * Hai bên cùng kiểm tra và xác nhận mọi thông tin trên là chính xác. Số dư chốt cuối kỳ là căn cứ thanh toán tiếp theo.
                 </div>
             )}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', textAlign: 'center' }}>
-                <div>
-                    <div style={{ fontWeight: 'bold' }}>
-                        {(type === 'PartnerLedger' ? 'Đại diện Đối tác' : 'Khách hàng').toUpperCase()}
+            {isDelivery ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', textAlign: 'center' }}>
+                    <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '12px' }}>NGƯỜI NHẬN HÀNG</div>
+                        <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
                     </div>
-                    <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
-                </div>
-                <div>
-                    <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-                        {type === 'PartnerLedger' ? 'Đại diện Cửa hàng' : 'Người lập phiếu'}
+                    <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '12px' }}>NGƯỜI GIAO HÀNG</div>
+                        <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
                     </div>
-                    <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
+                    <div>
+                        <div style={{ fontWeight: 'bold', fontSize: '12px' }}>NGƯỜI LẬP PHIẾU</div>
+                        <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', textAlign: 'center' }}>
+                    <div>
+                        <div style={{ fontWeight: 'bold' }}>
+                            {(type === 'PartnerLedger' ? 'Đại diện Đối tác' : 'Khách hàng').toUpperCase()}
+                        </div>
+                        <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
+                    </div>
+                    <div>
+                        <div style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                            {type === 'PartnerLedger' ? 'Đại diện Cửa hàng' : 'Người lập phiếu'}
+                        </div>
+                        <div style={{ fontSize: '10px', fontStyle: 'italic' }}>(Ký, họ tên)</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -1773,34 +1813,44 @@ const PrintTemplate = forwardRef(({
         </div>
     );
 
-    const pageNumberEl = isPreview && s.invoice_show_page_number === 'true' && wrap(
-        "Số trang",
-        "invoice_page_number_size",
-        { sizeKey: "invoice_page_number_size", colorKey: "invoice_page_number_color", toggleKey: "invoice_show_page_number", tab: "layout" },
-        <div
-            className="print-page-number"
-            style={{
-                textAlign: s.invoice_page_number_position === 'bottom-left' ? 'left' : (s.invoice_page_number_position === 'bottom-center' ? 'center' : 'right'),
-                fontSize: `${s.invoice_page_number_size || 10}px`,
-                color: s.invoice_page_number_color || '#64748b',
-                fontStyle: 'italic',
-                paddingTop: '6px',
-                marginTop: '8px',
-                pageBreakInside: 'avoid',
-                display: 'block'
-            }}
-        >
-            <span className={isPreview ? "" : "no-print"}>
-                {s.invoice_page_number_format === 'page_only' ? 'Trang 1' : 'Trang 1/1'}
-            </span>
-        </div>
-    );
+    const renderPageNumber = (currentPage = 1, totalPages = 1) => {
+        if (!isPreview || s.invoice_show_page_number !== 'true') return null;
+        const format = s.invoice_page_number_format;
+        const text = format === 'page_only'
+            ? `Trang ${currentPage}`
+            : `Trang ${currentPage}/${totalPages}`;
+
+        return wrap(
+            "Số trang",
+            "invoice_page_number_size",
+            { sizeKey: "invoice_page_number_size", colorKey: "invoice_page_number_color", toggleKey: "invoice_show_page_number", tab: "layout" },
+            <div
+                className="print-page-number"
+                style={{
+                    textAlign: s.invoice_page_number_position === 'bottom-left' ? 'left' : (s.invoice_page_number_position === 'bottom-center' ? 'center' : 'right'),
+                    fontSize: `${s.invoice_page_number_size || 10}px`,
+                    color: s.invoice_page_number_color || '#64748b',
+                    fontStyle: 'italic',
+                    paddingTop: '6px',
+                    marginTop: '8px',
+                    pageBreakInside: 'avoid',
+                    display: 'block'
+                }}
+            >
+                <span className={isPreview ? "" : "no-print"}>
+                    {text}
+                </span>
+            </div>
+        );
+    };
+
+    const pageNumberEl = renderPageNumber(1, 1);
 
     return (
         <>
             {pageStyle}
             {customFontFaceStyle}
-            <div ref={ref} id="print-template" className={isPreview ? "preview-mode" : "only-print"} style={containerStyle}>
+            <div ref={ref} id="print-template" className={isPreview ? "preview-mode" : "only-print"} style={isPreview && (!isThermal && (data.details || []).length > (s.paper_size === 'A5' ? 12 : (s.paper_size === 'A6' ? 6 : 22))) ? { width: '100%', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' } : containerStyle}>
                 {/* Visual Margin Guides for Preview */}
                 {isPreview && (
                     <>
@@ -2173,55 +2223,235 @@ const PrintTemplate = forwardRef(({
                         </table>
                     )
                 ) : (
-                    isPreview ? (
-                        <>
-                            <div style={headerStyle}>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                    {logoEl}
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        {shopNameEl}
-                                        {shopInfoEl}
+                    isPreview ? (() => {
+                        const allDetails = data.details || [];
+                        const isPaged = !isThermal;
+
+                        // Dynamic height-based capacity calculation matching actual print rendering
+                        const rowPad = parseInt(s.invoice_row_padding || 4);
+                        const rowLh = parseFloat(s.invoice_table_line_height || 1.15);
+                        const fontSz = parseInt(s.invoice_table_content_size || 12);
+                        const estRowH = Math.max(18, fontSz * rowLh + rowPad * 2 + 4);
+
+                        const paperH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
+                        const hdrH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
+                        const sumH = 140 + (parseInt(s.invoice_total_section_margin_top || 0));
+                        const marginH = (mt + mb) * 3.78;
+
+                        const singlePageAvailH = paperH - hdrH - sumH - marginH;
+                        const singlePageCap = Math.max(1, Math.floor(singlePageAvailH / estRowH));
+
+                        const firstPageAvailH = paperH - hdrH - marginH - 40;
+                        const firstPageCap = Math.max(1, Math.floor(firstPageAvailH / estRowH));
+
+                        const repeatHdrH = s.invoice_repeat_header_on_later_pages === 'true' ? hdrH : 35;
+                        const otherPageAvailH = paperH - repeatHdrH - marginH - 40;
+                        const otherPageCap = Math.max(1, Math.floor(otherPageAvailH / estRowH));
+
+                        // Single page if items fit completely with summary
+                        if (!isPaged || allDetails.length <= singlePageCap) {
+                            return (
+                                <>
+                                    <div style={headerStyle}>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                            {logoEl}
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                {shopNameEl}
+                                                {shopInfoEl}
+                                            </div>
+                                        </div>
+                                        {titleEl}
                                     </div>
-                                </div>
-                                {titleEl}
-                            </div>
 
-                            {/* General Info */}
-                            <div style={infoGridStyle}>
-                                <div>
-                                    {customerNameEl}
-                                    {customerPhoneEl}
-                                    {customerAddressEl}
-                                    {voucherNoteEl}
-                                </div>
-                                {invoiceMetaEl}
-                            </div>
-
-                            {/* Table Area */}
-                            {tableEl}
-
-                            {/* Summary Section */}
-                            <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {notesEl}
+                                    {/* General Info */}
+                                    <div style={infoGridStyle}>
+                                        <div>
+                                            {customerNameEl}
+                                            {customerPhoneEl}
+                                            {customerAddressEl}
+                                            {voucherNoteEl}
+                                        </div>
+                                        {invoiceMetaEl}
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                        {summaryEl}
+
+                                    {/* Table Area */}
+                                    {tableEl}
+
+                                    {/* Summary Section */}
+                                    <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                {notesEl}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                {summaryEl}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+
+                                    {/* Signatures */}
+                                    {signaturesEl}
+
+                                    {/* Thank You Message */}
+                                    {thankYouEl}
+
+                                    {/* Page Number */}
+                                    {renderPageNumber(1, 1)}
+                                </>
+                            );
+                        }
+
+                        // Multi-page layout chunking
+                        const pages = [];
+                        let remaining = [...allDetails];
+
+                        // Page 1 chunk
+                        const p1Count = Math.min(remaining.length, firstPageCap);
+                        pages.push({
+                            pageIndex: 0,
+                            items: remaining.slice(0, p1Count),
+                            startIndex: 0
+                        });
+                        remaining = remaining.slice(p1Count);
+
+                        // Subsequent pages
+                        while (remaining.length > 0) {
+                            const startIndex = allDetails.length - remaining.length;
+                            const count = Math.min(remaining.length, otherPageCap);
+                            pages.push({
+                                pageIndex: pages.length,
+                                items: remaining.slice(0, count),
+                                startIndex
+                            });
+                            remaining = remaining.slice(count);
+                        }
+
+                        // If last page cannot fit the summary section, create an overflow summary page
+                        const lastPage = pages[pages.length - 1];
+                        const lastPageItemsCount = lastPage.items.length;
+                        const maxItemsOnLastPageWithSummary = Math.max(0, Math.floor((otherPageAvailH - sumH) / estRowH));
+
+                        if (lastPageItemsCount > maxItemsOnLastPageWithSummary) {
+                            pages.push({
+                                pageIndex: pages.length,
+                                items: [],
+                                startIndex: allDetails.length
+                            });
+                        }
+
+                        const totalPages = pages.length;
+
+                        return (
+                            <div className="flex flex-col items-center gap-10 w-full">
+                                {pages.map((p, idx) => {
+                                    const isFirstPage = idx === 0;
+                                    const isLastPage = idx === totalPages - 1;
+                                    const pageNum = idx + 1;
+
+                                    return (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                ...containerStyle,
+                                                minHeight: height,
+                                                height: 'auto',
+                                                marginBottom: idx < totalPages - 1 ? '10px' : '0',
+                                                boxShadow: '0 20px 45px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
+                                                position: 'relative'
+                                            }}
+                                        >
+                                            {/* Header */}
+                                            {isFirstPage ? (
+                                                <>
+                                                    <div style={headerStyle}>
+                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                            {logoEl}
+                                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                                {shopNameEl}
+                                                                {shopInfoEl}
+                                                            </div>
+                                                        </div>
+                                                        {titleEl}
+                                                    </div>
+
+                                                    <div style={infoGridStyle}>
+                                                        <div>
+                                                            {customerNameEl}
+                                                            {customerPhoneEl}
+                                                            {customerAddressEl}
+                                                            {voucherNoteEl}
+                                                        </div>
+                                                        {invoiceMetaEl}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                s.invoice_repeat_header_on_later_pages === 'true' ? (
+                                                    <>
+                                                        <div style={headerStyle}>
+                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                                {logoEl}
+                                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                                    {shopNameEl}
+                                                                    {shopInfoEl}
+                                                                </div>
+                                                            </div>
+                                                            {titleEl}
+                                                        </div>
+
+                                                        <div style={infoGridStyle}>
+                                                            <div>
+                                                                {customerNameEl}
+                                                                {customerPhoneEl}
+                                                                {customerAddressEl}
+                                                                {voucherNoteEl}
+                                                            </div>
+                                                            {invoiceMetaEl}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '8px' }}>
+                                                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>
+                                                            {s.shop_name?.toUpperCase()} - {getInvoiceTitle()} #{data.display_id || data.id} (Trang {pageNum})
+                                                        </span>
+                                                        <span style={{ fontSize: '10px', color: '#64748b' }}>
+                                                            {data.date ? formatDate(data.date) : ''}
+                                                        </span>
+                                                    </div>
+                                                )
+                                            )}
+
+                                            {/* Table for this Page */}
+                                            <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                                {renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}
+                                            </div>
+
+                                            {/* Last Page Content: Totals, Debt, Notes, Signatures */}
+                                            {isLastPage && (
+                                                <>
+                                                    <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                {notesEl}
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                                {summaryEl}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {signaturesEl}
+                                                    {thankYouEl}
+                                                </>
+                                            )}
+
+                                            {/* Page Number Indicator */}
+                                            {renderPageNumber(pageNum, totalPages)}
+                                        </div>
+                                    );
+                                })}
                             </div>
-
-                            {/* Signatures */}
-                            {signaturesEl}
-
-                            {/* Thank You Message */}
-                            {thankYouEl}
-
-                            {/* Page Number */}
-                            {pageNumberEl}
-                        </>
-                    ) : (
+                        );
+                    })() : (
                         <table className="print-layout-table" style={{ width: '100%', border: 'none', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
                             {s.invoice_repeat_header_on_later_pages === 'true' ? (
                                 <thead>

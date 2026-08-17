@@ -4,7 +4,7 @@ import { m, AnimatePresence } from 'framer-motion';
 import { History, ShoppingBag, Clock, X, ChevronRight, Package, Calendar, Eye, EyeOff, BookOpen, Edit, Trash2, ReceiptText, Wallet, RotateCcw } from 'lucide-react';
 import { formatCurrency, formatDate, formatNumber, cn } from '../lib/utils';
 
-export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart, onViewOrder, onEditOrder, onDeleteOrder, onEditVoucher, onDeleteVoucher }) {
+export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart, onViewOrder, onEditOrder, onDeleteOrder, onEditVoucher, onDeleteVoucher, context = 'POS', defaultType = 'Sale' }) {
     const [orders, setOrders] = useState([]);
     const [boughtProducts, setBoughtProducts] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -14,8 +14,10 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
     const [hasMore, setHasMore] = useState(true);
     const [showInfo, setShowInfo] = useState(true);
     const [rangeMode, setRangeMode] = useState('all'); // all, latest, custom
+    const isPurchaseContext = context === 'Purchase' || defaultType === 'Purchase';
     const [startReceiptId, setStartReceiptId] = useState('');
     const [endReceiptId, setEndReceiptId] = useState('');
+    const [includeOtherOrders, setIncludeOtherOrders] = useState(false);
 
     const receiptVouchers = orders.filter(o => o.is_voucher && o.type === 'Receipt');
 
@@ -27,7 +29,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
             setRangeMode('all');
             setStartReceiptId('');
             setEndReceiptId('');
-            fetchHistory(1);
+            fetchHistory(1, includeOtherOrders);
         }
     }, [isOpen, partner]);
 
@@ -40,11 +42,11 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                 setOrders([]);
                 setPage(1);
                 setHasMore(true);
-                fetchHistory(1);
+                fetchHistory(1, includeOtherOrders);
             }
         };
         return () => syncChannel.close();
-    }, [isOpen, partner]);
+    }, [isOpen, partner, includeOtherOrders]);
 
     useEffect(() => {
         const handleEsc = (e) => {
@@ -66,12 +68,22 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
         }
     }, [rangeMode, receiptVouchers, startReceiptId, endReceiptId]);
 
-    const fetchHistory = async (pageToFetch = 1) => {
+    const fetchHistory = async (pageToFetch = 1, incOther = includeOtherOrders) => {
         setLoading(true);
         try {
             const limit = 20;
+            let orderEndpoint = '';
+            if (isPurchaseContext) {
+                orderEndpoint = incOther
+                    ? `/api/orders?partner_id=${partner.id}&limit=${limit}&page=${pageToFetch}`
+                    : `/api/orders?partner_id=${partner.id}&limit=${limit}&page=${pageToFetch}&type=Purchase`;
+            } else {
+                orderEndpoint = incOther
+                    ? `/api/orders?partner_id=${partner.id}&limit=${limit}&page=${pageToFetch}`
+                    : `/api/orders?partner_id=${partner.id}&limit=${limit}&page=${pageToFetch}&type=Sale`;
+            }
             const [ordersRes, vouchersRes] = await Promise.all([
-                axios.get(`/api/orders?partner_id=${partner.id}&limit=${limit}&page=${pageToFetch}&type=Sale`),
+                axios.get(orderEndpoint),
                 axios.get(`/api/vouchers?partner_id=${partner.id}`)
             ]);
 
@@ -153,7 +165,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: '100%', opacity: 0 }}
                         transition={{ type: "spring", damping: 32, stiffness: 260 }}
-                        className="relative w-full max-w-[440px] h-full bg-[#022c22]/95 backdrop-blur-[100px] shadow-[0_0_150px_rgba(0,0,0,0.7)] flex flex-col border-l border-white/10"
+                        className="relative w-full max-w-[450px] h-full bg-slate-950/95 dark:bg-[#071510]/95 backdrop-blur-2xl shadow-[0_0_100px_rgba(0,0,0,0.85)] flex flex-col border-l border-[#8b6f47]/30 dark:border-white/10"
                     >
                         {/* Header */}
                         <div className="p-5 border-b border-white/10 relative overflow-hidden group">
@@ -223,24 +235,51 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                     exit={{ opacity: 0, y: -10 }}
                                     className="px-5 pb-3 flex flex-col gap-2 border-b border-white/5"
                                 >
-                                    {/* Type filters */}
-                                    <div className="flex gap-2">
-                                        {[
-                                            { id: 'all', label: 'Tất cả' },
-                                            { id: 'cash', label: 'Tiền mặt' },
-                                            { id: 'debt', label: 'Công nợ' }
-                                        ].map((f) => (
-                                            <button
-                                                key={f.id}
-                                                onClick={() => setFilterType(f.id)}
-                                                className={cn(
-                                                    "px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border",
-                                                    filterType === f.id ? "bg-white/20 border-white/40 text-white" : "bg-transparent border-white/5 text-white/30 hover:text-white/60"
-                                                )}
-                                            >
-                                                {f.label}
-                                            </button>
-                                        ))}
+                                    {/* Filters Row */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex gap-2">
+                                            {[
+                                                { id: 'all', label: 'Tất cả' },
+                                                { id: 'cash', label: 'Tiền mặt' },
+                                                { id: 'debt', label: 'Công nợ' }
+                                            ].map((f) => (
+                                                <button
+                                                    key={f.id}
+                                                    onClick={() => setFilterType(f.id)}
+                                                    className={cn(
+                                                        "px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border",
+                                                        filterType === f.id ? "bg-white/20 border-white/40 text-white" : "bg-transparent border-white/5 text-white/30 hover:text-white/60"
+                                                    )}
+                                                >
+                                                    {f.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                const next = !includeOtherOrders;
+                                                setIncludeOtherOrders(next);
+                                                setOrders([]);
+                                                setPage(1);
+                                                setHasMore(true);
+                                                fetchHistory(1, next);
+                                            }}
+                                            className={cn(
+                                                "px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all border flex items-center gap-1.5",
+                                                includeOtherOrders
+                                                    ? (isPurchaseContext
+                                                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-sm"
+                                                        : "bg-indigo-500/20 border-indigo-500/40 text-indigo-300 shadow-sm")
+                                                    : "bg-transparent border-white/5 text-white/30 hover:text-white/60"
+                                            )}
+                                            title={isPurchaseContext ? "Bật/Tắt hiển thị các đơn bán hàng cho đối tác này" : "Bật/Tắt hiển thị các đơn nhập hàng từ đối tác này"}
+                                        >
+                                            <span className={cn("w-1.5 h-1.5 rounded-full", includeOtherOrders ? (isPurchaseContext ? "bg-emerald-400 animate-pulse" : "bg-indigo-400 animate-pulse") : "bg-white/20")} />
+                                            {isPurchaseContext
+                                                ? (includeOtherOrders ? "Kèm Đơn Bán" : "+ Đơn Bán")
+                                                : (includeOtherOrders ? "Kèm Đơn Nhập" : "+ Đơn Nhập")}
+                                        </button>
                                     </div>
 
                                     {/* Payment Range Mode */}
@@ -348,14 +387,20 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                 <div key={order.id || idx} className="relative">
                                                     <div className={cn(
                                                         "absolute left-[-22px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-slate-950 z-10",
-                                                        order.type === 'DebtIncrease' ? "bg-amber-500" : (order.type === 'Receipt' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : (order.type === 'Payment' ? "bg-rose-500" : "bg-white"))
+                                                        order.type === 'Purchase' ? "bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.9)]" : (order.type === 'DebtIncrease' ? "bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.9)]" : (order.type === 'Receipt' ? "bg-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.9)]" : (order.type === 'Payment' ? "bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.9)]" : "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.9)]")))
                                                     )} />
                                                     <div
                                                         className={cn(
-                                                            "p-3 rounded-xl border transition-all group flex flex-col cursor-pointer relative overflow-hidden",
-                                                            order.type === 'Receipt'
-                                                                ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-500/15 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                                                                : "bg-white/[0.04] border-white/5 hover:border-emerald-400/40 hover:bg-white/[0.08]"
+                                                            "p-3 rounded-2xl border transition-all group flex flex-col cursor-pointer relative overflow-hidden backdrop-blur-sm",
+                                                            order.type === 'Purchase'
+                                                                ? "bg-gradient-to-br from-indigo-950/60 via-slate-900/70 to-indigo-950/40 border-indigo-500/40 hover:border-indigo-400 hover:from-indigo-950/80 shadow-[0_4px_25px_rgba(99,102,241,0.12)]"
+                                                                : (order.type === 'DebtIncrease'
+                                                                    ? "bg-gradient-to-br from-amber-950/50 via-slate-900/70 to-amber-950/30 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_25px_rgba(245,158,11,0.12)]"
+                                                                    : (order.type === 'Receipt'
+                                                                        ? "bg-gradient-to-br from-teal-950/50 via-slate-900/70 to-teal-950/30 border-teal-500/40 hover:border-teal-400 shadow-[0_4px_25px_rgba(20,184,166,0.12)]"
+                                                                        : (order.type === 'Payment'
+                                                                            ? "bg-gradient-to-br from-rose-950/50 via-slate-900/70 to-rose-950/30 border-rose-500/40 hover:border-rose-400 shadow-[0_4px_25px_rgba(244,63,94,0.12)]"
+                                                                            : "bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-emerald-950/20 border-emerald-500/35 hover:border-emerald-400 shadow-[0_4px_25px_rgba(16,185,129,0.08)]")))
                                                         )}
                                                         onClick={(e) => {
                                                             if (!order.is_voucher && onViewOrder) onViewOrder(order);
@@ -364,22 +409,53 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                         <div className="flex items-center justify-between w-full">
                                                             <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                                                 <div className={cn(
-                                                                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-inner",
-                                                                    order.type === 'DebtIncrease' ? "bg-amber-500/20 text-amber-500" : (order.type === 'Receipt' ? "bg-emerald-500/20 text-emerald-500" : (order.type === 'Payment' ? "bg-rose-500/20 text-rose-500" : "bg-white/10 text-white/50"))
+                                                                    "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner border",
+                                                                    order.type === 'Purchase'
+                                                                        ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                                                                        : (order.type === 'DebtIncrease'
+                                                                            ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                                                            : (order.type === 'Receipt'
+                                                                                ? "bg-teal-500/20 text-teal-300 border-teal-500/30"
+                                                                                : (order.type === 'Payment'
+                                                                                    ? "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                                                                                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")))
                                                                 )}>
-                                                                    {order.type === 'DebtIncrease' ? <BookOpen size={14} strokeWidth={2.5} /> : (order.is_voucher ? <ReceiptText size={14} strokeWidth={2.5} /> : (showInfo ? <Eye size={14} strokeWidth={2.5} /> : <EyeOff size={14} strokeWidth={2.5} />))}
+                                                                    {order.type === 'Purchase' ? <Package size={14} strokeWidth={2.5} /> : (order.type === 'DebtIncrease' ? <BookOpen size={14} strokeWidth={2.5} /> : (order.is_voucher ? <ReceiptText size={14} strokeWidth={2.5} /> : (showInfo ? <Eye size={14} strokeWidth={2.5} /> : <EyeOff size={14} strokeWidth={2.5} />)))}
                                                                 </div>
                                                                 <div className="min-w-0">
                                                                     <div className={cn(
                                                                         "text-[12px] font-black uppercase tracking-wide leading-none mb-1 truncate pr-2 flex items-center gap-1",
-                                                                        order.type === 'DebtIncrease' ? "text-amber-400" : (order.type === 'Receipt' ? "text-emerald-400 font-extrabold" : (order.type === 'Payment' ? "text-rose-400" : (order.payment_method === 'Debt' ? "text-blue-400" : "text-white")))
+                                                                        order.type === 'Purchase'
+                                                                            ? "text-indigo-200 font-extrabold"
+                                                                            : (order.type === 'DebtIncrease'
+                                                                                ? "text-amber-200 font-extrabold"
+                                                                                : (order.type === 'Receipt'
+                                                                                    ? "text-teal-200 font-extrabold"
+                                                                                    : (order.type === 'Payment'
+                                                                                        ? "text-rose-200 font-extrabold"
+                                                                                        : "text-emerald-100 font-extrabold")))
                                                                     )}>
                                                                         {order.type === 'Receipt' && <Wallet size={12} className="shrink-0" />}
                                                                         {showInfo ? (order.is_voucher ? (order.type === 'DebtIncrease' ? 'Ghi nợ' : (order.type === 'Receipt' ? `Thu tiền #${order.id.split('_')[1]}` : `Chi tiền #${order.id.split('_')[1]}`)) : (order.display_id ? `#${order.display_id}` : `#${order.id}`)) : '********'}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[9px] font-black text-white/30 tabular-nums uppercase">{showInfo ? order.time : '--:--'}</span>
-                                                                        <div className={cn("text-[7px] font-black px-1 py-0.5 rounded uppercase tracking-tight border", order.payment_method === 'Debt' ? "bg-blue-500/20 text-blue-400 border-blue-500/5" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/5")}>
+                                                                        <span className="text-[9px] font-black text-white/40 tabular-nums uppercase">{showInfo ? order.time : '--:--'}</span>
+                                                                        {order.type === 'Purchase' ? (
+                                                                            <div className={cn(
+                                                                                "text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border",
+                                                                                (order.total_amount || 0) < 0 ? "bg-purple-500/25 text-purple-200 border-purple-400/40" : "bg-indigo-500/25 text-indigo-200 border-indigo-400/40"
+                                                                            )}>
+                                                                                {(order.total_amount || 0) < 0 ? 'TRẢ NCC' : 'NHẬP'}
+                                                                            </div>
+                                                                        ) : (!order.is_voucher && (
+                                                                            <div className={cn(
+                                                                                "text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border",
+                                                                                (order.total_amount || 0) < 0 ? "bg-purple-500/25 text-purple-200 border-purple-400/40" : "bg-emerald-500/25 text-emerald-200 border-emerald-400/40"
+                                                                            )}>
+                                                                                {(order.total_amount || 0) < 0 ? 'TRẢ HÀNG' : 'BÁN'}
+                                                                            </div>
+                                                                        ))}
+                                                                        <div className={cn("text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border", order.payment_method === 'Debt' ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")}>
                                                                             {order.payment_method === 'Debt' ? 'NỢ' : 'T.MẶT'}
                                                                         </div>
                                                                     </div>
@@ -388,7 +464,15 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                             <div className="flex items-center gap-2 pl-2 shrink-0">
                                                                 <div className={cn(
                                                                     "text-[15px] font-black tracking-tighter tabular-nums text-right leading-none drop-shadow-md",
-                                                                    order.type === 'DebtIncrease' ? "text-amber-400" : (order.type === 'Receipt' ? "text-emerald-400" : (order.type === 'Payment' ? "text-rose-400" : (order.payment_method === 'Debt' ? "text-blue-400" : "text-emerald-400")))
+                                                                    order.type === 'Purchase'
+                                                                        ? "text-indigo-300"
+                                                                        : (order.type === 'DebtIncrease'
+                                                                            ? "text-amber-300"
+                                                                            : (order.type === 'Receipt'
+                                                                                ? "text-teal-300"
+                                                                                : (order.type === 'Payment'
+                                                                                    ? "text-rose-300"
+                                                                                    : "text-emerald-300")))
                                                                 )}>
                                                                     {formatNumber(order.total_amount || order.total)}
                                                                 </div>
@@ -401,19 +485,24 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
 
                                                         {/* MINI CHIPS PREVIEW */}
                                                         {showInfo && order.details && order.details.length > 0 && (
-                                                            <div className="border-t border-white/5 mt-2.5 pt-2.5 flex flex-wrap gap-1">
+                                                            <div className="border-t border-white/10 mt-2.5 pt-2 flex flex-wrap gap-1">
                                                                 {order.details.slice(0, 3).map((d, dIdx) => (
                                                                     <div 
                                                                         key={dIdx} 
-                                                                        className="px-1.5 py-0.5 bg-emerald-500/5 border border-emerald-500/10 rounded-md text-[8px] font-black text-emerald-400/90 uppercase flex items-center gap-1 transition-all hover:bg-emerald-500/10"
+                                                                        className={cn(
+                                                                            "px-1.5 py-0.5 border rounded-md text-[8px] font-black uppercase flex items-center gap-1 transition-all",
+                                                                            order.type === 'Purchase'
+                                                                                ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/25"
+                                                                                : "bg-emerald-500/15 border-emerald-500/30 text-emerald-200 hover:bg-emerald-500/25"
+                                                                        )}
                                                                     >
                                                                         <span className="truncate max-w-[70px]">{d.product_name}</span>
-                                                                        <div className="w-px h-1.5 bg-emerald-500/20" />
-                                                                        <span className="text-emerald-300">{formatNumber(d.quantity)}</span>
+                                                                        <div className={cn("w-px h-1.5", order.type === 'Purchase' ? "bg-indigo-500/40" : "bg-emerald-500/40")} />
+                                                                        <span className={cn(order.type === 'Purchase' ? "text-indigo-300" : "text-emerald-300")}>{formatNumber(d.quantity)}</span>
                                                                     </div>
                                                                 ))}
                                                                 {order.details.length > 3 && (
-                                                                    <div className="px-1.5 py-0.5 bg-white/5 border border-white/5 rounded-md text-[8px] font-black text-white/30 uppercase tracking-tighter">
+                                                                    <div className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded-md text-[8px] font-black text-white/40 uppercase tracking-tighter">
                                                                         +{order.details.length - 3} món
                                                                     </div>
                                                                 )}

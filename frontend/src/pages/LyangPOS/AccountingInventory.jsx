@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Landmark,
     FileSpreadsheet,
@@ -19,7 +19,14 @@ import {
     CornerDownRight,
     ArrowUpDown,
     ChevronDown,
-    Check
+    Check,
+    Scale,
+    Layers,
+    Filter,
+    HelpCircle,
+    ArrowLeft,
+    TrendingUp,
+    TrendingDown
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,35 +40,37 @@ import { createPortal } from 'react-dom';
 
 export default function AccountingInventory() {
     const [view, setView] = useState('list'); // 'list' or 'import'
-    const [step, setStep] = useState(1); // 1: Upload, 2: Mapping, 3: Preview
+    const [step, setStep] = useState(1); // 1: Upload, 2: Mapping, 3: Pre-check & Preview
     const [products, setProducts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(false);
     const [showOnlyCoded, setShowOnlyCoded] = useState(false);
 
-    // Pagination
+    // Pagination Dashboard
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
-    // Sorting
+    // Sorting Dashboard
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+    // Import State
     const [fileData, setFileData] = useState([]);
     const [headers, setHeaders] = useState([]);
-    const [mapping, setMapping] = useState({ code: '', stock: '', price: '' });
+    const [uploadedFileName, setUploadedFileName] = useState('');
+    const [mapping, setMapping] = useState({ code: '', name: '', stock: '', price: '', unit: '' });
     const [analyzing, setAnalyzing] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [isUpdateSuccess, setIsUpdateSuccess] = useState(false);
     const [matchedData, setMatchedData] = useState([]);
     const [importSearch, setImportSearch] = useState('');
-    const [importFilter, setImportFilter] = useState('all'); // all, unmatched, matched, discrepancy
+    const [importFilter, setImportFilter] = useState('all'); // all, unmatched, matched, discrepancy, perfect
     const [importShowOnlyCoded, setImportShowOnlyCoded] = useState(false);
     const [importSort, setImportSort] = useState({ key: null, direction: 'asc' });
     const [importPage, setImportPage] = useState(1);
     const [importItemsPerPage, setImportItemsPerPage] = useState(20);
 
+    // Manual Matching Modal
     const [showMatchModal, setShowMatchModal] = useState(false);
-    const [selectedRowIndex, setSelectedRowIndex] = useState(null);
     const [selectedMatchDataId, setSelectedMatchDataId] = useState(null);
 
     // Quick Audit state
@@ -80,16 +89,6 @@ export default function AccountingInventory() {
         return () => { document.body.style.overflow = 'unset'; };
     }, [showMatchModal]);
 
-    // Lock body scroll when modal is open
-    useEffect(() => {
-        if (showMatchModal) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => { document.body.style.overflow = 'unset'; };
-    }, [showMatchModal]);
-
     // Fetch all products for matching
     useEffect(() => {
         fetchProducts();
@@ -97,8 +96,9 @@ export default function AccountingInventory() {
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get('/api/products?limit=10000'); // Get all for matching
-            setProducts(res.data.items || res.data);
+            const res = await axios.get('/api/products?limit=10000');
+            const list = res.data.items || res.data || [];
+            setProducts(list);
         } catch (error) {
             console.error("Error fetching products:", error);
             toast.error("Không thể tải danh mục sản phẩm");
@@ -109,6 +109,7 @@ export default function AccountingInventory() {
         const file = e.target.files[0];
         if (!file) return;
 
+        setUploadedFileName(file.name);
         setAnalyzing(true);
         const reader = new FileReader();
         reader.onload = (evt) => {
@@ -121,30 +122,73 @@ export default function AccountingInventory() {
 
                 if (data.length < 2) {
                     toast.error("File Excel không có dữ liệu!");
+                    setAnalyzing(false);
                     return;
                 }
 
                 const head = data[0].map(h => (h || '').toString().trim());
                 setHeaders(head);
 
-                // Convert back to objects with headers
                 const rows = XLSX.utils.sheet_to_json(ws);
                 setFileData(rows);
 
-                // Smart mapping suggestion
-                const suggest = { code: '', stock: '', price: '' };
+                // Smart mapping suggestion with comprehensive pattern detection
+                const suggest = { code: '', name: '', stock: '', price: '', unit: '' };
                 head.forEach(h => {
-                    const norm = h.toLowerCase();
-                    if (norm.includes('mã') || norm.includes('code') || norm.includes('id')) suggest.code = h;
-                    if (norm.includes('tồn') || norm.includes('kho') || norm.includes('stock')) suggest.stock = h;
-                    if (norm.includes('giá') || norm.includes('đơn giá') || norm.includes('price')) suggest.price = h;
+                    const norm = h.toLowerCase().trim();
+                    // Code
+                    if (!suggest.code && (norm === 'mã hàng' || norm === 'mã sp' || norm === 'mã sản phẩm' || norm === 'mã' || norm === 'code' || norm === 'barcode' || norm === 'sku')) {
+                        suggest.code = h;
+                    }
+                    // Name
+                    if (!suggest.name && (norm === 'tên sản phẩm' || norm === 'tên hàng' || norm === 'tên hàng hóa' || norm === 'tên sp' || norm === 'name' || norm === 'sản phẩm')) {
+                        suggest.name = h;
+                    }
+                    // Stock
+                    if (!suggest.stock && (norm === 'tồn kế toán' || norm === 'tồn sổ sách' || norm === 'tồn kho (đơn vị chính)' || norm === 'tồn kho' || norm === 'tồn' || norm === 'số lượng tồn' || norm === 'sl tồn' || norm === 'stock')) {
+                        suggest.stock = h;
+                    }
+                    // Price
+                    if (!suggest.price && (norm === 'giá kế toán' || norm === 'giá vốn' || norm === 'giá nhập' || norm === 'giá bán' || norm === 'đơn giá' || norm === 'price' || norm === 'cost')) {
+                        suggest.price = h;
+                    }
+                    // Unit
+                    if (!suggest.unit && (norm === 'đơn vị' || norm === 'đvt' || norm === 'đơn vị tính' || norm === 'unit')) {
+                        suggest.unit = h;
+                    }
                 });
-                setMapping(suggest);
 
+                // Fallbacks if not exact match
+                if (!suggest.code) {
+                    head.forEach(h => {
+                        const norm = h.toLowerCase();
+                        if (norm.includes('mã') || norm.includes('code')) suggest.code = h;
+                    });
+                }
+                if (!suggest.name) {
+                    head.forEach(h => {
+                        const norm = h.toLowerCase();
+                        if (norm.includes('tên') || norm.includes('name')) suggest.name = h;
+                    });
+                }
+                if (!suggest.stock) {
+                    head.forEach(h => {
+                        const norm = h.toLowerCase();
+                        if (norm.includes('tồn') || norm.includes('kho') || norm.includes('sl') || norm.includes('stock')) suggest.stock = h;
+                    });
+                }
+                if (!suggest.price) {
+                    head.forEach(h => {
+                        const norm = h.toLowerCase();
+                        if (norm.includes('giá') || norm.includes('price')) suggest.price = h;
+                    });
+                }
+
+                setMapping(suggest);
                 setStep(2);
             } catch (err) {
                 console.error(err);
-                toast.error("Lỗi khi đọc file Excel");
+                toast.error("Lỗi khi đọc file Excel!");
             } finally {
                 setAnalyzing(false);
             }
@@ -153,23 +197,51 @@ export default function AccountingInventory() {
     };
 
     const startMatching = () => {
-        if (!mapping.code || !mapping.stock || !mapping.price) {
-            toast.error("Vui lòng chọn đầy đủ các cột cần thiết!");
+        if (!mapping.code && !mapping.name) {
+            toast.error("Vui lòng chọn ít nhất cột Mã hàng hoặc Tên sản phẩm!");
+            return;
+        }
+        if (!mapping.stock) {
+            toast.error("Vui lòng chọn cột Tồn kho / Số lượng!");
             return;
         }
 
         const result = fileData.map((row, idx) => {
-            const excelCode = (row[mapping.code] || '').toString().trim();
+            const rawCode = mapping.code ? (row[mapping.code] || '').toString().trim() : '';
+            const rawName = mapping.name ? (row[mapping.name] || '').toString().trim() : '';
             const excelStock = parseFloat(row[mapping.stock]) || 0;
-            const excelPrice = parseFloat(row[mapping.price]) || 0;
+            const excelPrice = mapping.price ? (parseFloat(row[mapping.price]) || 0) : 0;
+            const excelUnit = mapping.unit ? (row[mapping.unit] || '').toString().trim() : '';
 
-            const matched = products.find(p => p.code === excelCode || p.name === excelCode);
+            const normCode = rawCode.toLowerCase().normalize('NFC');
+            const normName = rawName.toLowerCase().normalize('NFC');
+
+            // Intelligent 4-stage matching
+            let matched = null;
+            // Stage 1: Exact code match
+            if (normCode) {
+                matched = products.find(p => (p.code || '').trim().toLowerCase().normalize('NFC') === normCode);
+            }
+            // Stage 2: Exact name match
+            if (!matched && normName) {
+                matched = products.find(p => (p.name || '').trim().toLowerCase().normalize('NFC') === normName);
+            }
+            // Stage 3: Match Excel code with product name
+            if (!matched && normCode) {
+                matched = products.find(p => (p.name || '').trim().toLowerCase().normalize('NFC') === normCode);
+            }
+            // Stage 4: Match Excel name with product code
+            if (!matched && normName) {
+                matched = products.find(p => (p.code || '').trim().toLowerCase().normalize('NFC') === normName);
+            }
 
             return {
                 id: idx,
-                excelCode,
+                excelCode: rawCode || rawName || `SP_${idx + 1}`,
+                excelName: rawName || rawCode,
                 excelStock,
                 excelPrice,
+                excelUnit,
                 excelRow: row,
                 matchedProduct: matched || null,
                 status: matched ? 'matched' : 'unmatched'
@@ -179,6 +251,7 @@ export default function AccountingInventory() {
         setMatchedData(result);
         setStep(3);
         setImportPage(1);
+        setIsUpdateSuccess(false);
     };
 
     const handleManualMatch = (product) => {
@@ -191,20 +264,49 @@ export default function AccountingInventory() {
             return item;
         }));
 
+        toast.success(`Đã ghép với "${product.name}"`);
         setShowMatchModal(false);
         setSelectedMatchDataId(null);
     };
 
+    // Pre-check Stats
+    const stats = useMemo(() => {
+        if (view !== 'import' || step !== 3) {
+            return { total: 0, matched: 0, unmatched: 0, discrepancy: 0, perfect: 0, discrepancyQty: 0, discrepancyValue: 0 };
+        }
+        const matchedItems = matchedData.filter(i => i.status === 'matched');
+        const unmatchedItems = matchedData.filter(i => i.status === 'unmatched');
+        const discrepancyItems = matchedItems.filter(i => (i.excelStock !== (i.matchedProduct?.stock || 0)));
+        const perfectItems = matchedItems.filter(i => (i.excelStock === (i.matchedProduct?.stock || 0)));
+
+        const totalExcelValue = matchedItems.reduce((sum, i) => sum + (i.excelPrice * i.excelStock), 0);
+        const totalPosValue = matchedItems.reduce((sum, i) => sum + (i.excelPrice * (i.matchedProduct?.stock || 0)), 0);
+
+        return {
+            total: matchedData.length,
+            matched: matchedItems.length,
+            unmatched: unmatchedItems.length,
+            discrepancy: discrepancyItems.length,
+            perfect: perfectItems.length,
+            discrepancyQty: matchedItems.reduce((sum, i) => sum + (i.excelStock - (i.matchedProduct?.stock || 0)), 0),
+            discrepancyValue: totalExcelValue - totalPosValue
+        };
+    }, [matchedData, view, step]);
+
+    // Import filter & search
     const filteredImportData = useMemo(() => {
         return matchedData.filter(item => {
             const matchesSearch = !importSearch ||
                 item.excelCode.toLowerCase().includes(importSearch.toLowerCase()) ||
-                (item.matchedProduct?.name || '').toLowerCase().includes(importSearch.toLowerCase());
+                item.excelName.toLowerCase().includes(importSearch.toLowerCase()) ||
+                (item.matchedProduct?.name || '').toLowerCase().includes(importSearch.toLowerCase()) ||
+                (item.matchedProduct?.code || '').toLowerCase().includes(importSearch.toLowerCase());
 
             let matchesFilter = true;
             if (importFilter === 'unmatched') matchesFilter = item.status === 'unmatched';
             if (importFilter === 'matched') matchesFilter = item.status === 'matched';
             if (importFilter === 'discrepancy') matchesFilter = item.status === 'matched' && (item.excelStock !== (item.matchedProduct?.stock || 0));
+            if (importFilter === 'perfect') matchesFilter = item.status === 'matched' && (item.excelStock === (item.matchedProduct?.stock || 0));
 
             const matchesCoded = !importShowOnlyCoded || (item.matchedProduct && item.matchedProduct.code);
 
@@ -220,9 +322,13 @@ export default function AccountingInventory() {
                 if (importSort.key === 'status') { aVal = a.status; bVal = b.status; }
                 else if (importSort.key === 'excelCode') { aVal = a.excelCode; bVal = b.excelCode; }
                 else if (importSort.key === 'excelStock') { aVal = a.excelStock; bVal = b.excelStock; }
+                else if (importSort.key === 'posStock') {
+                    aVal = a.matchedProduct ? a.matchedProduct.stock : -999999;
+                    bVal = b.matchedProduct ? b.matchedProduct.stock : -999999;
+                }
                 else if (importSort.key === 'diff') {
-                    aVal = a.matchedProduct ? (a.excelStock - a.matchedProduct.stock) : -999999;
-                    bVal = b.matchedProduct ? (b.excelStock - b.matchedProduct.stock) : -999999;
+                    aVal = a.matchedProduct ? (a.matchedProduct.stock - a.excelStock) : -999999;
+                    bVal = b.matchedProduct ? (b.matchedProduct.stock - b.excelStock) : -999999;
                 }
                 else { aVal = a[importSort.key]; bVal = b[importSort.key]; }
 
@@ -239,6 +345,7 @@ export default function AccountingInventory() {
         return sortedImportData.slice(start, start + importItemsPerPage);
     }, [sortedImportData, importPage, importItemsPerPage]);
 
+    // Update to Database
     const handleUpdate = async () => {
         const updateList = matchedData
             .filter(item => item.matchedProduct)
@@ -249,24 +356,29 @@ export default function AccountingInventory() {
             }));
 
         if (updateList.length === 0) {
-            toast.error("Chưa có sản phẩm nào được khớp để cập nhật!");
+            toast.error("Chưa có sản phẩm nào được khớp mã để cập nhật!");
             return;
         }
 
         setUpdating(true);
         try {
             const res = await axios.post('/api/products/bulk-accounting-update', updateList);
-            toast.success(res.data.message);
+            toast.success(res.data.message || `Đã cập nhật thành công ${updateList.length} mặt hàng!`);
             await fetchProducts();
             setIsUpdateSuccess(true);
+            queryClient.invalidateQueries(["products"]);
+            const syncChannel = new BroadcastChannel("pos_data_sync");
+            syncChannel.postMessage({ type: "PRODUCT_UPDATED" });
+            syncChannel.close();
         } catch (error) {
             console.error(error);
-            toast.error("Lỗi khi cập nhật vào hệ thống");
+            toast.error("Lỗi khi cập nhật dữ liệu vào hệ thống");
         } finally {
             setUpdating(false);
         }
     };
 
+    // Export Excel Reports
     const handleExportImportData = async () => {
         if (sortedImportData.length === 0) {
             toast.error("Không có dữ liệu để xuất!");
@@ -274,20 +386,24 @@ export default function AccountingInventory() {
         }
 
         const exportData = sortedImportData.map(item => {
-            const diff = item.matchedProduct ? (item.excelStock - item.matchedProduct.stock) : 0;
-            const diffValue = diff * item.excelPrice;
+            const posStock = item.matchedProduct ? item.matchedProduct.stock : 0;
+            const diff = item.matchedProduct ? (posStock - item.excelStock) : 0;
+            const diffValue = diff * (item.excelPrice || (item.matchedProduct?.cost_price || 0));
 
             return {
                 "Mã hàng (Excel)": item.excelCode,
-                "Tên sản phẩm (Hệ thống)": item.matchedProduct?.name || "Chưa khớp",
-                "Mã hàng (Hệ thống)": item.matchedProduct?.code || "---",
-                "Đơn vị tính": item.matchedProduct?.unit || "---",
-                "Số lượng Excel": item.excelStock,
-                "Số lượng POS": item.matchedProduct?.stock ?? "---",
-                "Chênh lệch": diff,
-                "Giá trị chênh lệch": diffValue,
-                "Đơn giá (Kế toán)": item.excelPrice,
-                "Trạng thái": item.status === 'matched' ? 'Đã khớp' : 'Chưa khớp'
+                "Tên hàng (Excel)": item.excelName,
+                "Tên sản phẩm (POS)": item.matchedProduct?.name || "Chưa khớp",
+                "Mã hàng (POS)": item.matchedProduct?.code || "---",
+                "Đơn vị tính": item.matchedProduct?.unit || item.excelUnit || "---",
+                "Tồn thực tế (Kho POS)": item.matchedProduct ? item.matchedProduct.stock : "---",
+                "Tồn sổ sách (Kho Kế toán)": item.excelStock,
+                "Chênh lệch (Thực tế - Sổ sách)": item.matchedProduct ? diff : "---",
+                "Đơn giá kế toán": item.excelPrice,
+                "Giá trị chênh lệch": item.matchedProduct ? diffValue : "---",
+                "Trạng thái đối soát": item.status === 'matched'
+                    ? (diff === 0 ? 'Khớp hoàn toàn' : (diff > 0 ? 'Lệch thừa thực tế' : 'Lệch thiếu thực tế'))
+                    : 'Chưa khớp mã trong POS'
             };
         });
 
@@ -295,9 +411,8 @@ export default function AccountingInventory() {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Doi_Soat_Kho");
 
-        // Auto-size columns
         const colWidths = Object.keys(exportData[0]).map(key => ({
-            wch: Math.max(key.length, ...exportData.map(row => String(row[key]).length)) + 2
+            wch: Math.max(key.length, ...exportData.map(row => String(row[key] || '').length)) + 2
         }));
         ws['!cols'] = colWidths;
 
@@ -307,7 +422,7 @@ export default function AccountingInventory() {
         try {
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
             await saveOrOpenFile(wbout, filename, true);
-            toast.success("Đã xuất file báo cáo chênh lệch!");
+            toast.success("Đã xuất file báo cáo đối soát chênh lệch!");
         } catch (err) {
             console.error("Export Error:", err);
             toast.error("Lỗi khi xuất file");
@@ -321,59 +436,45 @@ export default function AccountingInventory() {
         }
 
         const exportData = sortedProducts.map(p => {
-            const diff = (p.accounting_stock || 0) - (p.stock || 0);
+            const diff = (p.stock || 0) - (p.accounting_stock || 0);
             const totalValue = (p.accounting_price || 0) * (p.accounting_stock || 0);
 
             return {
                 "Mã hàng": p.code || "---",
                 "Tên sản phẩm": p.name,
                 "Đơn vị tính": p.unit || "---",
-                "Tồn Kế toán": p.accounting_stock || 0,
-                "Tồn Thực tế (POS)": p.stock || 0,
-                "Chênh lệch": diff,
+                "Tồn thực tế (POS)": p.stock || 0,
+                "Tồn sổ sách (Kế toán)": p.accounting_stock || 0,
+                "Chênh lệch (Thực tế - Sổ sách)": diff,
                 "Đơn giá (Kế toán)": p.accounting_price || 0,
-                "Tổng giá trị (Kế toán)": totalValue
+                "Tổng giá trị sổ sách": totalValue,
+                "Trạng thái": diff === 0 ? 'Cân bằng' : (diff > 0 ? 'Thừa thực tế' : 'Thiếu thực tế')
             };
         });
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Ton_Kho_Ke_Toan");
+        XLSX.utils.book_append_sheet(wb, ws, "So_Ke_Toan_Kho");
 
-        // Auto-size columns
         const colWidths = Object.keys(exportData[0]).map(key => ({
-            wch: Math.max(key.length, ...exportData.map(row => String(row[key]).length)) + 2
+            wch: Math.max(key.length, ...exportData.map(row => String(row[key] || '').length)) + 2
         }));
         ws['!cols'] = colWidths;
 
-        const filename = `Bao_Cao_Kho_Ke_Toan_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`;
+        const filename = `So_Ke_Toan_Kho_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`;
         const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
         try {
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
             await saveOrOpenFile(wbout, filename, true);
-            toast.success("Đã xuất file báo cáo kho kế toán!");
+            toast.success("Đã xuất file sổ kế toán kho!");
         } catch (err) {
             console.error("Export Error:", err);
             toast.error("Lỗi khi xuất file");
         }
     };
 
-    const stats = useMemo(() => {
-        if (view !== 'import') return { total: 0, matched: 0, unmatched: 0, discrepancyQty: 0, discrepancyValue: 0 };
-        const matchedItems = matchedData.filter(i => i.status === 'matched');
-        const totalExcelValue = matchedItems.reduce((sum, i) => sum + (i.excelPrice * i.excelStock), 0);
-        const totalPosValue = matchedItems.reduce((sum, i) => sum + (i.excelPrice * (i.matchedProduct?.stock || 0)), 0);
-
-        return {
-            total: matchedData.length,
-            matched: matchedItems.length,
-            unmatched: matchedData.filter(i => i.status === 'unmatched').length,
-            discrepancyQty: matchedItems.reduce((sum, i) => sum + (i.excelStock - (i.matchedProduct?.stock || 0)), 0),
-            discrepancyValue: totalExcelValue - totalPosValue
-        };
-    }, [matchedData, view]);
-
+    // Dashboard Filtering & Sorting
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
             const matchesSearch = !searchQuery ||
@@ -398,18 +499,13 @@ export default function AccountingInventory() {
                 let aValue = a[sortConfig.key];
                 let bValue = b[sortConfig.key];
 
-                // Handle diff calculation for sorting
                 if (sortConfig.key === 'diff') {
-                    aValue = (a.accounting_stock || 0) - (a.stock || 0);
-                    bValue = (b.accounting_stock || 0) - (b.stock || 0);
+                    aValue = (a.stock || 0) - (a.accounting_stock || 0);
+                    bValue = (b.stock || 0) - (b.accounting_stock || 0);
                 }
 
-                if (aValue < bValue) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aValue > bValue) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
             });
         }
@@ -430,7 +526,7 @@ export default function AccountingInventory() {
     };
 
     const SortIcon = ({ columnKey }) => {
-        if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="ml-1 opacity-20" />;
+        if (sortConfig.key !== columnKey) return <ArrowUpDown size={12} className="ml-1 opacity-30" />;
         return sortConfig.direction === 'asc'
             ? <ChevronDown size={12} className="ml-1 rotate-180 text-emerald-500" />
             : <ChevronDown size={12} className="ml-1 text-emerald-500" />;
@@ -452,7 +548,6 @@ export default function AccountingInventory() {
         }
     };
 
-    // Reset page when filters change
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, showDiscrepancyOnly, showOnlyCoded]);
@@ -476,85 +571,89 @@ export default function AccountingInventory() {
 
     return (
         <div className="pt-2 px-4 pb-20 w-full transition-colors">
-            <div className="max-w-[1800px] mx-auto space-y-10 pb-32">
-                {/* Header */}
+            <div className="max-w-[1800px] mx-auto space-y-8 pb-32">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-4 md:px-0">
-                    <div className="flex items-center gap-6 relative z-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-4 px-4 md:px-0">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-14 h-14 bg-emerald-600/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-inner">
+                            <Scale size={30} />
+                        </div>
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
-                                <Landmark className="text-slate-900 dark:text-white" size={32} />
-                                Kho Kế Toán
+                            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                                Sổ Kế Toán & Đối Soát Kho
                             </h1>
-                            <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-1.5">
                                 <span className={cn(
-                                    "px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest",
-                                    view === 'list' ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
+                                    "px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest",
+                                    view === 'list' ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
                                 )}>
-                                    {view === 'list' ? 'Dashboard' : 'Import Mode'}
+                                    {view === 'list' ? 'Sổ Sách Hiện Tại' : 'Chế Độ Đối Soát Excel'}
                                 </span>
                                 <p className="text-xs font-bold text-slate-400">
-                                    {view === 'list' ? 'Giám sát chênh lệch tồn kho thời gian thực' : 'Quy trình đối soát dữ liệu từ tệp Excel'}
+                                    {view === 'list' ? 'So sánh chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán)' : 'Quy trình kiểm tra mã khớp & đối soát tồn kho từ file Excel'}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 relative z-10">
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-3 relative z-10">
                         {view === 'list' && (
-                            <div className="flex items-center gap-3">
+                            <>
                                 <motion.button
-                                    whileHover={{ scale: 1.05, y: -2 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ scale: 1.03, y: -2 }}
+                                    whileTap={{ scale: 0.97 }}
                                     onClick={handleExportDashboardData}
-                                    className="px-6 py-4 bg-white text-slate-700 border-2 border-slate-100 rounded-2xl font-black flex items-center gap-3 shadow-lg hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                                    className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider"
                                 >
-                                    <FileSpreadsheet size={20} />
-                                    <span className="tracking-wide uppercase text-xs">Xuất báo cáo</span>
+                                    <FileSpreadsheet size={18} className="text-emerald-600" />
+                                    <span>Xuất Sổ Excel</span>
                                 </motion.button>
 
                                 <motion.button
-                                    whileHover={{ scale: 1.05, y: -2 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ scale: 1.03, y: -2 }}
+                                    whileTap={{ scale: 0.97 }}
                                     onClick={() => { setView('import'); setStep(1); }}
-                                    className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-3 shadow-2xl hover:bg-black transition-all group"
+                                    className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl shadow-emerald-600/20 transition-all text-xs uppercase tracking-wider group"
                                 >
-                                    <Upload size={20} className="group-hover:translate-y-[-2px] transition-transform" />
-                                    <span className="tracking-wide uppercase text-sm">Đối soát Excel mới</span>
+                                    <Upload size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+                                    <span>Đối Soát Excel Mới</span>
                                 </motion.button>
-                            </div>
+                            </>
                         )}
+
                         {view === 'import' && (
                             <>
                                 {step === 3 && (
-                                    <div className="flex items-center gap-3">
+                                    <>
                                         <motion.button
-                                            whileHover={{ scale: 1.05, y: -2 }}
-                                            whileTap={{ scale: 0.95 }}
+                                            whileHover={{ scale: 1.03, y: -2 }}
+                                            whileTap={{ scale: 0.97 }}
                                             onClick={handleExportImportData}
-                                            className="px-6 py-4 bg-white text-slate-700 border-2 border-slate-100 rounded-2xl font-black flex items-center gap-3 shadow-lg hover:border-emerald-500 hover:text-emerald-600 transition-all"
+                                            className="px-5 py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-2 border-slate-200 dark:border-slate-700 rounded-2xl font-black flex items-center gap-2.5 shadow-sm hover:border-emerald-500 hover:text-emerald-600 transition-all text-xs uppercase tracking-wider"
                                         >
-                                            <FileSpreadsheet size={20} />
-                                            <span className="tracking-wide uppercase text-xs">Xuất báo cáo</span>
+                                            <FileSpreadsheet size={18} className="text-emerald-600" />
+                                            <span>Xuất Báo Cáo Đối Soát</span>
                                         </motion.button>
 
                                         <motion.button
-                                            whileHover={{ scale: 1.05, y: -2 }}
-                                            whileTap={{ scale: 0.95 }}
+                                            whileHover={{ scale: 1.03, y: -2 }}
+                                            whileTap={{ scale: 0.97 }}
                                             onClick={handleUpdate}
                                             disabled={updating || isUpdateSuccess}
                                             className={cn(
-                                                "px-8 py-4 text-white rounded-2xl font-black flex items-center gap-3 shadow-2xl transition-all disabled:opacity-50",
-                                                isUpdateSuccess ? "bg-slate-400" : "bg-emerald-600 shadow-emerald-500/20 hover:bg-emerald-700"
+                                                "px-6 py-3.5 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider",
+                                                isUpdateSuccess ? "bg-slate-500" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
                                             )}
                                         >
-                                            {updating ? <RefreshCw className="animate-spin" size={20} /> : (isUpdateSuccess ? <CheckCircle2 size={20} /> : <Save size={20} />)}
-                                            <span className="tracking-wide uppercase text-sm">
-                                                {isUpdateSuccess ? 'Đã cập nhật xong' : `Cập nhật ${stats.matched} mặt hàng`}
+                                            {updating ? <RefreshCw className="animate-spin" size={18} /> : (isUpdateSuccess ? <CheckCircle2 size={18} /> : <Save size={18} />)}
+                                            <span>
+                                                {isUpdateSuccess ? 'Đã lưu sổ sách' : `Cập nhật ${stats.matched} mặt hàng`}
                                             </span>
                                         </motion.button>
-                                    </div>
+                                    </>
                                 )}
+
                                 <button
                                     onClick={() => {
                                         if (isUpdateSuccess) {
@@ -568,806 +667,675 @@ export default function AccountingInventory() {
                                             setView('list');
                                         }
                                     }}
-                                    className="px-6 py-4 bg-transparent text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all uppercase text-xs tracking-widest"
+                                    className="px-5 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl font-black hover:bg-slate-300 dark:hover:bg-slate-700 transition-all text-xs uppercase tracking-wider flex items-center gap-2"
                                 >
-                                    {isUpdateSuccess ? 'Hoàn tất & Đóng' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}
+                                    <ArrowLeft size={16} />
+                                    {isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}
                                 </button>
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Main Content */}
-                <div className="grid grid-cols-1 gap-6">
-                    {/* View 1: Dashboard / List View */}
-                    {view === 'list' && (
-                        <div className="space-y-6">
-                            {/* Dashboard Stats */}
-                            {/* Dashboard Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-transparent backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-900/5 group hover:y-[-4px] transition-all duration-300">
-                                    <div className="flex items-start justify-between">
-                                        <div className="w-14 h-14 bg-transparent rounded-2xl flex items-center justify-center text-slate-600 shadow-inner group-hover:bg-slate-900 group-hover:text-white transition-colors duration-500">
-                                            <Package size={28} />
-                                        </div>
-                                        <p className="text-4xl font-black text-slate-900 tabular-nums tracking-tighter">{globalStats.total}</p>
+                {/* VIEW 1: DASHBOARD / SỔ SÁCH HIỆN TẠI */}
+                {view === 'list' && (
+                    <div className="space-y-6">
+                        {/* KPI Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-6 rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 group hover:-translate-y-1 transition-all">
+                                <div className="flex items-start justify-between">
+                                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                        <Package size={24} />
                                     </div>
-                                    <div className="mt-4">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Tổng danh mục</p>
-                                        <div className="h-1.5 w-full bg-transparent rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-slate-400 w-full" />
-                                        </div>
-                                    </div>
+                                    <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{globalStats.total}</p>
                                 </div>
-
-                                <div className="bg-transparent backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-xl shadow-emerald-900/5 group hover:y-[-4px] transition-all duration-300">
-                                    <div className="flex items-start justify-between">
-                                        <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-500">
-                                            <Database size={28} />
-                                        </div>
-                                        <p className="text-4xl font-black text-emerald-600 tabular-nums tracking-tighter">{globalStats.withStock}</p>
-                                    </div>
-                                    <div className="mt-4">
-                                        <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-[0.2em]">Mặt hàng có tồn</p>
-                                        <div className="h-1.5 w-full bg-emerald-100 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-emerald-500" style={{ width: `${(globalStats.withStock / globalStats.total) * 100}%` }} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={cn(
-                                    "p-6 rounded-[2rem] border backdrop-blur-md shadow-xl transition-all duration-500 group hover:y-[-4px]",
-                                    globalStats.discrepancy > 0 ? "bg-rose-50/50 border-rose-100 shadow-rose-900/5" : "bg-transparent border-white shadow-slate-900/5"
-                                )}>
-                                    <div className="flex items-start justify-between">
-                                        <div className={cn(
-                                            "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-colors duration-500",
-                                            globalStats.discrepancy > 0 ? "bg-rose-100 text-rose-600 group-hover:bg-rose-600 group-hover:text-white" : "bg-transparent text-slate-400"
-                                        )}>
-                                            <AlertTriangle size={28} />
-                                        </div>
-                                        <p className={cn("text-4xl font-black tabular-nums tracking-tighter", globalStats.discrepancy > 0 ? "text-rose-600" : "text-slate-900")}>
-                                            {globalStats.discrepancy}
-                                        </p>
-                                    </div>
-                                    <div className="mt-4">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Lệch Tồn KT/POS</p>
-                                        <div className="h-1.5 w-full bg-rose-100 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-rose-500" style={{ width: `${(globalStats.discrepancy / globalStats.total) * 100}%` }} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-slate-900 p-6 rounded-[2rem] shadow-2xl shadow-slate-900/40 relative overflow-hidden group hover:y-[-4px] transition-all">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16" />
-                                    <div className="flex items-start justify-between relative z-10">
-                                        <div className="w-14 h-14 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 shadow-inner group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-500">
-                                            <Calculator size={28} />
-                                        </div>
-                                        <p className="text-3xl font-black text-white tabular-nums tracking-tighter">{globalStats.totalValue.toLocaleString()}đ</p>
-                                    </div>
-                                    <div className="mt-4 relative z-10">
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Tổng trị giá kho KT</p>
-                                        <div className="h-1.5 w-full bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                            <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '100%' }} />
-                                        </div>
+                                <div className="mt-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Danh Mục</p>
+                                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-slate-400 w-full" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Filters & Actions */}
-                            {/* Filters & Actions Bar */}
-                            <div className="bg-transparent backdrop-blur-xl p-5 rounded-[2.5rem] border border-white shadow-xl shadow-slate-900/5 flex flex-col xl:flex-row items-center gap-6">
-                                <div className="relative flex-1 group w-full">
-                                    <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                                    <input
-                                        type="text"
-                                        placeholder="Khám phá danh mục, mã hàng hoặc tên sản phẩm..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-14 pr-6 py-4 bg-transparent/50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-transparent rounded-2xl outline-none font-bold text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-inner"
-                                    />
+                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/40 shadow-lg shadow-emerald-900/5 group hover:-translate-y-1 transition-all">
+                                <div className="flex items-start justify-between">
+                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                        <Database size={24} />
+                                    </div>
+                                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{globalStats.withStock}</p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-4 shrink-0">
-                                    <div
-                                        className={cn(
-                                            "flex items-center gap-3 px-6 py-4 rounded-2xl cursor-pointer select-none border-2 transition-all group",
-                                            showDiscrepancyOnly ? "bg-rose-50 border-rose-200 text-rose-700" : "bg-white border-transparent hover:border-slate-100 text-slate-600"
-                                        )}
-                                        onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
-                                    >
-                                        <div className={cn("w-5 h-5 rounded-md flex items-center justify-center transition-all", showDiscrepancyOnly ? "bg-rose-500" : "bg-transparent group-hover:bg-slate-200")}>
-                                            {showDiscrepancyOnly && <CheckCircle2 size={14} className="text-white" />}
-                                        </div>
-                                        <span className="text-xs font-black uppercase tracking-widest">Lệch tồn kho</span>
+                                <div className="mt-4">
+                                    <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest">Mặt Hàng Có Tồn Kho</p>
+                                    <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-950 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
                                     </div>
-
-                                    <div
-                                        className={cn(
-                                            "flex items-center gap-3 px-6 py-4 rounded-2xl cursor-pointer select-none border-2 transition-all group",
-                                            showOnlyCoded ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-white border-transparent hover:border-slate-100 text-slate-600"
-                                        )}
-                                        onClick={() => setShowOnlyCoded(!showOnlyCoded)}
-                                    >
-                                        <div className={cn("w-5 h-5 rounded-md flex items-center justify-center transition-all", showOnlyCoded ? "bg-emerald-500" : "bg-transparent group-hover:bg-slate-200")}>
-                                            {showOnlyCoded && <CheckCircle2 size={14} className="text-white" />}
-                                        </div>
-                                        <span className="text-xs font-black uppercase tracking-widest">Có mã hàng</span>
-                                    </div>
-
-                                    <div className="w-px h-10 bg-transparent mx-2 hidden xl:block" />
-
-                                    <button
-                                        onClick={() => fetchProducts()}
-                                        className="p-4 bg-white border border-slate-100 text-slate-400 rounded-2xl hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg transition-all active:scale-95"
-                                        title="Làm mới dữ liệu"
-                                    >
-                                        <RefreshCw size={22} />
-                                    </button>
                                 </div>
                             </div>
 
-                            {/* List Table */}
-                            <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl shadow-slate-900/10 overflow-hidden min-h-[600px] flex flex-col">
-                                <div className="overflow-x-auto overflow-y-visible">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead className="bg-slate-900 text-white">
-                                            <tr>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] w-40 cursor-pointer hover:bg-slate-800 transition-colors first:rounded-tl-[3rem]"
-                                                    onClick={() => handleSort('code')}
-                                                >
-                                                    <div className="flex items-center gap-3">Mã hàng <SortIcon columnKey="code" /></div>
-                                                </th>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] cursor-pointer hover:bg-slate-800 transition-colors"
-                                                    onClick={() => handleSort('name')}
-                                                >
-                                                    <div className="flex items-center gap-3">Tên sản phẩm <SortIcon columnKey="name" /></div>
-                                                </th>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                    onClick={() => handleSort('stock')}
-                                                >
-                                                    <div className="flex items-center justify-end gap-3 text-emerald-300">Kho POS <SortIcon columnKey="stock" /></div>
-                                                </th>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                    onClick={() => handleSort('accounting_stock')}
-                                                >
-                                                    <div className="flex items-center justify-end gap-3 text-blue-300">Kho KT <SortIcon columnKey="accounting_stock" /></div>
-                                                </th>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                    onClick={() => handleSort('diff')}
-                                                >
-                                                    <div className="flex items-center justify-end gap-3 text-rose-300">Lệch <SortIcon columnKey="diff" /></div>
-                                                </th>
-                                                <th
-                                                    className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                    onClick={() => handleSort('accounting_price')}
-                                                >
-                                                    <div className="flex items-center justify-end gap-3 text-amber-300">Đơn giá KT <SortIcon columnKey="accounting_price" /></div>
-                                                </th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] last:rounded-tr-[3rem]">Gợi ý xử lý</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {paginatedProducts.map((p) => {
-                                                const diff = (p.accounting_stock || 0) - (p.stock || 0);
-                                                const suggestType = (p.stock > (p.accounting_stock || 0)) ? 'import' : (p.stock < (p.accounting_stock || 0)) ? 'export' : null;
-
-                                                return (
-                                                    <motion.tr
-                                                        layout
-                                                        key={p.id}
-                                                        className="group hover:bg-emerald-500/[0.02] transition-colors"
-                                                    >
-                                                        <td className="px-8 py-6 border-r border-slate-50">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-[11px] font-black text-slate-500 bg-transparent px-3 py-1.5 rounded-xl uppercase tracking-wider group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
-                                                                    {p.code || 'CHƯA CẬP NHẬT'}
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-6 border-r border-slate-50">
-                                                            <div className="max-w-xs">
-                                                                <h4 className="text-sm font-black text-slate-900 leading-tight uppercase group-hover:text-emerald-600 transition-colors">{p.name}</h4>
-                                                                <div className="flex items-center gap-2 mt-1">
-                                                                    <Tag size={12} className="text-slate-300" />
-                                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.unit || 'Đơn vị'}</span>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-6 text-right font-black text-slate-500 tabular-nums border-r border-slate-50">
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-base group-hover:scale-110 transition-transform origin-right">{p.stock}</span>
-                                                                <span className="text-[9px] text-slate-300 uppercase font-black">Thực tế</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-6 text-right font-black text-blue-600 bg-blue-500/[0.02] tabular-nums border-r border-slate-50">
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-base group-hover:scale-110 transition-transform origin-right">{p.accounting_stock || 0}</span>
-                                                                <span className="text-[9px] text-blue-300 uppercase font-black">Sổ sách</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className={cn(
-                                                            "px-8 py-6 text-right font-black tabular-nums border-r border-slate-50",
-                                                            diff > 0 ? "text-emerald-600 bg-emerald-50/20" : diff < 0 ? "text-rose-600 bg-rose-50/20" : "text-slate-200"
-                                                        )}>
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-lg tracking-tighter">
-                                                                    {diff > 0 ? '+' : ''}{diff !== 0 ? diff : '0'}
-                                                                </span>
-                                                                {diff !== 0 && (
-                                                                    <span className="text-[9px] uppercase font-black opacity-60"> lệch {Math.abs(diff)}</span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-6 text-right font-black text-slate-900 tabular-nums border-r border-slate-50">
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-base">{(p.accounting_price || 0).toLocaleString()} <span className="text-[10px] font-medium text-slate-400">đ</span></span>
-                                                                <p className="text-[9px] text-slate-300 uppercase font-black">Giá nhập KT</p>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-6 relative">
-                                                            {suggestType === 'import' && (
-                                                                <motion.div
-                                                                    initial={{ x: 10, opacity: 0 }}
-                                                                    animate={{ x: 0, opacity: 1 }}
-                                                                    className="flex items-center gap-3 text-emerald-600 bg-emerald-50 px-5 py-2.5 rounded-2xl w-fit shadow-sm border border-emerald-100 group-hover:shadow-emerald-200 transition-all duration-300"
-                                                                >
-                                                                    <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center text-white">
-                                                                        <RefreshCw size={12} className="animate-spin-slow" />
-                                                                    </div>
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-0.5">Thực tế nhiều hơn</span>
-                                                                        <span className="text-[10px] font-black text-emerald-800 uppercase leading-none">Nhập hóa đơn thêm</span>
-                                                                    </div>
-                                                                </motion.div>
-                                                            )}
-                                                            {suggestType === 'export' && (
-                                                                <motion.div
-                                                                    initial={{ x: 10, opacity: 0 }}
-                                                                    animate={{ x: 0, opacity: 1 }}
-                                                                    className="flex items-center gap-3 text-rose-600 bg-rose-50 px-5 py-2.5 rounded-2xl w-fit shadow-sm border border-rose-100 group-hover:shadow-rose-200 transition-all duration-300"
-                                                                >
-                                                                    <div className="w-6 h-6 bg-rose-500 rounded-lg flex items-center justify-center text-white">
-                                                                        <ArrowRight size={12} />
-                                                                    </div>
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-0.5">Sổ sách nhiều hơn</span>
-                                                                        <span className="text-[10px] font-black text-rose-800 uppercase leading-none">Xuất hóa đơn ra</span>
-                                                                    </div>
-                                                                </motion.div>
-                                                            )}
-                                                            {!suggestType && (
-                                                                <div className="flex items-center gap-3 text-slate-300 px-5 py-2.5">
-                                                                    <CheckCircle2 size={16} />
-                                                                    <span className="text-[10px] font-black uppercase tracking-widest">Tuyệt vời - Cân đối</span>
-                                                                </div>
-                                                            )}
-                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all">
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                                        setAuditProduct(p);
-                                                                        setAuditCoords({
-                                                                            top: rect.top,
-                                                                            bottom: rect.bottom,
-                                                                            left: rect.left,
-                                                                            right: rect.right
-                                                                        });
-                                                                        setIsAuditOpen(true);
-                                                                    }}
-                                                                    className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg hover:bg-emerald-700 transition-all scale-75 group-hover:scale-100"
-                                                                    title="Kiểm kho nhanh"
-                                                                >
-                                                                    <RefreshCw size={16} />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </motion.tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {paginatedProducts.length === 0 && (
-                                    <div className="flex-1 flex flex-col items-center justify-center py-32 bg-transparent/50 backdrop-blur-sm">
-                                        <div className="w-20 h-20 bg-slate-200 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6 shadow-inner animate-pulse">
-                                            <Search size={40} />
-                                        </div>
-                                        <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">Không tìm thấy dữ liệu</h3>
-                                        <p className="text-slate-400 font-medium mt-2">Vui lòng thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
+                            <div className={cn(
+                                "p-6 rounded-[2rem] border backdrop-blur-md shadow-lg transition-all group hover:-translate-y-1",
+                                globalStats.discrepancy > 0
+                                    ? "bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 shadow-rose-900/5"
+                                    : "bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800"
+                            )}>
+                                <div className="flex items-start justify-between">
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
+                                        globalStats.discrepancy > 0 ? "bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                    )}>
+                                        <AlertTriangle size={24} />
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Pagination Section */}
-                            <div className="flex flex-col md:flex-row items-center justify-between bg-transparent backdrop-blur-xl p-8 rounded-[3rem] border border-white shadow-2xl shadow-slate-900/5 gap-6">
-                                <div className="flex items-center gap-6">
-                                    <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-lg">
-                                        <p className="text-xs font-black uppercase tracking-widest">
-                                            Trang <span className="text-emerald-400">{currentPage}</span> / {Math.ceil(filteredProducts.length / itemsPerPage)}
-                                        </p>
-                                    </div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
-                                        Hiển thị {Math.min(filteredProducts.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredProducts.length, currentPage * itemsPerPage)} trong {filteredProducts.length} mặt hàng
+                                    <p className={cn("text-3xl font-black tabular-nums", globalStats.discrepancy > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                                        {globalStats.discrepancy}
                                     </p>
                                 </div>
-
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center bg-transparent p-1.5 rounded-2xl mr-2">
-                                        {[20, 50, 100].map(val => (
-                                            <button
-                                                key={val}
-                                                onClick={() => { setItemsPerPage(val); setCurrentPage(1); }}
-                                                className={cn(
-                                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                    itemsPerPage === val ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                                                )}
-                                            >
-                                                {val}
-                                            </button>
-                                        ))}
+                                <div className="mt-4">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt Hàng Lệch Tồn (Thực tế ≠ Sổ sách)</p>
+                                    <div className="h-1.5 w-full bg-rose-100 dark:bg-rose-950 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
                                     </div>
+                                </div>
+                            </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            disabled={currentPage === 1}
-                                            onClick={() => setCurrentPage(currentPage - 1)}
-                                            className="w-12 h-12 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                        >
-                                            <ArrowRight size={20} className="rotate-180" />
-                                        </button>
-
-                                        <div className="flex items-center gap-2">
-                                            {[...Array(Math.min(5, Math.ceil(filteredProducts.length / itemsPerPage)))].map((_, i) => {
-                                                const pageNum = i + 1;
-                                                return (
-                                                    <button
-                                                        key={pageNum}
-                                                        onClick={() => setCurrentPage(pageNum)}
-                                                        className={cn(
-                                                            "w-12 h-12 rounded-2xl font-black text-sm transition-all border-2",
-                                                            currentPage === pageNum ? "bg-emerald-600 border-emerald-500 text-white shadow-xl shadow-emerald-500/20" : "bg-white border-transparent text-slate-400 hover:border-slate-100"
-                                                        )}
-                                                    >
-                                                        {pageNum}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        <button
-                                            disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
-                                            onClick={() => setCurrentPage(currentPage + 1)}
-                                            className="w-12 h-12 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-emerald-600 hover:border-emerald-100 hover:shadow-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                        >
-                                            <ArrowRight size={20} />
-                                        </button>
+                            <div className="bg-slate-900 dark:bg-slate-950 p-6 rounded-[2rem] shadow-xl shadow-slate-900/40 relative overflow-hidden group hover:-translate-y-1 transition-all">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16" />
+                                <div className="flex items-start justify-between relative z-10">
+                                    <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400">
+                                        <Calculator size={24} />
+                                    </div>
+                                    <p className="text-2xl font-black text-white tabular-nums tracking-tight">{globalStats.totalValue.toLocaleString()}đ</p>
+                                </div>
+                                <div className="mt-4 relative z-10">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Trị Giá Kho Sổ Sách</p>
+                                    <div className="h-1.5 w-full bg-slate-800 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '100%' }} />
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {view === 'import' && (
-                        <div className="space-y-6">
-                            {/* Step 1: Upload */}
-                            {step === 1 && (
-                                <div className="bg-transparent p-12 rounded-[2.5rem] border border-slate-200 shadow-sm text-center flex flex-col items-center max-w-2xl mx-auto mt-10">
-                                    <div className="w-24 h-24 bg-emerald-50 rounded-[2rem] flex items-center justify-center text-emerald-600 mb-8">
-                                        <FileSpreadsheet size={48} />
+                        {/* Search & Filter bar */}
+                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col xl:flex-row items-center gap-4">
+                            <div className="relative flex-1 group w-full">
+                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm theo mã hàng hoặc tên sản phẩm..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-100/70 dark:bg-slate-800/70 border border-transparent focus:border-emerald-500/30 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 transition-all placeholder:text-slate-400"
+                                />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 shrink-0">
+                                <button
+                                    onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
+                                    className={cn(
+                                        "flex items-center gap-2.5 px-4 py-3 rounded-xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        showDiscrepancyOnly
+                                            ? "bg-rose-500 border-rose-600 text-white shadow-md shadow-rose-500/20"
+                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300"
+                                    )}
+                                >
+                                    <AlertTriangle size={15} />
+                                    <span>Chỉ xem lệch tồn</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setShowOnlyCoded(!showOnlyCoded)}
+                                    className={cn(
+                                        "flex items-center gap-2.5 px-4 py-3 rounded-xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        showOnlyCoded
+                                            ? "bg-emerald-600 border-emerald-700 text-white shadow-md shadow-emerald-600/20"
+                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-300"
+                                    )}
+                                >
+                                    <Tag size={15} />
+                                    <span>Có mã hàng</span>
+                                </button>
+
+                                <button
+                                    onClick={() => fetchProducts()}
+                                    className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 rounded-xl hover:text-emerald-600 hover:border-emerald-500 transition-all"
+                                    title="Tải lại danh sách"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Product Sổ Kế Toán Table */}
+                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-slate-900 text-white text-xs">
+                                        <tr>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('code')}>
+                                                <div className="flex items-center gap-2">Mã hàng <SortIcon columnKey="code" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('name')}>
+                                                <div className="flex items-center gap-2">Tên sản phẩm <SortIcon columnKey="name" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('stock')}>
+                                                <div className="flex items-center justify-end gap-2 text-emerald-400">Kho Thực Tế (POS) <SortIcon columnKey="stock" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('accounting_stock')}>
+                                                <div className="flex items-center justify-end gap-2 text-blue-400">Kho Sổ Sách (KT) <SortIcon columnKey="accounting_stock" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('diff')}>
+                                                <div className="flex items-center justify-end gap-2 text-rose-400">Chênh lệch <SortIcon columnKey="diff" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800 transition-colors" onClick={() => handleSort('accounting_price')}>
+                                                <div className="flex items-center justify-end gap-2 text-amber-400">Giá Kế Toán <SortIcon columnKey="accounting_price" /></div>
+                                            </th>
+                                            <th className="px-6 py-4 uppercase font-black tracking-wider text-center">Trạng thái đối soát</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                        {paginatedProducts.map((p) => {
+                                            const diff = (p.stock || 0) - (p.accounting_stock || 0);
+
+                                            return (
+                                                <tr key={p.id} className="hover:bg-emerald-500/[0.03] dark:hover:bg-slate-800/40 transition-colors">
+                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-slate-500 dark:text-slate-400">
+                                                        <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                                                            {p.code || '---'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-black text-slate-800 dark:text-slate-100">
+                                                        <div className="flex flex-col">
+                                                            <span>{p.name}</span>
+                                                            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{p.unit || 'ĐVT'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-800 dark:text-slate-100">
+                                                        <span className="text-base text-emerald-600 dark:text-emerald-400">{p.stock || 0}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-blue-600 dark:text-blue-400">
+                                                        <span className="text-base">{p.accounting_stock || 0}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums">
+                                                        {diff === 0 ? (
+                                                            <span className="text-slate-400">0</span>
+                                                        ) : diff > 0 ? (
+                                                            <span className="text-emerald-600 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
+                                                        ) : (
+                                                            <span className="text-rose-600 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-700 dark:text-slate-300">
+                                                        {(p.accounting_price || 0).toLocaleString()}đ
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        {diff === 0 ? (
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-black rounded-lg uppercase">
+                                                                <CheckCircle2 size={13} /> Khớp hoàn toàn
+                                                            </span>
+                                                        ) : diff > 0 ? (
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-black rounded-lg uppercase">
+                                                                <TrendingUp size={13} /> Thực tế nhiều hơn
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-black rounded-lg uppercase">
+                                                                <AlertTriangle size={13} /> Sổ sách nhiều hơn
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {paginatedProducts.length === 0 && (
+                                <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400">
+                                    <Search size={40} className="mb-3 opacity-30 animate-pulse" />
+                                    <p className="font-black uppercase tracking-widest text-sm">Không tìm thấy mặt hàng nào</p>
+                                </div>
+                            )}
+
+                            {/* Pagination */}
+                            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <p className="text-xs font-bold text-slate-400">
+                                    Hiển thị {Math.min(filteredProducts.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredProducts.length, currentPage * itemsPerPage)} trong {filteredProducts.length} mặt hàng
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(currentPage - 1)}
+                                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                    >
+                                        Trang trước
+                                    </button>
+                                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 px-2">
+                                        Trang {currentPage} / {Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage))}
+                                    </span>
+                                    <button
+                                        disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
+                                        onClick={() => setCurrentPage(currentPage + 1)}
+                                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                    >
+                                        Trang sau
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* VIEW 2: IMPORT & ĐỐI SOÁT EXCEL WORKFLOW */}
+                {view === 'import' && (
+                    <div className="space-y-6">
+                        {/* STEP 1: UPLOAD FILE */}
+                        {step === 1 && (
+                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-10 md:p-14 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl max-w-2xl mx-auto text-center flex flex-col items-center">
+                                <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                                    <FileSpreadsheet size={40} />
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Tải Lên File Excel Đối Soát</h2>
+                                <p className="text-slate-500 text-sm max-w-md mb-8">
+                                    Nhập file Excel xuất từ LyangPOS (<code>danh_sach_san_pham.xlsx</code>) hoặc bất kỳ bảng kê kiểm kho kế toán nào để đối chiếu với kho thực tế.
+                                </p>
+
+                                <div className="relative group w-full">
+                                    <input
+                                        type="file"
+                                        accept=".xlsx, .xls, .csv"
+                                        onChange={handleFileUpload}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className="border-3 border-dashed border-slate-200 dark:border-slate-700 group-hover:border-emerald-500 rounded-3xl p-10 transition-all bg-slate-50/50 dark:bg-slate-800/40 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/20 text-center">
+                                        <Upload className={cn("mx-auto mb-4 transition-all duration-300", analyzing ? "animate-bounce text-emerald-600" : "text-slate-400 group-hover:text-emerald-500")} size={40} />
+                                        <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                            {analyzing ? "Đang đọc dữ liệu..." : "Kéo thả hoặc bấm để chọn file Excel"}
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-2 font-medium">Hỗ trợ định dạng .xlsx, .xls, .csv</p>
                                     </div>
-                                    <h2 className="text-2xl font-black text-slate-800 mb-4">Nhập dữ liệu từ Excel</h2>
-                                    <p className="text-slate-500 font-medium mb-10 max-w-sm">Tải lên file Excel chứa tồn kho cuối kỳ và giá kế toán để bắt đầu đối soát.</p>
+                                </div>
+                            </div>
+                        )}
 
-                                    <div className="relative group w-full">
+                        {/* STEP 2: COLUMN MAPPING */}
+                        {step === 2 && (
+                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl max-w-3xl mx-auto">
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                                    <Columns className="text-emerald-600 dark:text-emerald-400" size={24} />
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Khớp Cột Dữ Liệu Excel</h2>
+                                        <p className="text-xs text-slate-400 font-medium">Tệp: <span className="text-emerald-600 font-bold">{uploadedFileName}</span> ({fileData.length} dòng)</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-5">
+                                    {/* Cột Mã hàng */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Mã Hàng / Mã SP</label>
+                                            <p className="text-[11px] text-slate-400">Dùng để so khớp chính xác mã với sản phẩm trong kho.</p>
+                                        </div>
+                                        <select
+                                            value={mapping.code}
+                                            onChange={(e) => setMapping({ ...mapping, code: e.target.value })}
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                        >
+                                            <option value="">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Cột Tên hàng */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tên Sản Phẩm</label>
+                                            <p className="text-[11px] text-slate-400">Dùng để so khớp theo tên khi mã không trùng khớp.</p>
+                                        </div>
+                                        <select
+                                            value={mapping.name}
+                                            onChange={(e) => setMapping({ ...mapping, name: e.target.value })}
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                        >
+                                            <option value="">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Cột Tồn kho */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tồn Kho / Số Lượng <span className="text-rose-500">*</span></label>
+                                            <p className="text-[11px] text-slate-400">Số lượng tồn kho theo số sách hoặc file kế toán.</p>
+                                        </div>
+                                        <select
+                                            value={mapping.stock}
+                                            onChange={(e) => setMapping({ ...mapping, stock: e.target.value })}
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                        >
+                                            <option value="">-- Chọn cột tồn kho --</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+
+                                    {/* Cột Đơn giá */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div>
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Đơn Giá Kế Toán</label>
+                                            <p className="text-[11px] text-slate-400">Đơn giá kế toán để tính giá trị tồn kho.</p>
+                                        </div>
+                                        <select
+                                            value={mapping.price}
+                                            onChange={(e) => setMapping({ ...mapping, price: e.target.value })}
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                        >
+                                            <option value="">-- Bỏ qua / Mặc định 0 --</option>
+                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        className="px-6 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider"
+                                    >
+                                        Chọn file khác
+                                    </button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.03 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={startMatching}
+                                        className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+                                    >
+                                        <span>Bắt đầu đối soát</span>
+                                        <ArrowRight size={16} />
+                                    </motion.button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 3: PRE-CHECK & AUDIT PREVIEW */}
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                {/* Top KPI Statistics */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                    {/* Tổng bản ghi */}
+                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center">
+                                                <Layers size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tổng Dòng Excel</p>
+                                                <p className="text-xl font-black text-slate-900 dark:text-white tabular-nums">{stats.total}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Đã khớp mã */}
+                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-emerald-200 dark:border-emerald-900 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
+                                                <CheckCircle2 size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Đã Khớp Mã ({stats.total ? Math.round((stats.matched / stats.total) * 100) : 0}%)</p>
+                                                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.matched}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Chưa khớp mã */}
+                                    <div className={cn(
+                                        "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border shadow-sm",
+                                        stats.unmatched > 0 ? "border-rose-300 dark:border-rose-900 bg-rose-50/20" : "border-slate-200 dark:border-slate-800"
+                                    )}>
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", stats.unmatched > 0 ? "bg-rose-100 dark:bg-rose-950 text-rose-600" : "bg-slate-100 text-slate-400")}>
+                                                <AlertCircle size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Chưa Khớp Mã</p>
+                                                <p className={cn("text-xl font-black tabular-nums", stats.unmatched > 0 ? "text-rose-600 dark:text-rose-400 font-black" : "text-slate-900 dark:text-white")}>
+                                                    {stats.unmatched}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Lệch tồn */}
+                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-amber-200 dark:border-amber-900 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center">
+                                                <AlertTriangle size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Lệch Tồn Kho</p>
+                                                <p className="text-xl font-black text-amber-600 dark:text-amber-400 tabular-nums">{stats.discrepancy}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Lệch giá trị */}
+                                    <div className="bg-slate-900 dark:bg-slate-950 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                                        <div className="flex items-center gap-3 relative z-10">
+                                            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-400">
+                                                <Calculator size={20} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lệch Trị Giá</p>
+                                                <p className={cn("text-base font-black tabular-nums", stats.discrepancyValue >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                                    {stats.discrepancyValue > 0 ? '+' : ''}{stats.discrepancyValue.toLocaleString()}đ
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Filter Tabs & Search Bar */}
+                                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col xl:flex-row items-center justify-between gap-4">
+                                    {/* Search Input */}
+                                    <div className="relative flex-1 group w-full">
+                                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
                                         <input
-                                            type="file"
-                                            accept=".xlsx, .xls"
-                                            onChange={handleFileUpload}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            type="text"
+                                            placeholder="Tìm kiếm sản phẩm trong bảng đối soát..."
+                                            value={importSearch}
+                                            onChange={(e) => setImportSearch(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-2.5 bg-slate-100/70 dark:bg-slate-800/70 border border-transparent focus:border-emerald-500/30 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 transition-all placeholder:text-slate-400"
                                         />
-                                        <div className="border-3 border-dashed border-slate-200 group-hover:border-emerald-500/50 rounded-3xl p-10 transition-all bg-transparent group-hover:bg-emerald-50 text-center">
-                                            <Upload className={cn("mx-auto mb-4 transition-all duration-300", analyzing ? "animate-bounce text-emerald-600" : "text-slate-300 group-hover:text-emerald-500")} size={40} />
-                                            <p className="text-sm font-black text-slate-600 uppercase tracking-widest leading-none">
-                                                {analyzing ? "Đang xử lý..." : "Chọn hoặc kéo thả file vào đây"}
-                                            </p>
-                                        </div>
+                                    </div>
+
+                                    {/* Filter Segmented Control */}
+                                    <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl">
+                                        {[
+                                            { id: 'all', label: `Tất cả (${stats.total})` },
+                                            { id: 'matched', label: `🟢 Khớp mã (${stats.matched})` },
+                                            { id: 'unmatched', label: `🔴 Chưa khớp (${stats.unmatched})` },
+                                            { id: 'discrepancy', label: `🟡 Lệch tồn (${stats.discrepancy})` },
+                                            { id: 'perfect', label: `✅ Cân bằng (${stats.perfect})` }
+                                        ].map(f => (
+                                            <button
+                                                key={f.id}
+                                                onClick={() => setImportFilter(f.id)}
+                                                className={cn(
+                                                    "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                                                    importFilter === f.id
+                                                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
+                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                )}
+                                            >
+                                                {f.label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
 
-                            {/* Step 2: Mapping */}
-                            {step === 2 && (
-                                <div className="bg-transparent p-8 rounded-[2.5rem] border border-slate-200 shadow-sm max-w-3xl mx-auto">
-                                    <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-6">
-                                        <Columns className="text-emerald-600" size={24} />
-                                        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Thiết lập Cột Dữ Liệu</h2>
-                                    </div>
+                                {/* Pre-Check Comparison Table */}
+                                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead className="bg-slate-900 text-white text-xs">
+                                                <tr>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'excelCode', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                        Sản Phẩm (Từ File Excel)
+                                                    </th>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'posStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                        Kho Thực Tế (POS)
+                                                    </th>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'excelStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                        Kho Sổ Sách (Excel)
+                                                    </th>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-right cursor-pointer hover:bg-slate-800" onClick={() => setImportSort({ key: 'diff', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}>
+                                                        Chênh lệch
+                                                    </th>
+                                                    <th className="px-6 py-4 uppercase font-black tracking-wider text-center">
+                                                        Trạng Thái Khớp Mã & Xử Lý
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                                {paginatedImportData.map((item) => {
+                                                    const posStock = item.matchedProduct ? item.matchedProduct.stock : 0;
+                                                    const diff = item.matchedProduct ? (posStock - item.excelStock) : 0;
+                                                    const isMatched = item.status === 'matched';
 
-                                    <div className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                            <div>
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Cột Mã Sản Phẩm / Tên</label>
-                                                <p className="text-xs text-slate-400 mb-4 italic">Hệ thống sẽ dùng cột này để tìm sản phẩm trong danh mục.</p>
-                                            </div>
-                                            <select
-                                                value={mapping.code}
-                                                onChange={(e) => setMapping({ ...mapping, code: e.target.value })}
-                                                className="w-full bg-transparent border-2 border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-700 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm"
-                                            >
-                                                <option value="">-- Chọn cột --</option>
-                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                            <div>
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Cột Tồn Kho Kế Toán</label>
-                                                <p className="text-xs text-slate-400 mb-4 italic">Số lượng tồn kho được ghi nhận trên sổ sách/file.</p>
-                                            </div>
-                                            <select
-                                                value={mapping.stock}
-                                                onChange={(e) => setMapping({ ...mapping, stock: e.target.value })}
-                                                className="w-full bg-transparent border-2 border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-700 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm"
-                                            >
-                                                <option value="">-- Chọn cột --</option>
-                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                            <div>
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Cột Giá Kế Toán</label>
-                                                <p className="text-xs text-slate-400 mb-4 italic">Đơn giá sản phẩm tính theo góc nhìn kế toán.</p>
-                                            </div>
-                                            <select
-                                                value={mapping.price}
-                                                onChange={(e) => setMapping({ ...mapping, price: e.target.value })}
-                                                className="w-full bg-transparent border-2 border-slate-100 rounded-2xl px-5 py-4 font-black text-slate-700 focus:border-emerald-500 focus:bg-white outline-none transition-all shadow-sm"
-                                            >
-                                                <option value="">-- Chọn cột --</option>
-                                                {headers.map(h => <option key={h} value={h}>{h}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-12 flex justify-end">
-                                        <motion.button
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            onClick={startMatching}
-                                            className="px-10 py-4 bg-emerald-600 text-white rounded-[1.5rem] font-black flex items-center gap-3 shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all"
-                                        >
-                                            TIẾP TỤC: ĐỐI SOÁT
-                                            <ArrowRight size={20} />
-                                        </motion.button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 3: Preview */}
-                            {step === 3 && (
-                                <div className="space-y-8">
-                                    {/* Summary Stats for Import */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <div className="bg-transparent backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-900/5 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-transparent rounded-2xl flex items-center justify-center text-slate-500">
-                                                    <FileSpreadsheet size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng bản ghi</p>
-                                                    <p className="text-2xl font-black text-slate-900 tabular-nums">{stats.total}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-transparent backdrop-blur-md p-6 rounded-[2rem] border border-emerald-50 shadow-xl shadow-emerald-900/5 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
-                                                    <CheckCircle2 size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Đã khớp mã</p>
-                                                    <p className="text-2xl font-black text-emerald-600 tabular-nums">{stats.matched}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className={cn(
-                                            "bg-transparent backdrop-blur-md p-6 rounded-[2rem] border shadow-xl shadow-rose-900/5 transition-all",
-                                            stats.unmatched > 0 ? "border-rose-100" : "border-white"
-                                        )}>
-                                            <div className="flex items-center gap-4">
-                                                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", stats.unmatched > 0 ? "bg-rose-50 text-rose-600" : "bg-transparent text-slate-400")}>
-                                                    <AlertCircle size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Chưa khớp mã</p>
-                                                    <p className={cn("text-2xl font-black tabular-nums", stats.unmatched > 0 ? "text-rose-600" : "text-slate-900")}>
-                                                        {stats.unmatched}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-slate-900 p-6 rounded-[2rem] shadow-2xl shadow-slate-900/40 relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16" />
-                                            <div className="flex items-center gap-4 relative z-10">
-                                                <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400">
-                                                    <Calculator size={24} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Lệch giá trị</p>
-                                                    <p className={cn("text-xl font-black tabular-nums", stats.discrepancyValue >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                                                        {stats.discrepancyValue > 0 ? '+' : ''}{stats.discrepancyValue.toLocaleString()}đ
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Import Actions & Filters Bar */}
-                                    <div className="bg-transparent backdrop-blur-xl p-5 rounded-[2.5rem] border border-white shadow-xl shadow-slate-900/5 flex flex-col xl:flex-row items-center gap-6">
-                                        <div className="relative flex-1 group w-full">
-                                            <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                                            <input
-                                                type="text"
-                                                placeholder="Tìm kiếm trong dữ liệu Excel vừa tải..."
-                                                value={importSearch}
-                                                onChange={(e) => setImportSearch(e.target.value)}
-                                                className="w-full pl-14 pr-6 py-4 bg-transparent/50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-transparent rounded-2xl outline-none font-bold text-sm text-slate-800 transition-all placeholder:text-slate-400 shadow-inner"
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center gap-2 bg-transparent p-1.5 rounded-2xl">
-                                            {[
-                                                { id: 'all', label: 'Tất cả' },
-                                                { id: 'unmatched', label: 'Chưa khớp', color: 'rose' },
-                                                { id: 'matched', label: 'Đã khớp', color: 'emerald' },
-                                                { id: 'discrepancy', label: 'Lệch tồn', color: 'amber' }
-                                            ].map(f => (
-                                                <button
-                                                    key={f.id}
-                                                    onClick={() => setImportFilter(f.id)}
-                                                    className={cn(
-                                                        "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                        importFilter === f.id
-                                                            ? (f.id === 'unmatched' ? "bg-rose-500 text-white shadow-lg" :
-                                                                f.id === 'matched' ? "bg-emerald-500 text-white shadow-lg" :
-                                                                    f.id === 'discrepancy' ? "bg-amber-500 text-white shadow-lg" :
-                                                                        "bg-slate-900 text-white shadow-lg")
-                                                            : "text-slate-400 hover:text-slate-600 hover:bg-slate-200/50"
-                                                    )}
-                                                >
-                                                    {f.label}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <div className="h-8 w-px bg-slate-200 mx-2 hidden xl:block" />
-
-                                        <button
-                                            onClick={() => setImportShowOnlyCoded(!importShowOnlyCoded)}
-                                            className={cn(
-                                                "flex items-center gap-3 px-6 py-3 rounded-2xl transition-all border-2",
-                                                importShowOnlyCoded
-                                                    ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
-                                                    : "bg-white border-slate-100 text-slate-400 hover:border-slate-300 shadow-sm"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "w-5 h-5 rounded-lg flex items-center justify-center transition-colors",
-                                                importShowOnlyCoded ? "bg-emerald-500" : "bg-transparent"
-                                            )}>
-                                                {importShowOnlyCoded && <Check size={12} strokeWidth={4} />}
-                                            </div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Chỉ hiện mặt hàng có mã</span>
-                                        </button>
-                                    </div>
-
-                                    {/* Import Preview Table */}
-                                    <div className="bg-white/60 backdrop-blur-xl rounded-[3rem] border border-white shadow-2xl shadow-slate-900/10 overflow-hidden min-h-[600px] flex flex-col">
-                                        <div className="overflow-x-auto overflow-y-visible">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead className="bg-slate-900 text-white">
-                                                    <tr>
-                                                        <th
-                                                            className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] cursor-pointer hover:bg-slate-800 transition-colors first:rounded-tl-[3rem]"
-                                                            onClick={() => setImportSort({ key: 'excelCode', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}
-                                                        >
-                                                            Sản Phẩm (Excel)
-                                                        </th>
-                                                        <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right">Kho Thực Tế (POS)</th>
-                                                        <th
-                                                            className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                            onClick={() => setImportSort({ key: 'excelStock', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}
-                                                        >
-                                                            Kho Kế Toán (Excel)
-                                                        </th>
-                                                        <th
-                                                            className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-right cursor-pointer hover:bg-slate-800 transition-colors"
-                                                            onClick={() => setImportSort({ key: 'diff', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}
-                                                        >
-                                                            Chênh lệch
-                                                        </th>
-                                                        <th
-                                                            className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] cursor-pointer hover:bg-slate-800 transition-colors last:rounded-tr-[3rem]"
-                                                            onClick={() => setImportSort({ key: 'status', direction: importSort.direction === 'asc' ? 'desc' : 'asc' })}
-                                                        >
-                                                            Trạng thái khớp mã
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {paginatedImportData.map((item) => {
-                                                        const diff = item.matchedProduct ? (item.excelStock - item.matchedProduct.stock) : 0;
-                                                        const diffValue = diff * item.excelPrice;
-
-                                                        return (
-                                                            <tr key={item.id} className="group hover:bg-emerald-500/[0.02] transition-colors">
-                                                                <td className="px-8 py-6 border-r border-slate-50">
-                                                                    <div className="flex items-start gap-4">
-                                                                        <div className="w-12 h-12 bg-transparent rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
-                                                                            <FileSpreadsheet size={24} />
-                                                                        </div>
-                                                                        <div className="min-w-0">
-                                                                            <h4 className="text-sm font-black text-slate-700 truncate group-hover:text-emerald-600 transition-colors uppercase tracking-tight">{item.excelCode}</h4>
-                                                                            <div className="flex items-center gap-2 mt-1 px-3 py-1 bg-transparent rounded-xl w-fit">
-                                                                                <Tag size={12} className="text-slate-400" />
-                                                                                <span className="text-[10px] font-black text-slate-500 uppercase">Giá KT: {item.excelPrice.toLocaleString()}đ</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-8 py-6 text-right font-black border-r border-slate-50">
-                                                                    {item.matchedProduct ? (
-                                                                        <div className="flex flex-col items-end">
-                                                                            <span className="text-base text-slate-500">{item.matchedProduct.stock}</span>
-                                                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{item.matchedProduct.unit || 'Đơn vị'}</span>
-                                                                        </div>
-                                                                    ) : <span className="text-slate-200 italic font-black uppercase text-[10px]">Chưa khớp</span>}
-                                                                </td>
-                                                                <td className="px-8 py-6 text-right font-black bg-emerald-500/[0.02] border-r border-slate-50">
-                                                                    <div className="flex flex-col items-end">
-                                                                        <span className="text-base text-emerald-600">{item.excelStock}</span>
-                                                                        <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Excel</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className={cn(
-                                                                    "px-8 py-6 text-right font-black border-r border-slate-50",
-                                                                    item.matchedProduct && diff !== 0 ? (diff > 0 ? "bg-emerald-50/20" : "bg-rose-50/20") : ""
-                                                                )}>
-                                                                    {item.matchedProduct ? (
-                                                                        <div className="flex flex-col items-end">
-                                                                            <span className={cn("text-lg tracking-tighter", diff > 0 ? "text-emerald-600" : diff < 0 ? "text-rose-600" : "text-slate-200")}>
-                                                                                {diff > 0 ? '+' : ''}{diff}
+                                                    return (
+                                                        <tr key={item.id} className={cn(
+                                                            "transition-colors",
+                                                            !isMatched ? "bg-rose-50/30 dark:bg-rose-950/20" : "hover:bg-emerald-500/[0.02]"
+                                                        )}>
+                                                            {/* Excel info */}
+                                                            <td className="px-6 py-4">
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-black text-slate-800 dark:text-slate-100 text-sm">{item.excelName || item.excelCode}</span>
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        <span className="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">
+                                                                            Mã: {item.excelCode}
+                                                                        </span>
+                                                                        {item.excelPrice > 0 && (
+                                                                            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                                                                Giá: {item.excelPrice.toLocaleString()}đ
                                                                             </span>
-                                                                            {diff !== 0 && (
-                                                                                <span className={cn("text-[9px] font-black uppercase tracking-widest leading-none", diff > 0 ? "text-emerald-400" : "text-rose-400")}>
-                                                                                    {diff > 0 ? 'Thừa' : 'Thiếu'} ({diffValue.toLocaleString()}đ)
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    ) : <span className="text-slate-200 italic font-black uppercase text-[10px]">---</span>}
-                                                                </td>
-                                                                <td className="px-8 py-6">
-                                                                    {item.matchedProduct ? (
-                                                                        <div className="flex items-center justify-between group/match">
-                                                                            <div className="flex items-center gap-4">
-                                                                                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm transition-transform group-hover/match:scale-110">
-                                                                                    <Package size={20} />
-                                                                                </div>
-                                                                                <div className="max-w-[200px]">
-                                                                                    <p className="text-xs font-black text-slate-800 truncate uppercase leading-none mb-1">{item.matchedProduct.name}</p>
-                                                                                    <p className="text-[9px] font-bold text-slate-400 truncate uppercase tracking-widest">{item.matchedProduct.code}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    setSelectedMatchDataId(item.id);
-                                                                                    setShowMatchModal(true);
-                                                                                }}
-                                                                                className="p-3 hover:bg-slate-900 hover:text-white rounded-2xl text-slate-300 transition-all shadow-hover active:scale-90"
-                                                                                title="Đổi sản phẩm khớp"
-                                                                            >
-                                                                                <RefreshCw size={14} />
-                                                                            </button>
-                                                                        </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            {/* Kho thực tế POS */}
+                                                            <td className="px-6 py-4 text-right font-black tabular-nums">
+                                                                {isMatched ? (
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="text-base text-emerald-600 dark:text-emerald-400">{posStock}</span>
+                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase">{item.matchedProduct.unit || 'ĐVT'}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-400 italic">Chưa có</span>
+                                                                )}
+                                                            </td>
+
+                                                            {/* Kho sổ sách Excel */}
+                                                            <td className="px-6 py-4 text-right font-black tabular-nums text-blue-600 dark:text-blue-400">
+                                                                <span className="text-base">{item.excelStock}</span>
+                                                            </td>
+
+                                                            {/* Chênh lệch */}
+                                                            <td className="px-6 py-4 text-right font-black tabular-nums">
+                                                                {isMatched ? (
+                                                                    diff === 0 ? (
+                                                                        <span className="text-slate-400 font-bold">0 (Cân bằng)</span>
+                                                                    ) : diff > 0 ? (
+                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
                                                                     ) : (
-                                                                        <motion.button
-                                                                            whileHover={{ scale: 1.02, x: 5 }}
-                                                                            whileTap={{ scale: 0.98 }}
+                                                                        <span className="text-rose-600 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
+                                                                    )
+                                                                ) : (
+                                                                    <span className="text-xs text-slate-400 font-mono">---</span>
+                                                                )}
+                                                            </td>
+
+                                                            {/* Status / Actions */}
+                                                            <td className="px-6 py-4 text-center">
+                                                                {isMatched ? (
+                                                                    <div className="flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-900">
+                                                                        <div className="flex items-center gap-2 text-left truncate">
+                                                                            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                                                                            <div className="truncate">
+                                                                                <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{item.matchedProduct.name}</p>
+                                                                                <p className="text-[10px] text-slate-400 font-mono">{item.matchedProduct.code || 'Mã POS'}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
                                                                             onClick={() => {
                                                                                 setSelectedMatchDataId(item.id);
                                                                                 setShowMatchModal(true);
                                                                             }}
-                                                                            className="w-full flex items-center justify-center gap-3 py-3 bg-rose-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-rose-500/20 hover:bg-rose-600 transition-all"
+                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 rounded-lg transition-all shrink-0"
+                                                                            title="Chọn sản phẩm khác để ghép"
                                                                         >
-                                                                            <CornerDownRight size={14} />
-                                                                            KHỚP THỦ CÔNG
-                                                                        </motion.button>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        {paginatedImportData.length === 0 && (
-                                            <div className="flex-1 flex flex-col items-center justify-center py-32 bg-transparent/50 backdrop-blur-sm">
-                                                <div className="w-20 h-20 bg-slate-200 rounded-[2rem] flex items-center justify-center text-slate-400 mb-6 shadow-inner animate-pulse">
-                                                    <Search size={40} />
-                                                </div>
-                                                <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest">Không có dữ liệu phù hợp</h3>
-                                                <p className="text-slate-400 font-medium mt-2 text-center max-w-xs">Hãy thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem các mặt hàng khác.</p>
-                                            </div>
-                                        )}
+                                                                            <RefreshCw size={13} />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <motion.button
+                                                                        whileHover={{ scale: 1.02 }}
+                                                                        whileTap={{ scale: 0.98 }}
+                                                                        onClick={() => {
+                                                                            setSelectedMatchDataId(item.id);
+                                                                            setShowMatchModal(true);
+                                                                        }}
+                                                                        className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all"
+                                                                    >
+                                                                        <CornerDownRight size={14} />
+                                                                        <span>Ghép Mã Thủ Công</span>
+                                                                    </motion.button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
 
-                                    {/* Import Pagination */}
-                                    <div className="flex flex-col md:flex-row items-center justify-between bg-transparent backdrop-blur-xl p-8 rounded-[3rem] border border-white shadow-2xl shadow-slate-900/5 gap-6">
-                                        <div className="flex items-center gap-6">
-                                            <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-lg">
-                                                <p className="text-xs font-black uppercase tracking-widest">
-                                                    Trang <span className="text-emerald-400">{importPage}</span> / {Math.ceil(filteredImportData.length / importItemsPerPage)}
-                                                </p>
-                                            </div>
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">
-                                                Hiển thị {Math.min(filteredImportData.length, (importPage - 1) * importItemsPerPage + 1)} - {Math.min(filteredImportData.length, importPage * importItemsPerPage)} trong {filteredImportData.length} dòng
-                                            </p>
+                                    {paginatedImportData.length === 0 && (
+                                        <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400">
+                                            <Search size={40} className="mb-3 opacity-30 animate-pulse" />
+                                            <p className="font-black uppercase tracking-widest text-sm">Không có dữ liệu thỏa điều kiện lọc</p>
                                         </div>
+                                    )}
 
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center bg-transparent p-1.5 rounded-2xl mr-2">
-                                                {[20, 50, 100].map(val => (
-                                                    <button
-                                                        key={val}
-                                                        onClick={() => { setImportItemsPerPage(val); setImportPage(1); }}
-                                                        className={cn(
-                                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                                            importItemsPerPage === val ? "bg-white text-emerald-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                                                        )}
-                                                    >
-                                                        {val}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    disabled={importPage === 1}
-                                                    onClick={() => setImportPage(importPage - 1)}
-                                                    className="w-12 h-12 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-emerald-600 transition-all disabled:opacity-30"
-                                                >
-                                                    <ArrowRight size={20} className="rotate-180" />
-                                                </button>
-                                                <button
-                                                    disabled={importPage >= Math.ceil(filteredImportData.length / importItemsPerPage)}
-                                                    onClick={() => setImportPage(importPage + 1)}
-                                                    className="w-12 h-12 bg-white border border-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:text-emerald-600 transition-all disabled:opacity-30"
-                                                >
-                                                    <ArrowRight size={20} />
-                                                </button>
-                                            </div>
+                                    {/* Pagination */}
+                                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                        <p className="text-xs font-bold text-slate-400">
+                                            Hiển thị {Math.min(filteredImportData.length, (importPage - 1) * importItemsPerPage + 1)} - {Math.min(filteredImportData.length, importPage * importItemsPerPage)} trong {filteredImportData.length} dòng
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                disabled={importPage === 1}
+                                                onClick={() => setImportPage(importPage - 1)}
+                                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                            >
+                                                Trang trước
+                                            </button>
+                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 px-2">
+                                                Trang {importPage} / {Math.max(1, Math.ceil(filteredImportData.length / importItemsPerPage))}
+                                            </span>
+                                            <button
+                                                disabled={importPage >= Math.ceil(filteredImportData.length / importItemsPerPage)}
+                                                onClick={() => setImportPage(importPage + 1)}
+                                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                            >
+                                                Trang sau
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
-            {/* Manual Match Modal - Using Portal to escape transformed parents */}
+            {/* Modal Ghép Mã Thủ Công */}
             <AnimatePresence>
                 {showMatchModal && createPortal(
                     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -1382,69 +1350,50 @@ export default function AccountingInventory() {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.6)] border border-white overflow-hidden relative z-10"
+                            className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative z-10 p-6 md:p-8"
                         >
-                            <div className="p-10">
-                                <div className="flex items-center justify-between mb-10">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center shadow-inner">
-                                            <Search size={32} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-2xl font-black text-slate-900 leading-none">Khớp sản phẩm thủ công</h3>
-                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.15em] mt-3">
-                                                Ghép nối với mã Excel: <span className="text-rose-500">{matchedData.find(i => i.id === selectedMatchDataId)?.excelCode}</span>
-                                            </p>
-                                        </div>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 bg-rose-50 dark:bg-rose-950/60 text-rose-600 rounded-2xl flex items-center justify-center">
+                                        <Search size={24} />
                                     </div>
-                                    <button
-                                        onClick={() => { setShowMatchModal(false); setSelectedMatchDataId(null); }}
-                                        className="w-12 h-12 flex items-center justify-center bg-transparent hover:bg-rose-500 hover:text-white rounded-2xl transition-all"
-                                    >
-                                        <X size={24} />
-                                    </button>
-                                </div>
-
-                                <div className="space-y-8">
-                                    <div className="bg-transparent p-6 rounded-[2rem] border border-slate-100">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Chọn sản phẩm từ danh mục hệ thống</label>
-                                        </div>
-                                        <div className="relative z-[60]">
-                                            <SearchableSelect
-                                                options={products}
-                                                displayValue={(p) => `${p.name} (${p.code || 'N/A'})`}
-                                                valueKey="id"
-                                                onChange={(val) => {
-                                                    const product = products.find(p => p.id === val);
-                                                    if (product) handleManualMatch(product);
-                                                }}
-                                                placeholder="Tìm tên sản phẩm, hoạt chất, mã hàng..."
-                                                className="!bg-white !rounded-2xl !py-3 !px-4 !ring-2 !ring-slate-100 focus-within:!ring-emerald-500/30"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100 flex items-start gap-4">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-500 shadow-sm shrink-0">
-                                            <AlertCircle size={20} />
-                                        </div>
-                                        <div className="text-xs text-blue-700 font-medium leading-relaxed">
-                                            <b>Lưu ý:</b> Việc khớp thủ công sẽ ghi đè các kết quả tự động trước đó. Sản phẩm được chọn sẽ được cập nhật tồn kho và giá theo dữ liệu từ file Excel này.
-                                        </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Ghép Sản Phẩm Thủ Công</h3>
+                                        <p className="text-xs text-slate-400 mt-1">
+                                            Dòng Excel: <span className="text-rose-500 font-bold">{matchedData.find(i => i.id === selectedMatchDataId)?.excelName || matchedData.find(i => i.id === selectedMatchDataId)?.excelCode}</span>
+                                        </p>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div className="px-10 py-8 bg-slate-900 flex justify-between items-center group">
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">Yêu cầu xác nhận trước khi lưu</p>
                                 <button
                                     onClick={() => { setShowMatchModal(false); setSelectedMatchDataId(null); }}
-                                    className="px-8 py-3 bg-slate-800 text-white rounded-xl font-black text-xs hover:bg-slate-700 transition-all uppercase tracking-widest"
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 rounded-xl transition-all"
                                 >
-                                    Đóng cửa sổ
+                                    <X size={20} />
                                 </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                    <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-2">Chọn sản phẩm từ danh mục hệ thống</label>
+                                    <SearchableSelect
+                                        options={products}
+                                        displayValue={(p) => `${p.name} (${p.code || 'Mã: N/A'}) - Tồn: ${p.stock || 0}`}
+                                        valueKey="id"
+                                        onChange={(val) => {
+                                            const product = products.find(p => p.id === val);
+                                            if (product) handleManualMatch(product);
+                                        }}
+                                        placeholder="Gõ tìm theo tên, mã hoặc hoạt chất..."
+                                        className="!bg-white dark:!bg-slate-800 !rounded-xl !py-3 !px-4 !border !border-slate-200 dark:!border-slate-600"
+                                    />
+                                </div>
+
+                                <div className="p-4 bg-blue-50/60 dark:bg-blue-950/40 rounded-2xl border border-blue-100 dark:border-blue-900/60 flex items-start gap-3">
+                                    <AlertCircle size={18} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
+                                        Khi chọn sản phẩm, dòng dữ liệu từ Excel sẽ được gán với sản phẩm tương ứng trong kho POS để tiến hành đối soát và lưu vào sổ kế toán.
+                                    </p>
+                                </div>
                             </div>
                         </motion.div>
                     </div>,
@@ -1452,6 +1401,7 @@ export default function AccountingInventory() {
                 )}
             </AnimatePresence>
 
+            {/* Quick Audit Popout */}
             {isAuditOpen && auditProduct && createPortal(
                 <QuickAuditPopout
                     product={auditProduct}

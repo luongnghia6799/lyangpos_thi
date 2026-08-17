@@ -75,6 +75,20 @@ export const isExpired = (dateStr) => {
     }
 }
 
+export const getLocalDateString = (dateInput = new Date()) => {
+    if (!dateInput) return '';
+    try {
+        const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+        if (isNaN(date.getTime())) return '';
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        return '';
+    }
+};
+
 export const formatDate = (dateInput) => {
     if (!dateInput) return '-';
     try {
@@ -423,8 +437,12 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
         }
       }
 
+      if (!arrayBuffer || arrayBuffer.byteLength < 100) {
+        return null;
+      }
+
       const ctx = getAudioContext();
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
       ttsAudioCache[cacheKey] = audioBuffer;
       return audioBuffer;
     })();

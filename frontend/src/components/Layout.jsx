@@ -538,7 +538,7 @@ export default function Layout({ children }) {
             { label: "Báo cáo", path: "/reports" },
             { label: "Báo Cáo Kế Toán", path: "/detailed-reports" },
             { label: "Cấu hình Excel", path: "/accounting/mapping" },
-            { label: "Kho kế toán", path: "/accounting/inventory" },
+            { label: "Sổ kế toán", path: "/accounting/inventory" },
             { label: "Danh mục", path: "/products" },
             { label: "Đối tác", path: "/partners" },
             { label: "Hồ sơ đối tác", path: "/partner-profile" },
@@ -634,7 +634,33 @@ export default function Layout({ children }) {
     const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('user_avatar') || '');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(localStorage.getItem('sidebar_collapsed') === 'true');
     const [isSidebarHidden, setIsSidebarHidden] = useState(localStorage.getItem('sidebar_hidden') === 'true');
-    const [accountingEnabled, setAccountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') === 'true');
+    const [accountingEnabled, setAccountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') !== 'false');
+    const [hiddenNavPaths, setHiddenNavPaths] = useState(() => {
+        try {
+            const saved = localStorage.getItem('sidebar_hidden_items');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        const handleSidebarVisibilityChange = () => {
+            try {
+                const saved = localStorage.getItem('sidebar_hidden_items');
+                setHiddenNavPaths(saved ? JSON.parse(saved) : []);
+            } catch (e) {
+                setHiddenNavPaths([]);
+            }
+        };
+        window.addEventListener('sidebar_visibility_changed', handleSidebarVisibilityChange);
+        window.addEventListener('storage', handleSidebarVisibilityChange);
+        return () => {
+            window.removeEventListener('sidebar_visibility_changed', handleSidebarVisibilityChange);
+            window.removeEventListener('storage', handleSidebarVisibilityChange);
+        };
+    }, []);
+
     const userMenuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -950,9 +976,12 @@ export default function Layout({ children }) {
         channel.onmessage = (event) => {
             if (!event.data) return;
             if (event.data.type === 'NEW_ORDER') {
-                if (!isMuted) {
+                const isPosPage = window.location.pathname.toLowerCase().includes('/pos');
+                const newItemsCount = (event.data.orders || []).reduce((sum, o) => sum + (o.items ? o.items.length : 0), 0);
+                if (!isMuted && !isPosPage && newItemsCount > (window.__PREV_PACKING_ITEMS_COUNT__ || 0)) {
                     playNotificationSound();
                 }
+                window.__PREV_PACKING_ITEMS_COUNT__ = newItemsCount;
                 if (event.data.orders && event.data.orders.length > 0) {
                     const ord = event.data.orders[0];
                     const normCart = (ord.items || []).map(i => ({
@@ -1023,13 +1052,14 @@ export default function Layout({ children }) {
 
     const MENU_ITEMS = useMemo(() => {
         if (import.meta.env.VITE_APP_MODE === 'lite') {
-            return [
+            const liteItems = [
                 { icon: Home, label: "Tổng quan Lite", path: "/", roles: ['admin', 'accountant', 'user'] },
                 { icon: ShoppingCart, label: "Bán hàng Lite", path: "/pos", roles: ['admin', 'accountant', 'user'] },
                 { icon: Truck, label: "Nhập hàng Lite", path: "/purchase", roles: ['admin', 'accountant', 'user'] },
                 { icon: HistoryIcon, label: "Lịch sử Lite", path: "/history", roles: ['admin', 'accountant', 'user'] },
                 { icon: TrendingUp, label: "Tổng hợp Lite", path: "/summary", roles: ['admin', 'accountant', 'user'] },
             ];
+            return liteItems.filter(item => !hiddenNavPaths.includes(item.path));
         }
 
         const items = [
@@ -1063,7 +1093,7 @@ export default function Layout({ children }) {
                 children: [
                     { icon: Download, label: "Xuất Báo Cáo Kế Toán", path: "/detailed-reports", roles: ['admin', 'accountant', 'user'] },
                     { icon: SettingsIcon, label: "Cấu hình Mẫu Excel", path: "/accounting/mapping", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Landmark, label: "Kho kế toán", path: "/accounting/inventory", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Landmark, label: "Sổ kế toán", path: "/accounting/inventory", roles: ['admin', 'accountant', 'user'] },
                 ]
             },
             {
@@ -1086,10 +1116,11 @@ export default function Layout({ children }) {
             { icon: QrCode, label: "In Mã Vạch", path: "/barcodes", roles: ['admin', 'accountant', 'user'] },
         ];
 
-        // Deep filter items based on user role
+        // Deep filter items based on user role and hidden paths
         return items
             .filter(item => {
                 if (item.label === "Kế toán" && !accountingEnabled) return false;
+                if (item.path && hiddenNavPaths.includes(item.path)) return false;
                 if (!item.roles) return true;
                 if (item.roles.includes('admin') && checkIsAdmin(userRole)) return true;
                 return item.roles.includes(userRole);
@@ -1099,6 +1130,7 @@ export default function Layout({ children }) {
                     return {
                         ...item,
                         children: item.children.filter(child => {
+                            if (hiddenNavPaths.includes(child.path)) return false;
                             if (!child.roles) return true;
                             if (child.roles.includes('admin') && checkIsAdmin(userRole)) return true;
                             return child.roles.includes(userRole);
@@ -1108,7 +1140,7 @@ export default function Layout({ children }) {
                 return item;
             })
             .filter(item => !item.children || item.children.length > 0);
-    }, [userRole, accountingEnabled]);
+    }, [userRole, accountingEnabled, hiddenNavPaths]);
 
     const flatPaths = useMemo(() => {
         const paths = [];
@@ -1487,12 +1519,19 @@ export default function Layout({ children }) {
             </div>
 
             {/* Bottom Actions Cluster */}
-            <div className="mx-3 mb-3 p-2 space-y-2 rounded-3xl bg-slate-100/40 dark:bg-slate-900/40 border border-slate-200/20 dark:border-white/10 backdrop-blur-xl shadow-md shadow-black/5" style={isLiteMode ? { borderColor: liteTheme.border } : {}}>
+            <div 
+                className={cn(
+                    "mb-3 rounded-3xl border backdrop-blur-xl shadow-sm transition-all duration-300",
+                    isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2",
+                    "bg-black/[0.03] dark:bg-white/[0.04] border-[#8b6f47]/20 dark:border-white/10"
+                )} 
+                style={isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {}}
+            >
 
                 {/* Footer Actions (Volume, Theme, Close) */}
                 <m.div layout className={cn(
-                    "grid gap-2 justify-items-center",
-                    isSidebarCollapsed ? "grid-cols-1" : "grid-cols-3"
+                    "grid justify-items-center transition-all duration-200",
+                    isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-3 gap-2"
                 )}>
                     <m.button
                         layout
@@ -1503,8 +1542,9 @@ export default function Layout({ children }) {
                             color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
                         } : {}}
                         className={cn(
-                            "w-12 h-12 rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-slate-500/10 border border-transparent dark:hover:bg-white/10 shrink-0 shadow-none",
-                            isLiteMode ? "" : (isMuted ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400")
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 shrink-0 shadow-none",
+                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12",
+                            isLiteMode ? "" : (isMuted ? "text-rose-500 hover:text-rose-600" : "text-primary dark:text-[#d4a574] hover:opacity-80")
                         )}
                         title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
                     >
@@ -1518,7 +1558,7 @@ export default function Layout({ children }) {
                                     transition={{ duration: 0.15 }}
                                     className={cn(
                                         "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
-                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400")
+                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-500" : "text-primary dark:text-[#d4a574]")
                                     )}
                                 >
                                     {isMuted ? "Tắt" : "Bật"}
@@ -1531,7 +1571,10 @@ export default function Layout({ children }) {
                         layout
                         whileTap={{ scale: 0.9 }}
                         onClick={toggleTheme}
-                        className="w-12 h-12 rounded-full hover:bg-slate-500/10 bg-transparent border border-transparent dark:hover:bg-white/10 text-slate-700 dark:text-amber-400 hover:text-slate-950 dark:hover:text-amber-300 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0"
+                        className={cn(
+                            "rounded-full hover:bg-black/5 bg-transparent dark:hover:bg-white/10 text-primary dark:text-[#d4a574] hover:opacity-80 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
+                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
+                        )}
                         title="Sáng/Tối"
                     >
                         {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -1542,7 +1585,7 @@ export default function Layout({ children }) {
                                     animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                     exit={{ opacity: 0, height: 0, scale: 0.8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-slate-500 dark:text-amber-400/80"
+                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-primary/80 dark:text-[#d4a574]/80"
                                 >
                                     Phông
                                 </m.span>
@@ -1559,8 +1602,8 @@ export default function Layout({ children }) {
                             color: "rgb(239, 68, 68)"
                         } : {}}
                         className={cn(
-                            "w-12 h-12 rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-slate-500/10 border border-transparent dark:hover:bg-white/10 shrink-0 shadow-none",
-                            isLiteMode ? "" : "text-rose-500 hover:text-rose-600"
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-rose-500/10 dark:hover:bg-rose-500/20 shrink-0 shadow-none text-rose-500 hover:text-rose-600",
+                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
                         )}
                         title="Đóng menu"
                     >
@@ -1572,7 +1615,7 @@ export default function Layout({ children }) {
                                     animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                     exit={{ opacity: 0, height: 0, scale: 0.8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden"
+                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-rose-500"
                                 >
                                     Đóng
                                 </m.span>
@@ -1591,8 +1634,9 @@ export default function Layout({ children }) {
                         color: liteTheme.text
                     } : {}}
                     className={cn(
-                        "w-full py-3 rounded-2xl transition-all flex items-center justify-center gap-3 min-h-[44px] hover:bg-black/5 dark:hover:bg-white/5",
-                        isLiteMode ? "" : "text-slate-700 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white"
+                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-black/5 dark:hover:bg-white/5",
+                        isSidebarCollapsed ? "py-2 min-h-[36px]" : "py-3 min-h-[44px]",
+                        isLiteMode ? "" : "text-primary dark:text-[#d4a574] hover:opacity-80"
                     )}
                 >
                     {isSidebarCollapsed ? <ChevronRight size={18} /> : (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { m } from 'framer-motion';
-import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert } from 'lucide-react';
+import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { formatNumber, normalizeUOM, cn } from '../lib/utils';
 import Toast from './Toast';
@@ -43,7 +43,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
     const queryClient = useQueryClient();
     const DEFAULT_PRODUCT = {
         name: '', code: '', unit: 'Cái', secondary_unit: '', multiplier: 1,
-        cost_price: 0, sale_price: 0, stock: 0, expiry_date: '',
+        cost_price: 0, sale_price: 0, stock: 0, min_stock: 0, expiry_date: '',
         active_ingredient: '',
         brand: '',
         is_combo: false, is_active: true, combo_items: [],
@@ -260,7 +260,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
             onSave();
             setFormData({
                 name: '', code: '', unit: 'Cái', secondary_unit: '', multiplier: 1,
-                cost_price: 0, sale_price: 0, stock: 0, expiry_date: '',
+                cost_price: 0, sale_price: 0, stock: 0, min_stock: 0, expiry_date: '',
                 active_ingredient: '',
                 brand: '',
                 is_combo: false, is_active: true, combo_items: [],
@@ -372,7 +372,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                 <div className="grid grid-cols-12 gap-6 bg-card/50 p-6 rounded-2xl border border-border">
                                                     <div className="col-span-8">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Tên sản phẩm</label>
-                                                        <input required id="prod-name-input" type="text" className="input-premium w-full p-3 uppercase font-black text-sm border-2 border-transparent focus:border-primary" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
+                                                        <input required id="prod-name-input" type="text" className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
                                                     </div>
                                                     <div className="col-span-4">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Mã SP</label>
@@ -400,6 +400,13 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-primary/40">VNĐ</div>
                                                         </div>
                                                     </div>
+
+                                                    {formData.cost_price > formData.sale_price && formData.sale_price > 0 && (
+                                                        <div className="col-span-12 p-3 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl flex items-center gap-2 text-amber-700 dark:text-amber-300 animate-in fade-in slide-in-from-top-1 text-xs font-bold">
+                                                            <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+                                                            <span>Giá nhập ({formatNumber(formData.cost_price)} đ) đang cao hơn giá bán hiện tại ({formatNumber(formData.sale_price)} đ)!</span>
+                                                        </div>
+                                                    )}
                                                     
                                                     <div className="col-span-6 relative group">
                                                         <label className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-900 text-[10px] font-black text-muted-foreground uppercase tracking-widest z-10 rounded-full">SL đạt giá sỉ</label>
@@ -459,18 +466,35 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                         {activeTab === 'stock' && (
                                             <m.div key="stock" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="space-y-6">
                                                 <div className="grid grid-cols-12 gap-6 bg-transparent/50 dark:bg-slate-900/20 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                                                    <div className="col-span-4">
+                                                    <div className="col-span-3">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">ĐVT Cơ Bản</label>
-                                                        <input required type="text" className="input-premium w-full p-3 uppercase font-black text-sm border-2 border-transparent focus:border-primary" value={formData.unit} list="unit-list-primary" onChange={e => setFormData({ ...formData, unit: e.target.value })} onBlur={e => setFormData({ ...formData, unit: normalizeUOM(e.target.value) })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
+                                                        <input required type="text" className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" value={formData.unit} list="unit-list-primary" onChange={e => setFormData({ ...formData, unit: e.target.value })} onBlur={e => setFormData({ ...formData, unit: normalizeUOM(e.target.value) })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
                                                         <datalist id="unit-list-primary">
                                                             {PRIMARY_UNITS_SUGGESTIONS.map(u => <option key={u} value={u} />)}
                                                         </datalist>
                                                     </div>
-                                                    <div className="col-span-4">
+                                                    <div className="col-span-3">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Tồn kho</label>
                                                         <input required type="number" disabled={formData.is_combo} className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary disabled:opacity-50" value={formData.stock} onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
                                                     </div>
-                                                    <div className="col-span-4">
+                                                    <div className="col-span-3">
+                                                        <label className="block text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-1">
+                                                            <AlertTriangle size={12} />
+                                                            Tồn cảnh báo
+                                                        </label>
+                                                        <input 
+                                                            type="number" 
+                                                            min="0"
+                                                            className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" 
+                                                            value={formData.min_stock !== undefined ? formData.min_stock : 0} 
+                                                            onChange={e => setFormData({ ...formData, min_stock: parseFloat(e.target.value) || 0 })} 
+                                                            onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} 
+                                                            autoComplete="off" 
+                                                            placeholder="0"
+                                                            title="Tồn kho nhỏ hơn hoặc bằng mức này sẽ hiển thị cảnh báo cần nhập hàng"
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-3">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Hạn sử dụng</label>
                                                         <input type="date" className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" value={formData.expiry_date || ''} onChange={e => setFormData({ ...formData, expiry_date: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
                                                     </div>
@@ -485,7 +509,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                      <div className="col-span-12 border-t border-slate-200 dark:border-slate-700 my-2"></div>
                                                             <div className="col-span-6">
                                                                 <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Quy đổi (ĐVT Lớn)</label>
-                                                                <input type="text" className="input-premium w-full p-3 uppercase font-bold text-sm border-2 border-transparent focus:border-primary" value={formData.secondary_unit || ''} list="unit-list-secondary" onChange={e => setFormData({ ...formData, secondary_unit: e.target.value })} onBlur={e => setFormData({ ...formData, secondary_unit: normalizeUOM(e.target.value) })} autoComplete="off" placeholder="Ví dụ: Thùng" />
+                                                                <input type="text" className="input-premium w-full p-3 font-bold text-sm border-2 border-transparent focus:border-primary" value={formData.secondary_unit || ''} list="unit-list-secondary" onChange={e => setFormData({ ...formData, secondary_unit: e.target.value })} onBlur={e => setFormData({ ...formData, secondary_unit: normalizeUOM(e.target.value) })} autoComplete="off" placeholder="Ví dụ: Thùng" />
                                                                 <datalist id="unit-list-secondary">
                                                                     {SECONDARY_UNITS_SUGGESTIONS.map(u => <option key={u} value={u} />)}
                                                                 </datalist>

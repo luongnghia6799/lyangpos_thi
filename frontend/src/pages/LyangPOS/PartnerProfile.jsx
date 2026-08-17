@@ -160,7 +160,7 @@ export default function PartnerProfile() {
 
     // Effect to handle URL id change or initial load
     useEffect(() => {
-        if (partners.length > 0) {
+        if (Array.isArray(partners) && partners.length > 0) {
             const targetId = urlParamId ? parseInt(urlParamId) : parseInt(localStorage.getItem('selected_partner_id'));
             if (targetId) {
                 const partner = partners.find(p => p.id === targetId);
@@ -181,10 +181,17 @@ export default function PartnerProfile() {
         setSearching(true);
         try {
             const res = await axios.get('/api/partners', { params: { search: query } });
-            setPartners(res.data);
+            const list = Array.isArray(res.data) 
+                ? res.data 
+                : (Array.isArray(res.data?.items) 
+                    ? res.data.items 
+                    : (Array.isArray(res.data?.partners) 
+                        ? res.data.partners 
+                        : []));
+            setPartners(list);
             const targetId = urlParamId ? parseInt(urlParamId) : parseInt(localStorage.getItem('selected_partner_id'));
             if (targetId && !selectedPartner) {
-                const p = res.data.find(x => x.id === targetId);
+                const p = list.find(x => x.id === targetId);
                 if (p) setSelectedPartner(p);
             }
         } catch (err) {

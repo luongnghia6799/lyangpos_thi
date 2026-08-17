@@ -68,6 +68,7 @@ class Product(db.Model):
     bulk_quantity = db.Column(db.Float, nullable=True)
     bulk_price = db.Column(db.Float, nullable=True)
     alias = db.Column(db.String(100), nullable=True)
+    min_stock = db.Column(db.Float, default=0) # Mức tồn kho tối thiểu cảnh báo cần nhập hàng
     def to_dict(self):
         # Calculate average cost from active batches for UI/Estimation
         active_batches = [b for b in self.batches if b.current_quantity > 0]
@@ -108,6 +109,7 @@ class Product(db.Model):
             'latest_cost_price': latest_cost,
             'sale_price': self.sale_price,
             'stock': self.stock,
+            'min_stock': self.min_stock if self.min_stock is not None else 0,
             'expiry_date': self.expiry_date,
             'active_ingredient': self.active_ingredient,
             'brand': self.brand,
@@ -260,14 +262,25 @@ class Order(db.Model):
     details = db.relationship('OrderDetail', backref='order', cascade='all, delete-orphan', lazy='selectin')
 
     def to_dict(self):
+        p_dict = {
+            'id': self.partner.id,
+            'name': self.partner.name,
+            'phone': self.partner.phone,
+            'address': self.partner.address,
+            'debt_balance': self.partner.debt_balance
+        } if self.partner else None
+
+        default_partner = 'Nhà cung cấp vãng lai' if self.type == 'Purchase' else 'Khách Lẻ'
+
         return {
             'id': self.id,
             'display_id': self.display_id or str(self.id),
             'date': self.date.isoformat(),
             'partner_id': self.partner_id,
-            'partner_name': self.partner.name if self.partner else 'Khách Lẻ',
+            'partner_name': self.partner.name if self.partner else default_partner,
             'partner_address': self.partner.address if self.partner else '',
             'partner_phone': self.partner.phone if self.partner else '',
+            'partner': p_dict,
             'total_amount': self.total_amount,
             'amount_paid': self.amount_paid,
             'payment_method': self.payment_method,

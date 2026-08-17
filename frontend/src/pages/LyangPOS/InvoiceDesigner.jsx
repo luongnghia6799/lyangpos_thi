@@ -132,8 +132,8 @@ const DEFAULT_INVOICE_CONFIG = {
     invoice_margin_top: '10',
     invoice_margin_bottom: '10',
     invoice_margin_left: '10',
-
     invoice_margin_right: '10',
+    invoice_padding_top: '0',
     // Report Defaults
     invoice_show_col_code: 'true',
     invoice_show_col_date: 'true',
@@ -963,6 +963,12 @@ const InvoiceDesigner = () => {
 
                         {activeTab === 'text' && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <DesignerSection title="Tiêu đề & Lời cảm ơn">
+                                    <DesignerInput label="Tiêu đề hóa đơn tùy chỉnh" value={settings.invoice_custom_title} onChange={(v) => updateSetting('invoice_custom_title', v)} placeholder="Ví dụ: HÓA ĐƠN BÁN HÀNG (để trống để dùng mặc định)" />
+                                    <DesignerInput label="Nội dung Lời cảm ơn" value={settings.invoice_thank_you_message} onChange={(v) => updateSetting('invoice_thank_you_message', v)} placeholder="Cảm ơn Quý Khách & Hẹn Gặp Lại!" />
+                                    <DesignerInput label="Ghi chú chân trang mặc định" value={settings.invoice_custom_notes} onChange={(v) => updateSetting('invoice_custom_notes', v)} placeholder="Ví dụ: Hàng mua rồi miễn đổi trả..." />
+                                </DesignerSection>
+
                                 <DesignerSection title="Thông tin Cửa hàng">
                                     <DesignerInput label="Tên cửa hàng" value={settings.shop_name} onChange={(v) => updateSetting('shop_name', v)} />
                                     <DesignerInput label="Địa chỉ cửa hàng" value={settings.shop_address} onChange={(v) => updateSetting('shop_address', v)} />
@@ -973,10 +979,6 @@ const InvoiceDesigner = () => {
                                         <DesignerInput label="Số tài khoản" value={settings.shop_bank_account} onChange={(v) => updateSetting('shop_bank_account', v)} placeholder="0123456789" />
                                     </div>
                                     <DesignerInput label="Chủ tài khoản" value={settings.shop_bank_user} onChange={(v) => updateSetting('shop_bank_user', v)} placeholder="NGUYEN VAN A" />
-                                </DesignerSection>
-
-                                <DesignerSection title="Lời cảm ơn">
-                                    <DesignerInput label="Nội dung Lời cảm ơn" value={settings.invoice_thank_you_message} onChange={(v) => updateSetting('invoice_thank_you_message', v)} />
                                 </DesignerSection>
                             </div>
                         )}
@@ -1188,7 +1190,7 @@ const InvoiceDesigner = () => {
                                     </div>
                                 </DesignerSection>
 
-                                <DesignerSection title="Cách lề">
+                                <DesignerSection title="Cách lề & Đệm đỉnh khi in">
                                     <Toggle
                                         label="Dùng lề mặc định máy in"
                                         checked={settings.invoice_use_default_margins === 'true'}
@@ -1200,6 +1202,34 @@ const InvoiceDesigner = () => {
                                         <DesignerInput label="Dưới" value={settings.invoice_margin_bottom} onChange={(v) => updateSetting('invoice_margin_bottom', v)} type="number" />
                                         <DesignerInput label="Trái" value={settings.invoice_margin_left} onChange={(v) => updateSetting('invoice_margin_left', v)} type="number" />
                                         <DesignerInput label="Phải" value={settings.invoice_margin_right} onChange={(v) => updateSetting('invoice_margin_right', v)} type="number" />
+                                    </div>
+
+                                    <div className="border-t border-border mt-4 pt-3 space-y-2">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-700 dark:text-slate-200 font-bold">Đệm lề trên khi in (Padding Top)</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <input 
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="1"
+                                                    value={settings.invoice_padding_top || '0'}
+                                                    onChange={(e) => updateSetting('invoice_padding_top', e.target.value)}
+                                                    className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                />
+                                                <span className="text-[11px] text-slate-400 font-bold">mm</span>
+                                            </div>
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min="0" 
+                                            max="50" 
+                                            step="1" 
+                                            value={settings.invoice_padding_top || '0'} 
+                                            onChange={(e) => updateSetting('invoice_padding_top', e.target.value)} 
+                                            className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                        />
+                                        <p className="text-[10px] text-slate-400 italic">Thêm khoảng đệm cách mép giấy trên cùng khi in ra (hoạt động độc lập với lề máy in).</p>
                                     </div>
                                 </DesignerSection>
                             </div>
@@ -1239,6 +1269,63 @@ const InvoiceDesigner = () => {
                                         <DesignerInput label="Nội dung bảng" value={settings.invoice_table_content_size} onChange={(v) => updateSetting('invoice_table_content_size', v)} type="number" />
                                         <DesignerInput label="Tổng tiền" value={settings.invoice_total_section_size} onChange={(v) => updateSetting('invoice_total_section_size', v)} type="number" />
                                         <DesignerInput label="Còn lại (nổi bật)" value={settings.invoice_total_balance_size} onChange={(v) => updateSetting('invoice_total_balance_size', v)} type="number" />
+                                    </div>
+                                </DesignerSection>
+
+                                <DesignerSection title="Khoảng cách & Canh lề (Spacing)">
+                                    <div className="space-y-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-700 dark:text-slate-200 font-bold">Khoảng cách đầu trang (Header Spacing)</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <input 
+                                                        type="number"
+                                                        min="0"
+                                                        max="60"
+                                                        step="1"
+                                                        value={settings.invoice_header_spacing || '10'}
+                                                        onChange={(e) => updateSetting('invoice_header_spacing', e.target.value)}
+                                                        className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                    />
+                                                    <span className="text-[11px] text-slate-400 font-bold">px</span>
+                                                </div>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max="50" 
+                                                step="1" 
+                                                value={settings.invoice_header_spacing || '10'} 
+                                                onChange={(e) => updateSetting('invoice_header_spacing', e.target.value)} 
+                                                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-700 dark:text-slate-200 font-bold">Độ giãn dòng toàn trang (Line Spacing)</span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <input 
+                                                        type="number"
+                                                        min="1.0"
+                                                        max="2.5"
+                                                        step="0.05"
+                                                        value={settings.invoice_line_spacing || '1.4'}
+                                                        onChange={(e) => updateSetting('invoice_line_spacing', e.target.value)}
+                                                        className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <input 
+                                                type="range" 
+                                                min="1.0" 
+                                                max="2.0" 
+                                                step="0.05" 
+                                                value={settings.invoice_line_spacing || '1.4'} 
+                                                onChange={(e) => updateSetting('invoice_line_spacing', e.target.value)} 
+                                                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                            />
+                                        </div>
                                     </div>
                                 </DesignerSection>
                             </div>
@@ -1311,20 +1398,94 @@ const InvoiceDesigner = () => {
                                         <Toggle label="Viền dòng" checked={settings.invoice_table_border_rows === 'true'} onChange={(v) => updateSetting('invoice_table_border_rows', v ? 'true' : 'false')} />
                                         <Toggle label="Viền cột" checked={settings.invoice_table_border_cols === 'true'} onChange={(v) => updateSetting('invoice_table_border_cols', v ? 'true' : 'false')} />
 
-                                        <div className="pt-2">
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="text-slate-500 font-medium">Khoảng cách đệm dòng bảng</span>
-                                                <span className="font-bold">{settings.invoice_row_padding || '4'}px</span>
+                                        <div className="pt-2 space-y-4 border-t dark:border-slate-800">
+                                            {/* Khoảng cách đệm dòng bảng (Padding px) */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-slate-700 dark:text-slate-200 font-bold">Đệm dòng bảng (Row Padding)</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <input 
+                                                            type="number"
+                                                            min="0"
+                                                            max="30"
+                                                            step="1"
+                                                            value={settings.invoice_row_padding || '4'}
+                                                            onChange={(e) => updateSetting('invoice_row_padding', e.target.value)}
+                                                            className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                        />
+                                                        <span className="text-[11px] text-slate-400 font-bold">px</span>
+                                                    </div>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="0" 
+                                                    max="20" 
+                                                    step="1" 
+                                                    value={settings.invoice_row_padding || '4'} 
+                                                    onChange={(e) => updateSetting('invoice_row_padding', e.target.value)} 
+                                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                                />
                                             </div>
-                                            <input 
-                                                type="range" 
-                                                min="2" 
-                                                max="16" 
-                                                step="1" 
-                                                value={settings.invoice_row_padding || '4'} 
-                                                onChange={(e) => updateSetting('invoice_row_padding', e.target.value)} 
-                                                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
-                                            />
+
+                                            {/* Độ giãn dòng hàng bảng (Line Height) */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-slate-700 dark:text-slate-200 font-bold">Giãn dòng hàng (Line Spacing)</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <input 
+                                                            type="number"
+                                                            min="0.8"
+                                                            max="2.5"
+                                                            step="0.05"
+                                                            value={settings.invoice_table_line_height || '1.15'}
+                                                            onChange={(e) => updateSetting('invoice_table_line_height', e.target.value)}
+                                                            className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="0.8" 
+                                                    max="2.0" 
+                                                    step="0.05" 
+                                                    value={settings.invoice_table_line_height || '1.15'} 
+                                                    onChange={(e) => updateSetting('invoice_table_line_height', e.target.value)} 
+                                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                                />
+                                                <div className="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
+                                                    <button type="button" onClick={() => updateSetting('invoice_table_line_height', '1.0')} className="hover:text-[#4a7c59] transition-colors cursor-pointer">Gọn (1.0)</button>
+                                                    <button type="button" onClick={() => updateSetting('invoice_table_line_height', '1.15')} className="hover:text-[#4a7c59] transition-colors cursor-pointer text-[#4a7c59] font-bold">Chuẩn (1.15)</button>
+                                                    <button type="button" onClick={() => updateSetting('invoice_table_line_height', '1.35')} className="hover:text-[#4a7c59] transition-colors cursor-pointer">Thoáng (1.35)</button>
+                                                </div>
+                                            </div>
+
+                                            {/* Khoảng cách trước bảng (Margin Top) */}
+                                            <div className="space-y-1.5">
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-slate-700 dark:text-slate-200 font-bold">Khoảng cách trước bảng (Margin Top)</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <input 
+                                                            type="number"
+                                                            min="0"
+                                                            max="50"
+                                                            step="1"
+                                                            value={settings.invoice_table_margin_top || '5'}
+                                                            onChange={(e) => updateSetting('invoice_table_margin_top', e.target.value)}
+                                                            className="w-16 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg px-2 py-1 text-xs text-center font-bold outline-none focus:border-[#4a7c59]"
+                                                        />
+                                                        <span className="text-[11px] text-slate-400 font-bold">px</span>
+                                                    </div>
+                                                </div>
+                                                <input 
+                                                    type="range" 
+                                                    min="0" 
+                                                    max="30" 
+                                                    step="1" 
+                                                    value={settings.invoice_table_margin_top || '5'} 
+                                                    onChange={(e) => updateSetting('invoice_table_margin_top', e.target.value)} 
+                                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#4a7c59]"
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="border-t dark:border-slate-800 pt-3 mt-3">

@@ -423,6 +423,18 @@ def edit_pos_terminal_cart():
             term['partner'] = data.get('partner')
             term['partner_name'] = data.get('partner_name') or (data.get('partner').get('name') if data.get('partner') else 'Khách lẻ')
             
+        if 'payment_method' in data:
+            term['payment_method'] = data.get('payment_method') or 'Cash'
+            
+        if 'amount_paid' in data:
+            term['amount_paid'] = data.get('amount_paid', 0)
+            
+        if 'cash_given' in data:
+            term['cash_given'] = data.get('cash_given', 0)
+            
+        if 'note' in data:
+            term['note'] = data.get('note', '')
+            
         term['remote_updated'] = True
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -1148,8 +1160,12 @@ def get_product_summary():
         # Out of stock
         out_of_stock = Product.query.filter(Product.is_active == True, Product.stock <= 0).count()
         
-        # Warning (Low stock: e.g. < 5)
-        low_stock = Product.query.filter(Product.is_active == True, Product.stock > 0, Product.stock <= Product.multiplier).count()
+        # Warning (Low stock: e.g. stock <= min_stock or multiplier)
+        low_stock = Product.query.filter(
+            Product.is_active == True, 
+            Product.stock > 0, 
+            Product.stock <= db.case((Product.min_stock > 0, Product.min_stock), else_=db.func.coalesce(Product.multiplier, 1))
+        ).count()
         
         # Near expiry (within 30 days)
         # Dates are stored as "DD/MM/YYYY" strings or YYYY-MM-DD
@@ -1225,7 +1241,11 @@ def get_products():
     if filter_type == 'out_of_stock':
         query = query.filter(Product.stock <= 0)
     elif filter_type == 'warning':
-        query = query.filter(Product.is_active == True, Product.stock > 0, Product.stock <= Product.multiplier)
+        query = query.filter(
+            Product.is_active == True, 
+            Product.stock > 0, 
+            Product.stock <= db.case((Product.min_stock > 0, Product.min_stock), else_=db.func.coalesce(Product.multiplier, 1))
+        )
     elif filter_type == 'expired':
         today = datetime.now().strftime('%Y-%m-%d')
         query = query.filter(Product.expiry_date != None, Product.expiry_date != '', db.func.normalize_date(Product.expiry_date) <= today)
@@ -1335,7 +1355,8 @@ def create_product():
         accounting_stock=safe_float(data.get('accounting_stock'), 0),
         bulk_quantity=safe_float(data.get('bulk_quantity')),
         bulk_price=safe_float(data.get('bulk_price')),
-        alias=data.get('alias')
+        alias=data.get('alias'),
+        min_stock=safe_float(data.get('min_stock'), 0)
     )
     db.session.add(new_prod)
     db.session.flush() # Get ID
@@ -1381,6 +1402,8 @@ def update_product(id):
     prod.is_combo = data.get('is_combo', prod.is_combo)
     prod.is_active = data.get('is_active', prod.is_active)
     prod.alias = data.get('alias', prod.alias)
+    if 'min_stock' in data:
+        prod.min_stock = safe_float(data['min_stock'], prod.min_stock or 0)
     
     cat_id = data.get('category_id', prod.category_id)
     if cat_id == '' or cat_id == 0:
@@ -1444,6 +1467,7 @@ def bulk_update_products():
             if 'is_active' in item: prod.is_active = item['is_active']
             if 'accounting_price' in item: prod.accounting_price = item['accounting_price']
             if 'accounting_stock' in item: prod.accounting_stock = item['accounting_stock']
+            if 'min_stock' in item: prod.min_stock = safe_float(item['min_stock'], 0)
             
             updated_count += 1
             
@@ -1762,17 +1786,26 @@ def get_product_history(id):
         
         history = []
         for d in details:
+            if not d.order: continue
             change_qty = 0
             type_label = ''
             
             if d.order.type == 'Sale':
-                # Sale means Out
-                change_qty = -d.quantity
-                type_label = 'Bán hàng'
+                # Sale: negative quantity means customer returned items (stock increases)
+                if (d.quantity or 0) < 0:
+                    change_qty = -(d.quantity or 0)
+                    type_label = 'Khách trả hàng'
+                else:
+                    change_qty = -(d.quantity or 0)
+                    type_label = 'Bán hàng'
             elif d.order.type == 'Purchase':
-                # Purchase means In
-                change_qty = d.quantity
-                type_label = 'Nhập hàng'
+                # Purchase: negative quantity means returned items to supplier (stock decreases)
+                if (d.quantity or 0) < 0:
+                    change_qty = d.quantity or 0
+                    type_label = 'Trả hàng NCC'
+                else:
+                    change_qty = d.quantity or 0
+                    type_label = 'Nhập hàng'
                 
             # Handle Combos if necessary (Combos don't change stock directly? Wait, OrderDetail links to Product. 
             # If product is Combo, its stock decreases. But usually we track components.
@@ -1798,8 +1831,10 @@ def get_product_history(id):
             for cd in combo_details:
                 qty_deducted = cd.quantity * ci.quantity # Total items used
                 
-                type_label = 'Bán Combo'
-                if cd.order.type == 'Purchase': type_label = 'Nhập Combo' # Rare
+                if cd.order.type == 'Sale':
+                    type_label = 'Khách trả Combo' if (cd.quantity or 0) < 0 else 'Bán Combo'
+                else:
+                    type_label = 'Trả Combo NCC' if (cd.quantity or 0) < 0 else 'Nhập Combo'
                 
                 # If Sale, we lost stock
                 change = -qty_deducted if cd.order.type == 'Sale' else qty_deducted
@@ -2769,9 +2804,17 @@ def calculate_partner_ledger(id, filter_type='all', start_date=None, end_date=No
     
     timeline_raw = []
     for o in all_orders:
+        display_id_clean = (o.display_id or '').strip()
+        is_nodau = display_id_clean in ['#NODAU', 'NODAU'] or 'NODAU' in display_id_clean.upper()
+        if is_nodau:
+            desc = "Nợ đầu kỳ"
+        else:
+            clean_num = display_id_clean.lstrip('#') if display_id_clean else str(o.id)
+            desc = f"Bán hàng - #{clean_num}" if o.type == 'Sale' else f"Nhập hàng - #{clean_num}"
+            
         timeline_raw.append({
             'type': 'Order', 'date': o.date, 'is_debt': o.payment_method == 'Debt', 'obj': o,
-            'desc': f"Bán hàng - #{o.display_id or o.id}" if o.type == 'Sale' else f"Nhập hàng - #{o.display_id or o.id}"
+            'desc': desc
         })
     for v in all_vouchers:
         timeline_raw.append({
@@ -2838,13 +2881,14 @@ def calculate_partner_ledger(id, filter_type='all', start_date=None, end_date=No
         if filter_type == 'debt' and not item['is_debt']: continue
         if filter_type == 'cash' and item['is_debt']: continue
         
+        is_nodau_order = item['type'] == 'Order' and getattr(item['obj'], 'display_id', '') in ['#NODAU', 'NODAU']
         row = {
             'id': item['obj'].id,
             'date': item['date'].isoformat(),
-            'ref_id': f"{item['type'][:3].upper()}-{item['obj'].id}",
+            'ref_id': 'NODAU' if is_nodau_order else f"{item['type'][:3].upper()}-{item['obj'].id}",
             'desc': item['desc'],
             'type': item['type'],
-            'payment_method': getattr(item['obj'], 'payment_method', 'Bank' if item['type'] == 'Bank' else 'Cash'),
+            'payment_method': '-' if is_nodau_order else getattr(item['obj'], 'payment_method', 'Bank' if item['type'] == 'Bank' else 'Cash'),
             'increase': inc,
             'decrease': dec,
             'running_balance': balance,
@@ -4104,10 +4148,11 @@ def create_order():
         # Custom Order ID Generation (N.DD/MM/YY)
         local_now = get_vn_time()
         today_str = local_now.strftime('%d/%m/%y')
-        # Filter by date range for db agnostic
         start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_of_day = local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        order_type = data.get('type', 'Sale')
         count_today = Order.query.filter(Order.date >= start_of_day, Order.date <= end_of_day)\
+                                 .filter(Order.type == order_type)\
                                  .filter(Order.display_id.notin_(['NODAU', '#NODAU']))\
                                  .count()
         display_id = f"{count_today + 1}.{today_str}"
@@ -4854,7 +4899,8 @@ def update_order(id):
         if order.partner_id:
             partner = Partner.query.get(order.partner_id)
             if partner:
-                order.old_debt = partner.debt_balance
+                if not (old_partner and old_partner.id == partner.id and order.old_debt is not None):
+                    order.old_debt = partner.debt_balance
                 if order.payment_method == 'Debt':
                     if order.type == 'Sale':
                         partner.debt_balance += total
@@ -5553,13 +5599,13 @@ def scan_invoice():
 
     # Build parts list for Gemini
     prompt = (
-        "Hãy quét các ảnh hóa đơn hoặc phiếu nhập hàng này và trả về danh sách các sản phẩm dưới dạng JSON array. "
+        "Hãy quét các ảnh hóa đơn, phiếu nhập hàng, toa thuốc, đơn đặt hàng, hoặc giấy viết tay danh sách mua hàng của khách này và trả về danh sách các sản phẩm dưới dạng JSON array. "
         "Mỗi đối tượng sản phẩm trong mảng JSON bắt buộc phải tuân thủ cấu trúc sau:\n"
         "{\n"
-        "  \"product_name\": \"Tên sản phẩm (đầy đủ, rõ ràng)\",\n"
-        "  \"quantity\": số lượng nhập (kiểu số),\n"
-        "  \"price\": đơn giá nhập (kiểu số),\n"
-        "  \"unit\": \"đơn vị tính (nếu có, ví dụ: Cái, Thùng, Kg...)\"\n"
+        "  \"product_name\": \"Tên sản phẩm (đầy đủ, rõ ràng, giữ lại quy cách/hàm lượng/thể tích nếu có như 240ml, 500EC, 100g...)\",\n"
+        "  \"quantity\": số lượng mua hoặc nhập (kiểu số, mặc định là 1 nếu không ghi rõ),\n"
+        "  \"price\": đơn giá nếu có ghi trên giấy hoặc hóa đơn (kiểu số, nếu là đơn khách đặt không ghi giá thì để là 0),\n"
+        "  \"unit\": \"đơn vị tính nếu có (ví dụ: chai, gói, thùng, bao, can, kg, hộp...)\"\n"
         "}\n\n"
         "Chỉ trả về chuỗi JSON thô hợp lệ, không bọc trong ```json ... ``` hoặc bất kỳ ký tự nào khác. "
         "Nếu không phát hiện được sản phẩm nào, hãy trả về mảng rỗng []."

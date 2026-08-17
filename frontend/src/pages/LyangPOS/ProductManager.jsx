@@ -6,7 +6,7 @@ import CustomSelect from '../../components/CustomSelect';
 import {
     Plus, Edit2, Edit3, Trash2, Search, FileDown, Upload, Package, X,
     ChevronUp, ChevronDown, ArrowUpDown, Wheat,
-    FileText, Save, AlertTriangle, Clock, Boxes, Database, XCircle, Sparkles,
+    FileText, Save, AlertTriangle, Clock, Boxes, Database, XCircle, Sparkles, Ban, Check,
     SprayCan, Sprout, Leaf, Droplets, FlaskConical, Bug, Hammer, Fuel, Truck, Archive, Layers, Tags, ShoppingCart
 } from 'lucide-react';
 import { formatNumber, isNearExpiry, isExpired, normalizeUOM, cn, removeAccents } from '../../lib/utils';
@@ -18,6 +18,31 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import QuickEditModal from '../../components/QuickEditModal';
 import CategoryIcon from '../../components/CategoryIcon';
 import { useQueryClient } from '@tanstack/react-query';
+
+const ThemeCheckbox = ({ checked, indeterminate, onChange, title, className }) => (
+    <button
+        type="button"
+        role="checkbox"
+        aria-checked={checked}
+        title={title}
+        onClick={(e) => {
+            e.stopPropagation();
+            onChange?.(e);
+        }}
+        className={cn(
+            "w-4.5 h-4.5 rounded-[6px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer select-none outline-none shrink-0",
+            checked
+                ? "bg-gradient-to-br from-[#2d5016] to-[#4a7c59] border-[#2d5016] text-white shadow-sm shadow-[#2d5016]/30 scale-105"
+                : indeterminate
+                    ? "bg-[#2d5016]/15 border-[#4a7c59] text-[#2d5016]"
+                    : "bg-white dark:bg-slate-800 border-[#d4a574]/40 hover:border-[#4a7c59] dark:border-slate-600 hover:scale-105 shadow-2xs",
+            className
+        )}
+    >
+        {checked && <Check size={12} strokeWidth={3.5} className="text-white" />}
+        {!checked && indeterminate && <span className="w-2 h-0.5 bg-[#2d5016] dark:bg-emerald-400 rounded-full" />}
+    </button>
+);
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -325,8 +350,11 @@ export default function ProductManager() {
     useEffect(() => {
         fetchProducts();
         fetchSummary();
-        setSelectedIds([]);
     }, [page, limit, searchQuery, filterType, sortBy, sortOrder, selectedBrand, selectedCategory]);
+
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [searchQuery, filterType, selectedBrand, selectedCategory]);
 
     const fetchSummary = async () => {
         try {
@@ -461,11 +489,15 @@ export default function ProductManager() {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
+    const isCurrentPageAllSelected = products.length > 0 && products.every(p => selectedIds.includes(p.id));
+
     const toggleSelectAll = () => {
-        if (selectedIds.length === products.length && products.length > 0) {
-            setSelectedIds([]);
+        if (isCurrentPageAllSelected) {
+            const currentPageIds = new Set(products.map(p => p.id));
+            setSelectedIds(prev => prev.filter(id => !currentPageIds.has(id)));
         } else {
-            setSelectedIds(products.map(p => p.id));
+            const currentPageIds = products.map(p => p.id);
+            setSelectedIds(prev => Array.from(new Set([...prev, ...currentPageIds])));
         }
     };
 
@@ -569,16 +601,27 @@ export default function ProductManager() {
                     <div className="flex flex-wrap gap-2.5">
                         <AnimatePresence>
                             {selectedIds.length > 0 && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 items-center">
+                                    <m.button
+                                        key="clear-select"
+                                        initial={{ opacity: 0, scale: 0.9, x: 20 }}
+                                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                        onClick={() => setSelectedIds([])}
+                                        className="bg-[#faf8f3] dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/40 hover:bg-[#d4a574]/15 hover:border-[#8b6f47] px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm"
+                                        title="Bỏ chọn tất cả các trang"
+                                    >
+                                        <X size={14} /> Bỏ chọn ({selectedIds.length})
+                                    </m.button>
                                     <m.button
                                         key="bulk-delete"
                                         initial={{ opacity: 0, scale: 0.9, x: 20 }}
                                         animate={{ opacity: 1, scale: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                         onClick={handleBulkDelete}
-                                        className="bg-red-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 hover:bg-red-700 transition-all shadow-lg shadow-red-500/20 font-black uppercase text-[10px] tracking-wider"
+                                        className="bg-[#c84b31] hover:bg-[#b03e26] text-white px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#c84b31]/25 hover:shadow-[#c84b31]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
                                     >
-                                        <Trash2 size={16} strokeWidth={2.5} /> Xóa ({selectedIds.length})
+                                        <Trash2 size={15} strokeWidth={2.5} /> Xóa ({selectedIds.length})
                                     </m.button>
                                     <m.button
                                         key="bulk-edit"
@@ -586,27 +629,27 @@ export default function ProductManager() {
                                         animate={{ opacity: 1, scale: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                         onClick={openQuickEdit}
-                                        className="bg-emerald-600 text-white px-5 py-3 rounded-2xl flex items-center gap-2 hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 font-black uppercase text-[10px] tracking-wider"
+                                        className="bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#2d5016]/25 hover:shadow-[#2d5016]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
                                     >
-                                        <Sparkles size={16} strokeWidth={2.5} /> SỬA NHANH HÀNG LOẠT ({selectedIds.length})
+                                        <Sparkles size={15} strokeWidth={2.5} /> SỬA NHANH ({selectedIds.length})
                                     </m.button>
                                 </div>
                             )}
                         </AnimatePresence>
-                        <div className="flex bg-transparent p-1 rounded-xl border border-border shadow-none">
-                            <button onClick={handleDownloadTemplate} className="px-4 py-2 text-[#8b6f47] dark:text-[#d4a574] rounded-lg flex items-center gap-2 hover:bg-[#d4a574]/10 transition-all font-black uppercase text-[10px]">
-                                <FileDown size={16} /> Mẫu Excel
+                        <div className="flex bg-[#faf8f3] dark:bg-slate-800/80 p-1 rounded-2xl border border-[#d4a574]/30 shadow-sm">
+                            <button onClick={handleDownloadTemplate} className="px-3.5 py-2 text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center gap-1.5 hover:bg-[#d4a574]/15 transition-all font-black uppercase text-[10px] tracking-wider">
+                                <FileDown size={15} /> Mẫu Excel
                             </button>
-                            <button onClick={handleExportList} className="px-4 py-2 text-primary dark:text-[#4a7c59] rounded-lg flex items-center gap-2 hover:bg-[#4a7c59]/10 transition-all font-black uppercase text-[10px]">
-                                <FileText size={16} /> Xuất DS
+                            <button onClick={handleExportList} className="px-3.5 py-2 text-[#2d5016] dark:text-emerald-400 rounded-xl flex items-center gap-1.5 hover:bg-[#2d5016]/10 dark:hover:bg-emerald-950/40 transition-all font-black uppercase text-[10px] tracking-wider">
+                                <FileText size={15} /> Xuất DS
                             </button>
                         </div>
-                        <label className="bg-primary hover:bg-primary-hover text-white px-5 py-3 rounded-xl flex items-center gap-2 transition-all shadow-none font-black uppercase text-[10px] tracking-wider cursor-pointer">
-                            <Upload size={16} strokeWidth={2.5} /> Nhập Kho
+                        <label className="bg-white dark:bg-slate-800 text-[#2d5016] dark:text-emerald-400 border border-[#d4a574]/40 hover:border-[#4a7c59] hover:bg-[#2d5016]/5 px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm cursor-pointer">
+                            <Upload size={15} strokeWidth={2.5} /> Nhập Kho
                             <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
                         </label>
-                        <button onClick={openAdd} className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all shadow-none font-black uppercase text-[10px] tracking-wider">
-                            <Plus size={18} strokeWidth={3} /> Thêm Mới
+                        <button onClick={openAdd} className="bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#2d5016]/25 hover:shadow-[#2d5016]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider">
+                            <Plus size={16} strokeWidth={3} /> Thêm Mới
                         </button>
                     </div>
                 </m.div>
@@ -678,6 +721,25 @@ export default function ProductManager() {
 
                     <div className="flex flex-wrap gap-4 w-full xl:w-auto items-center">
                         <div className="flex flex-col gap-1.5 min-w-[160px]">
+                            <label className="text-[9px] font-black text-[#8b6f47] uppercase ml-1 tracking-widest">Trạng thái</label>
+                            <CustomSelect
+                                className="w-full border border-border rounded-xl px-1 py-0.5"
+                                value={filterType}
+                                onChange={e => { setFilterType(e.target.value); setPage(1); }}
+                                options={[
+                                    { value: 'all', label: 'Tất cả' },
+                                    { value: 'safe', label: 'Sẵn sàng' },
+                                    { value: 'warning', label: 'Cần nhập' },
+                                    { value: 'out_of_stock', label: 'Hết hàng' },
+                                    { value: 'expired', label: 'Hết hạn' },
+                                    { value: 'near_expiry', label: 'Sắp hết hạn' },
+                                    { value: 'inactive', label: 'Ngừng TD' },
+                                    { value: 'loss', label: 'Bán lỗ' },
+                                    { value: 'unused', label: 'Chưa bán' }
+                                ]}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5 min-w-[160px]">
                             <label className="text-[9px] font-black text-[#8b6f47] uppercase ml-1 tracking-widest">Thương hiệu</label>
                             <CustomSelect
                                 className="w-full border border-border rounded-xl px-1 py-0.5"
@@ -712,39 +774,6 @@ export default function ProductManager() {
                         </div>
                     </div>
                 </div>
-
-                {/* Row 2: Visual Segmented Control for Filters */}
-                <div className="p-1 bg-transparent rounded-xl border border-border flex flex-wrap gap-1 shadow-none">
-                    {[
-                        { id: 'all', label: 'Tất cả', color: 'bg-primary' },
-                        { id: 'safe', label: 'Sẵn sàng', color: 'bg-emerald-600' },
-                        { id: 'warning', label: 'Cần nhập', color: 'bg-orange-500' },
-                        { id: 'out_of_stock', label: 'Hết hàng', color: 'bg-red-500' },
-                        { id: 'expired', label: 'Hết hạn', color: 'bg-rose-600' },
-                        { id: 'near_expiry', label: 'Sắp hết hạn', color: 'bg-indigo-600' },
-                        { id: 'inactive', label: 'Ngừng TD', color: 'bg-transparent-panel0' },
-                        { id: 'loss', label: 'Bán lỗ', color: 'bg-rose-800' },
-                        { id: 'unused', label: 'Chưa bán', color: 'bg-indigo-600' }
-                    ].map((f) => (
-                        <button
-                            key={f.id}
-                            onClick={() => { setFilterType(f.id); setPage(1); }}
-                            className={cn(
-                                "relative px-6 py-2.5 rounded-lg text-[10px] font-black uppercase transition-all duration-300 flex-1 min-w-[100px]",
-                                filterType === f.id ? "text-white" : "text-[#8b6f47] hover:bg-primary/10"
-                            )}
-                        >
-                            {filterType === f.id && (
-                                <m.div
-                                    layoutId="productActiveFilter"
-                                    className={cn("absolute inset-0 rounded-lg shadow-none", f.color)}
-                                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                                />
-                            )}
-                            <span className="relative z-10">{f.label}</span>
-                        </button>
-                    ))}
-                </div>
             </m.div>
 
 
@@ -762,12 +791,14 @@ export default function ProductManager() {
                                 <thead className="bg-primary/5 border-b border-border text-[10px] font-black tracking-widest text-muted uppercase sticky top-0 z-20">
                                     <tr>
                                         <th className="p-3 w-12 text-center">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 rounded border-2 border-gray-300 text-[#4a7c59] focus:ring-[#4a7c59] cursor-pointer"
-                                                checked={selectedIds.length === products.length && products.length > 0}
-                                                onChange={toggleSelectAll}
-                                            />
+                                            <div className="flex items-center justify-center">
+                                                <ThemeCheckbox
+                                                    checked={products.length > 0 && products.every(p => selectedIds.includes(p.id))}
+                                                    indeterminate={products.some(p => selectedIds.includes(p.id)) && !products.every(p => selectedIds.includes(p.id))}
+                                                    onChange={toggleSelectAll}
+                                                    title={products.length > 0 && products.every(p => selectedIds.includes(p.id)) ? "Bỏ chọn trang này" : "Chọn tất cả trang này"}
+                                                />
+                                            </div>
                                         </th>
                                         <th onClick={() => handleSort('code')} className="p-3 w-28 font-black uppercase text-[12px] text-gray-400 cursor-pointer hover:text-[#4a7c59] transition-colors tracking-widest text-center">MÃ HÀNG</th>
                                         <th onClick={() => handleSort('name')} className="p-3 min-w-[150px] font-black uppercase text-[12px] text-gray-400 cursor-pointer hover:text-[#4a7c59] transition-colors tracking-widest text-left">SẢN PHẨM</th>
@@ -785,7 +816,8 @@ export default function ProductManager() {
                                 <tbody className="divide-y dark:divide-slate-800">
                                     <AnimatePresence mode="popLayout">
                                         {products.map((p, idx) => {
-                                            const isLowStock = p.stock > 0 && p.stock <= (p.multiplier || 1);
+                                            const threshold = Number(p.min_stock) > 0 ? Number(p.min_stock) : (Number(p.multiplier) || 1);
+                                            const isLowStock = p.stock > 0 && p.stock <= threshold;
                                             const expired = isExpired(p.expiry_date);
                                             const nearExp = isNearExpiry(p.expiry_date);
                                             const isSelected = selectedIds.includes(p.id);
@@ -802,13 +834,13 @@ export default function ProductManager() {
                                                         !p.is_active && "opacity-50 grayscale-[0.3]"
                                                     )}
                                                 >
-                                                    <td className="p-3 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="w-4 h-4 rounded border-2 border-gray-300 text-[#4a7c59] focus:ring-[#4a7c59] cursor-pointer"
-                                                            checked={isSelected}
-                                                            onChange={() => toggleSelect(p.id)}
-                                                        />
+                                                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center justify-center">
+                                                            <ThemeCheckbox
+                                                                checked={isSelected}
+                                                                onChange={() => toggleSelect(p.id)}
+                                                            />
+                                                        </div>
                                                     </td>
                                                     <td className="p-3 text-center text-[12px] font-black text-[#8b6f47] group-hover:text-[#4a7c59] tabular-nums">
                                                         {p.code || `ID:${p.id}`}
@@ -824,15 +856,21 @@ export default function ProductManager() {
                                                                 <span className="font-black text-[14px] text-gray-800 dark:text-gray-100 uppercase break-words leading-tight group-hover:text-[#4a7c59] transition-all duration-300" title={p.name}>{p.name}</span>
                                                             </div>
                                                             {isLowStock && p.is_active && (
-                                                                <div className="flex items-center gap-1.5 mt-1.5">
-                                                                    <span className="flex h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
-                                                                    <span className="text-[10px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border border-rose-200">🚩 Sắp hết hàng</span>
+                                                                <div className="flex items-center gap-1.5 mt-1.5" title={`Tồn kho (${p.stock}) ≤ Mức cảnh báo (${threshold})`}>
+                                                                    <span className="flex h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                                                                    <span className="text-[10px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
+                                                                        <AlertTriangle size={11} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                                                        <span>Cần nhập (≤{threshold})</span>
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                             {!p.is_active && (
                                                                 <div className="flex items-center gap-1.5 mt-1.5">
                                                                     <span className="flex h-1.5 w-1.5 rounded-full bg-slate-400" />
-                                                                    <span className="text-[10px] text-slate-500 bg-transparent px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border border-slate-200">💤 Ngừng theo dõi</span>
+                                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                                                                        <Ban size={11} className="text-slate-400 shrink-0" />
+                                                                        <span>Ngừng theo dõi</span>
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -850,10 +888,10 @@ export default function ProductManager() {
                                                         <div className="flex items-center justify-end">
                                                             <div className={cn(
                                                                 "flex items-center px-3 py-1.5 rounded-2xl border-2 transition-transform duration-300 group-hover:scale-110 shadow-sm font-black tabular-nums text-[14px]",
-                                                                p.stock <= 0 ? "bg-rose-50 border-rose-200 text-rose-600" :
-                                                                    (p.stock > 0 && p.stock <= (p.multiplier || 1)) ? "bg-amber-50 border-amber-200 text-amber-600" :
-                                                                        "bg-emerald-50 border-emerald-200/50 text-[#2d5016]"
-                                                            )}>
+                                                                p.stock <= 0 ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-300" :
+                                                                    isLowStock ? "bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-300" :
+                                                                        "bg-emerald-50 border-emerald-200/50 text-[#2d5016] dark:bg-emerald-900/30 dark:text-emerald-300"
+                                                            )} title={isLowStock ? `Tồn kho: ${p.stock} (Mức cảnh báo: ${threshold})` : `Tồn kho: ${p.stock}`}>
                                                                 <Boxes size={14} className="mr-2 opacity-60" />
                                                                 {p.stock}
                                                             </div>
@@ -921,6 +959,7 @@ export default function ProductManager() {
                     onClose={() => setIsQuickEditOpen(false)}
                     allProducts={allProductsForEdit}
                     categories={categories}
+                    selectedProductIds={selectedIds}
                     onSave={handleBulkUpdate}
                 />
 

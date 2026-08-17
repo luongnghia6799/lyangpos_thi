@@ -22,6 +22,7 @@ const EDITABLE_FIELDS = [
     { id: 'accounting_price', label: 'Giá Kế Toán', icon: FileSpreadsheet, type: 'number' },
     { id: 'cost_price', label: 'Giá Vốn', icon: Hash, type: 'number' },
     { id: 'stock', label: 'Tồn Kho', icon: Package, type: 'number' },
+    { id: 'min_stock', label: 'Tồn Cảnh Báo', icon: AlertTriangle, type: 'number' },
     { id: 'accounting_stock', label: 'Tồn Kế Toán', icon: Layers, type: 'number' },
     { id: 'unit', label: 'Đơn Vị Chính', icon: Box, type: 'select' },
     { id: 'secondary_unit', label: 'Đơn Vị Cách', icon: Box, type: 'select' },
@@ -41,6 +42,7 @@ export default function QuickEditModal({
     onClose,
     allProducts,
     categories,
+    selectedProductIds = [],
     onSave
 }) {
     const accountingEnabled = localStorage.getItem('feature_accounting_enabled') === 'true';
@@ -78,23 +80,32 @@ export default function QuickEditModal({
         return uniqueUnits.map(u => ({ id: u, name: u }));
     }, [allProducts]);
 
-    // Add an empty row on open if empty
+    // Populate rows when modal opens (either with selected items across pages, or 1 empty search row)
     useEffect(() => {
-        if (isOpen && rows.length === 0) {
-            handleAddRow();
+        if (isOpen) {
+            if (selectedProductIds && selectedProductIds.length > 0) {
+                const initialRows = selectedProductIds.map(pId => {
+                    const product = allProducts.find(p => p.id === pId);
+                    return {
+                        id: Math.random().toString(36).substr(2, 9),
+                        productId: pId,
+                        productData: product,
+                        values: {}
+                    };
+                });
+                setRows([
+                    { id: Math.random().toString(36).substr(2, 9), productId: null, values: {} },
+                    ...initialRows
+                ]);
+            } else {
+                setRows([{
+                    id: Math.random().toString(36).substr(2, 9),
+                    productId: null,
+                    values: {}
+                }]);
+            }
         }
     }, [isOpen]);
-
-    // Focus last row product search if just added
-    useEffect(() => {
-        if (rows.length > 0) {
-            const lastRow = rows[rows.length - 1];
-            // If it's a new empty row, we might want to focus it
-            // But we need to handle this carefully to not annoy the user
-        }
-    }, [rows.length]);
-
-    if (!isOpen) return null;
 
     const handleAddRow = () => {
         setRows([{
@@ -124,7 +135,6 @@ export default function QuickEditModal({
 
             // If we just selected a product in an empty row, and it was the first row,
             // we might want to ensure there is always an empty one at the top.
-            // But let's check if the first row is now occupied.
             if (newRows[0].productId !== null) {
                 return [{
                     id: Math.random().toString(36).substr(2, 9),
@@ -136,7 +146,6 @@ export default function QuickEditModal({
         });
 
         // Focus the first field of the row we just filled
-        // Since we prepended a row, the row we filled is now at index 1
         setTimeout(() => {
             const firstFieldOfFilledRow = tableRef.current?.querySelector(`[data-row="1"][data-field="0"] input, [data-row="1"][data-field="0"] button`);
             firstFieldOfFilledRow?.focus();
@@ -161,30 +170,22 @@ export default function QuickEditModal({
     };
 
     const handleKeyDown = (e, rowIdx, fieldIdx) => {
-        // fieldIdx -1 is Product Selection
-        // fieldIdx >= 0 are selectedFields
-
         if (e.key === 'Enter') {
-            // Enter always jumps back to Top Search (Row 0) to prepare for next item
             e.preventDefault();
             setTimeout(() => {
                 const topSearch = tableRef.current?.querySelector(`[data-row="0"][data-field="-1"] input`);
                 topSearch?.focus();
             }, 50);
         } else if (e.key === 'Tab') {
-            // Tab moves to next field
             const isLastField = fieldIdx === selectedFields.length - 1;
 
             if (isLastField) {
-                // If it's the last field, go back to top search
                 e.preventDefault();
                 setTimeout(() => {
                     const topSearch = tableRef.current?.querySelector(`[data-row="0"][data-field="-1"] input`);
                     topSearch?.focus();
                 }, 50);
             } else {
-                // Natural tab handles fieldIdx -1 to 0 if we let it, 
-                // but we have custom fieldIdx tracking.
                 e.preventDefault();
                 const nextField = tableRef.current?.querySelector(`[data-row="${rowIdx}"][data-field="${fieldIdx + 1}"] input, [data-row="${rowIdx}"][data-field="${fieldIdx + 1}"] button`);
                 nextField?.focus();
@@ -208,243 +209,237 @@ export default function QuickEditModal({
     return (
         <Portal>
             <AnimatePresence>
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-                    <m.div
-                        initial={{ opacity: 0, scale: 0.95, y: 30, filter: 'blur(10px)' }}
-                        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-                        exit={{ opacity: 0, scale: 0.95, y: 30, filter: 'blur(10px)' }}
-                        transition={{ 
-                            type: "spring", 
-                            stiffness: 260, 
-                            damping: 20, 
-                            mass: 1
-                        }}
-                        className="bg-transparent w-[95vw] h-[90vh] rounded-[3rem] shadow-2xl overflow-hidden border-4 border-white dark:border-slate-800 flex flex-col"
-                    >
-                        {/* Header */}
-                        <div className="p-8 border-b dark:border-slate-800 flex justify-between items-center bg-primary/5 dark:bg-primary/10">
-                            <div className="flex items-center gap-6">
-                                <m.div 
-                                    initial={{ rotate: -10 }}
-                                    animate={{ rotate: 3 }}
-                                    className="w-16 h-16 bg-gradient-to-br from-primary to-[#4a7c59] rounded-[24px] flex items-center justify-center text-white shadow-xl shadow-primary/30"
-                                >
-                                    <Sparkles size={32} strokeWidth={2.5} />
-                                </m.div>
-                                <div className="space-y-1">
-                                    <h2 className="text-3xl font-black text-slate-800 dark:text-primary uppercase tracking-tighter leading-none">Cập Nhật Nhanh Vụ Mùa</h2>
-                                    <div className="flex items-center gap-3">
-                                        <div className="px-3 py-0.5 bg-primary/10 dark:bg-primary/40 text-primary rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20">CHẾ ĐỘ BẢNG TÍNH</div>
-                                        <span className="w-1 h-1 rounded-full bg-primary/40"></span>
-                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Đang chỉnh sửa {rows.filter(r => r.productId).length} sản phẩm</p>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-md"
+                            onClick={onClose}
+                        />
+
+                        {/* Modal Container */}
+                        <m.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ 
+                                duration: 0.25,
+                                ease: [0.22, 1, 0.36, 1]
+                            }}
+                            className="bg-[#faf8f3] dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-[95vw] h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden border-2 border-[#d4a574]/30 dark:border-slate-800 flex flex-col relative z-10"
+                        >
+                            {/* Header */}
+                            <div className="p-5 px-8 border-b border-[#d4a574]/20 dark:border-slate-800 flex justify-between items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-[#2d5016] to-[#4a7c59] rounded-2xl flex items-center justify-center text-white shadow-md shadow-[#2d5016]/25">
+                                        <Sparkles size={24} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h2 className="text-2xl font-black text-[#2d5016] dark:text-[#4a7c59] uppercase tracking-tight leading-none">Cập Nhật Nhanh Vụ Mùa</h2>
+                                        <div className="flex items-center gap-3">
+                                            <div className="px-2.5 py-0.5 bg-[#2d5016]/10 dark:bg-[#4a7c59]/20 text-[#2d5016] dark:text-emerald-300 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#2d5016]/20">CHẾ ĐỘ BẢNG TÍNH</div>
+                                            <span className="w-1 h-1 rounded-full bg-[#8b6f47]/50"></span>
+                                            <p className="text-[11px] font-bold text-[#8b6f47] dark:text-slate-400 uppercase tracking-wider">Đang chỉnh sửa {rows.filter(r => r.productId).length} sản phẩm</p>
+                                        </div>
                                     </div>
                                 </div>
+                                <button onClick={onClose} className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-[#8b6f47] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-[#d4a574]/25 dark:border-slate-700 shadow-sm">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-transparent flex items-center justify-center text-gray-400 hover:text-red-500 hover:shadow-lg transition-all border border-gray-100 dark:border-slate-700">
-                                <X size={24} />
-                            </button>
-                        </div>
 
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* Left Sidebar: Field Selection */}
-                            <div className="w-72 flex-shrink-0 border-r dark:border-slate-800 bg-transparent/50 dark:bg-slate-900/20 p-6 overflow-y-auto no-scrollbar hidden xl:flex flex-col gap-6">
-                                <div className="space-y-1">
-                                    <h3 className="text-[10px] font-black text-[#8b6f47] uppercase tracking-[0.2em] ml-2">Tiêu chí cần sửa</h3>
-                                    <p className="text-[9px] text-gray-400 italic ml-2">Chọn các cột anh muốn hiện trên bảng</p>
+                            <div className="flex flex-1 overflow-hidden">
+                                {/* Left Sidebar: Field Selection */}
+                                <div className="w-72 flex-shrink-0 border-r border-[#d4a574]/20 dark:border-slate-800 bg-[#f7f4ed]/90 dark:bg-slate-950/40 p-5 overflow-y-auto custom-scrollbar hidden xl:flex flex-col gap-4">
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-[11px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.15em] ml-1">Tiêu chí cần sửa</h3>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 italic ml-1">Chọn các cột muốn hiện trên bảng</p>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        {EDITABLE_FIELDS_FILTERED.map(f => {
+                                            const isActive = selectedFields.includes(f.id);
+                                            const Icon = f.icon;
+                                            return (
+                                                <button
+                                                    key={f.id}
+                                                    onClick={() => toggleField(f.id)}
+                                                    className={cn(
+                                                        "flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-200 text-left group",
+                                                        isActive
+                                                            ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-md shadow-[#2d5016]/20 border-transparent"
+                                                            : "bg-white dark:bg-slate-800/80 border-[#d4a574]/25 dark:border-slate-700/60 hover:border-[#4a7c59]/50 text-slate-700 dark:text-slate-300 shadow-sm"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm shrink-0",
+                                                        isActive ? "bg-white/20 text-white" : "bg-[#faf8f3] dark:bg-slate-700 text-[#2d5016] dark:text-emerald-400"
+                                                    )}>
+                                                        <Icon size={18} />
+                                                    </div>
+                                                    <div className="flex-1 flex flex-col min-w-0">
+                                                        <span className="text-[11px] font-black uppercase tracking-tight leading-tight truncate">{f.label}</span>
+                                                        {isActive && <span className="text-[9px] font-bold opacity-80">Đang bật</span>}
+                                                    </div>
+                                                    {isActive && <Check size={16} className="text-white shrink-0" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2">
-                                    {EDITABLE_FIELDS_FILTERED.map(f => {
-                                        const isActive = selectedFields.includes(f.id);
-                                        const Icon = f.icon;
-                                        return (
+                                {/* Main Table Area */}
+                                <div className="flex-1 flex flex-col bg-[#f4efe6]/40 dark:bg-slate-950/40 relative">
+                                    {/* Mobile/Small screen field toggle */}
+                                    <div className="xl:hidden p-3 border-b border-[#d4a574]/20 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2 overflow-x-auto custom-scrollbar">
+                                        {EDITABLE_FIELDS_FILTERED.map(f => (
                                             <button
                                                 key={f.id}
                                                 onClick={() => toggleField(f.id)}
                                                 className={cn(
-                                                    "flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300 text-left group",
-                                                    isActive
-                                                        ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
-                                                        : "bg-transparent border-transparent hover:border-primary/20 dark:hover:border-primary/40 text-gray-600 dark:text-gray-400"
+                                                    "whitespace-nowrap px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all",
+                                                    selectedFields.includes(f.id)
+                                                        ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white border-transparent shadow-sm"
+                                                        : "bg-white dark:bg-slate-800 border-[#d4a574]/30 dark:border-slate-700 text-[#8b6f47]"
                                                 )}
                                             >
-                                                <div className={cn(
-                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-sm",
-                                                    isActive ? "bg-white/20" : "bg-transparent dark:bg-slate-700 group-hover:bg-transparent"
-                                                )}>
-                                                    <Icon size={20} className={isActive ? "text-white" : "text-primary"} />
-                                                </div>
-                                                <div className="flex-1 flex flex-col">
-                                                    <span className="text-[11px] font-black uppercase tracking-tight leading-tight">{f.label}</span>
-                                                    {isActive && <span className="text-[8px] font-bold opacity-70">Đang bật</span>}
-                                                </div>
-                                                {isActive && <Check size={16} className="text-white" />}
+                                                {f.label}
                                             </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                                        ))}
+                                    </div>
 
-                            {/* Main Table Area */}
-                            <div className="flex-1 flex flex-col bg-transparent relative">
-                                {/* Mobile/Small screen field toggle - simple list */}
-                                <div className="xl:hidden p-4 border-b dark:border-slate-800 flex gap-2 overflow-x-auto no-scrollbar">
-                                    {EDITABLE_FIELDS_FILTERED.map(f => (
-                                        <button
-                                            key={f.id}
-                                            onClick={() => toggleField(f.id)}
-                                            className={cn(
-                                                "whitespace-nowrap px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter border-2 transition-all",
-                                                selectedFields.includes(f.id)
-                                                    ? "bg-primary border-primary text-white"
-                                                    : "bg-transparent border-transparent text-gray-400"
-                                            )}
-                                        >
-                                            {f.label}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Scrollable Table Area with container restriction */}
-                                <div className="flex-1 relative w-full overflow-hidden">
-                                    <div ref={tableRef} className="absolute inset-0 overflow-auto bg-[#fafafa] dark:bg-slate-900/50 p-8 custom-scrollbar">
-                                        <div className="min-w-fit space-y-4">
-                                            <div className="flex items-center px-6 py-4 bg-transparent rounded-[28px] border-2 border-primary/10 shadow-sm sticky top-0 z-50 w-max min-w-full">
-                                                <div className="sticky left-0 z-30 w-[300px] flex-shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2 bg-transparent pr-4">Sản phẩm cần điều chỉnh</div>
-                                                <div className="flex items-center gap-4">
-                                                    {selectedFields.map(fieldId => (
-                                                        <div key={fieldId} className="w-[180px] flex-shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
-                                                            {EDITABLE_FIELDS_FILTERED.find(f => f.id === fieldId).label}
-                                                        </div>
-                                                    ))}
+                                    {/* Scrollable Table Area */}
+                                    <div className="flex-1 relative w-full overflow-hidden">
+                                        <div ref={tableRef} className="absolute inset-0 overflow-auto bg-[#f4efe6]/40 dark:bg-slate-950/40 p-6 custom-scrollbar">
+                                            <div className="min-w-fit space-y-3">
+                                                {/* Header Row */}
+                                                <div className="flex items-center px-6 py-3 bg-[#ebe4d6] dark:bg-slate-800 rounded-2xl border border-[#d4a574]/35 dark:border-slate-700 shadow-sm sticky top-0 z-30 w-max min-w-full backdrop-blur-md">
+                                                    <div className="sticky left-0 z-30 w-[300px] flex-shrink-0 text-[11px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest pl-2 bg-[#ebe4d6] dark:bg-slate-800 pr-4">Sản phẩm cần điều chỉnh</div>
+                                                    <div className="flex items-center gap-4">
+                                                        {selectedFields.map(fieldId => (
+                                                            <div key={fieldId} className="w-[180px] flex-shrink-0 text-[11px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest text-center">
+                                                                {EDITABLE_FIELDS_FILTERED.find(f => f.id === fieldId)?.label}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="w-12 flex-shrink-0"></div>
                                                 </div>
-                                                <div className="w-12 flex-shrink-0"></div>
-                                            </div>
 
-                                            <AnimatePresence initial={false}>
-                                                {rows.map((row, idx) => (
-                                                    <m.div
-                                                        key={row.id}
-                                                        initial={{ opacity: 0, x: -20, scale: 0.98 }}
-                                                        animate={{ opacity: 1, x: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, x: 20, scale: 0.98 }}
-                                                        transition={{ 
-                                                            duration: 0.3,
-                                                            delay: idx * 0.05,
-                                                            type: "spring",
-                                                            stiffness: 300,
-                                                            damping: 30
-                                                        }}
-                                                        className="flex items-center px-6 py-4 bg-transparent rounded-[32px] border-2 border-white dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group w-max min-w-full relative focus-within:z-50"
-                                                    >
-                                                        <div className="sticky left-0 z-20 w-[300px] flex-shrink-0 bg-transparent pr-4 group-focus-within:z-50" data-row={idx} data-field="-1">
-                                                            <ProductAutocomplete
-                                                                allProducts={allProducts}
-                                                                value={row.productId}
-                                                                onKeyDown={(e) => handleKeyDown(e, idx, -1)}
-                                                                onChange={(val) => handleProductSelect(row.id, val)}
-                                                                placeholder="🔍 Gõ tên hoặc mã SP..."
-                                                                className="!rounded-2xl !text-[13px] !font-black"
-                                                            />
-                                                        </div>
+                                                <AnimatePresence initial={false}>
+                                                    {rows.map((row, idx) => (
+                                                        <m.div
+                                                            key={row.id}
+                                                            initial={{ opacity: 0, x: -15, scale: 0.98 }}
+                                                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                                                            exit={{ opacity: 0, x: 15, scale: 0.98 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="flex items-center px-6 py-3.5 bg-white dark:bg-slate-800 rounded-2xl border border-[#d4a574]/25 dark:border-slate-700/80 shadow-sm hover:shadow-md hover:border-[#4a7c59]/50 transition-all group w-max min-w-full relative focus-within:z-20"
+                                                        >
+                                                            <div className="sticky left-0 z-20 w-[300px] flex-shrink-0 bg-white dark:bg-slate-800 pr-4 group-focus-within:z-20" data-row={idx} data-field="-1">
+                                                                <ProductAutocomplete
+                                                                    allProducts={allProducts}
+                                                                    value={row.productId}
+                                                                    onKeyDown={(e) => handleKeyDown(e, idx, -1)}
+                                                                    onChange={(val) => handleProductSelect(row.id, val)}
+                                                                    placeholder="🔍 Gõ tên hoặc mã SP..."
+                                                                    className="!rounded-xl !text-[13px] !font-black !bg-[#faf8f3] dark:!bg-slate-900 !border-[#d4a574]/30 dark:!border-slate-700"
+                                                                />
+                                                            </div>
 
-                                                        <div className="flex items-center gap-4">
-                                                            {selectedFields.map((fieldId, fIdx) => {
-                                                                const field = EDITABLE_FIELDS_FILTERED.find(f => f.id === fieldId);
+                                                            <div className="flex items-center gap-4">
+                                                                {selectedFields.map((fieldId, fIdx) => {
+                                                                    const field = EDITABLE_FIELDS_FILTERED.find(f => f.id === fieldId);
+                                                                    if (!field) return null;
 
-                                                                if (field.type === 'select') {
-                                                                    let options = [];
-                                                                    if (fieldId === 'category_id') options = categories;
-                                                                    else if (fieldId === 'brand') options = brandOptions;
-                                                                    else if (fieldId === 'unit') options = primaryUnitOptions;
-                                                                    else if (fieldId === 'secondary_unit') options = secondaryUnitOptions;
+                                                                    if (field.type === 'select') {
+                                                                        let options = [];
+                                                                        if (fieldId === 'category_id') options = categories;
+                                                                        else if (fieldId === 'brand') options = brandOptions;
+                                                                        else if (fieldId === 'unit') options = primaryUnitOptions;
+                                                                        else if (fieldId === 'secondary_unit') options = secondaryUnitOptions;
+
+                                                                        return (
+                                                                            <div key={fieldId} className="w-[180px] flex-shrink-0" data-row={idx} data-field={fIdx}>
+                                                                                <SearchableSelect
+                                                                                    options={options}
+                                                                                    value={row.values[fieldId] ?? row.productData?.[fieldId] ?? ''}
+                                                                                    onKeyDown={(e) => handleKeyDown(e, idx, fIdx)}
+                                                                                    onChange={(val) => handleValueChange(row.id, fieldId, val)}
+                                                                                    placeholder={`Chọn ${field.label}...`}
+                                                                                    displayValue={(o) => o.name}
+                                                                                    valueKey="id"
+                                                                                    className="!bg-[#faf8f3] dark:!bg-slate-900 !rounded-xl !py-2.5 !border-[#d4a574]/30 dark:!border-slate-700"
+                                                                                />
+                                                                            </div>
+                                                                        );
+                                                                    }
 
                                                                     return (
-                                                                        <div key={fieldId} className="w-[180px] flex-shrink-0" data-row={idx} data-field={fIdx}>
-                                                                            <SearchableSelect
-                                                                                options={options}
-                                                                                value={row.values[fieldId] ?? row.productData?.[fieldId] ?? ''}
+                                                                        <div key={fieldId} className="w-[180px] flex-shrink-0 relative" data-row={idx} data-field={fIdx}>
+                                                                            <input
+                                                                                type={field.type}
+                                                                                value={row.values[fieldId] ?? ''}
                                                                                 onKeyDown={(e) => handleKeyDown(e, idx, fIdx)}
-                                                                                onChange={(val) => handleValueChange(row.id, fieldId, val)}
-                                                                                placeholder={`Chọn ${field.label}...`}
-                                                                                displayValue={(o) => o.name}
-                                                                                valueKey="id"
-                                                                                className="!bg-transparent/50 dark:!bg-slate-900/50 !rounded-2xl !py-3 !border-none"
+                                                                                onChange={(e) => handleValueChange(row.id, fieldId, field.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
+                                                                                placeholder={field.placeholder || row.productData?.[fieldId]?.toString() || '---'}
+                                                                                className={cn(
+                                                                                    "w-full px-4 py-2.5 bg-[#faf8f3] dark:bg-slate-900 border border-[#d4a574]/30 dark:border-slate-700 rounded-xl text-[13px] font-black text-center outline-none focus:border-[#4a7c59] focus:ring-1 focus:ring-[#4a7c59] transition-all text-[#2d5016] dark:text-emerald-400 placeholder:text-slate-400",
+                                                                                    fieldId === 'sale_price' && "text-[#2d5016] dark:text-emerald-400 font-black"
+                                                                                )}
                                                                             />
                                                                         </div>
                                                                     );
-                                                                }
+                                                                })}
+                                                            </div>
 
-                                                                return (
-                                                                    <div key={fieldId} className={cn(
-                                                                        "w-[180px] flex-shrink-0 relative transition-all",
-                                                                        fieldId === 'sale_price' && "bg-primary/5 dark:bg-primary/10 rounded-xl",
-                                                                        fieldId === 'cost_price' && "bg-amber-500/5 dark:bg-amber-500/10 rounded-xl"
-                                                                    )} data-row={idx} data-field={fIdx}>
-                                                                        <input
-                                                                            type={field.type}
-                                                                            value={row.values[fieldId] ?? ''}
-                                                                            onKeyDown={(e) => handleKeyDown(e, idx, fIdx)}
-                                                                            onChange={(e) => handleValueChange(row.id, fieldId, field.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
-                                                                            placeholder={field.placeholder || row.productData?.[fieldId]?.toString() || '---'}
-                                                                            className={cn(
-                                                                                "w-full px-5 py-3.5 border-none bg-transparent rounded-xl text-[13px] font-black text-center outline-none transition-all placeholder:text-gray-300 placeholder:font-medium dark:text-white",
-                                                                                fieldId === 'sale_price' && "text-primary"
-                                                                            )}
-                                                                        />
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                            <button
+                                                                onClick={() => handleRemoveRow(row.id)}
+                                                                className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all ml-3"
+                                                                title="Xóa dòng này"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </m.div>
+                                                    ))}
+                                                </AnimatePresence>
 
-                                                        <button
-                                                            onClick={() => handleRemoveRow(row.id)}
-                                                            className="w-12 h-12 flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all ml-4"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </m.div>
-                                                ))}
-                                            </AnimatePresence>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Footer Sidebar Area (Selection Count) - ALWAYS FIXED HERE */}
-                                <div className="p-8 border-t dark:border-slate-800 bg-transparent flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] z-20">
-                                    <div className="flex items-center gap-10">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lưu ý chuyên gia</span>
-                                            <div className="flex items-center gap-2 text-[#8b6f47] font-bold text-xs mt-1">
-                                                <AlertTriangle size={14} className="text-amber-500" />
-                                                <span>Thay đổi giá sẽ ảnh hưởng đến báo cáo lợi nhuận từ thời điểm này.</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-4 w-full md:w-auto">
-                                        <button
-                                            onClick={onClose}
-                                            className="flex-1 md:w-48 px-10 py-5 bg-transparent text-gray-400 dark:text-gray-500 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-gray-300"
-                                        >
-                                            Hủy bỏ
-                                        </button>
-                                        <button
-                                            onClick={handleSubmit}
-                                            disabled={rows.filter(r => r.productId).length === 0}
-                                            className="flex-[2] md:w-80 px-12 py-5 bg-gradient-to-br from-primary to-[#4a7c59] text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/40 hover:scale-[1.02] hover:shadow-primary/60 disabled:opacity-30 disabled:scale-100 disabled:shadow-none transition-all flex items-center justify-center gap-4 group"
-                                        >
-                                            <Save size={20} className="group-hover:rotate-12 transition-transform" />
-                                            XÁC NHẬN CẬP NHẬT CÁC SP ĐÃ CHỌN
-                                            <ChevronRight size={18} />
-                                        </button>
+                                    {/* Footer */}
+                                    <div className="p-4 px-8 border-t border-[#d4a574]/20 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur flex flex-col md:flex-row justify-between items-center gap-4 shrink-0 z-20">
+                                        <div className="flex items-center gap-2 text-[#8b6f47] dark:text-slate-400 font-bold text-xs">
+                                            <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+                                            <span>Thay đổi giá sẽ ảnh hưởng đến báo cáo lợi nhuận từ thời điểm này.</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 w-full md:w-auto">
+                                            <button
+                                                onClick={onClose}
+                                                className="flex-1 md:w-36 px-6 py-3 bg-[#faf8f3] dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-[#d4a574]/15 transition-all border border-[#d4a574]/30 dark:border-slate-700"
+                                            >
+                                                Hủy bỏ
+                                            </button>
+                                            <button
+                                                onClick={handleSubmit}
+                                                disabled={rows.filter(r => r.productId).length === 0}
+                                                className="flex-1 md:w-80 px-8 py-3 bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#2d5016]/30 hover:scale-[1.02] hover:shadow-[#2d5016]/50 disabled:opacity-30 disabled:scale-100 disabled:shadow-none transition-all flex items-center justify-center gap-2.5 group"
+                                            >
+                                                <Save size={18} />
+                                                XÁC NHẬN CẬP NHẬT ({rows.filter(r => r.productId).length})
+                                                <ChevronRight size={16} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </m.div>
-                </div>
+                        </m.div>
+                    </div>
+                )}
             </AnimatePresence>
         </Portal>
     );

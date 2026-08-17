@@ -5,7 +5,7 @@ import {
     Droplets, Wheat, Coins, Leaf, Sprout, BarChart3, Tag, ShoppingBag,
     Calendar, FileText, Search, RefreshCw, Printer, AlertCircle, Package,
     ArrowUpRight, ArrowDownRight, Filter, Download, ChevronLeft, ChevronRight,
-    CreditCard, Users
+    CreditCard, Users, X
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -47,28 +47,21 @@ const TabButton = ({ active, onClick, icon, label }) => (
 
 const KPICard = ({ title, value, isMoney = true, icon }) => (
     <m.div
-        whileHover={{ y: -4, scale: 1.01 }}
-        initial={{ opacity: 0, scale: 0.95 }}
+        whileHover={{ y: -1 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className={cn(
-            "relative group overflow-hidden rounded-xl p-4 border border-border pos-card transition-all duration-300 bg-transparent"
+            "relative group overflow-hidden rounded-2xl px-3.5 py-2 border border-border/80 pos-card transition-all duration-300 bg-white/40 dark:bg-slate-900/40 flex items-center gap-2.5 shadow-sm"
         )}
     >
-        {/* Decorative circle */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700 blur-xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between mb-2">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                    {icon}
-                </div>
-            </div>
-            <div>
-                <h3 className="text-[9px] font-black uppercase tracking-[0.15em] mb-0.5 text-muted">{title}</h3>
-                <div className="text-xl font-black tracking-tight flex items-baseline gap-0.5 text-foreground">
-                    {isMoney ? (Number(value) || 0).toLocaleString() : value}
-                    {isMoney && <span className="text-xs font-bold opacity-60">₫</span>}
-                </div>
+        <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-xl text-primary shrink-0">
+            {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+            <h3 className="text-[8.5px] font-black uppercase tracking-[0.12em] text-muted truncate leading-none mb-1">{title}</h3>
+            <div className="text-sm font-black tracking-tight flex items-baseline gap-0.5 text-foreground leading-none truncate">
+                {isMoney ? (Number(value) || 0).toLocaleString() : value}
+                {isMoney && <span className="text-[9px] font-bold opacity-60">₫</span>}
             </div>
         </div>
     </m.div>
@@ -265,7 +258,7 @@ const TransactionJournal = ({ onEditOrder }) => {
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 pt-2 px-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 mb-3 pt-1 px-1">
                 <KPICard title="Tổng Thu Tiền" value={kpis.revenue} icon={<ArrowUpRight size={16} strokeWidth={3} />} />
                 <KPICard title="Tổng Chi Tiền" value={kpis.expense} icon={<ArrowDownRight size={16} strokeWidth={3} />} />
                 <KPICard title="Giao Dịch" value={kpis.count} isMoney={false} icon={<FileText size={16} strokeWidth={3} />} />
@@ -431,6 +424,12 @@ const PartnerLedger = ({ onEditOrder }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [filterType, setFilterType] = useState('all');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
+
+    useEffect(() => {
+        setPage(1);
+    }, [selectedPartner?.id, startDate, endDate, filterType]);
 
     useEffect(() => {
         localStorage.setItem('summary_partner_search', search);
@@ -450,9 +449,15 @@ const PartnerLedger = ({ onEditOrder }) => {
     }, []);
 
     useEffect(() => {
-        axios.get('/api/partners', { params: { search, limit: 100 } })
-            .then(res => setPartners(Array.isArray(res.data) ? res.data : (res.data.items || [])))
-            .catch(console.error);
+        const timer = setTimeout(() => {
+            axios.get('/api/partners', { params: { search: search.trim(), limit: 100 } })
+                .then(res => {
+                    const list = Array.isArray(res.data) ? res.data : (res.data.items || []);
+                    setPartners(list);
+                })
+                .catch(console.error);
+        }, 250);
+        return () => clearTimeout(timer);
     }, [search]);
 
     const selectPartner = async (p, start = startDate, end = endDate, type = filterType) => {
@@ -466,6 +471,17 @@ const PartnerLedger = ({ onEditOrder }) => {
             if (type && type !== 'all') params.filter_type = type;
             const res = await axios.get(`/api/partners/${p.id}/ledger`, { params });
             setLedger(res.data.ledger || []);
+
+            // Đồng bộ số dư nợ mới nhất từ sổ phụ
+            if (res.data.current_balance !== undefined) {
+                const latestBalance = res.data.current_balance;
+                setSelectedPartner(prev => ({
+                    ...(prev || p),
+                    ...(res.data.partner || {}),
+                    debt_balance: latestBalance
+                }));
+                setPartners(prev => prev.map(item => item.id === p.id ? { ...item, debt_balance: latestBalance } : item));
+            }
         } catch (err) { console.error(err); }
         setLoading(false);
     };
@@ -495,28 +511,78 @@ const PartnerLedger = ({ onEditOrder }) => {
     };
 
     return (
-        <div className="h-full flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2 pt-2 px-1">
+        <div className="h-full flex flex-col gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1 px-1">
                 <KPICard title="Tổng Phải Thu" value={stats.customerDebt} icon={<Coins size={16} strokeWidth={3} />} />
                 <KPICard title="Tổng Phải Trả" value={stats.supplierDebt} icon={<CreditCard size={16} strokeWidth={3} />} />
             </div>
             <div className="flex-1 flex gap-4 overflow-hidden">
                 <div className="w-80 bg-transparent rounded-2xl border border-border flex flex-col overflow-hidden shadow-none">
-                    <div className="p-4 border-b border-border">
+                    <div className="p-3.5 border-b border-border">
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                            <input type="text" placeholder="Tìm đối tác..." className="w-full pl-9 pr-4 py-2 bg-transparent border border-border rounded-xl text-sm outline-none text-primary" value={search} onChange={e => setSearch(e.target.value)} />
+                            <input 
+                                type="text" 
+                                placeholder="Tìm đối tác theo tên, SĐT..." 
+                                className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all" 
+                                value={search} 
+                                onChange={e => setSearch(e.target.value)} 
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearch('')}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                                    title="Xóa tìm kiếm"
+                                >
+                                    <X size={13} />
+                                </button>
+                            )}
                         </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2">
-                        {partners.map(p => (
-                            <div key={p.id} onClick={() => selectPartner(p)} className={`p-3 rounded-xl cursor-pointer mb-1 transition-all ${selectedPartner?.id === p.id ? 'bg-primary text-white shadow-none' : 'hover:bg-primary/10 text-primary'}`}>
-                                <div className="font-bold text-sm">{p.name}</div>
-                                <div className={`text-[10px] font-black ${selectedPartner?.id === p.id ? 'text-white/70' : 'text-muted'}`}>
-                                    NỢ: {p.debt_balance.toLocaleString()} ₫
-                                </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {partners.length === 0 ? (
+                            <div className="p-6 text-center text-xs font-bold text-gray-400">
+                                Không tìm thấy đối tác phù hợp
                             </div>
-                        ))}
+                        ) : (
+                            partners.map(p => {
+                                const isSelected = selectedPartner?.id === p.id;
+                                const debt = Number(p.debt_balance || 0);
+                                return (
+                                    <div 
+                                        key={p.id} 
+                                        onClick={() => selectPartner(p)} 
+                                        className={cn(
+                                            "p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-0.5 select-none",
+                                            isSelected 
+                                                ? "bg-primary text-white shadow-sm" 
+                                                : "hover:bg-primary/10 text-slate-800 dark:text-slate-200 border border-transparent hover:border-primary/20"
+                                        )}
+                                    >
+                                        <div className="font-black text-xs uppercase tracking-tight truncate">{p.name}</div>
+                                        <div className="flex items-center justify-between text-[10px] font-black mt-0.5">
+                                            <span className={cn(
+                                                isSelected 
+                                                    ? "text-white/90" 
+                                                    : debt > 1000 
+                                                        ? "text-blue-600 dark:text-blue-400" 
+                                                        : debt < -1000 
+                                                            ? "text-rose-600 dark:text-rose-400" 
+                                                            : "text-slate-400"
+                                            )}>
+                                                NỢ: {debt.toLocaleString()} ₫
+                                            </span>
+                                            {p.phone && (
+                                                <span className={cn("text-[9px] font-normal", isSelected ? "text-white/70" : "text-gray-400")}>
+                                                    {p.phone}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </div>
                 <div className="flex-1 bg-transparent rounded-2xl border border-border overflow-hidden flex flex-col shadow-none">
@@ -562,20 +628,110 @@ const PartnerLedger = ({ onEditOrder }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
-                                        {loading ? <tr><td colSpan="5" className="text-center p-10">Đang tải...</td></tr> : ledger.map((row, i) => (
-                                            <tr key={i} className="border-b border-border hover:bg-primary/5 transition-colors">
-                                                <td className="p-3 text-xs text-center">{new Date(row.date).toLocaleDateString('vi-VN')}</td>
-                                                <td className="p-3 font-bold text-primary text-center cursor-pointer hover:underline" onClick={() => onEditOrder(row.obj)}>{row.ref_id}</td>
-                                                <td className="p-3 text-xs text-center">{row.desc}</td>
-                                                <td className={`p-3 text-center font-bold ${row.type === 'Order' ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                                    {row.type === 'Order' ? `+${row.obj.total_amount.toLocaleString()}` : `-${row.obj.amount.toLocaleString()}`}
-                                                </td>
-                                                <td className="p-3 text-center font-black">{row.running_balance.toLocaleString()}</td>
-                                            </tr>
-                                        ))}
+                                        {loading ? (
+                                            <tr><td colSpan="5" className="text-center p-10 font-bold text-gray-400">Đang tải dữ liệu sổ nợ...</td></tr>
+                                        ) : ledger.length === 0 ? (
+                                            <tr><td colSpan="5" className="text-center p-10 font-bold text-gray-400">Không có phát sinh giao dịch trong khoảng thời gian này</td></tr>
+                                        ) : ledger.slice((page - 1) * pageSize, page * pageSize).map((row, i) => {
+                                            const isIncrease = Number(row.increase || 0) > 0;
+                                            const isDecrease = Number(row.decrease || 0) > 0;
+                                            const isOpening = row.type === 'System';
+
+                                            return (
+                                                <tr key={i} className="border-b border-border hover:bg-primary/5 transition-colors">
+                                                    <td className="p-3 text-xs text-center font-medium">
+                                                        {row.date ? new Date(row.date).toLocaleDateString('vi-VN') : '-'}
+                                                    </td>
+                                                    <td 
+                                                        className={cn(
+                                                            "p-3 font-bold text-center",
+                                                            row.type === 'Order' ? "text-primary cursor-pointer hover:underline" : "text-muted"
+                                                        )} 
+                                                        onClick={() => row.type === 'Order' && row.obj && onEditOrder(row.obj)}
+                                                    >
+                                                        {row.ref_id}
+                                                    </td>
+                                                    <td className="p-3 text-xs text-center font-medium text-slate-700 dark:text-slate-300">
+                                                        {row.desc}
+                                                    </td>
+                                                    <td className="p-3 text-center font-bold">
+                                                        {isIncrease ? (
+                                                            <span className="text-blue-600 dark:text-blue-400 font-black">
+                                                                +{Math.abs(Number(row.increase)).toLocaleString()} ₫
+                                                            </span>
+                                                        ) : isDecrease ? (
+                                                            <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                                                -{Math.abs(Number(row.decrease)).toLocaleString()} ₫
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-400 font-bold text-xs">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className={cn(
+                                                        "p-3 text-center font-black text-xs",
+                                                        (row.running_balance || 0) > 1000 
+                                                            ? "text-blue-600 dark:text-blue-400" 
+                                                            : (row.running_balance || 0) < -1000 
+                                                                ? "text-rose-600 dark:text-rose-400" 
+                                                                : "text-slate-700 dark:text-slate-300"
+                                                    )}>
+                                                        {Number(row.running_balance || 0).toLocaleString()} ₫
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Pagination Controls */}
+                            {ledger.length > 0 && (
+                                <div className="px-6 py-3 border-t border-border flex justify-between items-center bg-transparent shrink-0">
+                                    <div className="text-xs font-bold text-muted">
+                                        Hiển thị <span className="text-primary">{(page - 1) * pageSize + 1} - {Math.min(page * pageSize, ledger.length)}</span> trên tổng số <span className="text-primary">{ledger.length}</span> giao dịch
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            disabled={page === 1}
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            className="px-3 py-1.5 border border-border rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-primary/10 transition-all text-primary"
+                                        >
+                                            Trước
+                                        </button>
+                                        {(() => {
+                                            const totalPages = Math.ceil(ledger.length / pageSize) || 1;
+                                            return [...Array(totalPages)].map((_, i) => {
+                                                const pNum = i + 1;
+                                                if (pNum === 1 || pNum === totalPages || (pNum >= page - 2 && pNum <= page + 2)) {
+                                                    return (
+                                                        <button
+                                                            key={pNum}
+                                                            onClick={() => setPage(pNum)}
+                                                            className={cn(
+                                                                "w-8 h-8 rounded-xl text-xs font-black transition-all",
+                                                                page === pNum
+                                                                    ? "bg-primary text-white border-0"
+                                                                    : "border border-border text-primary hover:bg-primary/10"
+                                                            )}
+                                                        >
+                                                            {pNum}
+                                                        </button>
+                                                    );
+                                                }
+                                                if (pNum === page - 3 || pNum === page + 3) return <span key={pNum} className="px-1 text-muted">...</span>;
+                                                return null;
+                                            });
+                                        })()}
+                                        <button
+                                            disabled={page === Math.ceil(ledger.length / pageSize) || ledger.length === 0}
+                                            onClick={() => setPage(p => Math.min(Math.ceil(ledger.length / pageSize), p + 1))}
+                                            className="px-3 py-1.5 border border-border rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-primary/10 transition-all text-primary"
+                                        >
+                                            Sau
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
@@ -598,6 +754,11 @@ const InventoryJournal = ({ onEditOrder }) => {
     });
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [filterType, setFilterType] = useState('all');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
 
     useEffect(() => {
         localStorage.setItem('summary_inventory_search', search);
@@ -608,73 +769,290 @@ const InventoryJournal = ({ onEditOrder }) => {
     }, [selectedProduct]);
 
     useEffect(() => {
+        setPage(1);
+    }, [selectedProduct?.id, filterType, startDate, endDate]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
-            axios.get('/api/products', { params: { search, limit: 100 } })
+            axios.get('/api/products', { params: { search: search.trim(), limit: 100 } })
                 .then(res => setProducts(Array.isArray(res.data) ? res.data : (res.data.items || [])))
                 .catch(console.error);
-        }, 300);
+        }, 250);
         return () => clearTimeout(timer);
     }, [search]);
 
     const selectProduct = async (p) => {
+        if (!p) return;
         setSelectedProduct(p);
         setLoading(true);
         try {
             const res = await axios.get(`/api/products/${p.id}/history`);
-            setHistory(res.data);
+            setHistory(Array.isArray(res.data) ? res.data : []);
         } catch (err) { console.error(err); }
         setLoading(false);
     };
 
+    useEffect(() => {
+        if (selectedProduct) {
+            selectProduct(selectedProduct);
+        }
+    }, [selectedProduct?.id]);
+
+    const filteredHistory = history.filter(item => {
+        const change = Number(item.quantity_change || 0);
+        const isReturn = item.type?.toLowerCase().includes('trả') || (item.type?.toLowerCase().includes('bán') && change > 0) || (item.type?.toLowerCase().includes('nhập') && change < 0);
+        const isSale = !isReturn && (item.type?.toLowerCase().includes('bán') || change < 0);
+        const isPurchase = !isReturn && (item.type?.toLowerCase().includes('nhập') || change > 0);
+
+        if (filterType === 'sale' && !isSale) return false;
+        if (filterType === 'purchase' && !isPurchase) return false;
+        if (filterType === 'return' && !isReturn) return false;
+
+        if (item.date) {
+            const itemDate = item.date.slice(0, 10);
+            if (startDate && itemDate < startDate) return false;
+            if (endDate && itemDate > endDate) return false;
+        }
+
+        return true;
+    });
+
     return (
         <div className="h-full flex gap-4 overflow-hidden">
+            {/* Left Product List */}
             <div className="w-80 bg-transparent rounded-2xl border border-border flex flex-col overflow-hidden shadow-none">
-                <div className="p-4 border-b border-border">
+                <div className="p-3.5 border-b border-border">
                     <div className="relative">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                        <input type="text" placeholder="Tìm sản phẩm..." className="w-full pl-9 pr-4 py-2 bg-transparent border border-border rounded-xl text-sm outline-none text-primary" value={search} onChange={e => setSearch(e.target.value)} />
+                        <input 
+                            type="text" 
+                            placeholder="Tìm sản phẩm (tên, mã)..." 
+                            className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all" 
+                            value={search} 
+                            onChange={e => setSearch(e.target.value)} 
+                        />
+                        {search && (
+                            <button
+                                type="button"
+                                onClick={() => setSearch('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                                title="Xóa tìm kiếm"
+                            >
+                                <X size={13} />
+                            </button>
+                        )}
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 text-xs">
-                    {products.map(p => (
-                        <div key={p.id} onClick={() => selectProduct(p)} className={`p-3 rounded-xl cursor-pointer mb-1 transition-all ${selectedProduct?.id === p.id ? 'bg-primary text-white shadow-none' : 'hover:bg-primary/10 text-primary'}`}>
-                            <div className="font-bold">{p.name}</div>
-                            <div className="opacity-70">TỒN KHO: {p.stock} {p.unit}</div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {products.length === 0 ? (
+                        <div className="p-6 text-center text-xs font-bold text-gray-400">
+                            Không tìm thấy sản phẩm phù hợp
                         </div>
-                    ))}
+                    ) : (
+                        products.map(p => {
+                            const isSelected = selectedProduct?.id === p.id;
+                            const stock = Number(p.stock || 0);
+                            return (
+                                <div 
+                                    key={p.id} 
+                                    onClick={() => selectProduct(p)} 
+                                    className={cn(
+                                        "p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-0.5 select-none",
+                                        isSelected 
+                                            ? "bg-primary text-white shadow-sm" 
+                                            : "hover:bg-primary/10 text-slate-800 dark:text-slate-200 border border-transparent hover:border-primary/20"
+                                    )}
+                                >
+                                    <div className="font-black text-xs uppercase tracking-tight truncate">{p.name}</div>
+                                    <div className="flex items-center justify-between text-[10px] font-black mt-0.5">
+                                        <span className={cn(
+                                            isSelected 
+                                                ? "text-white/90" 
+                                                : stock > 0 
+                                                    ? "text-emerald-600 dark:text-emerald-400" 
+                                                    : "text-rose-500 dark:text-rose-400"
+                                        )}>
+                                            TỒN KHO: {stock.toLocaleString()} {p.unit || ''}
+                                        </span>
+                                        {p.price > 0 && (
+                                            <span className={cn("text-[9px] font-normal", isSelected ? "text-white/70" : "text-gray-400")}>
+                                                {Number(p.price).toLocaleString()} ₫
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
             </div>
+
+            {/* Right Product History Table */}
             <div className="flex-1 bg-transparent rounded-2xl border border-border overflow-hidden flex flex-col shadow-none">
                 {selectedProduct ? (
                     <div className="flex flex-col h-full overflow-hidden">
-                        <div className="p-6 bg-primary text-white">
-                            <h2 className="text-xl font-black uppercase">{selectedProduct.name}</h2>
-                            <p className="text-xs opacity-80 mt-1">CHI TIẾT NHẬP XUẤT KHO</p>
+                        <div className="p-5 bg-primary text-white flex justify-between items-center">
+                            <div>
+                                <h2 className="text-lg font-black uppercase tracking-tight">{selectedProduct.name}</h2>
+                                <p className="text-xs opacity-80 mt-0.5">
+                                    TỒN HIỆN TẠI: <span className="font-black">{Number(selectedProduct.stock || 0).toLocaleString()} {selectedProduct.unit || ''}</span>
+                                    {selectedProduct.price > 0 && <span> • GIÁ BÁN: <span className="font-black">{Number(selectedProduct.price).toLocaleString()} ₫</span></span>}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => selectProduct(selectedProduct)}
+                                className="p-2 hover:bg-white/10 rounded-xl text-white transition-colors border border-white/20"
+                                title="Tải lại dữ liệu"
+                            >
+                                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                            </button>
                         </div>
+
+                        {/* Filter Toolbar */}
+                        <div className="p-3.5 border-b border-border flex flex-wrap gap-4 items-center bg-transparent">
+                            <div className="flex items-center gap-2">
+                                <CustomDatePicker max={getTodayStr()} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                                <span className="text-gray-400 font-bold">→</span>
+                                <CustomDatePicker max={getTodayStr()} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                            </div>
+                            <CustomSelect
+                                className="border-0 border-b border-border rounded-none px-0 py-1 min-w-[160px]"
+                                value={filterType}
+                                onChange={e => setFilterType(e.target.value)}
+                                options={[
+                                    { value: "all", label: "Tất cả biến động" },
+                                    { value: "sale", label: "Chỉ Bán Hàng (-)" },
+                                    { value: "purchase", label: "Chỉ Nhập Hàng (+)" },
+                                    { value: "return", label: "Chỉ Trả Hàng (Khách trả / Trả NCC)" }
+                                ]}
+                            />
+                            <div className="flex-1" />
+                            <div className="text-[11px] font-bold text-muted">
+                                Tổng phát sinh: <span className="text-primary font-black">{filteredHistory.length}</span>
+                            </div>
+                        </div>
+
                         <div className="flex-1 overflow-auto p-4">
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-primary/5 border-b border-border text-[10px] font-black tracking-widest text-muted uppercase">
                                     <tr className="border-none">
                                         <th className="py-4 px-3 text-center border-r border-border">Ngày</th>
                                         <th className="py-4 px-3 text-center border-r border-border">Chứng từ</th>
+                                        <th className="py-4 px-3 text-center border-r border-border">Đối tác</th>
                                         <th className="py-4 px-3 text-center border-r border-border">Loại</th>
                                         <th className="py-4 px-3 text-center">Thay đổi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {loading ? <tr><td colSpan="4" className="text-center p-10">Đang tải...</td></tr> : history.map((item, i) => (
-                                        <tr key={i} className="border-b border-border hover:bg-primary/5 transition-colors">
-                                            <td className="p-3 text-xs text-center">{new Date(item.date).toLocaleDateString('vi-VN')}</td>
-                                            <td className="p-3 font-bold text-primary text-center cursor-pointer hover:underline" onClick={() => onEditOrder(item)}>{item.display_id}</td>
-                                            <td className="p-3 text-xs font-bold uppercase text-center">{item.type}</td>
-                                            <td className={`p-3 text-center font-black ${item.quantity_change > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {item.quantity_change > 0 ? `+${item.quantity_change}` : item.quantity_change}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {loading ? (
+                                        <tr><td colSpan="5" className="text-center p-10 font-bold text-gray-400">Đang tải nhật ký kho...</td></tr>
+                                    ) : filteredHistory.length === 0 ? (
+                                        <tr><td colSpan="5" className="text-center p-10 font-bold text-gray-400">Chưa có phát sinh nhập xuất phù hợp</td></tr>
+                                    ) : filteredHistory.slice((page - 1) * pageSize, page * pageSize).map((item, i) => {
+                                        const change = Number(item.quantity_change || 0);
+                                        const isReturn = item.type?.toLowerCase().includes('trả') || (item.type?.toLowerCase().includes('bán') && change > 0) || (item.type?.toLowerCase().includes('nhập') && change < 0);
+                                        const isSale = !isReturn && item.type?.toLowerCase().includes('bán');
+                                        const isPurchase = !isReturn && item.type?.toLowerCase().includes('nhập');
+                                        const displayType = isReturn
+                                            ? (item.type?.toLowerCase().includes('bán') || (item.type?.toLowerCase().includes('trả') && item.type?.toLowerCase().includes('khách')) || change > 0 ? 'Khách trả hàng' : 'Trả hàng NCC')
+                                            : (item.type || 'Giao dịch');
+
+                                        return (
+                                            <tr key={i} className="border-b border-border hover:bg-primary/5 transition-colors">
+                                                <td className="p-3 text-xs text-center font-medium">
+                                                    {item.date ? new Date(item.date).toLocaleDateString('vi-VN') : '-'}
+                                                </td>
+                                                <td 
+                                                    className="p-3 font-bold text-primary text-center cursor-pointer hover:underline" 
+                                                    onClick={() => onEditOrder && onEditOrder(item)}
+                                                >
+                                                    {item.display_id || item.order_id || '-'}
+                                                </td>
+                                                <td className="p-3 text-xs text-center font-medium text-slate-700 dark:text-slate-300">
+                                                    {item.partner_name || '-'}
+                                                </td>
+                                                <td className="p-3 text-center">
+                                                    <span className={cn(
+                                                        "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                                        isReturn
+                                                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                                                            : isSale 
+                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" 
+                                                                : isPurchase 
+                                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" 
+                                                                    : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20"
+                                                    )}>
+                                                        {displayType}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-center font-bold">
+                                                    {change > 0 ? (
+                                                        <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                                                            +{Math.abs(change).toLocaleString()} {selectedProduct.unit || ''}
+                                                        </span>
+                                                    ) : change < 0 ? (
+                                                        <span className="text-rose-600 dark:text-rose-400 font-black">
+                                                            -{Math.abs(change).toLocaleString()} {selectedProduct.unit || ''}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400 font-bold text-xs">-</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Pagination Controls */}
+                        {filteredHistory.length > 0 && (
+                            <div className="px-6 py-3 border-t border-border flex justify-between items-center bg-transparent shrink-0">
+                                <div className="text-xs font-bold text-muted">
+                                    Hiển thị <span className="text-primary">{(page - 1) * pageSize + 1} - {Math.min(page * pageSize, filteredHistory.length)}</span> trên tổng số <span className="text-primary">{filteredHistory.length}</span> biến động
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        disabled={page === 1}
+                                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                                        className="px-3 py-1.5 border border-border rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-primary/10 transition-all text-primary"
+                                    >
+                                        Trước
+                                    </button>
+                                    {(() => {
+                                        const totalPages = Math.ceil(filteredHistory.length / pageSize) || 1;
+                                        return [...Array(totalPages)].map((_, i) => {
+                                            const pNum = i + 1;
+                                            if (pNum === 1 || pNum === totalPages || (pNum >= page - 2 && pNum <= page + 2)) {
+                                                return (
+                                                    <button
+                                                        key={pNum}
+                                                        onClick={() => setPage(pNum)}
+                                                        className={cn(
+                                                            "w-8 h-8 rounded-xl text-xs font-black transition-all",
+                                                            page === pNum
+                                                                ? "bg-primary text-white border-0"
+                                                                : "border border-border text-primary hover:bg-primary/10"
+                                                        )}
+                                                    >
+                                                        {pNum}
+                                                    </button>
+                                                );
+                                            }
+                                            if (pNum === page - 3 || pNum === page + 3) return <span key={pNum} className="px-1 text-muted">...</span>;
+                                            return null;
+                                        });
+                                    })()}
+                                    <button
+                                        disabled={page === Math.ceil(filteredHistory.length / pageSize) || filteredHistory.length === 0}
+                                        onClick={() => setPage(p => Math.min(Math.ceil(filteredHistory.length / pageSize), p + 1))}
+                                        className="px-3 py-1.5 border border-border rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-primary/10 transition-all text-primary"
+                                    >
+                                        Sau
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
@@ -1181,7 +1559,7 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                             "px-6 py-4 text-center font-black text-sm",
                                             item.type === 'Nhập' ? "text-amber-600" : "text-emerald-600"
                                         )}>
-                                            {item.type === 'Nhập' ? `+${item.quantity.toLocaleString()}` : `-${item.quantity.toLocaleString()}`}
+                                            {item.type === 'Nhập' ? `+${Math.abs(Number(item.quantity || 0)).toLocaleString()}` : `-${Math.abs(Number(item.quantity || 0)).toLocaleString()}`}
                                         </td>
                                         <td className="px-6 py-4 text-center font-bold text-gray-500 text-xs">
                                             {item.price.toLocaleString()}

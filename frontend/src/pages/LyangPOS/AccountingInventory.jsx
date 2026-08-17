@@ -856,98 +856,97 @@ export default function AccountingInventory() {
                     <div className="space-y-6">
                         {/* KPI Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-6 rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-lg shadow-slate-900/5 group hover:-translate-y-1 transition-all">
+                            <div className="bg-transparent p-6 rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm group hover:-translate-y-1 transition-all">
                                 <div className="flex items-start justify-between">
-                                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <div className="w-12 h-12 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 group-hover:scale-105 transition-transform">
                                         <Package size={24} />
                                     </div>
                                     <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums">{globalStats.total}</p>
                                 </div>
                                 <div className="mt-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Danh Mục</p>
-                                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-slate-400 w-full" />
+                                    <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Tổng Danh Mục</p>
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-slate-500 w-full" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-100 dark:border-emerald-900/40 shadow-lg shadow-emerald-900/5 group hover:-translate-y-1 transition-all">
+                            <div className="bg-transparent p-6 rounded-[2rem] border border-emerald-300 dark:border-emerald-500/40 shadow-sm group hover:-translate-y-1 transition-all">
                                 <div className="flex items-start justify-between">
-                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                    <div className="w-12 h-12 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 group-hover:scale-105 transition-transform">
                                         <Database size={24} />
                                     </div>
-                                    <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{globalStats.withStock}</p>
+                                    <p className="text-3xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">{globalStats.withStock}</p>
                                 </div>
                                 <div className="mt-4">
-                                    <p className="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest">Mặt Hàng Có Tồn Kho</p>
+                                    <p className="text-[11px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">Mặt Hàng Có Tồn Kho</p>
                                     <div className="h-1.5 w-full bg-emerald-100 dark:bg-emerald-950 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
+                                        <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
                                     </div>
                                 </div>
                             </div>
 
                             <div className={cn(
-                                "p-6 rounded-[2rem] border backdrop-blur-md shadow-lg transition-all group hover:-translate-y-1",
+                                "p-6 rounded-[2rem] border shadow-sm transition-all group hover:-translate-y-1 bg-transparent",
                                 globalStats.discrepancy > 0
-                                    ? "bg-rose-50/70 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 shadow-rose-900/5"
-                                    : "bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800"
+                                    ? "border-rose-300 dark:border-rose-500/50"
+                                    : "border-slate-300 dark:border-slate-800"
                             )}>
                                 <div className="flex items-start justify-between">
                                     <div className={cn(
-                                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors",
-                                        globalStats.discrepancy > 0 ? "bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                                        "w-12 h-12 rounded-2xl flex items-center justify-center border transition-transform group-hover:scale-105",
+                                        globalStats.discrepancy > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
                                     )}>
-                                        <AlertTriangle size={24} />
+                                        <AlertTriangle size={24} className={cn(globalStats.discrepancy > 0 && "animate-pulse")} />
                                     </div>
-                                    <p className={cn("text-3xl font-black tabular-nums", globalStats.discrepancy > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                                    <p className={cn("text-3xl font-black tabular-nums", globalStats.discrepancy > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
                                         {globalStats.discrepancy}
                                     </p>
                                 </div>
                                 <div className="mt-4">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mặt Hàng Lệch Tồn (Thực tế ≠ Sổ sách)</p>
+                                    <p className="text-[11px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-widest">Mặt Hàng Lệch Tồn (Thực tế ≠ Sổ sách)</p>
                                     <div className="h-1.5 w-full bg-rose-100 dark:bg-rose-950 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
+                                        <div className="h-full bg-rose-600 dark:bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-slate-900 dark:bg-slate-950 p-6 rounded-[2rem] shadow-xl shadow-slate-900/40 relative overflow-hidden group hover:-translate-y-1 transition-all">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -mr-16 -mt-16" />
+                            <div className="bg-transparent p-6 rounded-[2rem] border border-amber-300 dark:border-amber-500/40 shadow-sm relative overflow-hidden group hover:-translate-y-1 transition-all">
                                 <div className="flex items-start justify-between relative z-10">
-                                    <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400">
+                                    <div className="w-12 h-12 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 rounded-2xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 group-hover:scale-105 transition-transform">
                                         <Calculator size={24} />
                                     </div>
-                                    <p className="text-2xl font-black text-white tabular-nums tracking-tight">{globalStats.totalValue.toLocaleString()}đ</p>
+                                    <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">{globalStats.totalValue.toLocaleString()}đ</p>
                                 </div>
                                 <div className="mt-4 relative z-10">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng Trị Giá Kho Sổ Sách</p>
-                                    <div className="h-1.5 w-full bg-slate-800 rounded-full mt-2 overflow-hidden">
-                                        <div className="h-full bg-emerald-500 animate-pulse" style={{ width: '100%' }} />
+                                    <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">Tổng Trị Giá Kho Sổ Sách</p>
+                                    <div className="h-1.5 w-full bg-amber-100 dark:bg-amber-950/40 rounded-full mt-2 overflow-hidden">
+                                        <div className="h-full bg-amber-600 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Search & Filter bar */}
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col xl:flex-row items-center gap-4">
+                        <div className="bg-transparent p-4 rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-center gap-4">
                             <div className="relative flex-1 group w-full">
-                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder="Tìm kiếm theo mã hàng hoặc tên sản phẩm..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-3 bg-slate-100/70 dark:bg-slate-800/70 border border-transparent focus:border-emerald-500/30 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 transition-all placeholder:text-slate-400"
+                                    className="w-full pl-11 pr-4 py-3 bg-transparent border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500"
                                 />
                             </div>
                             <div className="flex flex-wrap items-center gap-3 shrink-0">
                                 <button
                                     onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
                                     className={cn(
-                                        "flex items-center gap-2.5 px-4 py-3 rounded-xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        "flex items-center gap-2.5 px-4 py-3 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
                                         showDiscrepancyOnly
                                             ? "bg-rose-500 border-rose-600 text-white shadow-md shadow-rose-500/20"
-                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300"
+                                            : "bg-transparent border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-rose-400"
                                     )}
                                 >
                                     <AlertTriangle size={15} />
@@ -957,10 +956,10 @@ export default function AccountingInventory() {
                                 <button
                                     onClick={() => setShowOnlyCoded(!showOnlyCoded)}
                                     className={cn(
-                                        "flex items-center gap-2.5 px-4 py-3 rounded-xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        "flex items-center gap-2.5 px-4 py-3 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
                                         showOnlyCoded
                                             ? "bg-emerald-600 border-emerald-700 text-white shadow-md shadow-emerald-600/20"
-                                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-emerald-300"
+                                            : "bg-transparent border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
                                     )}
                                 >
                                     <Tag size={15} />
@@ -969,7 +968,7 @@ export default function AccountingInventory() {
 
                                 <button
                                     onClick={() => fetchProducts()}
-                                    className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 rounded-xl hover:text-emerald-600 hover:border-emerald-500 transition-all"
+                                    className="p-3 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl hover:text-emerald-600 hover:border-emerald-500 transition-all cursor-pointer"
                                     title="Tải lại danh sách"
                                 >
                                     <RefreshCw size={18} />
@@ -978,7 +977,7 @@ export default function AccountingInventory() {
                         </div>
 
                         {/* Product Sổ Kế Toán Table */}
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                        <div className="bg-transparent rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead className="bg-slate-900 text-white text-xs">
@@ -1004,52 +1003,52 @@ export default function AccountingInventory() {
                                             <th className="px-6 py-4 uppercase font-black tracking-wider text-center">Trạng thái đối soát</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
                                         {paginatedProducts.map((p) => {
                                             const diff = (p.stock || 0) - (p.accounting_stock || 0);
 
                                             return (
-                                                <tr key={p.id} className="hover:bg-emerald-500/[0.03] dark:hover:bg-slate-800/40 transition-colors">
-                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-slate-500 dark:text-slate-400">
-                                                        <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                                                <tr key={p.id} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-colors">
+                                                    <td className="px-6 py-4 font-mono font-bold text-xs text-slate-600 dark:text-slate-400">
+                                                        <span className="bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700">
                                                             {p.code || '---'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 font-black text-slate-800 dark:text-slate-100">
+                                                    <td className="px-6 py-4 font-black text-slate-900 dark:text-white">
                                                         <div className="flex flex-col">
                                                             <span>{p.name}</span>
-                                                            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{p.unit || 'ĐVT'}</span>
+                                                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">{p.unit || 'ĐVT'}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-800 dark:text-slate-100">
-                                                        <span className="text-base text-emerald-600 dark:text-emerald-400">{p.stock || 0}</span>
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-900 dark:text-white">
+                                                        <span className="text-base text-emerald-700 dark:text-emerald-400">{p.stock || 0}</span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-blue-600 dark:text-blue-400">
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-blue-700 dark:text-blue-400">
                                                         <span className="text-base">{p.accounting_stock || 0}</span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right font-black tabular-nums">
                                                         {diff === 0 ? (
-                                                            <span className="text-slate-400">0</span>
+                                                            <span className="text-slate-500 font-bold">0</span>
                                                         ) : diff > 0 ? (
-                                                            <span className="text-emerald-600 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
+                                                            <span className="text-emerald-700 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
                                                         ) : (
-                                                            <span className="text-rose-600 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
+                                                            <span className="text-rose-700 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-700 dark:text-slate-300">
+                                                    <td className="px-6 py-4 text-right font-black tabular-nums text-slate-900 dark:text-slate-300">
                                                         {(p.accounting_price || 0).toLocaleString()}đ
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
                                                         {diff === 0 ? (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-black rounded-lg uppercase">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-black rounded-lg uppercase border border-emerald-300 dark:border-emerald-500/30">
                                                                 <CheckCircle2 size={13} /> Khớp hoàn toàn
                                                             </span>
                                                         ) : diff > 0 ? (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-black rounded-lg uppercase">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs font-black rounded-lg uppercase border border-emerald-300 dark:border-emerald-500/30">
                                                                 <TrendingUp size={13} /> Thực tế nhiều hơn
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-black rounded-lg uppercase">
+                                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 text-xs font-black rounded-lg uppercase border border-rose-300 dark:border-rose-500/30">
                                                                 <AlertTriangle size={13} /> Sổ sách nhiều hơn
                                                             </span>
                                                         )}
@@ -1069,25 +1068,25 @@ export default function AccountingInventory() {
                             )}
 
                             {/* Pagination */}
-                            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <p className="text-xs font-bold text-slate-400">
+                            <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                     Hiển thị {Math.min(filteredProducts.length, (currentPage - 1) * itemsPerPage + 1)} - {Math.min(filteredProducts.length, currentPage * itemsPerPage)} trong {filteredProducts.length} mặt hàng
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <button
                                         disabled={currentPage === 1}
                                         onClick={() => setCurrentPage(currentPage - 1)}
-                                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                        className="px-4 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30 cursor-pointer"
                                     >
                                         Trang trước
                                     </button>
-                                    <span className="text-xs font-black text-slate-800 dark:text-slate-200 px-2">
+                                    <span className="text-xs font-black text-slate-900 dark:text-white px-2">
                                         Trang {currentPage} / {Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage))}
                                     </span>
                                     <button
                                         disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
                                         onClick={() => setCurrentPage(currentPage + 1)}
-                                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                        className="px-4 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30 cursor-pointer"
                                     >
                                         Trang sau
                                     </button>
@@ -1102,12 +1101,12 @@ export default function AccountingInventory() {
                     <div className="space-y-6">
                         {/* STEP 1: UPLOAD FILE */}
                         {step === 1 && (
-                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-10 md:p-14 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl max-w-2xl mx-auto text-center flex flex-col items-center">
-                                <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                            <div className="bg-transparent p-10 md:p-14 rounded-[2.5rem] border border-slate-300 dark:border-slate-800 shadow-sm max-w-2xl mx-auto text-center flex flex-col items-center">
+                                <div className="w-20 h-20 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 rounded-3xl flex items-center justify-center mb-6 shadow-inner border border-emerald-300 dark:border-emerald-500/30">
                                     <FileSpreadsheet size={40} />
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Tải Lên File Excel Đối Soát</h2>
-                                <p className="text-slate-500 text-sm max-w-md mb-8">
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-slate-100 mb-2">Tải Lên File Excel Đối Soát</h2>
+                                <p className="text-slate-600 dark:text-slate-400 text-sm max-w-md mb-8 font-medium">
                                     Nhập file Excel xuất từ LyangPOS (<code>danh_sach_san_pham.xlsx</code>) hoặc bất kỳ bảng kê kiểm kho kế toán nào để đối chiếu với kho thực tế.
                                 </p>
 
@@ -1118,26 +1117,25 @@ export default function AccountingInventory() {
                                         onChange={handleFileUpload}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     />
-                                    <div className="border-3 border-dashed border-slate-200 dark:border-slate-700 group-hover:border-emerald-500 rounded-3xl p-10 transition-all bg-slate-50/50 dark:bg-slate-800/40 group-hover:bg-emerald-50/50 dark:group-hover:bg-emerald-950/20 text-center">
+                                    <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 group-hover:border-emerald-500 rounded-3xl p-10 transition-all bg-transparent group-hover:bg-emerald-50/20 text-center">
                                         <Upload className={cn("mx-auto mb-4 transition-all duration-300", analyzing ? "animate-bounce text-emerald-600" : "text-slate-400 group-hover:text-emerald-500")} size={40} />
-                                        <p className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                                             {analyzing ? "Đang đọc dữ liệu..." : "Kéo thả hoặc bấm để chọn file Excel"}
                                         </p>
-                                        <p className="text-xs text-slate-400 mt-2 font-medium">Hỗ trợ định dạng .xlsx, .xls, .csv</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Hỗ trợ định dạng .xlsx, .xls, .csv</p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {/* STEP 2: COLUMN MAPPING */}
-                        {/* STEP 2: COLUMN MAPPING */}
                         {step === 2 && (
-                            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl max-w-3xl mx-auto">
-                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div className="bg-transparent p-8 md:p-10 rounded-[2.5rem] border border-slate-300 dark:border-slate-800 shadow-sm max-w-3xl mx-auto">
+                                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
                                     <Columns className="text-emerald-600 dark:text-emerald-400" size={24} />
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 uppercase">Khớp Cột Dữ Liệu Excel</h2>
-                                        <p className="text-xs text-slate-400 font-medium">Tệp: <span className="text-emerald-600 font-bold">{uploadedFileName}</span> ({fileData.length} dòng dữ liệu)</p>
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-slate-100 uppercase">Khớp Cột Dữ Liệu Excel</h2>
+                                        <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Tệp: <span className="text-emerald-600 font-black">{uploadedFileName}</span> ({fileData.length} dòng dữ liệu)</p>
                                     </div>
                                 </div>
 
@@ -1158,7 +1156,7 @@ export default function AccountingInventory() {
                                         <button
                                             type="button"
                                             onClick={() => setShowSheetPreview(!showSheetPreview)}
-                                            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30 shadow-xs hover:bg-emerald-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2 whitespace-nowrap self-start sm:self-auto cursor-pointer"
+                                            className="px-3 py-1.5 rounded-xl bg-transparent text-emerald-700 dark:text-emerald-300 font-bold text-xs border border-emerald-500/30 hover:bg-emerald-50/50 transition-all flex items-center gap-2 whitespace-nowrap self-start sm:self-auto cursor-pointer"
                                         >
                                             <Eye size={14} />
                                             <span>{showSheetPreview ? "Ẩn bảng tính" : "Xem trước bảng tính"}</span>
@@ -1175,8 +1173,8 @@ export default function AccountingInventory() {
                                                 className={cn(
                                                     "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
                                                     headerMode === 'merged_two_rows'
-                                                        ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                        ? "bg-slate-900 text-white dark:bg-slate-900 dark:text-emerald-400 shadow-sm"
+                                                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                                                 )}
                                             >
                                                 <Sparkles size={13} />
@@ -1188,8 +1186,8 @@ export default function AccountingInventory() {
                                                 className={cn(
                                                     "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer",
                                                     headerMode === 'single'
-                                                        ? "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 shadow-sm"
-                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                        ? "bg-slate-900 text-white dark:bg-slate-900 dark:text-slate-100 shadow-sm"
+                                                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                                                 )}
                                             >
                                                 <span>1 dòng tiêu đề đơn</span>
@@ -1203,12 +1201,12 @@ export default function AccountingInventory() {
                                             <select
                                                 value={headerRowIndex}
                                                 onChange={(e) => applyHeaderRow(rawMatrix, parseInt(e.target.value), headerMode)}
-                                                className="w-full bg-white dark:bg-slate-800 border-2 border-emerald-500/40 rounded-xl px-4 py-2.5 font-black text-slate-800 dark:text-slate-100 text-sm focus:border-emerald-600 outline-none shadow-sm cursor-pointer"
+                                                className="w-full bg-transparent border-2 border-emerald-500/40 rounded-xl px-4 py-2.5 font-black text-slate-800 dark:text-slate-100 text-sm focus:border-emerald-600 outline-none cursor-pointer"
                                             >
                                                 {rawMatrix.slice(0, 15).map((row, idx) => {
                                                     const rowCells = Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join(' | ') : '';
                                                     return (
-                                                        <option key={idx} value={idx}>
+                                                        <option key={idx} value={idx} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                                                             {headerMode === 'merged_two_rows'
                                                                 ? `Dòng ${idx + 1} & ${idx + 2}: ${rowCells ? (rowCells.length > 55 ? rowCells.substring(0, 55) + '...' : rowCells) : '(Dòng trống)'}`
                                                                 : `Dòng ${idx + 1}: ${rowCells ? (rowCells.length > 60 ? rowCells.substring(0, 60) + '...' : rowCells) : '(Dòng trống)'}`}
@@ -1224,19 +1222,19 @@ export default function AccountingInventory() {
 
                                     {/* Interactive Sheet Preview Table */}
                                     {showSheetPreview && (
-                                        <div className="mt-4 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto max-h-72 custom-scrollbar">
-                                            <p className="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-wider">
+                                        <div className="mt-4 p-3 bg-transparent rounded-xl border border-slate-300 dark:border-slate-800 overflow-x-auto max-h-72 custom-scrollbar">
+                                            <p className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase mb-2 tracking-wider">
                                                 Bấm vào một dòng bên dưới để chọn làm dòng tiêu đề:
                                             </p>
                                             <table className="w-full text-left text-xs border-collapse">
                                                 <thead>
-                                                    <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
-                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-24">Vị trí</th>
-                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700">Nội dung dòng</th>
-                                                        <th className="py-2 px-3 border-b border-slate-200 dark:border-slate-700 w-36 text-right">Trạng thái</th>
+                                                    <tr className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-black">
+                                                        <th className="py-2 px-3 border-b border-slate-300 dark:border-slate-700 w-24">Vị trí</th>
+                                                        <th className="py-2 px-3 border-b border-slate-300 dark:border-slate-700">Nội dung dòng</th>
+                                                        <th className="py-2 px-3 border-b border-slate-300 dark:border-slate-700 w-36 text-right">Trạng thái</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                                                     {rawMatrix.slice(0, 12).map((row, rIdx) => {
                                                         const isHeader1 = rIdx === headerRowIndex;
                                                         const isHeader2 = headerMode === 'merged_two_rows' && rIdx === headerRowIndex + 1;
@@ -1252,7 +1250,7 @@ export default function AccountingInventory() {
                                                                         : isHeader2
                                                                             ? "bg-blue-500/15 dark:bg-blue-500/25 font-bold"
                                                                             : isBefore
-                                                                                ? "opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                                                                ? "opacity-50 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                                                                                 : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30"
                                                                 )}
                                                             >
@@ -1268,7 +1266,7 @@ export default function AccountingInventory() {
                                                                         Dòng {rIdx + 1}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 max-w-xl truncate">
+                                                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-700 dark:text-slate-300 max-w-xl truncate font-semibold">
                                                                     {Array.isArray(row) ? row.filter(c => c !== undefined && c !== null && c !== '').join('  |  ') : '(Trống)'}
                                                                 </td>
                                                                 <td className="py-2.5 px-3 text-right">
@@ -1306,10 +1304,10 @@ export default function AccountingInventory() {
                                     </div>
 
                                     {/* Cột Mã hàng */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800">
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Mã Hàng / Mã SP</label>
-                                            <p className="text-[11px] text-slate-400">Dùng để so khớp chính xác mã với sản phẩm trong kho.</p>
+                                            <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block mb-1">Cột Mã Hàng / Mã SP</label>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Dùng để so khớp chính xác mã với sản phẩm trong kho.</p>
                                             {mapping.code && fileData[0] && (
                                                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
                                                     Ví dụ dòng 1: "{fileData[0][mapping.code] || '(Trống)'}"
@@ -1319,18 +1317,18 @@ export default function AccountingInventory() {
                                         <select
                                             value={mapping.code}
                                             onChange={(e) => setMapping({ ...mapping, code: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                            className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm cursor-pointer"
                                         >
-                                            <option value="">-- Bỏ qua / Không chọn --</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            <option value="" className="bg-white dark:bg-slate-900">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h} className="bg-white dark:bg-slate-900">{h}</option>)}
                                         </select>
                                     </div>
 
                                     {/* Cột Tên hàng */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800">
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tên Sản Phẩm</label>
-                                            <p className="text-[11px] text-slate-400">Dùng để so khớp theo tên khi mã không trùng khớp.</p>
+                                            <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block mb-1">Cột Tên Sản Phẩm</label>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Dùng để so khớp theo tên khi mã không trùng khớp.</p>
                                             {mapping.name && fileData[0] && (
                                                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
                                                     Ví dụ dòng 1: "{fileData[0][mapping.name] || '(Trống)'}"
@@ -1340,18 +1338,18 @@ export default function AccountingInventory() {
                                         <select
                                             value={mapping.name}
                                             onChange={(e) => setMapping({ ...mapping, name: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                            className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm cursor-pointer"
                                         >
-                                            <option value="">-- Bỏ qua / Không chọn --</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            <option value="" className="bg-white dark:bg-slate-900">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h} className="bg-white dark:bg-slate-900">{h}</option>)}
                                         </select>
                                     </div>
 
                                     {/* Cột Tồn kho */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800">
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Tồn Kho / Số Lượng <span className="text-rose-500">*</span></label>
-                                            <p className="text-[11px] text-slate-400">Số lượng tồn kho theo sổ sách hoặc file kế toán.</p>
+                                            <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block mb-1">Cột Tồn Kho / Số Lượng <span className="text-rose-500">*</span></label>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Số lượng tồn kho theo sổ sách hoặc file kế toán.</p>
                                             {mapping.stock && fileData[0] && (
                                                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
                                                     Ví dụ dòng 1: "{fileData[0][mapping.stock] || '0'}"
@@ -1361,18 +1359,18 @@ export default function AccountingInventory() {
                                         <select
                                             value={mapping.stock}
                                             onChange={(e) => setMapping({ ...mapping, stock: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                            className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm cursor-pointer"
                                         >
-                                            <option value="">-- Chọn cột tồn kho --</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            <option value="" className="bg-white dark:bg-slate-900">-- Chọn cột tồn kho --</option>
+                                            {headers.map(h => <option key={h} value={h} className="bg-white dark:bg-slate-900">{h}</option>)}
                                         </select>
                                     </div>
 
                                     {/* Cột Đơn vị tính (Tùy chọn) */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-slate-50/70 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800">
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase block mb-1">Cột Đơn Vị Tính (ĐVT)</label>
-                                            <p className="text-[11px] text-slate-400">Đơn vị tính như Cái, Hộp, Kg, Thùng... (Tùy chọn).</p>
+                                            <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block mb-1">Cột Đơn Vị Tính (ĐVT)</label>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Đơn vị tính như Cái, Hộp, Kg, Thùng... (Tùy chọn).</p>
                                             {mapping.unit && fileData[0] && (
                                                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
                                                     Ví dụ dòng 1: "{fileData[0][mapping.unit] || '(Trống)'}"
@@ -1382,10 +1380,10 @@ export default function AccountingInventory() {
                                         <select
                                             value={mapping.unit}
                                             onChange={(e) => setMapping({ ...mapping, unit: e.target.value })}
-                                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm"
+                                            className="w-full bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 transition-all text-sm cursor-pointer"
                                         >
-                                            <option value="">-- Bỏ qua / Không chọn --</option>
-                                            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                                            <option value="" className="bg-white dark:bg-slate-900">-- Bỏ qua / Không chọn --</option>
+                                            {headers.map(h => <option key={h} value={h} className="bg-white dark:bg-slate-900">{h}</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -1393,7 +1391,7 @@ export default function AccountingInventory() {
                                 <div className="mt-8 flex justify-end gap-3">
                                     <button
                                         onClick={() => setStep(1)}
-                                        className="px-6 py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider"
+                                        className="px-6 py-3.5 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer"
                                     >
                                         Chọn file khác
                                     </button>
@@ -1401,7 +1399,7 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.03 }}
                                         whileTap={{ scale: 0.97 }}
                                         onClick={startMatching}
-                                        className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+                                        className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer"
                                     >
                                         <span>Bắt đầu đối soát</span>
                                         <ArrowRight size={16} />
@@ -1416,43 +1414,43 @@ export default function AccountingInventory() {
                                 {/* Top KPI Statistics */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                                     {/* Tổng bản ghi */}
-                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <div className="bg-transparent p-5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl flex items-center justify-center border border-slate-300 dark:border-slate-700">
                                                 <Layers size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tổng Dòng Excel</p>
+                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng Dòng Excel</p>
                                                 <p className="text-xl font-black text-slate-900 dark:text-white tabular-nums">{stats.total}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Đã khớp mã */}
-                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-emerald-200 dark:border-emerald-900 shadow-sm">
+                                    <div className="bg-transparent p-5 rounded-2xl border border-emerald-300 dark:border-emerald-900 shadow-sm">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/30">
                                                 <CheckCircle2 size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">Đã Khớp Mã ({stats.total ? Math.round((stats.matched / stats.total) * 100) : 0}%)</p>
-                                                <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{stats.matched}</p>
+                                                <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Đã Khớp Mã ({stats.total ? Math.round((stats.matched / stats.total) * 100) : 0}%)</p>
+                                                <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums">{stats.matched}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Chưa khớp mã */}
                                     <div className={cn(
-                                        "bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border shadow-sm",
-                                        stats.unmatched > 0 ? "border-rose-300 dark:border-rose-900 bg-rose-50/20" : "border-slate-200 dark:border-slate-800"
+                                        "bg-transparent p-5 rounded-2xl border shadow-sm",
+                                        stats.unmatched > 0 ? "border-rose-300 dark:border-rose-900" : "border-slate-300 dark:border-slate-800"
                                     )}>
                                         <div className="flex items-center gap-3">
-                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", stats.unmatched > 0 ? "bg-rose-100 dark:bg-rose-950 text-rose-600" : "bg-slate-100 text-slate-400")}>
+                                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center border", stats.unmatched > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400 border-rose-300" : "bg-slate-100 text-slate-400 border-slate-300")}>
                                                 <AlertCircle size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Chưa Khớp Mã</p>
-                                                <p className={cn("text-xl font-black tabular-nums", stats.unmatched > 0 ? "text-rose-600 dark:text-rose-400 font-black" : "text-slate-900 dark:text-white")}>
+                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chưa Khớp Mã</p>
+                                                <p className={cn("text-xl font-black tabular-nums", stats.unmatched > 0 ? "text-rose-700 dark:text-rose-400 font-black" : "text-slate-900 dark:text-white")}>
                                                     {stats.unmatched}
                                                 </p>
                                             </div>
@@ -1460,27 +1458,27 @@ export default function AccountingInventory() {
                                     </div>
 
                                     {/* Lệch tồn */}
-                                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-amber-200 dark:border-amber-900 shadow-sm">
+                                    <div className="bg-transparent p-5 rounded-2xl border border-amber-300 dark:border-amber-900 shadow-sm">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-400 rounded-xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30">
                                                 <AlertTriangle size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-wider">Lệch Tồn Kho</p>
-                                                <p className="text-xl font-black text-amber-600 dark:text-amber-400 tabular-nums">{stats.discrepancy}</p>
+                                                <p className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider">Lệch Tồn Kho</p>
+                                                <p className="text-xl font-black text-amber-800 dark:text-amber-400 tabular-nums">{stats.discrepancy}</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Lệch giá trị */}
-                                    <div className="bg-slate-900 dark:bg-slate-950 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                                    <div className="bg-transparent p-5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm relative overflow-hidden">
                                         <div className="flex items-center gap-3 relative z-10">
-                                            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-400">
+                                            <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                                                 <Calculator size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lệch Trị Giá</p>
-                                                <p className={cn("text-base font-black tabular-nums", stats.discrepancyValue >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lệch Trị Giá</p>
+                                                <p className={cn("text-base font-black tabular-nums", stats.discrepancyValue >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400")}>
                                                     {stats.discrepancyValue > 0 ? '+' : ''}{stats.discrepancyValue.toLocaleString()}đ
                                                 </p>
                                             </div>
@@ -1489,21 +1487,21 @@ export default function AccountingInventory() {
                                 </div>
 
                                 {/* Filter Tabs & Search Bar */}
-                                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col xl:flex-row items-center justify-between gap-4">
+                                <div className="bg-transparent p-4 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">
                                     {/* Search Input */}
                                     <div className="relative flex-1 group w-full">
-                                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+                                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                                         <input
                                             type="text"
                                             placeholder="Tìm kiếm sản phẩm trong bảng đối soát..."
                                             value={importSearch}
                                             onChange={(e) => setImportSearch(e.target.value)}
-                                            className="w-full pl-11 pr-4 py-2.5 bg-slate-100/70 dark:bg-slate-800/70 border border-transparent focus:border-emerald-500/30 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 transition-all placeholder:text-slate-400"
+                                            className="w-full pl-11 pr-4 py-2.5 bg-transparent border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500"
                                         />
                                     </div>
 
                                     {/* Filter Segmented Control */}
-                                    <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl">
+                                    <div className="flex flex-wrap items-center gap-2 bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-300 dark:border-slate-700">
                                         {[
                                             { id: 'all', label: `Tất cả (${stats.total})` },
                                             { id: 'matched', label: `🟢 Khớp mã (${stats.matched})` },
@@ -1515,10 +1513,10 @@ export default function AccountingInventory() {
                                                 key={f.id}
                                                 onClick={() => setImportFilter(f.id)}
                                                 className={cn(
-                                                    "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all",
+                                                    "px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
                                                     importFilter === f.id
-                                                        ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm"
-                                                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                                        ? "bg-slate-900 text-white dark:bg-slate-900 dark:text-white shadow-sm"
+                                                        : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                                                 )}
                                             >
                                                 {f.label}
@@ -1528,7 +1526,7 @@ export default function AccountingInventory() {
                                 </div>
 
                                 {/* Pre-Check Comparison Table */}
-                                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden min-h-[500px] flex flex-col">
+                                <div className="bg-transparent rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
                                             <thead className="bg-slate-900 text-white text-xs">
@@ -1550,7 +1548,7 @@ export default function AccountingInventory() {
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
                                                 {paginatedImportData.map((item) => {
                                                     const posStock = item.matchedProduct ? item.matchedProduct.stock : 0;
                                                     const diff = item.matchedProduct ? (posStock - item.excelStock) : 0;
@@ -1559,18 +1557,18 @@ export default function AccountingInventory() {
                                                     return (
                                                         <tr key={item.id} className={cn(
                                                             "transition-colors",
-                                                            !isMatched ? "bg-rose-50/30 dark:bg-rose-950/20" : "hover:bg-emerald-500/[0.02]"
+                                                            !isMatched ? "bg-rose-50/40 dark:bg-rose-950/20" : "hover:bg-slate-100/50"
                                                         )}>
                                                             {/* Excel info */}
                                                             <td className="px-6 py-4">
                                                                 <div className="flex flex-col">
-                                                                    <span className="font-black text-slate-800 dark:text-slate-100 text-sm">{item.excelName || item.excelCode}</span>
+                                                                    <span className="font-black text-slate-900 dark:text-slate-100 text-sm">{item.excelName || item.excelCode}</span>
                                                                     <div className="flex items-center gap-2 mt-1">
-                                                                        <span className="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded">
+                                                                        <span className="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700">
                                                                             Mã: {item.excelCode}
                                                                         </span>
                                                                         {item.excelPrice > 0 && (
-                                                                            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                                                            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
                                                                                 Giá: {item.excelPrice.toLocaleString()}đ
                                                                             </span>
                                                                         )}
@@ -1582,8 +1580,8 @@ export default function AccountingInventory() {
                                                             <td className="px-6 py-4 text-right font-black tabular-nums">
                                                                 {isMatched ? (
                                                                     <div className="flex flex-col items-end">
-                                                                        <span className="text-base text-emerald-600 dark:text-emerald-400">{posStock}</span>
-                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase">{item.matchedProduct.unit || 'ĐVT'}</span>
+                                                                        <span className="text-base text-emerald-700 dark:text-emerald-400">{posStock}</span>
+                                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{item.matchedProduct.unit || 'ĐVT'}</span>
                                                                     </div>
                                                                 ) : (
                                                                     <span className="text-xs text-slate-400 italic">Chưa có</span>
@@ -1591,7 +1589,7 @@ export default function AccountingInventory() {
                                                             </td>
 
                                                             {/* Kho sổ sách Excel */}
-                                                            <td className="px-6 py-4 text-right font-black tabular-nums text-blue-600 dark:text-blue-400">
+                                                            <td className="px-6 py-4 text-right font-black tabular-nums text-blue-700 dark:text-blue-400">
                                                                 <span className="text-base">{item.excelStock}</span>
                                                             </td>
 
@@ -1599,11 +1597,11 @@ export default function AccountingInventory() {
                                                             <td className="px-6 py-4 text-right font-black tabular-nums">
                                                                 {isMatched ? (
                                                                     diff === 0 ? (
-                                                                        <span className="text-slate-400 font-bold">0 (Cân bằng)</span>
+                                                                        <span className="text-slate-500 font-bold">0 (Cân bằng)</span>
                                                                     ) : diff > 0 ? (
-                                                                        <span className="text-emerald-600 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
+                                                                        <span className="text-emerald-700 dark:text-emerald-400 font-black">+{diff} (Thừa)</span>
                                                                     ) : (
-                                                                        <span className="text-rose-600 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
+                                                                        <span className="text-rose-700 dark:text-rose-400 font-black">{diff} (Thiếu)</span>
                                                                     )
                                                                 ) : (
                                                                     <span className="text-xs text-slate-400 font-mono">---</span>
@@ -1613,12 +1611,12 @@ export default function AccountingInventory() {
                                                             {/* Status / Actions */}
                                                             <td className="px-6 py-4 text-center">
                                                                 {isMatched ? (
-                                                                    <div className="flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-xl border border-emerald-200 dark:border-emerald-900">
+                                                                    <div className="flex items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-xl border border-emerald-300 dark:border-emerald-900">
                                                                         <div className="flex items-center gap-2 text-left truncate">
                                                                             <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
                                                                             <div className="truncate">
-                                                                                <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{item.matchedProduct.name}</p>
-                                                                                <p className="text-[10px] text-slate-400 font-mono">{item.matchedProduct.code || 'Mã POS'}</p>
+                                                                                <p className="text-xs font-black text-slate-900 dark:text-slate-100 truncate">{item.matchedProduct.name}</p>
+                                                                                <p className="text-[10px] text-slate-500 font-mono">{item.matchedProduct.code || 'Mã POS'}</p>
                                                                             </div>
                                                                         </div>
                                                                         <button
@@ -1626,7 +1624,7 @@ export default function AccountingInventory() {
                                                                                 setSelectedMatchDataId(item.id);
                                                                                 setShowMatchModal(true);
                                                                             }}
-                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 rounded-lg transition-all shrink-0"
+                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 rounded-lg transition-all shrink-0 cursor-pointer"
                                                                             title="Chọn sản phẩm khác để ghép"
                                                                         >
                                                                             <RefreshCw size={13} />
@@ -1640,7 +1638,7 @@ export default function AccountingInventory() {
                                                                             setSelectedMatchDataId(item.id);
                                                                             setShowMatchModal(true);
                                                                         }}
-                                                                        className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all"
+                                                                        className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer"
                                                                     >
                                                                         <CornerDownRight size={14} />
                                                                         <span>Ghép Mã Thủ Công</span>
@@ -1662,25 +1660,25 @@ export default function AccountingInventory() {
                                     )}
 
                                     {/* Pagination */}
-                                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                        <p className="text-xs font-bold text-slate-400">
+                                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
                                             Hiển thị {Math.min(filteredImportData.length, (importPage - 1) * importItemsPerPage + 1)} - {Math.min(filteredImportData.length, importPage * importItemsPerPage)} trong {filteredImportData.length} dòng
                                         </p>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 disabled={importPage === 1}
                                                 onClick={() => setImportPage(importPage - 1)}
-                                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                                className="px-4 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30 cursor-pointer"
                                             >
                                                 Trang trước
                                             </button>
-                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 px-2">
+                                            <span className="text-xs font-black text-slate-900 dark:text-white px-2">
                                                 Trang {importPage} / {Math.max(1, Math.ceil(filteredImportData.length / importItemsPerPage))}
                                             </span>
                                             <button
                                                 disabled={importPage >= Math.ceil(filteredImportData.length / importItemsPerPage)}
                                                 onClick={() => setImportPage(importPage + 1)}
-                                                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30"
+                                                className="px-4 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs disabled:opacity-30 cursor-pointer"
                                             >
                                                 Trang sau
                                             </button>
@@ -1708,7 +1706,7 @@ export default function AccountingInventory() {
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden relative z-10 p-6 md:p-8"
+                            className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative z-10 p-6 md:p-8"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">

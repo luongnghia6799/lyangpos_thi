@@ -230,6 +230,39 @@ export default function DailyInvoiceTracker() {
         }
     };
 
+    // Save a SINGLE item line directly from modal
+    const handleSaveSingleModalItem = async (item) => {
+        try {
+            const payload = {
+                is_invoiced: Boolean(item.temp_is_invoiced),
+                invoiced_quantity: Number(item.temp_invoiced_quantity || 0),
+                invoice_no: item.temp_invoice_no || partnerItemsModal.commonInvoiceNo || ''
+            };
+            await axios.post(`/api/accounting/order-details/${item.id}/invoice-status`, payload);
+            toast.success(`Đã lưu riêng món "${item.product_name}" thành công!`);
+            fetchInvoiceData(scope, selectedDate);
+        } catch (err) {
+            console.error(err);
+            toast.error("Lỗi khi lưu dòng món hàng này");
+        }
+    };
+
+    // Quick toggle single item line from the main list
+    const handleQuickToggleItem = async (item, targetStatus) => {
+        try {
+            await axios.post(`/api/accounting/order-details/${item.id}/invoice-status`, {
+                is_invoiced: targetStatus,
+                invoiced_quantity: targetStatus ? Number(item.quantity) : 0,
+                invoice_no: targetStatus ? (item.invoice_no || '') : ''
+            });
+            toast.success(targetStatus ? `Đã đánh dấu xuất HĐ cho món "${item.product_name}"` : `Đã bỏ xuất HĐ món "${item.product_name}"`);
+            fetchInvoiceData(scope, selectedDate);
+        } catch (err) {
+            console.error(err);
+            toast.error("Không thể cập nhật dòng món hàng");
+        }
+    };
+
     // Toggle single order invoice status
     const handleToggleOrderInvoice = async (order, targetStatus) => {
         try {
@@ -718,6 +751,7 @@ export default function DailyInvoiceTracker() {
                                                 <table className="w-full text-left text-xs border-collapse">
                                                     <thead>
                                                         <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
+                                                            <th className="py-2.5 px-3.5 w-12 text-center">Xuất HĐ</th>
                                                             <th className="py-2.5 px-3.5 w-10 text-center">STT</th>
                                                             <th className="py-2.5 px-3.5">Mã đơn</th>
                                                             <th className="py-2.5 px-3.5">Tên món / Sản phẩm</th>
@@ -744,6 +778,15 @@ export default function DailyInvoiceTracker() {
                                                                             : "bg-rose-50/30 dark:bg-rose-950/20 hover:bg-rose-50/50"
                                                                     )}
                                                                 >
+                                                                    <td className="py-2.5 px-3.5 text-center">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={Boolean(isItemInvoiced)}
+                                                                            onChange={() => handleQuickToggleItem(item, !isItemInvoiced)}
+                                                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                                                                            title="Đánh dấu riêng dòng này"
+                                                                        />
+                                                                    </td>
                                                                     <td className="py-2.5 px-3.5 text-center text-slate-400 font-mono">
                                                                         {idx + 1}
                                                                     </td>
@@ -777,21 +820,27 @@ export default function DailyInvoiceTracker() {
                                                                         {item.total_price?.toLocaleString()}đ
                                                                     </td>
                                                                     <td className="py-2.5 px-3.5 text-center">
-                                                                        {isItemInvoiced ? (
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                                                                <Check size={10} /> ĐÃ XUẤT ĐỦ
-                                                                            </span>
-                                                                        ) : (
-                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                                                                                <AlertCircle size={10} /> CẦN XUẤT
-                                                                            </span>
-                                                                        )}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleQuickToggleItem(item, !isItemInvoiced)}
+                                                                            className="cursor-pointer"
+                                                                        >
+                                                                            {isItemInvoiced ? (
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hover:scale-105 transition-transform">
+                                                                                    <Check size={10} /> ĐÃ XUẤT ĐỦ
+                                                                                </span>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 hover:scale-105 transition-transform">
+                                                                                    <AlertCircle size={10} /> CẦN XUẤT
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
                                                                     </td>
                                                                     <td className="py-2.5 px-3.5 text-center">
                                                                         <button
                                                                             onClick={() => openPartnerItemsModal(partner)}
                                                                             className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-blue-600 dark:text-blue-400 font-bold transition-all cursor-pointer inline-flex items-center gap-1 text-[11px]"
-                                                                            title="Cập nhật HĐ"
+                                                                            title="Mở bảng chi tiết"
                                                                         >
                                                                             <Edit3 size={13} />
                                                                             <span>Sửa</span>
@@ -889,9 +938,11 @@ export default function DailyInvoiceTracker() {
                                                 <th className="py-3 px-3.5 text-center">ĐVT</th>
                                                 <th className="py-3 px-3.5 text-center">SL Mua</th>
                                                 <th className="py-3 px-3.5 text-center">SL Đã Xuất HĐ</th>
+                                                <th className="py-3 px-3.5 text-center">Số HĐ Riêng</th>
                                                 <th className="py-3 px-3.5 text-right">Đơn giá</th>
                                                 <th className="py-3 px-3.5 text-right">Thành tiền</th>
                                                 <th className="py-3 px-3.5 text-center">Trạng thái</th>
+                                                <th className="py-3 px-3.5 text-center">Lưu Dòng</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -965,6 +1016,24 @@ export default function DailyInvoiceTracker() {
                                                                 <span className="text-slate-400 font-bold">/ {item.quantity}</span>
                                                             </div>
                                                         </td>
+                                                        <td className="py-3 px-3.5 text-center">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Số HĐ riêng"
+                                                                value={item.temp_invoice_no || ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setPartnerItemsModal(prev => {
+                                                                        const nextItems = prev.items.map((it, i) => {
+                                                                            if (i !== idx) return it;
+                                                                            return { ...it, temp_invoice_no: val };
+                                                                        });
+                                                                        return { ...prev, items: nextItems };
+                                                                    });
+                                                                }}
+                                                                className="w-24 py-1 px-2 text-center font-mono font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 text-xs"
+                                                            />
+                                                        </td>
                                                         <td className="py-3 px-3.5 text-right text-slate-600 dark:text-slate-300 tabular-nums">
                                                             {item.price?.toLocaleString()}đ
                                                         </td>
@@ -986,6 +1055,17 @@ export default function DailyInvoiceTracker() {
                                                                         <Hourglass size={11} /> CẦN XUẤT THÊM
                                                                     </span>
                                                                 )}
+                                                            </button>
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveSingleModalItem(item)}
+                                                                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60 rounded-xl font-black text-xs transition-all cursor-pointer inline-flex items-center gap-1 border border-emerald-500/20"
+                                                                title="Lưu riêng dòng này"
+                                                            >
+                                                                <Check size={12} />
+                                                                <span>Lưu Dòng</span>
                                                             </button>
                                                         </td>
                                                     </tr>

@@ -51,6 +51,11 @@ export default function DailyInvoiceTracker() {
         uninvoiced_orders_count: 0
     };
 
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [data, setData] = useState({
         summary: defaultSummary,
         partners: []
@@ -89,33 +94,15 @@ export default function DailyInvoiceTracker() {
             const res = await axios.get('/api/accounting/daily-invoices', {
                 params: {
                     scope: currentScope,
-                    date: date,
-                    search: searchQuery,
-                    status: statusFilter
+                    date: currentScope === 'daily' ? date : undefined,
+                    search: searchQuery || undefined,
+                    status: statusFilter !== 'all' ? statusFilter : undefined
                 }
             });
-            if (res.data && res.data.summary && Array.isArray(res.data.partners)) {
-                setData(res.data);
-            } else if (res.data && Array.isArray(res.data.partners)) {
-                setData({
-                    summary: res.data.summary || defaultSummary,
-                    partners: res.data.partners
-                });
-            } else {
-                setData({ summary: defaultSummary, partners: [] });
-            }
-            
-            // Auto expand partners initially if count <= 5
-            if (res.data && res.data.partners && res.data.partners.length <= 5) {
-                const initialExpanded = {};
-                res.data.partners.forEach(p => {
-                    initialExpanded[p.partner_id] = true;
-                });
-                setExpandedPartners(initialExpanded);
-            }
-        } catch (error) {
-            console.error("Error fetching daily invoices:", error);
-            setData({ summary: defaultSummary, partners: [] });
+            setData(res.data || { summary: defaultSummary, partners: [] });
+        } catch (err) {
+            console.error("Fetch invoice tracking error:", err);
+            toast.error("Không thể tải danh sách hóa đơn theo dõi");
         } finally {
             setLoading(false);
         }
@@ -142,12 +129,19 @@ export default function DailyInvoiceTracker() {
 
     // Open Partner Items Modal to view and track all items
     const openPartnerItemsModal = (partner) => {
-        const itemsCopy = (partner.items || []).map(item => ({
-            ...item,
-            temp_is_invoiced: item.is_invoiced !== false,
-            temp_invoiced_quantity: item.invoiced_quantity !== undefined ? item.invoiced_quantity : (item.is_invoiced ? item.quantity : 0),
-            temp_invoice_no: item.invoice_no || (partner.invoice_numbers && partner.invoice_numbers[0]) || ''
-        }));
+        if (!partner) return;
+        const itemsCopy = (partner.items || []).map(item => {
+            const isInv = Boolean(item.is_invoiced);
+            const invQty = item.invoiced_quantity !== undefined && item.invoiced_quantity !== null
+                ? Number(item.invoiced_quantity)
+                : (isInv ? Number(item.quantity) : 0);
+            return {
+                ...item,
+                temp_is_invoiced: isInv || (invQty >= Number(item.quantity)),
+                temp_invoiced_quantity: invQty,
+                temp_invoice_no: item.invoice_no || (partner.invoice_numbers && partner.invoice_numbers[0]) || ''
+            };
+        });
 
         setPartnerItemsModal({
             isOpen: true,
@@ -155,6 +149,19 @@ export default function DailyInvoiceTracker() {
             items: itemsCopy,
             commonInvoiceNo: partner.invoice_numbers && partner.invoice_numbers[0] ? partner.invoice_numbers[0] : '',
             commonInvoiceNote: ''
+        });
+    };
+
+    // Open single order edit modal
+    const openOrderEditModal = (order, partner) => {
+        if (!order) return;
+        setEditOrderModal({
+            isOpen: true,
+            order: order,
+            partner: partner,
+            invoiceNo: order.invoice_no || '',
+            invoiceNote: order.invoice_note || '',
+            isInvoiced: Boolean(order.is_invoiced)
         });
     };
 
@@ -233,17 +240,7 @@ export default function DailyInvoiceTracker() {
         }
     };
 
-    // Open Edit Modal for an Order
-    const openOrderEditModal = (order, partner) => {
-        setEditOrderModal({
-            isOpen: true,
-            order: order,
-            partner: partner,
-            invoiceNo: order.invoice_no || '',
-            invoiceNote: order.invoice_note || '',
-            isInvoiced: order.is_invoiced !== false
-        });
-    };
+
 
     // Save Single Order Modal
     const handleSaveOrderModal = async (e) => {
@@ -724,6 +721,7 @@ export default function DailyInvoiceTracker() {
                                                             <th className="py-2.5 px-3.5 text-right">Đơn giá</th>
                                                             <th className="py-2.5 px-3.5 text-right">Thành tiền</th>
                                                             <th className="py-2.5 px-3.5 text-center">Trạng thái HĐ</th>
+                                                            <th className="py-2.5 px-3.5 text-center">Thao tác</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -783,6 +781,16 @@ export default function DailyInvoiceTracker() {
                                                                             </span>
                                                                         )}
                                                                     </td>
+                                                                    <td className="py-2.5 px-3.5 text-center">
+                                                                        <button
+                                                                            onClick={() => openPartnerItemsModal(partner)}
+                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-blue-600 dark:text-blue-400 font-bold transition-all cursor-pointer inline-flex items-center gap-1 text-[11px]"
+                                                                            title="Cập nhật HĐ"
+                                                                        >
+                                                                            <Edit3 size={13} />
+                                                                            <span>Sửa</span>
+                                                                        </button>
+                                                                    </td>
                                                                 </tr>
                                                             );
                                                         })}
@@ -798,294 +806,298 @@ export default function DailyInvoiceTracker() {
                 </div>
             )}
 
-            {/* MODAL: CHI TIẾT & TRACK MÓN CẦN XUẤT HÓA ĐƠN CỦA ĐỐI TÁC */}
-            <AnimatePresence>
-                {partnerItemsModal.isOpen && partnerItemsModal.partner && createPortal(
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6 max-h-[90vh] flex flex-col"
-                        >
-                            {/* Modal Header */}
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-inner">
-                                        <Package size={24} />
+            {/* MODAL 1: CHI TIẾT & TRACK MÓN CẦN XUẤT HÓA ĐƠN CỦA ĐỐI TÁC */}
+            {mounted && typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {partnerItemsModal.isOpen && partnerItemsModal.partner && (
+                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-8 max-w-4xl w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6 max-h-[90vh] flex flex-col"
+                            >
+                                {/* Modal Header */}
+                                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shadow-inner">
+                                            <Package size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                                                Chi Tiết Món Xuất Hóa Đơn - {partnerItemsModal.partner.partner_name}
+                                            </h3>
+                                            <p className="text-xs text-slate-400 font-medium">
+                                                Track xem từng món đã xuất đủ hay chưa. Món chưa xuất đủ sẽ được lưu vào tab "Cần xuất thêm".
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                                            Chi Tiết Món Xuất Hóa Đơn - {partnerItemsModal.partner.partner_name}
-                                        </h3>
-                                        <p className="text-xs text-slate-400 font-medium">
-                                            Track xem từng món đã xuất đủ hay chưa. Món chưa xuất đủ sẽ được lưu vào tab "Cần xuất thêm".
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setPartnerItemsModal({ ...partnerItemsModal, isOpen: false })}
-                                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            {/* Quick Controls & Invoice No Bar */}
-                            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-                                <div className="flex items-center gap-2 w-full sm:w-auto">
-                                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase shrink-0">Số HĐ chung:</span>
-                                    <input
-                                        type="text"
-                                        placeholder="VD: HD-00123"
-                                        value={partnerItemsModal.commonInvoiceNo}
-                                        onChange={(e) => setPartnerItemsModal({ ...partnerItemsModal, commonInvoiceNo: e.target.value })}
-                                        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 font-bold text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 w-full sm:w-48"
-                                    />
-                                </div>
-
-                                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                                     <button
-                                        type="button"
-                                        onClick={() => handleSetAllItemsStatus(true)}
-                                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 shadow-sm"
-                                    >
-                                        <Check size={13} />
-                                        <span>Đánh Dấu Xuất Đủ Tất Cả</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSetAllItemsStatus(false)}
-                                        className="px-3.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer"
-                                    >
-                                        Bỏ chọn tất cả
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Items List Table with Tracking Checkboxes & Quantity Input */}
-                            <div className="overflow-y-auto flex-1 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
-                                <table className="w-full text-left text-xs border-collapse">
-                                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
-                                        <tr>
-                                            <th className="py-3 px-3.5 w-12 text-center">Xuất HĐ</th>
-                                            <th className="py-3 px-3.5">Mã đơn</th>
-                                            <th className="py-3 px-3.5">Món / Sản phẩm</th>
-                                            <th className="py-3 px-3.5 text-center">ĐVT</th>
-                                            <th className="py-3 px-3.5 text-center">SL Mua</th>
-                                            <th className="py-3 px-3.5 text-center">SL Đã Xuất HĐ</th>
-                                            <th className="py-3 px-3.5 text-right">Đơn giá</th>
-                                            <th className="py-3 px-3.5 text-right">Thành tiền</th>
-                                            <th className="py-3 px-3.5 text-center">Trạng thái</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                                        {partnerItemsModal.items.map((item, idx) => {
-                                            const isDone = item.temp_is_invoiced && (item.temp_invoiced_quantity >= item.quantity);
-
-                                            return (
-                                                <tr
-                                                    key={item.id || idx}
-                                                    className={cn(
-                                                        "transition-colors",
-                                                        isDone
-                                                            ? "bg-emerald-50/20 hover:bg-emerald-50/40"
-                                                            : "bg-rose-50/20 hover:bg-rose-50/40"
-                                                    )}
-                                                >
-                                                    <td className="py-3 px-3.5 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={Boolean(item.temp_is_invoiced)}
-                                                            onChange={() => handleToggleItemStatus(idx)}
-                                                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                                        />
-                                                    </td>
-                                                    <td className="py-3 px-3.5 font-bold font-mono text-slate-500">
-                                                        {item.order_display_id}
-                                                    </td>
-                                                    <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
-                                                        <span>{item.product_name}</span>
-                                                        {item.product_code && (
-                                                            <span className="text-[10px] text-slate-400 ml-1.5 font-mono">({item.product_code})</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-center text-slate-500">
-                                                        {item.unit || 'ĐV'}
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-center font-black text-slate-900 dark:text-white">
-                                                        {item.quantity}
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-center">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <input
-                                                                type="number"
-                                                                min="0"
-                                                                max={item.quantity}
-                                                                value={item.temp_invoiced_quantity !== undefined ? item.temp_invoiced_quantity : (item.temp_is_invoiced ? item.quantity : 0)}
-                                                                onChange={(e) => {
-                                                                    const val = parseFloat(e.target.value) || 0;
-                                                                    setPartnerItemsModal(prev => {
-                                                                        const up = [...prev.items];
-                                                                        up[idx].temp_invoiced_quantity = val;
-                                                                        up[idx].temp_is_invoiced = val > 0;
-                                                                        return { ...prev, items: up };
-                                                                    });
-                                                                }}
-                                                                className="w-16 py-1 px-2 text-center font-black rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
-                                                            />
-                                                            <span className="text-slate-400 font-bold">/ {item.quantity}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-right text-slate-600 dark:text-slate-300 tabular-nums">
-                                                        {item.price?.toLocaleString()}đ
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums">
-                                                        {item.total_price?.toLocaleString()}đ
-                                                    </td>
-                                                    <td className="py-3 px-3.5 text-center">
-                                                        {isDone ? (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                                                <Check size={10} /> ĐÃ XUẤT ĐỦ
-                                                            </span>
-                                                        ) : (
-                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                                                                <Hourglass size={10} /> CẦN XUẤT THÊM
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Modal Footer */}
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 shrink-0">
-                                <div className="text-xs text-slate-500">
-                                    <span>Tổng số món: <strong>{partnerItemsModal.items.length}</strong> | </span>
-                                    <span>Đã xuất đủ: <strong className="text-emerald-600">{partnerItemsModal.items.filter(i => i.temp_is_invoiced && i.temp_invoiced_quantity >= i.quantity).length}</strong> | </span>
-                                    <span>Cần xuất thêm: <strong className="text-rose-600">{partnerItemsModal.items.filter(i => !i.temp_is_invoiced || i.temp_invoiced_quantity < i.quantity).length}</strong></span>
-                                </div>
-
-                                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                                    <button
-                                        type="button"
                                         onClick={() => setPartnerItemsModal({ ...partnerItemsModal, isOpen: false })}
-                                        className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer"
+                                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
                                     >
-                                        Đóng
+                                        <X size={20} />
                                     </button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.03 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={handleSavePartnerItems}
-                                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer flex items-center gap-2"
-                                    >
-                                        <Check size={16} />
-                                        <span>Lưu Trạng Thái Món Hàng</span>
-                                    </motion.button>
                                 </div>
-                            </div>
-                        </motion.div>
-                    </div>,
-                    document.body
-                )}
-            </AnimatePresence>
 
-            {/* Modal Edit Single Order */}
-            <AnimatePresence>
-                {editOrderModal.isOpen && editOrderModal.order && createPortal(
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
-                        >
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
-                                        <Receipt size={20} />
+                                {/* Quick Controls & Invoice No Bar */}
+                                <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase shrink-0">Số HĐ chung:</span>
+                                        <input
+                                            type="text"
+                                            placeholder="VD: HD-00123"
+                                            value={partnerItemsModal.commonInvoiceNo}
+                                            onChange={(e) => setPartnerItemsModal({ ...partnerItemsModal, commonInvoiceNo: e.target.value })}
+                                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 font-bold text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 w-full sm:w-48"
+                                        />
                                     </div>
-                                    <h3 className="text-base font-black text-slate-900 dark:text-white line-clamp-1">
-                                        Cập nhật Hóa Đơn - Đơn {editOrderModal.order.display_id}
-                                    </h3>
-                                </div>
-                                <button
-                                    onClick={() => setEditOrderModal({ ...editOrderModal, isOpen: false })}
-                                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
 
-                            <form onSubmit={handleSaveOrderModal} className="space-y-4">
-                                <div className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                    <input
-                                        type="checkbox"
-                                        id="modalOrderIsInvoiced"
-                                        checked={editOrderModal.isInvoiced}
-                                        onChange={(e) => setEditOrderModal({ ...editOrderModal, isInvoiced: e.target.checked })}
-                                        className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                    />
-                                    <label htmlFor="modalOrderIsInvoiced" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
-                                        Đã xuất hóa đơn điện tử / VAT
-                                    </label>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetAllItemsStatus(true)}
+                                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                        >
+                                            <Check size={13} />
+                                            <span>Đánh Dấu Xuất Đủ Tất Cả</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetAllItemsStatus(false)}
+                                            className="px-3.5 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer"
+                                        >
+                                            Bỏ chọn tất cả
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {editOrderModal.isInvoiced && (
-                                    <>
-                                        <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase block mb-1">
-                                                Số Hóa Đơn (Tùy chọn)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="VD: HD-00123, 000456..."
-                                                value={editOrderModal.invoiceNo}
-                                                onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNo: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 text-sm outline-none focus:border-emerald-500"
-                                            />
-                                        </div>
+                                {/* Items List Table with Tracking Checkboxes & Quantity Input */}
+                                <div className="overflow-y-auto flex-1 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                        <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black">
+                                            <tr>
+                                                <th className="py-3 px-3.5 w-12 text-center">Xuất HĐ</th>
+                                                <th className="py-3 px-3.5">Mã đơn</th>
+                                                <th className="py-3 px-3.5">Món / Sản phẩm</th>
+                                                <th className="py-3 px-3.5 text-center">ĐVT</th>
+                                                <th className="py-3 px-3.5 text-center">SL Mua</th>
+                                                <th className="py-3 px-3.5 text-center">SL Đã Xuất HĐ</th>
+                                                <th className="py-3 px-3.5 text-right">Đơn giá</th>
+                                                <th className="py-3 px-3.5 text-right">Thành tiền</th>
+                                                <th className="py-3 px-3.5 text-center">Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                                            {partnerItemsModal.items.map((item, idx) => {
+                                                const isDone = item.temp_is_invoiced && (item.temp_invoiced_quantity >= item.quantity);
 
-                                        <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase block mb-1">
-                                                Ghi Chú Hóa Đơn (Tùy chọn)
-                                            </label>
-                                            <textarea
-                                                placeholder="Ghi chú thêm (VD: Đã gửi mail cho khách, xuất qua MISA...)"
-                                                rows={3}
-                                                value={editOrderModal.invoiceNote}
-                                                onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNote: e.target.value })}
-                                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 text-sm outline-none focus:border-emerald-500 resize-none"
-                                            />
-                                        </div>
-                                    </>
-                                )}
+                                                return (
+                                                    <tr
+                                                        key={item.id || idx}
+                                                        className={cn(
+                                                            "transition-colors",
+                                                            isDone
+                                                                ? "bg-emerald-50/20 hover:bg-emerald-50/40"
+                                                                : "bg-rose-50/20 hover:bg-rose-50/40"
+                                                        )}
+                                                    >
+                                                        <td className="py-3 px-3.5 text-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(item.temp_is_invoiced)}
+                                                                onChange={() => handleToggleItemStatus(idx)}
+                                                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                            />
+                                                        </td>
+                                                        <td className="py-3 px-3.5 font-bold font-mono text-slate-500">
+                                                            {item.order_display_id}
+                                                        </td>
+                                                        <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
+                                                            <span>{item.product_name}</span>
+                                                            {item.product_code && (
+                                                                <span className="text-[10px] text-slate-400 ml-1.5 font-mono">({item.product_code})</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-center text-slate-500">
+                                                            {item.unit || 'ĐV'}
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-center font-black text-slate-900 dark:text-white">
+                                                            {item.quantity}
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-center">
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max={item.quantity}
+                                                                    value={item.temp_invoiced_quantity !== undefined ? item.temp_invoiced_quantity : (item.temp_is_invoiced ? item.quantity : 0)}
+                                                                    onChange={(e) => {
+                                                                        const val = parseFloat(e.target.value) || 0;
+                                                                        setPartnerItemsModal(prev => {
+                                                                            const up = [...prev.items];
+                                                                            up[idx].temp_invoiced_quantity = val;
+                                                                            up[idx].temp_is_invoiced = val > 0;
+                                                                            return { ...prev, items: up };
+                                                                        });
+                                                                    }}
+                                                                    className="w-16 py-1 px-2 text-center font-black rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                                                />
+                                                                <span className="text-slate-400 font-bold">/ {item.quantity}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-right text-slate-600 dark:text-slate-300 tabular-nums">
+                                                            {item.price?.toLocaleString()}đ
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums">
+                                                            {item.total_price?.toLocaleString()}đ
+                                                        </td>
+                                                        <td className="py-3 px-3.5 text-center">
+                                                            {isDone ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                                                    <Check size={10} /> ĐÃ XUẤT ĐỦ
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                                                                    <Hourglass size={10} /> CẦN XUẤT THÊM
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                                <div className="flex items-center justify-end gap-2.5 pt-4">
+                                {/* Modal Footer */}
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 shrink-0">
+                                    <div className="text-xs text-slate-500">
+                                        <span>Tổng số món: <strong>{partnerItemsModal.items.length}</strong> | </span>
+                                        <span>Đã xuất đủ: <strong className="text-emerald-600">{partnerItemsModal.items.filter(i => i.temp_is_invoiced && i.temp_invoiced_quantity >= i.quantity).length}</strong> | </span>
+                                        <span>Cần xuất thêm: <strong className="text-rose-600">{partnerItemsModal.items.filter(i => !i.temp_is_invoiced || i.temp_invoiced_quantity < i.quantity).length}</strong></span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPartnerItemsModal({ ...partnerItemsModal, isOpen: false })}
+                                            className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer"
+                                        >
+                                            Đóng
+                                        </button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.03 }}
+                                            whileTap={{ scale: 0.97 }}
+                                            onClick={handleSavePartnerItems}
+                                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer flex items-center gap-2"
+                                        >
+                                            <Check size={16} />
+                                            <span>Lưu Trạng Thái Món Hàng</span>
+                                        </motion.button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* MODAL 2: CẬP NHẬT ĐƠN LẺ */}
+            {mounted && typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {editOrderModal.isOpen && editOrderModal.order && (
+                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
+                            >
+                                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
+                                            <Receipt size={20} />
+                                        </div>
+                                        <h3 className="text-base font-black text-slate-900 dark:text-white line-clamp-1">
+                                            Cập nhật Hóa Đơn - Đơn {editOrderModal.order.display_id}
+                                        </h3>
+                                    </div>
                                     <button
-                                        type="button"
                                         onClick={() => setEditOrderModal({ ...editOrderModal, isOpen: false })}
-                                        className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer"
+                                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
                                     >
-                                        Hủy
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer"
-                                    >
-                                        Lưu Thay Đổi
+                                        <X size={20} />
                                     </button>
                                 </div>
-                            </form>
-                        </motion.div>
-                    </div>,
-                    document.body
-                )}
-            </AnimatePresence>
+
+                                <form onSubmit={handleSaveOrderModal} className="space-y-4">
+                                    <div className="flex items-center gap-3 p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <input
+                                            type="checkbox"
+                                            id="modalOrderIsInvoiced"
+                                            checked={editOrderModal.isInvoiced}
+                                            onChange={(e) => setEditOrderModal({ ...editOrderModal, isInvoiced: e.target.checked })}
+                                            className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                        />
+                                        <label htmlFor="modalOrderIsInvoiced" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
+                                            Đã xuất hóa đơn điện tử / VAT
+                                        </label>
+                                    </div>
+
+                                    {editOrderModal.isInvoiced && (
+                                        <>
+                                            <div>
+                                                <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase block mb-1">
+                                                    Số Hóa Đơn (Tùy chọn)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="VD: HD-00123, 000456..."
+                                                    value={editOrderModal.invoiceNo}
+                                                    onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNo: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 text-sm outline-none focus:border-emerald-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase block mb-1">
+                                                    Ghi Chú Hóa Đơn (Tùy chọn)
+                                                </label>
+                                                <textarea
+                                                    placeholder="Ghi chú thêm (VD: Đã gửi mail cho khách, xuất qua MISA...)"
+                                                    rows={3}
+                                                    value={editOrderModal.invoiceNote}
+                                                    onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNote: e.target.value })}
+                                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 font-bold text-slate-800 dark:text-slate-100 text-sm outline-none focus:border-emerald-500 resize-none"
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="flex items-center justify-end gap-2.5 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditOrderModal({ ...editOrderModal, isOpen: false })}
+                                            className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer"
+                                        >
+                                            Lưu Thay Đổi
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

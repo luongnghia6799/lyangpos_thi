@@ -872,53 +872,53 @@ export default function DailyInvoiceTracker() {
                 </div>
             )}
 
-{/* MODAL 1: CHI TIẾT MÓN THEO TỪNG ĐỐI TÁC (POS THEME) */}
+{/* MODAL 1: CHI TIẾT MÓN THEO TỪNG ĐỐI TÁC (LIGHT MODE DEFAULT) */}
 {mounted && typeof document !== 'undefined' && createPortal(
 <AnimatePresence>
 {partnerItemsModal.isOpen && partnerItemsModal.partner && (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 md:p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 md:p-4 bg-black/60 backdrop-blur-sm">
         <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-slate-950/95 dark:bg-slate-950/95 backdrop-blur-2xl rounded-3xl p-5 md:p-7 max-w-7xl w-[96vw] max-h-[94vh] h-[94vh] shadow-2xl border border-slate-800/90 flex flex-col space-y-4 text-white relative overflow-hidden"
+            className="bg-[#fcfaf8] dark:bg-slate-950 backdrop-blur-2xl rounded-3xl p-5 md:p-7 max-w-7xl w-[96vw] max-h-[94vh] h-[94vh] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col space-y-4 text-slate-900 dark:text-white relative overflow-hidden"
         >
             {/* Glowing accent inside modal */}
             <div className="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800/80 shrink-0 relative z-10">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0 relative z-10">
                 <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center shadow-inner ring-1 ring-emerald-500/20">
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
                         <Package size={24} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-black text-white flex items-center gap-2">
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                             <span>Chi Tiết Món Xuất Hóa Đơn - {partnerItemsModal.partner.partner_name}</span>
                         </h3>
-                        <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-bold mt-0.5">
                             Đánh dấu từng món đã xuất đủ hoặc cần xuất thêm. Món chưa xuất đủ sẽ được lưu vào tab "Cần xuất thêm".
                         </p>
                     </div>
                 </div>
                 <button
                     onClick={() => setPartnerItemsModal({ ...partnerItemsModal, isOpen: false })}
-                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors border border-slate-800"
+                    className="p-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors border border-slate-200 dark:border-slate-800"
                 >
                     <X size={18} />
                 </button>
             </div>
 
             {/* Quick Controls & Invoice No Bar */}
-            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800/90 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 relative z-10 shadow-lg">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 relative z-10 shadow-sm">
                 <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                    <span className="text-xs font-black text-slate-300 uppercase tracking-wider shrink-0">Số HĐ chung:</span>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider shrink-0">Số HĐ chung:</span>
                     <input
                         type="text"
                         placeholder="VD: HD-00123"
                         value={partnerItemsModal.commonInvoiceNo}
                         onChange={(e) => setPartnerItemsModal({ ...partnerItemsModal, commonInvoiceNo: e.target.value })}
-                        className="bg-slate-950 border border-slate-800 focus:border-emerald-500/50 rounded-xl px-3.5 py-2 font-mono font-bold text-xs text-white outline-none w-full sm:w-52"
+                        className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-xl px-3.5 py-2 font-mono font-bold text-xs text-slate-900 dark:text-white outline-none w-full sm:w-52"
                     />
                 </div>
 
@@ -934,7 +934,7 @@ export default function DailyInvoiceTracker() {
                     <button
                         type="button"
                         onClick={() => handleSetAllItemsStatus(false)}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer border border-slate-700"
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer border border-slate-300 dark:border-slate-700"
                     >
                         Bỏ chọn tất cả
                     </button>
@@ -942,9 +942,9 @@ export default function DailyInvoiceTracker() {
             </div>
 
             {/* Items List Table with Tracking Checkboxes & Quantity Input */}
-            <div className="overflow-y-auto flex-1 rounded-2xl border border-slate-800 bg-slate-900/90 shadow-xl relative z-10">
+            <div className="overflow-y-auto flex-1 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm relative z-10">
                 <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 z-10 bg-slate-950 text-slate-400 font-black border-b border-slate-800">
+                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-300 font-black border-b border-slate-200 dark:border-slate-800">
                         <tr>
                             <th className="py-3 px-3.5 w-12 text-center">Xuất HĐ</th>
                             <th className="py-3 px-3.5">Mã đơn</th>
@@ -959,7 +959,7 @@ export default function DailyInvoiceTracker() {
                             <th className="py-3 px-3.5 text-center">Lưu Dòng</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/80 font-medium text-slate-200">
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
                         {partnerItemsModal.items.map((item, idx) => {
                             const isDone = item.temp_is_invoiced && (item.temp_invoiced_quantity >= item.quantity);
 
@@ -969,8 +969,8 @@ export default function DailyInvoiceTracker() {
                                     className={cn(
                                         "transition-colors",
                                         isDone
-                                            ? "hover:bg-slate-800/40"
-                                            : "bg-rose-950/15 hover:bg-rose-950/25"
+                                            ? "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                                            : "bg-rose-50/50 hover:bg-rose-50/80 dark:bg-rose-950/20 dark:hover:bg-rose-950/30"
                                     )}
                                 >
                                     <td className="py-3 px-3.5 text-center">
@@ -984,26 +984,26 @@ export default function DailyInvoiceTracker() {
                                                 "w-7 h-7 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 cursor-pointer border shadow-sm",
                                                 item.temp_is_invoiced
                                                     ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/25 active:scale-90"
-                                                    : "bg-slate-800 hover:bg-slate-700 text-transparent border-slate-700 hover:border-emerald-500 active:scale-90"
+                                                    : "bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-transparent border-slate-300 dark:border-slate-600 hover:border-emerald-500 active:scale-90"
                                             )}
                                             title={item.temp_is_invoiced ? "Đã xuất HĐ (Bấm để bỏ chọn)" : "Chưa xuất HĐ (Bấm để chọn)"}
                                         >
                                             <Check size={16} strokeWidth={3.5} className={cn("transition-transform duration-150", item.temp_is_invoiced ? "scale-100 text-white" : "scale-0")} />
                                         </button>
                                     </td>
-                                    <td className="py-3 px-3.5 font-bold font-mono text-slate-400">
+                                    <td className="py-3 px-3.5 font-bold font-mono text-slate-600 dark:text-slate-400">
                                         {item.order_display_id}
                                     </td>
-                                    <td className="py-3 px-3.5 font-black text-white">
+                                    <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
                                         <span>{item.product_name}</span>
                                         {item.product_code && (
-                                            <span className="text-[10px] text-slate-400 ml-1.5 font-mono">({item.product_code})</span>
+                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5 font-mono">({item.product_code})</span>
                                         )}
                                     </td>
-                                    <td className="py-3 px-3.5 text-center text-slate-400">
+                                    <td className="py-3 px-3.5 text-center text-slate-600 dark:text-slate-400 font-semibold">
                                         {item.unit || 'ĐV'}
                                     </td>
-                                    <td className="py-3 px-3.5 text-center font-black text-white">
+                                    <td className="py-3 px-3.5 text-center font-black text-slate-900 dark:text-white">
                                         {item.quantity}
                                     </td>
                                     <td className="py-3 px-3.5 text-center">
@@ -1029,7 +1029,7 @@ export default function DailyInvoiceTracker() {
                                                         return { ...prev, items: nextItems };
                                                     });
                                                 }}
-                                                className="w-16 py-1.5 px-2 text-center font-black font-mono rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:border-emerald-500 text-xs"
+                                                className="w-16 py-1.5 px-2 text-center font-black font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-emerald-500 text-xs"
                                             />
                                             <span className="text-slate-500 font-bold">/ {item.quantity}</span>
                                         </div>
@@ -1049,13 +1049,13 @@ export default function DailyInvoiceTracker() {
                                                     return { ...prev, items: nextItems };
                                                 });
                                             }}
-                                            className="w-24 py-1.5 px-2 text-center font-mono font-bold rounded-xl border border-slate-700 bg-slate-950 text-white outline-none focus:border-emerald-500 text-xs"
+                                            className="w-24 py-1.5 px-2 text-center font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-emerald-500 text-xs"
                                         />
                                     </td>
-                                    <td className="py-3 px-3.5 text-right text-slate-300 tabular-nums font-mono">
+                                    <td className="py-3 px-3.5 text-right text-slate-700 dark:text-slate-300 tabular-nums font-mono font-bold">
                                         {item.price?.toLocaleString()}đ
                                     </td>
-                                    <td className="py-3 px-3.5 text-right font-black text-white tabular-nums font-mono">
+                                    <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums font-mono">
                                         {item.total_price?.toLocaleString()}đ
                                     </td>
                                     <td className="py-3 px-3.5 text-center">
@@ -1065,11 +1065,11 @@ export default function DailyInvoiceTracker() {
                                             className="cursor-pointer"
                                         >
                                             {isDone ? (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:scale-105 transition-transform">
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 hover:scale-105 transition-transform">
                                                     <Check size={11} /> ĐÃ XUẤT ĐỦ
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:scale-105 transition-transform">
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 hover:scale-105 transition-transform">
                                                     <Hourglass size={11} /> CẦN XUẤT THÊM
                                                 </span>
                                             )}
@@ -1079,7 +1079,7 @@ export default function DailyInvoiceTracker() {
                                         <button
                                             type="button"
                                             onClick={() => handleSaveSingleModalItem(item)}
-                                            className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 rounded-xl font-black text-xs transition-all cursor-pointer inline-flex items-center gap-1 border border-emerald-500/30"
+                                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl font-black text-xs transition-all cursor-pointer inline-flex items-center gap-1 border border-emerald-300 dark:border-emerald-500/30"
                                             title="Lưu riêng dòng này"
                                         >
                                             <Check size={12} />
@@ -1095,17 +1095,17 @@ export default function DailyInvoiceTracker() {
 
             {/* Modal Footer */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 shrink-0 relative z-10">
-                <div className="text-xs text-slate-400 font-medium">
-                    <span>Tổng số món: <strong className="text-white">{partnerItemsModal.items.length}</strong> | </span>
-                    <span>Đã xuất đủ: <strong className="text-emerald-400">{partnerItemsModal.items.filter(i => i.temp_is_invoiced && i.temp_invoiced_quantity >= i.quantity).length}</strong> | </span>
-                    <span>Cần xuất thêm: <strong className="text-rose-400">{partnerItemsModal.items.filter(i => !i.temp_is_invoiced || i.temp_invoiced_quantity < i.quantity).length}</strong></span>
+                <div className="text-xs text-slate-600 dark:text-slate-400 font-bold">
+                    <span>Tổng số món: <strong className="text-slate-900 dark:text-white font-black">{partnerItemsModal.items.length}</strong> | </span>
+                    <span>Đã xuất đủ: <strong className="text-emerald-700 dark:text-emerald-400 font-black">{partnerItemsModal.items.filter(i => i.temp_is_invoiced && i.temp_invoiced_quantity >= i.quantity).length}</strong> | </span>
+                    <span>Cần xuất thêm: <strong className="text-rose-700 dark:text-rose-400 font-black">{partnerItemsModal.items.filter(i => !i.temp_is_invoiced || i.temp_invoiced_quantity < i.quantity).length}</strong></span>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                     <button
                         type="button"
                         onClick={() => setPartnerItemsModal({ ...partnerItemsModal, isOpen: false })}
-                        className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl font-bold text-xs cursor-pointer border border-slate-700"
+                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs cursor-pointer border border-slate-300 dark:border-slate-700"
                     >
                         Đóng
                     </button>
@@ -1127,36 +1127,36 @@ export default function DailyInvoiceTracker() {
 document.body
 )}
 
-{/* MODAL 2: CẬP NHẬT ĐƠN LẺ (POS THEME) */}
+{/* MODAL 2: CẬP NHẬT ĐƠN LẺ (LIGHT MODE DEFAULT) */}
 {mounted && typeof document !== 'undefined' && createPortal(
 <AnimatePresence>
 {editOrderModal.isOpen && editOrderModal.order && (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-slate-950/95 dark:bg-slate-950/95 backdrop-blur-2xl rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-800/90 space-y-5 text-white"
+            className="bg-[#fcfaf8] dark:bg-slate-950 backdrop-blur-2xl rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 text-slate-900 dark:text-white"
         >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-500/20">
+                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
                         <Receipt size={20} />
                     </div>
-                    <h3 className="text-base font-black text-white line-clamp-1">
+                    <h3 className="text-base font-black text-slate-900 dark:text-white line-clamp-1">
                         Cập nhật Hóa Đơn - Đơn {editOrderModal.order.display_id}
                     </h3>
                 </div>
                 <button
                     onClick={() => setEditOrderModal({ ...editOrderModal, isOpen: false })}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
+                    className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors border border-slate-200 dark:border-slate-800"
                 >
                     <X size={18} />
                 </button>
             </div>
 
             <form onSubmit={handleSaveOrderModal} className="space-y-4">
-                <div className="flex items-center gap-3 p-3.5 bg-slate-900 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-3 p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <input
                         type="checkbox"
                         id="modalOrderIsInvoiced"
@@ -1164,7 +1164,7 @@ document.body
                         onChange={(e) => setEditOrderModal({ ...editOrderModal, isInvoiced: e.target.checked })}
                         className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-500"
                     />
-                    <label htmlFor="modalOrderIsInvoiced" className="text-xs font-black text-slate-200 cursor-pointer">
+                    <label htmlFor="modalOrderIsInvoiced" className="text-xs font-black text-slate-800 dark:text-slate-200 cursor-pointer">
                         Đã xuất hóa đơn điện tử / VAT
                     </label>
                 </div>
@@ -1172,7 +1172,7 @@ document.body
                 {editOrderModal.isInvoiced && (
                     <>
                         <div>
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1">
+                            <label className="text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Số Hóa Đơn (Tùy chọn)
                             </label>
                             <input
@@ -1180,12 +1180,12 @@ document.body
                                 placeholder="VD: HD-00123, 000456..."
                                 value={editOrderModal.invoiceNo}
                                 onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNo: e.target.value })}
-                                className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500/50 rounded-xl px-4 py-2.5 font-mono font-bold text-white text-sm outline-none"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 font-mono font-bold text-slate-900 dark:text-white text-sm outline-none shadow-sm"
                             />
                         </div>
 
                         <div>
-                            <label className="text-xs font-black text-slate-400 uppercase tracking-wider block mb-1">
+                            <label className="text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider block mb-1">
                                 Ghi Chú Hóa Đơn (Tùy chọn)
                             </label>
                             <textarea
@@ -1193,17 +1193,17 @@ document.body
                                 rows={3}
                                 value={editOrderModal.invoiceNote}
                                 onChange={(e) => setEditOrderModal({ ...editOrderModal, invoiceNote: e.target.value })}
-                                className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500/50 rounded-xl px-4 py-2.5 font-bold text-white text-sm outline-none resize-none"
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-xl px-4 py-2.5 font-bold text-slate-900 dark:text-white text-sm outline-none resize-none shadow-sm"
                             />
                         </div>
                     </>
                 )}
 
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
                     <button
                         type="button"
                         onClick={() => setEditOrderModal({ ...editOrderModal, isOpen: false })}
-                        className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs cursor-pointer border border-slate-700"
+                        className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs cursor-pointer border border-slate-300 dark:border-slate-700"
                     >
                         Hủy
                     </button>

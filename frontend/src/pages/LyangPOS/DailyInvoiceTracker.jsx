@@ -952,7 +952,6 @@ export default function DailyInvoiceTracker() {
                             <th className="py-3 px-3.5 text-center">ĐVT</th>
                             <th className="py-3 px-3.5 text-center">SL Mua</th>
                             <th className="py-3 px-3.5 text-center">SL Đã Xuất HĐ</th>
-                            <th className="py-3 px-3.5 text-center">Số HĐ Riêng</th>
                             <th className="py-3 px-3.5 text-right">Đơn giá</th>
                             <th className="py-3 px-3.5 text-right">Thành tiền</th>
                             <th className="py-3 px-3.5 text-center">Trạng thái</th>
@@ -1032,24 +1031,6 @@ export default function DailyInvoiceTracker() {
                                             />
                                             <span className="text-slate-500 font-bold">/ {item.quantity}</span>
                                         </div>
-                                    </td>
-                                    <td className="py-3 px-3.5 text-center">
-                                        <input
-                                            type="text"
-                                            placeholder="Số HĐ"
-                                            value={item.temp_invoice_no || ''}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                setPartnerItemsModal(prev => {
-                                                    const nextItems = prev.items.map((it, i) => {
-                                                        if (i !== idx) return it;
-                                                        return { ...it, temp_invoice_no: val };
-                                                    });
-                                                    return { ...prev, items: nextItems };
-                                                });
-                                            }}
-                                            className="w-24 py-1.5 px-2 text-center font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white outline-none focus:border-emerald-500 text-xs"
-                                        />
                                     </td>
                                     <td className="py-3 px-3.5 text-right text-slate-700 dark:text-slate-300 tabular-nums font-mono font-bold">
                                         {item.price?.toLocaleString()}đ

@@ -168,28 +168,34 @@ export default function DailyInvoiceTracker() {
     // Toggle single item in Partner Items Modal
     const handleToggleItemStatus = (index, forcedValue = null) => {
         setPartnerItemsModal(prev => {
-            const updatedItems = [...prev.items];
-            const current = updatedItems[index];
-            const newValue = forcedValue !== null ? forcedValue : !current.temp_is_invoiced;
-            current.temp_is_invoiced = newValue;
-            current.temp_invoiced_quantity = newValue ? current.quantity : 0;
-            if (newValue && !current.temp_invoice_no) {
-                current.temp_invoice_no = prev.commonInvoiceNo;
-            }
-            return { ...prev, items: updatedItems };
+            const nextItems = prev.items.map((item, idx) => {
+                if (idx !== index) return item;
+                const nextIsInvoiced = forcedValue !== null ? forcedValue : !item.temp_is_invoiced;
+                const nextQty = nextIsInvoiced ? Number(item.quantity) : 0;
+                return {
+                    ...item,
+                    temp_is_invoiced: nextIsInvoiced,
+                    temp_invoiced_quantity: nextQty,
+                    temp_invoice_no: nextIsInvoiced ? (item.temp_invoice_no || prev.commonInvoiceNo || '') : ''
+                };
+            });
+            return { ...prev, items: nextItems };
         });
     };
 
     // Mark all items in modal as Invoiced or Uninvoiced
     const handleSetAllItemsStatus = (isInvoiced) => {
         setPartnerItemsModal(prev => {
-            const updatedItems = prev.items.map(it => ({
-                ...it,
-                temp_is_invoiced: isInvoiced,
-                temp_invoiced_quantity: isInvoiced ? it.quantity : 0,
-                temp_invoice_no: isInvoiced ? (it.temp_invoice_no || prev.commonInvoiceNo) : ''
-            }));
-            return { ...prev, items: updatedItems };
+            const nextItems = prev.items.map(item => {
+                const nextQty = isInvoiced ? Number(item.quantity) : 0;
+                return {
+                    ...item,
+                    temp_is_invoiced: isInvoiced,
+                    temp_invoiced_quantity: nextQty,
+                    temp_invoice_no: isInvoiced ? (item.temp_invoice_no || prev.commonInvoiceNo || '') : ''
+                };
+            });
+            return { ...prev, items: nextItems };
         });
     };
 
@@ -898,16 +904,22 @@ export default function DailyInvoiceTracker() {
                                                         className={cn(
                                                             "transition-colors",
                                                             isDone
-                                                                ? "bg-emerald-50/20 hover:bg-emerald-50/40"
-                                                                : "bg-rose-50/20 hover:bg-rose-50/40"
+                                                                ? "bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/50"
+                                                                : "bg-rose-50/20 dark:bg-rose-950/20 hover:bg-rose-50/40"
                                                         )}
                                                     >
-                                                        <td className="py-3 px-3.5 text-center">
+                                                        <td 
+                                                            className="py-3 px-3.5 text-center cursor-pointer select-none"
+                                                            onClick={() => handleToggleItemStatus(idx)}
+                                                        >
                                                             <input
                                                                 type="checkbox"
                                                                 checked={Boolean(item.temp_is_invoiced)}
-                                                                onChange={() => handleToggleItemStatus(idx)}
-                                                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                                onChange={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleToggleItemStatus(idx);
+                                                                }}
+                                                                className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
                                                             />
                                                         </td>
                                                         <td className="py-3 px-3.5 font-bold font-mono text-slate-500">
@@ -935,13 +947,20 @@ export default function DailyInvoiceTracker() {
                                                                     onChange={(e) => {
                                                                         const val = parseFloat(e.target.value) || 0;
                                                                         setPartnerItemsModal(prev => {
-                                                                            const up = [...prev.items];
-                                                                            up[idx].temp_invoiced_quantity = val;
-                                                                            up[idx].temp_is_invoiced = val > 0;
-                                                                            return { ...prev, items: up };
+                                                                            const nextItems = prev.items.map((it, i) => {
+                                                                                if (i !== idx) return it;
+                                                                                const isInv = val > 0 || (it.quantity < 0 && val !== 0);
+                                                                                return {
+                                                                                    ...it,
+                                                                                    temp_invoiced_quantity: val,
+                                                                                    temp_is_invoiced: isInv,
+                                                                                    temp_invoice_no: isInv ? (it.temp_invoice_no || prev.commonInvoiceNo || '') : ''
+                                                                                };
+                                                                            });
+                                                                            return { ...prev, items: nextItems };
                                                                         });
                                                                     }}
-                                                                    className="w-16 py-1 px-2 text-center font-black rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500"
+                                                                    className="w-16 py-1 px-2 text-center font-black rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 outline-none focus:border-emerald-500 text-xs"
                                                                 />
                                                                 <span className="text-slate-400 font-bold">/ {item.quantity}</span>
                                                             </div>
@@ -953,15 +972,21 @@ export default function DailyInvoiceTracker() {
                                                             {item.total_price?.toLocaleString()}đ
                                                         </td>
                                                         <td className="py-3 px-3.5 text-center">
-                                                            {isDone ? (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                                                    <Check size={10} /> ĐÃ XUẤT ĐỦ
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                                                                    <Hourglass size={10} /> CẦN XUẤT THÊM
-                                                                </span>
-                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleItemStatus(idx)}
+                                                                className="cursor-pointer"
+                                                            >
+                                                                {isDone ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-500/20 hover:scale-105 transition-transform">
+                                                                        <Check size={11} /> ĐÃ XUẤT ĐỦ
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-500/20 hover:scale-105 transition-transform">
+                                                                        <Hourglass size={11} /> CẦN XUẤT THÊM
+                                                                    </span>
+                                                                )}
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                 );

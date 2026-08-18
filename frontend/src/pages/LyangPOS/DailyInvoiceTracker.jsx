@@ -26,7 +26,11 @@ import {
     Package,
     Hourglass,
     CheckCheck,
-    ArrowUpRight
+    ArrowUpRight,
+    HelpCircle,
+    BookOpen,
+    Lightbulb,
+    Info
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +43,7 @@ export default function DailyInvoiceTracker() {
     const todayStr = new Date().toISOString().split('T')[0];
     const [scope, setScope] = useState(() => localStorage.getItem('daily_invoice_tracker_scope') || 'daily'); // 'daily', 'pending', 'completed'
     const [selectedDate, setSelectedDate] = useState(todayStr);
+    const [showGuideModal, setShowGuideModal] = useState(false);
 
     useEffect(() => {
         if (scope) {
@@ -570,6 +575,17 @@ export default function DailyInvoiceTracker() {
                         title="Làm mới dữ liệu"
                     >
                         <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-600 dark:text-emerald-400")} />
+                    </motion.button>
+
+                    <motion.button
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowGuideModal(true)}
+                        className="px-4 py-3 bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                        title="Xem hướng dẫn sử dụng"
+                    >
+                        <HelpCircle size={16} />
+                        <span>Hướng Dẫn</span>
                     </motion.button>
 
                     <motion.button
@@ -1384,6 +1400,147 @@ document.body
 </AnimatePresence>,
 document.body
 )}
-</div>
-);
+
+            {/* User Guide Modal */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showGuideModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                            >
+                                <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-300 dark:border-emerald-500/30">
+                                            <BookOpen size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white uppercase">
+                                                Hướng Dẫn Sử Dụng Theo Dõi Hóa Đơn
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                                                Quy trình xuất hóa đơn, theo dõi nợ HĐ & đối soát món hàng
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowGuideModal(false)}
+                                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="overflow-y-auto space-y-6 py-4 pr-1 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                    {/* 1. Ý nghĩa 3 tab */}
+                                    <div className="space-y-2.5">
+                                        <h4 className="font-black text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                                            <Layers size={16} />
+                                            <span>1. Ý nghĩa 3 Tab Quản Lý</span>
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+                                                <div className="font-black text-slate-900 dark:text-white flex items-center gap-1.5 mb-1 text-[11px] uppercase">
+                                                    <Calendar size={13} className="text-emerald-600" />
+                                                    <span>Theo Ngày</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Chỉ hiện các khách hàng phát sinh trong ngày <strong>chưa xuất đủ hóa đơn</strong>. Khi bấm Xuất Đủ, khách tự động chuyển sang tab "Đã hoàn tất".
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/40 dark:bg-rose-950/20">
+                                                <div className="font-black text-rose-700 dark:text-rose-400 flex items-center gap-1.5 mb-1 text-[11px] uppercase">
+                                                    <Hourglass size={13} className="text-rose-500" />
+                                                    <span>Cần Xuất Thêm</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Tổng hợp tất cả khách hàng <strong>còn nợ hoặc mới xuất một phần</strong> món hàng từ trước đến nay để bạn không bao giờ bị bỏ sót.
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20">
+                                                <div className="font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-1 text-[11px] uppercase">
+                                                    <CheckCheck size={13} className="text-emerald-600" />
+                                                    <span>Đã Hoàn Tất</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Lưu trữ và lọc danh sách những khách hàng & đơn hàng đã <strong>xuất đủ 100% hóa đơn</strong> theo từng ngày.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Cách xuất hóa đơn */}
+                                    <div className="space-y-3">
+                                        <h4 className="font-black text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                                            <Sparkles size={16} />
+                                            <span>2. Ba Cách Xuất Hóa Đơn Thuận Tiện</span>
+                                        </h4>
+                                        
+                                        <div className="space-y-2.5">
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">A</span>
+                                                    <span>Xuất Đủ Hàng Loạt (Chọn nhiều khách cùng lúc)</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed pl-7">
+                                                    Tick chọn các ô vuông bên trái từng khách hàng (hoặc bấm <em>Chọn tất cả</em>) &rarr; Nhập <em>Số HĐ chung</em> (nếu có) trên thanh công cụ &rarr; Bấm <strong>"Xuất Đủ ([X] khách)"</strong> để hoàn tất trong 1 giây.
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">B</span>
+                                                    <span>Xuất Đủ Nhanh 1 Khách Hàng (1 Click)</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed pl-7">
+                                                    Bấm trực tiếp nút <strong>"Xuất Đủ (Xong)"</strong> màu xanh trên thẻ của khách hàng đó để đánh dấu tất cả đơn hàng đã xuất xong.
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">C</span>
+                                                    <span>Xuất Chi Tiết Từng Món & Chỉnh Số Lượng Xuất Lẻ</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed pl-7">
+                                                    Bấm vào tên/thẻ khách hàng để mở bảng danh sách món &rarr; Tick chọn từng món cần xuất, điền số HĐ hoặc chỉnh số lượng xuất riêng từng dòng &rarr; Bấm <strong>"Lưu Tiến Độ"</strong>. Khách chưa xuất hết sẽ được tự động giữ lại ở tab <em>Cần Xuất Thêm</em>.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Mẹo & Tiện ích */}
+                                    <div className="p-4 rounded-2xl border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2">
+                                        <h4 className="font-black text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                            <Lightbulb size={15} />
+                                            <span>Mẹo Đối Soát Tiện Ích</span>
+                                        </h4>
+                                        <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                                            <li><strong>Tìm kiếm đa năng:</strong> Gõ tên khách hàng, số điện thoại, tên món hàng, mã đơn (VD: <code>HD123</code>) hoặc số hóa đơn để tìm ngay.</li>
+                                            <li><strong>Xuất Báo Cáo Excel:</strong> Nhấn nút "Xuất Báo Cáo Excel" ở góc trên để tải bảng thống kê chi tiết gửi cho kế toán hoặc phần mềm hóa đơn điện tử.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
+                                    <button
+                                        onClick={() => setShowGuideModal(false)}
+                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer"
+                                    >
+                                        Đã Hiểu & Đóng
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
+        </div>
+    );
 }

@@ -30,7 +30,10 @@ import {
     TrendingDown,
     Eye,
     Sparkles,
-    Receipt
+    Receipt,
+    BookOpen,
+    Lightbulb,
+    Info
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,6 +53,7 @@ export default function AccountingInventory() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(() => localStorage.getItem('accounting_inventory_discrepancy') === 'true');
     const [showOnlyCoded, setShowOnlyCoded] = useState(() => localStorage.getItem('accounting_inventory_coded') === 'true');
+    const [showGuideModal, setShowGuideModal] = useState(false);
 
     // Pagination Dashboard
     const [currentPage, setCurrentPage] = useState(() => {
@@ -782,6 +786,17 @@ export default function AccountingInventory() {
 
                         {/* Top Action Buttons */}
                         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
+                            <motion.button
+                                whileHover={{ scale: 1.02, y: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setShowGuideModal(true)}
+                                className="px-4 py-3 bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                                title="Xem hướng dẫn sử dụng sổ kế toán & đối soát kho"
+                            >
+                                <HelpCircle size={16} />
+                                <span>Hướng Dẫn</span>
+                            </motion.button>
+
                             {view === 'list' && (
                                 <>
                                     <motion.button
@@ -1811,6 +1826,149 @@ export default function AccountingInventory() {
                     }}
                     onSave={handleQuickAuditSave}
                 />,
+                document.body
+            )}
+
+            {/* Accounting Inventory User Guide Modal */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {showGuideModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-3xl w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                            >
+                                <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-300 dark:border-emerald-500/30">
+                                            <BookOpen size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white uppercase">
+                                                Hướng Dẫn Sử Dụng Sổ Kế Toán & Đối Soát Kho
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                                                Đối soát chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowGuideModal(false)}
+                                        className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="overflow-y-auto space-y-6 py-4 pr-1 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                    {/* 1. Quy trình đối soát Excel */}
+                                    <div className="space-y-3">
+                                        <h4 className="font-black text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                                            <Upload size={16} />
+                                            <span>1. Quy Trình Đối Soát File Excel (3 Bước)</span>
+                                        </h4>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-1.5 text-[11px] uppercase">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">1</span>
+                                                    <span>Tải File Excel Lên</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Nhấn <strong>"Đối Soát Excel Mới"</strong> và tải lên bảng cân đối tồn kho xuất từ phần mềm kế toán (MISA, Fast, v.v.).
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-1.5 text-[11px] uppercase">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">2</span>
+                                                    <span>Ghép Cột (Mapping)</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Chọn đúng các cột: <em>Mã hàng, Tên hàng, Số lượng tồn, Đơn giá hoặc Thành tiền</em>. Hệ thống sẽ tự nhớ cấu hình này cho lần sau.
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
+                                                <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-1.5 text-[11px] uppercase">
+                                                    <span className="w-5 h-5 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black">3</span>
+                                                    <span>Xem Lệch & Cập Nhật</span>
+                                                </div>
+                                                <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-[11px]">
+                                                    Xem bảng đối chiếu so sánh tồn & giá trị. Bấm <strong>"Cập Nhật Vào Hệ Thống"</strong> để lưu số liệu kế toán vào sổ.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Ý nghĩa bảng so sánh đối soát */}
+                                    <div className="space-y-3">
+                                        <h4 className="font-black text-sm uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                                            <Scale size={16} />
+                                            <span>2. Ý Nghĩa Các Cột & Chỉ Số Đối Soát</span>
+                                        </h4>
+                                        
+                                        <div className="space-y-2">
+                                            <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-start gap-3">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                                                <div>
+                                                    <strong className="text-slate-900 dark:text-white">Tồn thực tế (Kho POS) vs Tồn sổ sách (Kế toán):</strong>
+                                                    <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                                        Phản ánh số lượng thực có trên quầy bán hàng so với số lượng ghi nhận trên sổ kế toán. Cột <em>Chênh Lệch</em> sẽ cảnh báo thừa (+) hoặc thiếu (-).
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-start gap-3">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                                                <div>
+                                                    <strong className="text-slate-900 dark:text-white">Giá Vốn POS vs Đơn Giá Kế Toán:</strong>
+                                                    <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                                        Giúp so sánh giá nhập bình quân thực tế và giá vốn được hạch toán trong phần mềm kế toán.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-start gap-3">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                                                <div>
+                                                    <strong className="text-slate-900 dark:text-white">Chỉnh sửa nhanh & Gán mã kế toán:</strong>
+                                                    <p className="text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                                                        Click vào cột <em>Mã Kế Toán</em> để sửa mã trực tiếp. Bấm nút <strong>Sửa Nhanh</strong> để mở popout kiểm kê và cập nhật lại kho thực tế ngay tại chỗ.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Bộ lọc & Tiện ích */}
+                                    <div className="p-4 rounded-2xl border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-2">
+                                        <h4 className="font-black text-xs uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                            <Lightbulb size={15} />
+                                            <span>Mẹo Lọc Nhanh & Xuất Báo Cáo</span>
+                                        </h4>
+                                        <ul className="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400 text-[11px] leading-relaxed">
+                                            <li><strong>Bật "⚠️ Chỉ hàng lệch":</strong> Giúp bạn tập trung xử lý ngay những mặt hàng đang chênh lệch số lượng hoặc giá trị giữa 2 kho.</li>
+                                            <li><strong>Bật "🏷️ Có mã kế toán":</strong> Lọc các sản phẩm đã được ánh xạ mã kế toán thành công.</li>
+                                            <li><strong>Xuất Sổ Excel:</strong> Nhấn "Xuất Sổ Excel" để xuất toàn bộ dữ liệu đối soát ra file Excel chuyên nghiệp gửi kế toán trưởng hoặc kiểm toán.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end shrink-0">
+                                    <button
+                                        onClick={() => setShowGuideModal(false)}
+                                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 cursor-pointer"
+                                    >
+                                        Đã Hiểu & Đóng
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>,
                 document.body
             )}
         </div>

@@ -348,6 +348,16 @@ export default function Settings() {
                     localStorage.setItem('sidebar_hidden_items', combined.sidebar_hidden_items);
                 }
 
+                const localAccounting = localStorage.getItem('feature_accounting_enabled');
+                if (localAccounting !== null) {
+                    combined.feature_accounting_enabled = localAccounting;
+                } else if (combined.feature_accounting_enabled) {
+                    localStorage.setItem('feature_accounting_enabled', String(combined.feature_accounting_enabled));
+                } else {
+                    combined.feature_accounting_enabled = 'true';
+                    localStorage.setItem('feature_accounting_enabled', 'true');
+                }
+
                 setSettings(prev => ({
                     ...prev,
                     ...combined
@@ -1296,20 +1306,26 @@ export default function Settings() {
                                                             </div>
                                                         </div>
                                                         <button
-                                                            onClick={() => {
-                                                                const newVal = settings.feature_accounting_enabled === 'true' ? 'false' : 'true';
+                                                            onClick={async () => {
+                                                                const isCurrentOn = settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false');
+                                                                const newVal = isCurrentOn ? 'false' : 'true';
                                                                 updateSetting('feature_accounting_enabled', newVal);
                                                                 localStorage.setItem('feature_accounting_enabled', newVal);
                                                                 window.dispatchEvent(new Event('storage'));
+                                                                try {
+                                                                    await axios.post('/api/settings', { feature_accounting_enabled: newVal });
+                                                                } catch (err) {
+                                                                    console.error('Lỗi khi lưu cài đặt kế toán:', err);
+                                                                }
                                                             }}
                                                             className={cn(
                                                                 "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                                settings.feature_accounting_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                                (settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false')) ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
                                                             )}
                                                         >
                                                             <div className={cn(
                                                                 "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                                settings.feature_accounting_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                                (settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false')) ? "translate-x-[18px]" : "translate-x-0"
                                                             )} />
                                                         </button>
                                                     </div>

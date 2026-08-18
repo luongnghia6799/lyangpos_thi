@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { m } from 'framer-motion';
-import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert, AlertTriangle, FileText } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { formatNumber, normalizeUOM, cn } from '../lib/utils';
 import Toast from './Toast';
@@ -61,7 +61,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
     const [categories, setCategories] = useState([]);
     const [brandsList, setBrandsList] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [accountingEnabled, setAccountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') === 'true');
+    const [accountingEnabled, setAccountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') !== 'false');
     const [activeTab, setActiveTab] = useState('basic');
 
     const [dropdownActiveIndex, setDropdownActiveIndex] = useState(-1);
@@ -171,7 +171,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
             }
         };
         const handleStorage = () => {
-            setAccountingEnabled(localStorage.getItem('feature_accounting_enabled') === 'true');
+            setAccountingEnabled(localStorage.getItem('feature_accounting_enabled') !== 'false');
         };
         window.addEventListener('keydown', handleEsc);
         window.addEventListener('storage', handleStorage);
@@ -420,19 +420,6 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                         </div>
                                                     </div>
 
-                                                    {accountingEnabled && (
-                                                        <>
-                                                            <div className="col-span-6">
-                                                                <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Giá Kế Toán</label>
-                                                                <NumberInput className="w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary rounded-xl" value={formData.accounting_price} onChange={val => setFormData({ ...formData, accounting_price: val })} />
-                                                            </div>
-                                                            <div className="col-span-6">
-                                                                <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Tồn Kế Toán</label>
-                                                                <input type="number" className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary rounded-xl" value={formData.accounting_stock} onChange={e => setFormData({ ...formData, accounting_stock: parseFloat(e.target.value) || 0 })} autoComplete="off" />
-                                                            </div>
-                                                        </>
-                                                    )}
-
                                                     <div className="col-span-12 border-t border-slate-200 dark:border-slate-700 my-2"></div>
 
                                                     <div className="col-span-6">
@@ -484,20 +471,55 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                         </label>
                                                         <input 
                                                             type="number" 
-                                                            min="0"
+                                                            min="0" 
                                                             className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" 
                                                             value={formData.min_stock !== undefined ? formData.min_stock : 0} 
                                                             onChange={e => setFormData({ ...formData, min_stock: parseFloat(e.target.value) || 0 })} 
                                                             onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} 
                                                             autoComplete="off" 
-                                                            placeholder="0"
-                                                            title="Tồn kho nhỏ hơn hoặc bằng mức này sẽ hiển thị cảnh báo cần nhập hàng"
+                                                            placeholder="0" 
+                                                            title="Tồn kho nhỏ hơn hoặc bằng mức này sẽ hiển thị cảnh báo cần nhập hàng" 
                                                         />
                                                     </div>
                                                     <div className="col-span-3">
                                                         <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Hạn sử dụng</label>
                                                         <input type="date" className="input-premium w-full p-3 font-black text-sm border-2 border-transparent focus:border-primary" value={formData.expiry_date || ''} onChange={e => setFormData({ ...formData, expiry_date: e.target.value })} onKeyDown={e => e.key === 'Enter' && handleSubmit(e)} autoComplete="off" />
                                                     </div>
+
+                                                    {accountingEnabled && (
+                                                        <>
+                                                            <div className="col-span-12 border-t border-slate-200 dark:border-slate-700 my-1"></div>
+                                                            <div className="col-span-6 relative group">
+                                                                <label className="block text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-1.5">
+                                                                    <FileText size={12} className="shrink-0" />
+                                                                    Giá Kế Toán
+                                                                </label>
+                                                                <div className="relative">
+                                                                    <NumberInput 
+                                                                        className="w-full p-3 font-black text-sm text-blue-700 dark:text-blue-300 bg-blue-50/40 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800/60 focus:border-blue-500 rounded-xl" 
+                                                                        value={formData.accounting_price} 
+                                                                        onChange={val => setFormData({ ...formData, accounting_price: val })} 
+                                                                        placeholder="0" 
+                                                                    />
+                                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-600/50 dark:text-blue-400/50">VNĐ</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="col-span-6 relative group">
+                                                                <label className="block text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2 ml-1 flex items-center gap-1.5">
+                                                                    <FileText size={12} className="shrink-0" />
+                                                                    Tồn Kế Toán
+                                                                </label>
+                                                                <input 
+                                                                    type="number" 
+                                                                    className="input-premium w-full p-3 font-black text-sm text-blue-700 dark:text-blue-300 bg-blue-50/40 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800/60 focus:border-blue-500 rounded-xl" 
+                                                                    value={formData.accounting_stock} 
+                                                                    onChange={e => setFormData({ ...formData, accounting_stock: parseFloat(e.target.value) || 0 })} 
+                                                                    autoComplete="off" 
+                                                                    placeholder="0" 
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
 
                                                     {!formData.is_combo && (
                                                         <>

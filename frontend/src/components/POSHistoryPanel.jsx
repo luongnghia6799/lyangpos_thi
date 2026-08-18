@@ -3,6 +3,7 @@ import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import { History, ShoppingBag, Clock, X, ChevronRight, Package, Calendar, Eye, EyeOff, BookOpen, Edit, Trash2, ReceiptText, Wallet, RotateCcw } from 'lucide-react';
 import { formatCurrency, formatDate, formatNumber, cn } from '../lib/utils';
+import Portal from './Portal';
 
 export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart, onViewOrder, onEditOrder, onDeleteOrder, onEditVoucher, onDeleteVoucher, context = 'POS', defaultType = 'Sale' }) {
     const [orders, setOrders] = useState([]);
@@ -150,23 +151,24 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
     };
 
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-[3000] flex justify-end font-sans">
-                    <m.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-md"
-                    />
-                    <m.div
-                        initial={{ x: '100%', opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: '100%', opacity: 0 }}
-                        transition={{ type: "spring", damping: 32, stiffness: 260 }}
-                        className="relative w-full max-w-[450px] h-full bg-slate-950/95 dark:bg-[#071510]/95 backdrop-blur-2xl shadow-[0_0_100px_rgba(0,0,0,0.85)] flex flex-col border-l border-[#8b6f47]/30 dark:border-white/10"
-                    >
+        <Portal>
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[99999] flex justify-end font-sans">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={onClose}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                        />
+                        <m.div
+                            initial={{ x: '100%', opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: '100%', opacity: 0 }}
+                            transition={{ type: "spring", damping: 32, stiffness: 260 }}
+                            className="relative w-full max-w-[450px] h-full bg-slate-950/95 dark:bg-[#071510]/95 backdrop-blur-2xl shadow-[0_0_100px_rgba(0,0,0,0.85)] flex flex-col border-l border-[#8b6f47]/30 dark:border-white/10"
+                        >
                         {/* Header */}
                         <div className="p-5 border-b border-white/10 relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-8 opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-white">
@@ -182,7 +184,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                         <h3 className="font-black text-[14px] text-white uppercase tracking-tighter leading-none mb-1">Lịch sử GD</h3>
                                         <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
                                             <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                                            {partner.name}
+                                            {partner?.name || '---'}
                                         </p>
                                     </div>
                                 </div>
@@ -545,6 +547,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                 </div>
             )}
         </AnimatePresence>
+    </Portal>
     );
 }
 

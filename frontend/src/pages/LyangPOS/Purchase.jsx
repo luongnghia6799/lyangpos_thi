@@ -1593,8 +1593,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                 className={cn(
                                     "relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border-2 transition-[border-color,background-color,box-shadow] duration-200 ease-out",
                                     (selectedPartner && !isPartnerDropdownOpen)
-                                        ? "bg-emerald-600 dark:bg-emerald-600 border-emerald-600 dark:border-emerald-500 shadow-md shadow-emerald-600/30"
-                                        : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-background/95 dark:bg-slate-900/90 shadow-sm focus-within:border-[#8b6f47]/70 focus-within:shadow-[0_0_0_2px_rgba(139,111,71,0.2)]"
+                                        ? "bg-[#8b6f47] dark:bg-[#8b6f47] border-[#8b6f47] dark:border-[#d4a574] shadow-md shadow-[#8b6f47]/30 text-white"
+                                        : "border-[#8b6f47]/30 dark:border-[#d4a574]/40 bg-white/90 dark:bg-slate-900/90 shadow-sm focus-within:border-[#8b6f47] dark:focus-within:border-[#d4a574] focus-within:shadow-[0_0_0_2px_rgba(139,111,71,0.2)]"
                                 )}
                             >
                                 <m.div
@@ -1618,8 +1618,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                 <input
                                     type="text"
                                     className={cn(
-                                        "w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-foreground placeholder:text-muted/60 leading-normal",
-                                        (selectedPartner && !isPartnerDropdownOpen) && "text-transparent select-none"
+                                        "w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-slate-900 dark:text-white placeholder:text-muted/60 leading-normal",
+                                        (selectedPartner && !isPartnerDropdownOpen) && "opacity-0 select-none cursor-pointer"
                                     )}
                                     ref={partnerInputRef}
                                     placeholder="Tìm NCC (F3)..."
@@ -4937,6 +4937,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                 )}
             </AnimatePresence>
                 {/* Partner Transaction History Panel */}
+                <Portal>
                 <POSHistoryPanel
                     context="Purchase"
                     defaultType="Purchase"
@@ -4972,8 +4973,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         setToast({ message: `Đã thêm ${prod.name} vào đơn nhập`, type: "success" });
                     }}
                     onViewOrder={(order) => {
-                        setLastOrder(order);
-                        setTimeout(() => window.print(), 300);
+                        setSelectedDetailOrder(order);
+                        setIsOrderDetailModalOpen(true);
                     }}
                     onEditOrder={(order) => {
                         setIsHistoryPanelOpen(false);
@@ -5024,6 +5025,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         }
                     }}
                 />
+                </Portal>
 
                 {/* Daily Purchase History Modal */}
                 <DailyOrderHistoryModal

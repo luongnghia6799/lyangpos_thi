@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { Search, X, AlertTriangle, Package, PackageX } from 'lucide-react';
+import { Search, X, AlertTriangle, Package, PackageX, ReceiptText } from 'lucide-react';
 import { cn, removeAccents, formatNumber, normalizeUOM } from '../lib/utils';
 import MarqueeText from './MarqueeText';
 
@@ -200,30 +200,40 @@ const ProductAutocomplete = React.forwardRef(({
                                         </div>
 
                                         <div className="flex items-center gap-8 relative z-10">
-                                            {/* Stock Level Badge & Accounting Stock */}
-                                            <div className="flex flex-col items-center gap-1">
-                                                <div
-                                                    className={cn(
-                                                        "px-4 py-2 rounded-2xl text-[13px] font-black border-2 transition-all flex items-center gap-2.5",
-                                                        p.stock <= 0
-                                                            ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
-                                                            : p.stock < 10
-                                                                ? "bg-amber-500/10 text-amber-700 border-amber-500/30"
-                                                                : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                                                    )}
-                                                >
-                                                    {p.stock <= 0 ? <PackageX size={16} strokeWidth={3} /> : p.stock < 10 ? <AlertTriangle size={16} strokeWidth={3} /> : <Package size={16} strokeWidth={3} />}
-                                                    <span className="tabular-nums">{p.stock}</span>
+                                            {/* Stock Level Badge & Accounting Stock - Unified Duo Pill */}
+                                            <div
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-full text-xs font-black border transition-all inline-flex items-center gap-2 select-none shadow-xs shrink-0 whitespace-nowrap flex-nowrap",
+                                                    p.stock <= 0
+                                                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                                        : p.stock < 10
+                                                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                            : index === highlightedIndex
+                                                                ? "bg-white/20 text-white border-white/40"
+                                                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                                                )}
+                                                title={localStorage.getItem('feature_accounting_enabled') !== 'false' ? "Tồn kho thực tế / Tồn sổ sách kế toán" : "Tồn kho thực tế"}
+                                            >
+                                                <div className="flex items-center gap-1.5 tabular-nums shrink-0 whitespace-nowrap">
+                                                    {p.stock <= 0 ? <PackageX size={14} strokeWidth={2.5} /> : p.stock < 10 ? <AlertTriangle size={14} strokeWidth={2.5} /> : <Package size={14} strokeWidth={2.5} />}
+                                                    <span className="tabular-nums font-black">{p.stock}</span>
                                                 </div>
-                                                <div className={cn(
-                                                    "text-[10px] font-black tracking-tight px-2 py-0.5 rounded-md border flex items-center gap-1 tabular-nums",
-                                                    index === highlightedIndex
-                                                        ? "bg-white/20 text-white border-white/30"
-                                                        : "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/20"
-                                                )}>
-                                                    <span>KT:</span>
-                                                    <span>{p.accounting_stock || 0}</span>
-                                                </div>
+
+                                                {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
+                                                    <>
+                                                        <span className={cn("w-px h-3.5 shrink-0", index === highlightedIndex ? "bg-white/40" : "bg-current opacity-25")} />
+
+                                                        <div className={cn(
+                                                            "inline-flex items-center gap-1 shrink-0 whitespace-nowrap",
+                                                            index === highlightedIndex
+                                                                ? "text-white"
+                                                                : "text-blue-600 dark:text-blue-400"
+                                                        )} title="Tồn sổ sách kế toán">
+                                                            <ReceiptText size={13} strokeWidth={2.2} className="shrink-0 opacity-90" />
+                                                            <span className="tabular-nums font-black">{p.accounting_stock || 0}</span>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-col items-end gap-1">

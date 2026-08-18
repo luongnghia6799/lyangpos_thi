@@ -29,7 +29,7 @@ export default function DetailedReports() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [overallTotals, setOverallTotals] = useState({ quantity: 0, total: 0 });
-    const [accountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') === 'true');
+    const [accountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') !== 'false');
 
     const savedState = JSON.parse(sessionStorage.getItem('detailed_report_state') || '{}');
 

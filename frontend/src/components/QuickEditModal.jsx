@@ -40,12 +40,12 @@ const COMMON_UNITS = [...new Set([...PRIMARY_UNITS_SUGGESTIONS, ...SECONDARY_UNI
 export default function QuickEditModal({
     isOpen,
     onClose,
-    allProducts,
-    categories,
+    allProducts = [],
+    categories = [],
     selectedProductIds = [],
     onSave
 }) {
-    const accountingEnabled = localStorage.getItem('feature_accounting_enabled') === 'true';
+    const accountingEnabled = localStorage.getItem('feature_accounting_enabled') !== 'false';
 
     const EDITABLE_FIELDS_FILTERED = React.useMemo(() => {
         return EDITABLE_FIELDS.filter(f => {
@@ -60,14 +60,14 @@ export default function QuickEditModal({
 
     // Get unique existing brands and units for dropdowns
     const brandOptions = React.useMemo(() => {
-        const uniqueBrands = Array.from(new Set(allProducts.map(p => p.brand).filter(Boolean)));
+        const uniqueBrands = Array.from(new Set((allProducts || []).map(p => p?.brand).filter(Boolean)));
         return uniqueBrands.map(b => ({ id: b, name: b }));
     }, [allProducts]);
 
     const primaryUnitOptions = React.useMemo(() => {
         const uniqueUnits = Array.from(new Set([
             ...PRIMARY_UNITS_SUGGESTIONS,
-            ...allProducts.map(p => p.unit).filter(Boolean)
+            ...(allProducts || []).map(p => p?.unit).filter(Boolean)
         ]));
         return uniqueUnits.map(u => ({ id: u, name: u }));
     }, [allProducts]);
@@ -75,7 +75,7 @@ export default function QuickEditModal({
     const secondaryUnitOptions = React.useMemo(() => {
         const uniqueUnits = Array.from(new Set([
             ...SECONDARY_UNITS_SUGGESTIONS,
-            ...allProducts.map(p => p.secondary_unit).filter(Boolean)
+            ...(allProducts || []).map(p => p?.secondary_unit).filter(Boolean)
         ]));
         return uniqueUnits.map(u => ({ id: u, name: u }));
     }, [allProducts]);
@@ -85,7 +85,7 @@ export default function QuickEditModal({
         if (isOpen) {
             if (selectedProductIds && selectedProductIds.length > 0) {
                 const initialRows = selectedProductIds.map(pId => {
-                    const product = allProducts.find(p => p.id === pId);
+                    const product = (allProducts || []).find(p => p?.id === pId);
                     return {
                         id: Math.random().toString(36).substr(2, 9),
                         productId: pId,
@@ -124,7 +124,7 @@ export default function QuickEditModal({
     };
 
     const handleProductSelect = (rowId, productId) => {
-        const product = allProducts.find(p => p.id === productId);
+        const product = (allProducts || []).find(p => p?.id === productId);
         setRows(prevRows => {
             const newRows = prevRows.map(r => {
                 if (r.id === rowId) {

@@ -8,7 +8,7 @@ import Toast from './Toast';
 import Portal from './Portal';
 
 export default function OrderEditPopup({ order, partner, onClose, onSave }) {
-    const [cart, setCart] = useState(order.details.map(d => ({
+    const [cart, setCart] = useState((order?.details || []).map(d => ({
         ...d,
         product_id: d.product_id,
         quantity: d.quantity,

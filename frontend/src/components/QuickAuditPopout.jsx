@@ -204,10 +204,10 @@ const QuickAuditPopout = ({
         className="bg-card w-72 rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
       >
         {/* Header */}
-        <div className="p-5 flex items-center justify-between border-b border-border bg-card">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="p-5 flex items-start justify-between border-b border-border bg-card">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             {/* Signature Rotating Icon */}
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shrink-0 mt-0.5">
               <RefreshCcw size={20} className="text-primary" />
             </div>
             
@@ -215,13 +215,13 @@ const QuickAuditPopout = ({
               <h3 className="text-base font-bold text-foreground uppercase tracking-wide truncate leading-tight">
                 {product.name}
               </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="px-1.5 py-0.5 bg-secondary/10 rounded text-[9px] font-bold text-foreground uppercase tracking-wider">
+              <div className="flex flex-col items-start gap-1 mt-1">
+                <span className="px-1.5 py-0.5 bg-secondary/10 rounded text-[9px] font-bold text-foreground uppercase tracking-wider leading-none">
                   #{product.code || "---"}
                 </span>
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                  <Clock size={10} className="text-emerald-500" />
-                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider tabular-nums">
+                  <Clock size={10} className="text-emerald-500 shrink-0" />
+                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider tabular-nums leading-none">
                     {product.latest_audit ? (() => {
                       const d = new Date(product.latest_audit);
                       const pad = (n) => String(n).padStart(2, "0");

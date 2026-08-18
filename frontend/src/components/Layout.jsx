@@ -635,7 +635,10 @@ export default function Layout({ children }) {
     const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('user_avatar') || '');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(localStorage.getItem('sidebar_collapsed') === 'true');
     const [isSidebarHidden, setIsSidebarHidden] = useState(localStorage.getItem('sidebar_hidden') === 'true');
-    const [accountingEnabled, setAccountingEnabled] = useState(localStorage.getItem('feature_accounting_enabled') !== 'false');
+    const [accountingEnabled, setAccountingEnabled] = useState(() => {
+        if (import.meta.env.VITE_FEATURE_ACCOUNTING_ENABLED === 'false') return false;
+        return localStorage.getItem('feature_accounting_enabled') !== 'false';
+    });
     const [hiddenNavPaths, setHiddenNavPaths] = useState(() => {
         try {
             const saved = localStorage.getItem('sidebar_hidden_items');
@@ -1254,7 +1257,7 @@ export default function Layout({ children }) {
 
     useEffect(() => {
         const handleStorage = () => {
-            setAccountingEnabled(localStorage.getItem('feature_accounting_enabled') === 'true');
+            setAccountingEnabled(localStorage.getItem('feature_accounting_enabled') !== 'false');
             setLiteBgColor(localStorage.getItem('pos_lite_bg_color') || '#f4ecd8');
         };
         window.addEventListener('storage', handleStorage);

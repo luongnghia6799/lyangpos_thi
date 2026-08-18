@@ -142,7 +142,7 @@ export const DEFAULT_SETTINGS = {
     invoice_show_cash_given: 'true',
     invoice_show_change: 'true',
     ui_enable_smart_sorting: 'false',
-    feature_accounting_enabled: 'true',
+    feature_accounting_enabled: import.meta.env.VITE_FEATURE_ACCOUNTING_ENABLED === 'false' ? 'false' : 'true',
     sidebar_hidden_items: '[]',
     ram_cleanup_auto_enabled: 'false',
     ram_cleanup_interval_minutes: '10',

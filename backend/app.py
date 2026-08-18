@@ -8232,22 +8232,35 @@ def bulk_batch_invoice_partners():
         if not partner_ids:
             return jsonify({'message': 'Không có khách hàng nào được chọn', 'updated_count': 0})
             
-        has_null_partner = 0 in partner_ids or None in partner_ids
-        valid_ids = [pid for pid in partner_ids if pid and pid > 0]
+        parsed_ids = []
+        has_null_partner = False
+        for pid in partner_ids:
+            if pid is None or pid == 0 or pid == '0' or str(pid).lower() == 'null':
+                has_null_partner = True
+            else:
+                try:
+                    val = int(pid)
+                    if val > 0:
+                        parsed_ids.append(val)
+                    else:
+                        has_null_partner = True
+                except (ValueError, TypeError):
+                    has_null_partner = True
         
         conditions = []
-        if valid_ids:
-            conditions.append(Order.partner_id.in_(valid_ids))
+        if parsed_ids:
+            conditions.append(Order.partner_id.in_(parsed_ids))
         if has_null_partner:
             conditions.append(Order.partner_id.is_(None))
             
         if not conditions:
             return jsonify({'message': 'Không có đối tác hợp lệ', 'updated_count': 0})
             
+        filter_cond = conditions[0] if len(conditions) == 1 else or_(*conditions)
         query = Order.query.filter(
             Order.type == 'Sale',
             Order.display_id.notin_(['NODAU', '#NODAU']),
-            or_(*conditions)
+            filter_cond
         )
         
         if date_str:

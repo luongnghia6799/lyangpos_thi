@@ -168,7 +168,7 @@ export default function DailyInvoiceTracker() {
         setIsBulkUpdating(true);
         const idsToUpdate = [...selectedPartnerIds];
 
-        // Optimistic update
+        // Optimistic UI update
         setData(prev => {
             if (!prev || !prev.partners) return prev;
             const nextPartners = prev.partners.map(p => {
@@ -188,19 +188,34 @@ export default function DailyInvoiceTracker() {
         });
 
         try {
-            const res = await axios.post('/api/accounting/partners/bulk-batch-invoice', {
-                partner_ids: idsToUpdate,
-                date: (scope === 'daily' || scope === 'completed') ? selectedDate : null,
-                is_invoiced: isInvoiced,
-                invoice_no: bulkInvoiceNo,
-                invoice_note: ''
-            });
-            toast.success(res.data.message || `Đã xuất đủ hóa đơn cho ${idsToUpdate.length} khách!`);
+            // Attempt primary bulk API
+            try {
+                const res = await axios.post('/api/accounting/partners/bulk-batch-invoice', {
+                    partner_ids: idsToUpdate,
+                    date: (scope === 'daily' || scope === 'completed') ? selectedDate : null,
+                    is_invoiced: isInvoiced,
+                    invoice_no: bulkInvoiceNo,
+                    invoice_note: ''
+                });
+                toast.success(res.data.message || `Đã xuất đủ hóa đơn cho ${idsToUpdate.length} khách!`);
+            } catch (bulkErr) {
+                console.warn("Bulk API failed, falling back to parallel batch invoice...", bulkErr);
+                // Guaranteed fallback: call individual partner batch invoices in parallel
+                await Promise.all(idsToUpdate.map(pid =>
+                    axios.post(`/api/accounting/partners/${pid}/batch-invoice`, {
+                        date: (scope === 'daily' || scope === 'completed') ? selectedDate : null,
+                        is_invoiced: isInvoiced,
+                        invoice_no: bulkInvoiceNo,
+                        invoice_note: ''
+                    })
+                ));
+                toast.success(`Đã xuất đủ hóa đơn cho ${idsToUpdate.length} khách hàng!`);
+            }
             setSelectedPartnerIds([]);
             setBulkInvoiceNo('');
             fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
-            console.error(err);
+            console.error("Batch update error:", err);
             toast.error(err.response?.data?.error || "Lỗi khi cập nhật hóa đơn hàng loạt");
             fetchInvoiceData(scope, selectedDate, true);
         } finally {

@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS = {
     invoice_show_logo: 'true',
     invoice_logo_url: '',
 
+    feature_accounting_enabled: 'true',
+    feature_tax_calculator_enabled: 'false',
     invoice_table_font_size: '12',
     invoice_row_padding: '4',
     invoice_table_line_height: '1.15',

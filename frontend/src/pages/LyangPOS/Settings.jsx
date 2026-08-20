@@ -36,6 +36,7 @@ export default function Settings() {
         ui_custom_cursor_enabled: localStorage.getItem('pos_cursor_disabled') !== 'true' ? 'true' : 'false',
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,
+        feature_tax_calculator_enabled: localStorage.getItem('feature_tax_calculator_enabled') || DEFAULT_SETTINGS.feature_tax_calculator_enabled || 'false',
         sidebar_hidden_items: localStorage.getItem('sidebar_hidden_items') || '[]',
         repair_on_startup: 'false',
         ram_cleanup_auto_enabled: 'false',
@@ -1326,6 +1327,42 @@ export default function Settings() {
                                                             <div className={cn(
                                                                 "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
                                                                 (settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false')) ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] shrink-0">
+                                                                <CreditCard size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Nút Quy đổi Thuế / Tiền CK (TaxCalculator)</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Bật/Tắt nút quy đổi tiền CK & TaxCalculatorModal trên sidebar POS</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const isCurrentOn = settings.feature_tax_calculator_enabled === 'true';
+                                                                const newVal = isCurrentOn ? 'false' : 'true';
+                                                                updateSetting('feature_tax_calculator_enabled', newVal);
+                                                                localStorage.setItem('feature_tax_calculator_enabled', newVal);
+                                                                window.dispatchEvent(new Event('storage'));
+                                                                window.dispatchEvent(new Event('feature_tax_calculator_changed'));
+                                                                try {
+                                                                    await axios.post('/api/settings', { feature_tax_calculator_enabled: newVal });
+                                                                } catch (err) {
+                                                                    console.error('Lỗi khi lưu cài đặt tính thuế:', err);
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                settings.feature_tax_calculator_enabled === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                settings.feature_tax_calculator_enabled === 'true' ? "translate-x-[18px]" : "translate-x-0"
                                                             )} />
                                                         </button>
                                                     </div>

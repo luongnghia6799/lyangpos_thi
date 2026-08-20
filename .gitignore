@@ -37,9 +37,10 @@ extracted_build/
 
 
 # Tauri, Rust & Native
-frontend/src-tauri/
-android-native/
 target/
+**/target/
+frontend/src-tauri/bin/
+android-native/
 
 # IDE & System
 .idea/

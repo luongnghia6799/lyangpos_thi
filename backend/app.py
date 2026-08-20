@@ -7928,6 +7928,7 @@ def get_tts():
     return send_file(output_path, mimetype="audio/mpeg")
 
 # --- Daily & Pending Invoice Tracking (Theo Dõi Xuất Hóa Đơn Khách Hàng) ---
+
 @app.route('/api/accounting/daily-invoices', methods=['GET'])
 def get_daily_invoices():
     try:

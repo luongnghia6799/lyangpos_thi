@@ -4,6 +4,7 @@ import { m, AnimatePresence } from 'framer-motion';
 import { History, ShoppingBag, Clock, X, ChevronRight, Package, Calendar, Eye, EyeOff, BookOpen, Edit, Trash2, ReceiptText, Wallet, RotateCcw } from 'lucide-react';
 import { formatCurrency, formatDate, formatNumber, cn } from '../lib/utils';
 import Portal from './Portal';
+import OrderEditPopup from './OrderEditPopup';
 
 export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart, onViewOrder, onEditOrder, onDeleteOrder, onEditVoucher, onDeleteVoucher, context = 'POS', defaultType = 'Sale' }) {
     const [orders, setOrders] = useState([]);
@@ -11,6 +12,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('invoices'); // invoices, products
     const [filterType, setFilterType] = useState('all'); // all, cash, debt
+    const [editingOrder, setEditingOrder] = useState(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const [showInfo, setShowInfo] = useState(true);
@@ -405,7 +407,10 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                                             : "bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-emerald-950/20 border-emerald-500/35 hover:border-emerald-400 shadow-[0_4px_25px_rgba(16,185,129,0.08)]")))
                                                         )}
                                                         onClick={(e) => {
-                                                            if (!order.is_voucher && onViewOrder) onViewOrder(order);
+                                                            if (!order.is_voucher) {
+                                                                setEditingOrder(order);
+                                                                if (onViewOrder) onViewOrder(order);
+                                                            }
                                                         }}
                                                     >
                                                         <div className="flex items-center justify-between w-full">
@@ -545,6 +550,19 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                         </div>
                     </m.div>
                 </div>
+            )}
+        </AnimatePresence>
+        <AnimatePresence>
+            {editingOrder && (
+                <OrderEditPopup
+                    order={editingOrder}
+                    partner={partner || editingOrder.partner}
+                    onClose={() => setEditingOrder(null)}
+                    onSave={() => {
+                        setEditingOrder(null);
+                        fetchHistory(1);
+                    }}
+                />
             )}
         </AnimatePresence>
     </Portal>

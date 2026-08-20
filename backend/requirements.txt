@@ -7,3 +7,5 @@ requests
 Pillow
 pyinstaller
 edge-tts
+faster-whisper
+SpeechRecognition

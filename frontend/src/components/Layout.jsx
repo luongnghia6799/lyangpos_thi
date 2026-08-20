@@ -81,8 +81,8 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     isLite 
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
-                            ? "text-emerald-700 dark:text-emerald-300 font-black"
-                            : "text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white hover:bg-emerald-500/5 dark:hover:bg-white/10")
+                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black"
+                            : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
                 )}
             >
                 {active && isLite && (
@@ -99,14 +99,14 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                 {active && !isLite && (
                     <m.div
                         layoutId="sidebar-active-pill"
-                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-emerald-500/10 to-teal-500/5 border border-emerald-500/30 dark:border-emerald-400/30 backdrop-blur-xl shadow-md shadow-emerald-950/10 z-0"
+                        className="absolute inset-0 rounded-2xl bg-[#2d5016]/10 dark:bg-emerald-500/15 backdrop-blur-xl shadow-xs shadow-[#2d5016]/5 z-0"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     />
                 )}
                 {active && !isLite && (
                     <m.div
                         layoutId="sidebar-active-glow"
-                        className="absolute left-0 top-1/4 bottom-1/4 w-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-r-full shadow-[0_0_12px_#34d399] z-20"
+                        className="absolute left-0 top-1/4 bottom-1/4 w-1.5 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full shadow-[0_0_10px_rgba(45,80,22,0.4)] z-20"
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                 )}
@@ -116,7 +116,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     whileHover={{ scale: 1.15, rotate: [0, -8, 8, 0] }}
                     transition={{ duration: 0.2 }}
                 >
-                    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" : "")} />
+                    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-[#2d5016] dark:text-emerald-400" : "")} />
                 </m.div>
 
                 <AnimatePresence>
@@ -140,7 +140,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
                         className={cn(
                             "absolute left-full ml-4 px-3 py-2 text-[11px] font-black rounded-xl opacity-0 translate-x-3 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all z-[1001] whitespace-nowrap shadow-2xl border uppercase tracking-[0.2em] backdrop-blur-md",
-                            isLite ? "" : "bg-[#0d1a04] text-white border-white/10"
+                            isLite ? "" : "bg-[#1c1916] text-[#e8dfd5] border-[#8b6f47]/30"
                         )}
                     >
                         {label}
@@ -254,12 +254,12 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-emerald-700 dark:text-emerald-300 font-black bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-teal-500/5 border border-emerald-500/25 dark:border-emerald-400/25 shadow-md shadow-emerald-950/10"
-                            : "text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white hover:bg-emerald-500/5 dark:hover:bg-white/10"),
+                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black bg-[#2d5016]/10 dark:bg-emerald-500/15 shadow-xs shadow-[#2d5016]/5"
+                            : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5"),
                     isCollapsed ? "justify-center px-0 mx-4" : ""
                 )}
             >
-                <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" : "")} />
+                <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-[#2d5016] dark:text-emerald-400" : "")} />
                 {!isCollapsed && (
                     <>
                         <div className="flex-1 min-w-0 sidebar-marquee-container">
@@ -267,13 +267,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                                 {item.label}
                             </span>
                         </div>
-                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-40 shrink-0", isOpen ? "rotate-90 opacity-100 text-emerald-400" : "")} />
+                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-40 shrink-0", isOpen ? "rotate-90 opacity-100 text-[#2d5016] dark:text-emerald-400" : "")} />
                     </>
                 )}
 
                 {/* Active Indicator for Collapsed Mode */}
                 {isCollapsed && isAnyChildActive && (
-                    <div className="absolute left-0 w-1.5 h-6 bg-emerald-500 rounded-r-full shadow-[0_0_10px_#10b981]" />
+                    <div className="absolute left-0 w-1.5 h-6 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full shadow-[0_0_10px_rgba(45,80,22,0.4)]" />
                 )}
             </m.button>
 
@@ -1392,15 +1392,12 @@ export default function Layout({ children }) {
                         x: isSidebarHidden ? -280 : 0,
                         opacity: isSidebarHidden ? 0 : 1
                      }}
-                     style={{
-                         background: sidebarBackground,
-                     }}
                      transition={{ type: "spring", stiffness: 250, damping: 30, mass: 0.6 }}
-                     className="absolute top-0 left-0 bottom-0 h-full flex flex-col border-r border-slate-200/10 dark:border-white/5 z-[1000] print:hidden overflow-visible shrink-0 pt-4 bg-transparent"
+                     className="absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4 bg-transparent"
                  >
 
             {/* Active Tab Logo Icon Container */}
-            <div className="h-16 flex items-center justify-center border-b border-slate-200/10 dark:border-white/5 shrink-0 px-4 mb-2 relative">
+            <div className="h-16 flex items-center justify-center shrink-0 px-4 mb-2 relative">
                 <m.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -1430,12 +1427,12 @@ export default function Layout({ children }) {
                             } : {}}
                             className={cn(
                                 "absolute top-2 left-[calc(100%+12px)] w-64 backdrop-blur-2xl rounded-2xl shadow-xl shadow-black/10 p-2 z-[1100]",
-                                isLiteMode ? "border" : "bg-transparent border-2 border-[#2d5016]/10 dark:border-white/10"
+                                isLiteMode ? "border" : "bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10"
                             )}
                         >
                             {checkIsAdmin(userRole) && !isLiteMode && (
                                 <>
-                                    <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-[#2d5016] dark:text-white font-black text-sm transition-colors">
+                                    <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-[#2d5016] dark:text-[#d4a574] font-black text-sm transition-colors">
                                         <SettingsIcon size={18} />
                                         <span>Cài đặt hệ thống</span>
                                     </Link>
@@ -1483,15 +1480,15 @@ export default function Layout({ children }) {
                 <button
                     onClick={() => setShowQuickSearch(true)}
                     className={cn(
-                        "w-full flex items-center gap-3 transition-all hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-slate-200/10 dark:hover:border-white/5",
-                        isSidebarCollapsed ? "h-12 justify-center p-0 rounded-xl mx-auto" : "px-4 py-3 rounded-2xl bg-slate-100/50 dark:bg-slate-900/30"
+                        "w-full flex items-center gap-3 transition-all hover:bg-[#2d5016]/5 dark:hover:bg-white/5 border border-transparent hover:border-[#8b6f47]/20 dark:hover:border-white/10",
+                        isSidebarCollapsed ? "h-12 justify-center p-0 rounded-xl mx-auto" : "px-4 py-3 rounded-2xl bg-transparent"
                     )}
                 >
-                    <Search size={18} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <Search size={18} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
                     {!isSidebarCollapsed && (
                         <div className="flex-1 flex items-center justify-between min-w-0">
-                            <span className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Tìm kiếm nhanh</span>
-                            <span className="text-[9px] bg-slate-200/50 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 font-bold shrink-0">Ctrl+G</span>
+                            <span className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">Tìm kiếm nhanh</span>
+                            <span className="text-[9px] bg-[#8b6f47]/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[#8b6f47] dark:text-[#d4a574] font-black shrink-0">Ctrl+G</span>
                         </div>
                     )}
                 </button>
@@ -1525,9 +1522,9 @@ export default function Layout({ children }) {
             {/* Bottom Actions Cluster */}
             <div 
                 className={cn(
-                    "mb-3 rounded-3xl border backdrop-blur-xl shadow-sm transition-all duration-300",
+                    "mb-3 rounded-3xl backdrop-blur-xl transition-all duration-300",
                     isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2",
-                    "bg-black/[0.03] dark:bg-white/[0.04] border-[#8b6f47]/20 dark:border-white/10"
+                    "bg-transparent"
                 )} 
                 style={isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {}}
             >
@@ -1546,9 +1543,9 @@ export default function Layout({ children }) {
                             color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
                         } : {}}
                         className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-black/5 dark:hover:bg-white/10 shrink-0 shadow-none",
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-[#2d5016]/10 dark:hover:bg-white/10 shrink-0 shadow-none",
                             isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12",
-                            isLiteMode ? "" : (isMuted ? "text-rose-500 hover:text-rose-600" : "text-primary dark:text-[#d4a574] hover:opacity-80")
+                            isLiteMode ? "" : (isMuted ? "text-rose-500 hover:text-rose-600" : "text-[#2d5016] dark:text-[#d4a574] hover:opacity-90")
                         )}
                         title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
                     >
@@ -1562,7 +1559,7 @@ export default function Layout({ children }) {
                                     transition={{ duration: 0.15 }}
                                     className={cn(
                                         "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
-                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-500" : "text-primary dark:text-[#d4a574]")
+                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-500" : "text-[#2d5016] dark:text-[#d4a574]")
                                     )}
                                 >
                                     {isMuted ? "Tắt" : "Bật"}
@@ -1576,7 +1573,7 @@ export default function Layout({ children }) {
                         whileTap={{ scale: 0.9 }}
                         onClick={toggleTheme}
                         className={cn(
-                            "rounded-full hover:bg-black/5 bg-transparent dark:hover:bg-white/10 text-primary dark:text-[#d4a574] hover:opacity-80 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
+                            "rounded-full hover:bg-[#2d5016]/10 bg-transparent dark:hover:bg-white/10 text-[#2d5016] dark:text-[#d4a574] hover:opacity-90 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
                             isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
                         )}
                         title="Sáng/Tối"
@@ -1589,7 +1586,7 @@ export default function Layout({ children }) {
                                     animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                     exit={{ opacity: 0, height: 0, scale: 0.8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-primary/80 dark:text-[#d4a574]/80"
+                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-[#2d5016]/80 dark:text-[#d4a574]/80"
                                 >
                                     Phông
                                 </m.span>
@@ -1638,9 +1635,9 @@ export default function Layout({ children }) {
                         color: liteTheme.text
                     } : {}}
                     className={cn(
-                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-black/5 dark:hover:bg-white/5",
+                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-[#2d5016]/10 dark:hover:bg-white/10",
                         isSidebarCollapsed ? "py-2 min-h-[36px]" : "py-3 min-h-[44px]",
-                        isLiteMode ? "" : "text-primary dark:text-[#d4a574] hover:opacity-80"
+                        isLiteMode ? "" : "text-[#2d5016] dark:text-[#d4a574] hover:opacity-90"
                     )}
                 >
                     {isSidebarCollapsed ? <ChevronRight size={18} /> : (

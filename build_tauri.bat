@@ -56,8 +56,12 @@ call npm run tauri:build
 if %ERRORLEVEL% NEQ 0 goto :error_tauri
 
 echo.
+echo [*] Buoc 6: Tu dong tai ban cai dat len GitHub Release (lyangpos_thi)...
+call node upload_release.js
+
+echo.
 echo =====================================================================
-echo    * DONG GOI TAURI THANH CONG RUC RO! *
+echo    * DONG GOI VA PHAT HANH TAURI THANH CONG RUC RO! *
 echo =====================================================================
 echo.
 echo [*] File cai dat (.msi / .exe) da duoc tao tai thu muc:

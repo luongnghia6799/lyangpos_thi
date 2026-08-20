@@ -56,11 +56,11 @@ export const MarqueeText = ({
       onDoubleClick={onDoubleClick}
       title={title || text}
       style={style}
-      className={`w-full overflow-hidden whitespace-nowrap relative select-none ${className}`}
+      className={`w-full overflow-hidden whitespace-nowrap relative select-none py-1 leading-normal ${className}`}
     >
       <span
         ref={textRef}
-        className={`inline-block whitespace-nowrap ${
+        className={`inline-block whitespace-nowrap leading-normal ${
           isOverflowing ? 'animate-marquee-on-hover is-overflowing' : ''
         } ${isCurrentlyActive && isOverflowing ? 'is-active' : ''}`}
         style={

@@ -381,8 +381,15 @@ input, button, select, textarea, optgroup, option {
 
 
 .dropdown-item {
-  @apply p-3 cursor-pointer transition-all duration-200 last:border-0 relative overflow-hidden;
+  @apply p-3 cursor-pointer transition-all duration-200 last:border-0 relative;
   border-bottom: 1px solid rgba(212, 165, 116, 0.1);
+}
+
+.dropdown-item p,
+.dropdown-item .truncate {
+  line-height: 1.35;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .dark .dropdown-item {

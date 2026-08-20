@@ -22,6 +22,7 @@ import {
   CreditCard,
   Wallet,
   BadgePercent,
+  Mic,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import LiteClock from "../../components/LiteClock";
@@ -167,6 +168,7 @@ const POSLite = () => {
   const [showThemePopover, setShowThemePopover] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotePopover, setShowNotePopover] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('user');
@@ -1697,6 +1699,14 @@ const POSLite = () => {
             </div>
 
             <button
+              onClick={() => setIsVoiceModalOpen(true)}
+              className="px-2.5 py-1 rounded border text-[10px] font-black uppercase flex items-center gap-1 hover:bg-[var(--lite-active-bg)] transition-all bg-[var(--lite-surface)] border-[var(--lite-border)] text-emerald-500 hover:text-emerald-400 shrink-0 mr-1"
+              title="Đọc tên / Alias sản phẩm bằng giọng nói (Voice STT)"
+            >
+              <Mic size={12} className="animate-pulse" /> ĐỌC ALIAS
+            </button>
+
+            <button
               onClick={handleAddProduct}
               className="px-2.5 py-1 rounded border text-[10px] font-black uppercase flex items-center gap-0.5 hover:bg-[var(--lite-active-bg)] transition-all bg-[var(--lite-surface)] border-[var(--lite-border)] text-[var(--lite-accent)] shrink-0 mr-1"
               title="Thêm sản phẩm mới nhanh"
@@ -2468,12 +2478,14 @@ const POSLite = () => {
           </div>
         )}
 
-        <TaxCalculatorModal
-          isOpen={isTaxModalOpen}
-          onClose={() => setIsTaxModalOpen(false)}
-          totalAmount={cart.reduce((sum, i) => sum + i.price * i.quantity, 0)}
-          partnerName={selectedPartner?.name || ""}
-        />
+        {localStorage.getItem('feature_tax_calculator_enabled') === 'true' && (
+          <TaxCalculatorModal
+            isOpen={isTaxModalOpen}
+            onClose={() => setIsTaxModalOpen(false)}
+            totalAmount={cart.reduce((sum, i) => sum + i.price * i.quantity, 0)}
+            partnerName={selectedPartner?.name || ""}
+          />
+        )}
 
         {confirm && (
           <ConfirmModal

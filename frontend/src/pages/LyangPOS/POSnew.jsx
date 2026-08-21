@@ -1090,6 +1090,7 @@ function a0({
     [Lr, ba] = i.useState(!1),
     [ar, Ct] = i.useState(!1),
     [ga, Vs] = i.useState(() => localStorage.getItem("pos_keep_order_after_save") === "true"),
+    [blockTabPrice, setBlockTabPrice] = i.useState(() => localStorage.getItem("pos_block_tab_unit_price") === "true"),
     $r = i.useRef(null);
   i.useEffect(() => {
     const t = a => {
@@ -1375,6 +1376,124 @@ function a0({
     [Ki, za] = i.useState(null),
     [Gi, pn] = i.useState("Sale"),
     [Jt, un] = i.useState("Sale");
+
+  const undoStackRef = i.useRef([]),
+    redoStackRef = i.useRef([]),
+    lastStateSnapshotRef = i.useRef(null),
+    isUndoingRef = i.useRef(!1);
+
+  i.useEffect(() => {
+    if (isUndoingRef.current) {
+      isUndoingRef.current = !1;
+      return;
+    }
+    const currentSnapshot = {
+      cart: y,
+      partner: p,
+      note: K,
+      amountPaid: oe,
+      cashGiven: V,
+      paymentMethod: I,
+      orderId: Q,
+      workingProduct: m
+    };
+    if (lastStateSnapshotRef.current) {
+      const prev = lastStateSnapshotRef.current;
+      const cartDiff = JSON.stringify(prev.cart) !== JSON.stringify(currentSnapshot.cart);
+      const partnerDiff = prev.partner?.id !== currentSnapshot.partner?.id;
+      const noteDiff = prev.note !== currentSnapshot.note;
+      const orderIdDiff = prev.orderId !== currentSnapshot.orderId;
+      if (cartDiff || partnerDiff || noteDiff || orderIdDiff) {
+        undoStackRef.current.push(prev);
+        if (undoStackRef.current.length > 50) {
+          undoStackRef.current.shift();
+        }
+        redoStackRef.current = [];
+      }
+    }
+    lastStateSnapshotRef.current = currentSnapshot;
+  }, [y, p, K, oe, V, I, Q]);
+
+  const handleUndo = () => {
+    if (undoStackRef.current.length === 0) {
+      G({
+        message: "Không có thao tác nào để hoàn tác!",
+        type: "error"
+      });
+      return;
+    }
+    const currentSnapshot = {
+      cart: y,
+      partner: p,
+      note: K,
+      amountPaid: oe,
+      cashGiven: V,
+      paymentMethod: I,
+      orderId: Q,
+      workingProduct: m
+    };
+    const previousSnapshot = undoStackRef.current.pop();
+    if (previousSnapshot) {
+      redoStackRef.current.push(currentSnapshot);
+      isUndoingRef.current = !0;
+      lastStateSnapshotRef.current = previousSnapshot;
+      H(previousSnapshot.cart || []);
+      F(previousSnapshot.partner || null);
+      $e(previousSnapshot.note || "");
+      re(previousSnapshot.amountPaid || 0);
+      Ye(previousSnapshot.cashGiven || 0);
+      ge(previousSnapshot.paymentMethod || "Cash");
+      Gt(previousSnapshot.orderId || null);
+      if (previousSnapshot.workingProduct) {
+        He(previousSnapshot.workingProduct);
+      }
+      try {
+        Is();
+      } catch {}
+      G({
+        message: `Đã hoàn tác (Undo)! Còn ${undoStackRef.current.length} bước`,
+        type: "success"
+      });
+    }
+  };
+
+  const handleRedo = () => {
+    if (redoStackRef.current.length === 0) return;
+    const currentSnapshot = {
+      cart: y,
+      partner: p,
+      note: K,
+      amountPaid: oe,
+      cashGiven: V,
+      paymentMethod: I,
+      orderId: Q,
+      workingProduct: m
+    };
+    const nextSnapshot = redoStackRef.current.pop();
+    if (nextSnapshot) {
+      undoStackRef.current.push(currentSnapshot);
+      isUndoingRef.current = !0;
+      lastStateSnapshotRef.current = nextSnapshot;
+      H(nextSnapshot.cart || []);
+      F(nextSnapshot.partner || null);
+      $e(nextSnapshot.note || "");
+      re(nextSnapshot.amountPaid || 0);
+      Ye(nextSnapshot.cashGiven || 0);
+      ge(nextSnapshot.paymentMethod || "Cash");
+      Gt(nextSnapshot.orderId || null);
+      if (nextSnapshot.workingProduct) {
+        He(nextSnapshot.workingProduct);
+      }
+      try {
+        Is();
+      } catch {}
+      G({
+        message: "Đã làm lại (Redo)!",
+        type: "success"
+      });
+    }
+  };
+
   i.useEffect(() => {
     if (he) {
       const t = Array.isArray(he) ? he : he.items || [];
@@ -1645,7 +1764,7 @@ function a0({
                     secondary_qty: O / (Number(L.multiplier) || 1)
                   } : L);
                 Ra(U);
-              }} /></td><td className="py-2 px-2 w-[180px]"><input type="text" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30" value={z(d)} onFocus={w => w.target.select()} onKeyDown={w => {
+              }} /></td><td className="py-2 px-2 w-[180px]"><input type="text" tabIndex={blockTabPrice ? -1 : 0} className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574] focus:ring-0 focus:outline-none focus:border-emerald-500/30" value={z(d)} onFocus={w => w.target.select()} onKeyDown={w => {
                 w.key === "Enter" && (w.preventDefault(), se.current?.focus());
               }} onChange={w => {
                 const O = parseFloat(w.target.value.replace(/,/g, "")) || 0,
@@ -1755,7 +1874,7 @@ function a0({
         queryKey: ["partners"]
       }), E.invalidateQueries({
         queryKey: ["products"]
-      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
+      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_block_tab_unit_price" ? setBlockTabPrice(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
         ...r,
         ui_enable_smart_sorting: a.data.value
       }));
@@ -2244,6 +2363,42 @@ function a0({
       }
       if (a.ctrlKey && (a.code === "Space" || a.key === " ")) {
         a.preventDefault(), a.stopPropagation(), St(o => !o);
+        return;
+      }
+      if ((a.ctrlKey || a.metaKey) && !a.altKey && (a.key === "z" || a.key === "Z")) {
+        a.preventDefault();
+        a.stopPropagation();
+        if (a.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+        return;
+      }
+      if ((a.ctrlKey || a.metaKey) && !a.altKey && (a.key === "y" || a.key === "Y")) {
+        a.preventDefault();
+        a.stopPropagation();
+        handleRedo();
+        return;
+      }
+      if (a.key === "Home") {
+        a.preventDefault();
+        a.stopPropagation();
+        if (ve && ve.length > 0) {
+          const nextIdx = ve.findIndex(item => !item.isPacked);
+          if (nextIdx !== -1) {
+            xl(nextIdx);
+            document.getElementById(`cart-row-${nextIdx}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          } else {
+            G({
+              message: "Đã soạn xong toàn bộ danh sách hàng!",
+              type: "success"
+            });
+            try {
+              ht("Đã soạn xong toàn bộ đơn hàng");
+            } catch {}
+          }
+        }
         return;
       }
       a.key === "Tab" && zs();
@@ -3141,6 +3296,17 @@ function a0({
                           }), a.close();
                         } catch {}
                       }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                        const t = !blockTabPrice;
+                        setBlockTabPrice(t), localStorage.setItem("pos_block_tab_unit_price", t ? "true" : "false");
+                        try {
+                          const a = new BroadcastChannel("pos_data_sync");
+                          a.postMessage({
+                            type: "UI_SETTING_UPDATED",
+                            key: "pos_block_tab_unit_price",
+                            value: t ? "true" : "false"
+                          }), a.close();
+                        } catch {}
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
                         Ct(!1), Ci();
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-4 shrink-0"><div className="flex items-center gap-4 ml-auto"><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
@@ -3534,14 +3700,14 @@ function a0({
                                     };
                                   });
                                 }} onKeyDown={t => {
-                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), blockTabPrice ? t.target.select?.() : ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
                                 }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => {
                                   He(t => ({
                                     ...t,
                                     quantity: t.quantity * -1,
                                     secondary_qty: t.secondary_qty * -1
                                   })), Pt.current?.focus();
-                                }} title="Đổi thành Trả Hàng (Âm)"><Ms size={12} strokeWidth={3} /></button></div></td><td className="py-4 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(m.product.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(m.product.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" className={c("w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg transition-all ", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                }} title="Đổi thành Trả Hàng (Âm)"><Ms size={12} strokeWidth={3} /></button></div></td><td className="py-4 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(m.product.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(m.product.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg transition-all ", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                   const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
                                   He({
                                     ...m,
@@ -3629,7 +3795,7 @@ function a0({
                               stiffness: 300,
                               damping: 25,
                               delay: a * 0.02
-                            }} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[2000] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[1000] bg-transparent focus-within:z-[1000]")} onDoubleClick={() => {
+                            }} id={`cart-row-${a}`} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[2000] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[1000] bg-transparent focus-within:z-[1000]")} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {
@@ -3878,7 +4044,7 @@ function a0({
                                       s >= 0 && document.getElementById(`qty-sec-${s}`)?.focus();
                                     }
                                   }} id={`qty-sec-${a}`} /><span className="text-[10px] font-black text-gray-400 uppercase pr-2">{Ae(t.secondary_unit)}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-[#d4a574] shadow-none transition-all" value={t.quantity} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "quantity", parseFloat(r.target.value) || 0)} ref={r => Bi.current[t.product_id] = r} id={`qty-main-${a}`} onKeyDown={r => {
-                                    if (r.key === "Enter") r.preventDefault(), se.current?.focus();else if (r.key === "Tab") r.preventDefault(), document.getElementById(`price-${a}`)?.focus();else if (r.key === "ArrowDown") {
+                                    if (r.key === "Enter") r.preventDefault(), se.current?.focus();else if (r.key === "Tab") r.preventDefault(), blockTabPrice ? r.target.select?.() : document.getElementById(`price-${a}`)?.focus();else if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
                                       s < ve.length && document.getElementById(`qty-main-${s}`)?.focus();
@@ -3887,7 +4053,7 @@ function a0({
                                       const s = a - 1;
                                       s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : Pt.current?.focus();
                                     }
-                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
+                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
                                       const s = parseFloat(r.target.value.replace(/,/g, "")) || 0;
                                       _r(a, "price", s);
                                     }} onKeyDown={r => {

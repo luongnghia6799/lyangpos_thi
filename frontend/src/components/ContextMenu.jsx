@@ -16,8 +16,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     Save,
-    PlusCircle,
-    Code
+    PlusCircle
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -229,14 +228,8 @@ const ContextMenu = () => {
                         <MenuItem 
                             icon={isFullscreen ? Minimize : Maximize} 
                             label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
-                            shortcut="F11"
+                            shortcut="F11" 
                             onClick={() => handleAction('fullscreen')} 
-                        />
-                        <MenuItem 
-                            icon={Code} 
-                            label="Kiểm tra (Inspect)" 
-                            shortcut="Ctrl+Shift+I"
-                            onClick={() => handleAction('devtools')} 
                         />
                     </div>
 

@@ -115,7 +115,7 @@ export default function CustomSelect({
                             exit={{ opacity: 0, y: dropUp ? -8 : 8, scale: 0.95 }}
                             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
                             className={cn(
-                                "fixed max-h-60 overflow-y-auto no-scrollbar rounded-2xl border border-border bg-white dark:bg-slate-950 shadow-2xl p-1 outline-none z-[99999999] custom-select-dropdown",
+                                "fixed max-h-60 overflow-y-auto no-scrollbar rounded-2xl border border-[#8b6f47]/25 dark:border-white/10 bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl shadow-2xl p-1.5 outline-none z-[99999999] custom-select-dropdown",
                                 dropdownClassName
                             )}
                             style={{
@@ -134,8 +134,8 @@ export default function CustomSelect({
                                         type="button"
                                         onClick={() => handleSelect(option.value)}
                                         className={cn(
-                                            "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-700 dark:text-slate-200 hover:bg-primary/10 hover:text-primary dark:hover:text-emerald-400 cursor-pointer",
-                                            isSelected && "bg-primary/10 text-primary dark:bg-emerald-950/40 dark:text-emerald-400"
+                                            "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-700 dark:text-slate-200 hover:bg-[#2d5016]/10 hover:text-[#2d5016] dark:hover:bg-white/[0.08] dark:hover:text-emerald-400 cursor-pointer",
+                                            isSelected && "bg-[#2d5016]/15 text-[#2d5016] dark:bg-emerald-950/60 dark:text-emerald-400 font-black"
                                         )}
                                     >
                                         {option.label}

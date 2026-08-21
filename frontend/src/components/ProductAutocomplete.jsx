@@ -169,11 +169,6 @@ const ProductAutocomplete = React.forwardRef(({
                                                         }}
                                                     />
                                                 </div>
-                                                {p.code && (
-                                                    <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-slate-900/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-[10px] font-black tabular-nums text-slate-500 dark:text-slate-400">
-                                                        {p.code}
-                                                    </span>
-                                                )}
                                                 {p.is_combo && (
                                                     <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest ">COMBO</span>
                                                 )}
@@ -184,6 +179,16 @@ const ProductAutocomplete = React.forwardRef(({
                                                     {p.active_ingredient || ""}
                                                 </span>
                                                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                    {p.code && (
+                                                        <span className={cn(
+                                                            "px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors shrink-0",
+                                                            index === highlightedIndex
+                                                                ? "bg-white/20 border-white/30 text-white"
+                                                                : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300"
+                                                        )}>
+                                                            {p.code}
+                                                        </span>
+                                                    )}
                                                     <span className={cn(
                                                         "px-2 py-0.5 rounded-md border transition-colors",
                                                         index === highlightedIndex 

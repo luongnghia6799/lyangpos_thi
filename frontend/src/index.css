@@ -340,29 +340,19 @@ input, button, select, textarea, optgroup, option {
   filter: brightness(1.1);
 }
 
-.glow-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glow-hover:hover {
-  box-shadow: 0 0 25px var(--primary-color) !important;
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
 .dropdown-premium {
   @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-2 overflow-hidden;
-  background: rgba(247, 244, 237, 0.96) !important;
-  border-color: rgba(139, 111, 71, 0.3) !important;
-  box-shadow: 0 20px 60px -10px rgba(74, 52, 26, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(48px) !important;
-  -webkit-backdrop-filter: blur(48px) !important;
+  background: rgba(250, 248, 243, 0.97) !important;
+  border: 1.5px solid rgba(139, 111, 71, 0.25) !important;
+  box-shadow: 0 20px 50px -10px rgba(45, 80, 22, 0.12), 0 10px 25px -5px rgba(139, 111, 71, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
 }
 
 .dark .dropdown-premium {
-  background: rgba(26, 23, 20, 0.96) !important;
-  border-color: rgba(139, 111, 71, 0.4) !important;
-  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+  background: rgba(15, 23, 42, 0.97) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .modal-premium {
@@ -382,7 +372,7 @@ input, button, select, textarea, optgroup, option {
 
 .dropdown-item {
   @apply p-3 cursor-pointer transition-all duration-200 last:border-0 relative;
-  border-bottom: 1px solid rgba(212, 165, 116, 0.1);
+  border-bottom: 1px solid rgba(139, 111, 71, 0.1);
 }
 
 .dropdown-item p,
@@ -393,12 +383,12 @@ input, button, select, textarea, optgroup, option {
 }
 
 .dark .dropdown-item {
-  border-bottom-color: rgba(255, 255, 255, 0.05);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 .dropdown-item:hover,
 .dropdown-item.active {
-  background: var(--button-gradient) !important;
+  background: linear-gradient(135deg, #2d5016 0%, #3d6b1e 100%) !important;
   color: white !important;
 }
 
@@ -409,9 +399,9 @@ input, button, select, textarea, optgroup, option {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 5px;
-  background: #f4c430;
-  box-shadow: 2px 0 10px rgba(244, 196, 48, 0.5);
+  width: 4px;
+  background: #d4a574;
+  box-shadow: 2px 0 10px rgba(212, 165, 116, 0.6);
   z-index: 30;
 }
 

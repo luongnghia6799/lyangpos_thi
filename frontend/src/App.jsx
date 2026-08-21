@@ -190,8 +190,6 @@ const ProductManager = lazy(() => import('./pages/LyangPOS/ProductManager'));
 const PartnerManager = lazy(() => import('./pages/LyangPOS/PartnerManager'));
 const Settings = lazy(() => import('./pages/LyangPOS/Settings'));
 const Reports = lazy(() => import('./pages/LyangPOS/Reports'));
-const DetailedReports = lazy(() => import('./pages/LyangPOS/DetailedReports'));
-const ExcelMapping = lazy(() => import('./pages/LyangPOS/ExcelMapping'));
 const ReportsBoard = lazy(() => import('./pages/LyangPOS/ReportsBoard'));
 const Summary = lazy(() => import('./pages/LyangPOS/Summary'));
 const InvoiceDesigner = lazy(() => import('./pages/LyangPOS/InvoiceDesigner'));
@@ -446,8 +444,6 @@ const AppLayout = () => {
                 <Route path="/partner-profile" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><PartnerProfile /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/partner-profile/:id" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><PartnerProfile /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/reports" element={<RoleProtectedRoute allowedRoles={['admin']}><PageWrapper><Reports /></PageWrapper></RoleProtectedRoute>} />
-                <Route path="/detailed-reports" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><DetailedReports /></PageWrapper></RoleProtectedRoute>} />
-                <Route path="/accounting/mapping" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><ExcelMapping /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/accounting/inventory" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><AccountingInventory /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/invoice-designer" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><InvoiceDesigner /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/banking" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><BankManager /></PageWrapper></RoleProtectedRoute>} />

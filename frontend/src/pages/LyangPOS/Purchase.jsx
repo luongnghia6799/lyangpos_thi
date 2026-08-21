@@ -160,6 +160,7 @@ export default function Purchase() {
         if (isActionMenuOpen) document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isActionMenuOpen]);
+
     const [bottomSummaryHeight, setBottomSummaryHeight] = useState(() => Number(localStorage.getItem('purchase_bottom_summary_height')) || 115);
     const [isResizingBottom, setIsResizingBottom] = useState(false);
     const [amountPaid, setAmountPaid] = useState(0);
@@ -735,6 +736,29 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
     const productDropdownRef = React.useRef(null);
     const rowSearchDropdownRef = React.useRef(null);
     const partnerInputRef = React.useRef(null);
+
+    const [workingSearchCoords, setWorkingSearchCoords] = useState({ top: 0, left: 0, width: 600 });
+    useEffect(() => {
+        if (searchTerm && !workingItem?.product) {
+            const updateCoords = () => {
+                if (searchInputRef.current) {
+                    const rect = searchInputRef.current.getBoundingClientRect();
+                    setWorkingSearchCoords({
+                        top: rect.bottom + 6,
+                        left: rect.left,
+                        width: Math.max(rect.width, 600)
+                    });
+                }
+            };
+            updateCoords();
+            window.addEventListener('resize', updateCoords);
+            window.addEventListener('scroll', updateCoords, true);
+            return () => {
+                window.removeEventListener('resize', updateCoords);
+                window.removeEventListener('scroll', updateCoords, true);
+            };
+        }
+    }, [searchTerm, workingItem?.product]);
 
     const [isPartnerEditModalOpen, setIsPartnerEditModalOpen] = useState(false);
     const [editingPartner, setEditingPartner] = useState(null);
@@ -1517,7 +1541,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
             <div className={cn("flex flex-col h-screen main-content-bg font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
             <div className="flex-1 flex flex-col overflow-hidden no-print">
                 {/* Top Bar: Search & Supplier */}
-                <div className="p-4 flex gap-6 items-center print:hidden transition-colors relative border-[#d4a574]/20 z-[2500]">
+                <div className="p-3.5 px-5 flex gap-5 items-center print:hidden transition-colors relative z-[2500] bg-transparent">
 
                     {/* Background Decoration Layer */}
                     {!gpuDisabled && (
@@ -1537,7 +1561,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                 <h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none">
                                     NHẬP HÀNG
                                 </h1>
-                                <span className="text-[10px] font-bold text-slate-400">
+                                <span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">
                                     by LyangNghia
                                 </span>
                             </div>
@@ -1550,14 +1574,19 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                     transition={{ duration: 0.2 }}
                                     className="flex items-center"
                                 >
-                                    <div className="flex items-center h-9 bg-transparent px-3 rounded-full border border-black/10 dark:border-white/10 shrink-0">
-                                        <div className={cn("w-2 h-2 rounded-full mr-2 shrink-0", editOrderId ? "bg-amber-500" : "bg-emerald-500")} />
-                                        <div className="flex flex-col justify-center">
-                                            <span className="text-[12px] font-black font-mono text-amber-600 dark:text-amber-400 tracking-wider leading-none">
+                                    <div className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0">
+                                        <div className={cn(
+                                            "w-2 h-2 rounded-full shrink-0",
+                                            editOrderId 
+                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" 
+                                                : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
+                                        )} />
+                                        <div className="flex flex-col justify-center leading-none min-w-0">
+                                            <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums">
                                                 #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
                                             </span>
-                                            {editingOriginalOrder?.date && (
-                                                <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums leading-none">
+                                            {editingOriginalOrder?.date ? (
+                                                <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
                                                     {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
                                                         hour: "2-digit",
                                                         minute: "2-digit"
@@ -1565,6 +1594,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                         day: "2-digit",
                                                         month: "2-digit"
                                                     })}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
+                                                    {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
                                                 </span>
                                             )}
                                         </div>
@@ -1574,7 +1607,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-800 relative z-[2100]">
+                    <div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]">
                         {/* 1. Compact Partner Search Input */}
                         <div 
                             className="relative shrink-0" 
@@ -1593,10 +1626,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         }}>
                             <div
                                 className={cn(
-                                    "relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border-2 transition-[border-color,background-color,box-shadow] duration-200 ease-out",
+                                    "relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out",
                                     (selectedPartner && !isPartnerDropdownOpen)
-                                        ? "bg-[#8b6f47] dark:bg-[#8b6f47] border-[#8b6f47] dark:border-[#d4a574] shadow-md shadow-[#8b6f47]/30 text-white"
-                                        : "border-[#8b6f47]/30 dark:border-[#d4a574]/40 bg-white/90 dark:bg-slate-900/90 shadow-sm focus-within:border-[#8b6f47] dark:focus-within:border-[#d4a574] focus-within:shadow-[0_0_0_2px_rgba(139,111,71,0.2)]"
+                                        ? "bg-gradient-to-r from-[#8b6f47] to-[#a08257] dark:from-[#5a4325] dark:to-[#8b6f47] border-[#8b6f47] dark:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/20 text-white"
+                                        : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#8b6f47] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#8b6f47]/10"
                                 )}
                             >
                                 <m.div
@@ -1751,10 +1784,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
                                         transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                                        className="dropdown-premium bg-white dark:bg-slate-900 backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+                                        className="dropdown-premium absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
-                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-slate-100 dark:divide-slate-800/80">
+                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
                                             <div
                                                 data-index={0}
                                                 className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
@@ -1831,7 +1864,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsNoteModalOpen(true)}
-                            className="relative w-9 h-9 shrink-0 bg-[#8b6f47] hover:bg-[#725a38] text-white rounded-full transition-all flex items-center justify-center border border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-sm"
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title={note ? `Ghi chú: ${note}` : "Thêm ghi chú đơn nhập"}
                         >
                             <FileText size={16} strokeWidth={2.5} />
@@ -1846,12 +1879,12 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                             whileTap={{ scale: 0.98 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
                             onClick={() => setIsHeldSidebarOpen(true)}
-                            className="relative w-9 h-9 bg-[#8b6f47] hover:bg-[#725a38] text-white rounded-full transition-all flex items-center justify-center border border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-sm shrink-0"
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
                             title="Danh sách đơn nhập tạm"
                         >
                             <Pause size={16} strokeWidth={2.5} />
                             {heldPurchases.length > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">
+                                <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">
                                     {heldPurchases.length}
                                 </span>
                             )}
@@ -1859,11 +1892,11 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
 
                         {/* 4. History Step Navigator (if in sidebar mode) */}
                         {summaryLayoutMode === 'sidebar' && (
-                            <m.div className="flex items-center rounded-full border border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent dark:bg-slate-950/90 p-0.5 transition-colors shadow-sm h-9 shrink-0">
+                            <m.div className="flex items-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] p-0.5 transition-all shadow-xs shrink-0">
                                 <m.button
                                     onClick={() => navigateHistory('prev')}
                                     whileTap={{ scale: 0.9 }}
-                                    className="w-7 h-7 flex items-center justify-center transition-colors rounded-full bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
+                                    className="w-7 h-7 flex items-center justify-center transition-colors rounded-lg bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
                                     title="Đơn trước"
                                 >
                                     <ChevronLeft size={14} strokeWidth={2.5} />
@@ -1875,9 +1908,9 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             if (!loadDraft()) resetForm();
                                         }
                                     }}
-                                    className="px-2 flex items-center justify-center min-w-[55px]"
+                                    className="px-2.5 flex items-center justify-center min-w-[55px]"
                                 >
-                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#8b6f47] dark:text-[#d4a574]">
+                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#e8dfd5]">
                                         {editingOriginalOrder?.display_id ? `#${editingOriginalOrder.display_id}` : (editOrderId ? `#${editOrderId}` : "MỚI")}
                                     </span>
                                 </m.button>
@@ -1886,7 +1919,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                     disabled={historyStep === 0}
                                     whileTap={{ scale: 0.9 }}
                                     className={cn(
-                                        "w-7 h-7 flex items-center justify-center transition-colors rounded-full",
+                                        "w-7 h-7 flex items-center justify-center transition-colors rounded-lg",
                                         historyStep === 0 ? "opacity-30 cursor-not-allowed text-[#8b6f47] dark:text-[#d4a574]" : "bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
                                     )}
                                 >
@@ -1900,13 +1933,13 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleModeChange(posMode === 'Retail' ? 'Wholesale' : 'Retail')}
-                            className="relative w-9 h-9 shrink-0 bg-[#8b6f47] hover:bg-[#725a38] text-white rounded-full transition-all flex items-center justify-center border border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-sm"
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title={posMode === 'Wholesale' ? "Chế độ Nhập Sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Nhập Lẻ (Bấm để đổi sang Sỉ)"}
                         >
                             {posMode === 'Wholesale' ? <Users size={16} strokeWidth={2.5} /> : <User size={16} strokeWidth={2.5} />}
                             <div className={cn(
-                                "absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white",
-                                posMode === 'Wholesale' ? "bg-amber-300" : "bg-white"
+                                "absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900",
+                                posMode === 'Wholesale' ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600"
                             )} />
                         </m.button>
 
@@ -1917,7 +1950,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                             onClick={() => {
                                 setIsDailyHistoryOpen(true);
                             }}
-                            className="w-9 h-9 shrink-0 bg-[#2d5016] hover:bg-[#1e3a0f] text-white rounded-full transition-all flex items-center justify-center border border-[#2d5016]/40 dark:bg-[#1e3a10] dark:hover:bg-[#2d5016] dark:border-[#34d399]/30 shadow-md shadow-[#2d5016]/20"
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title="Lịch sử đơn nhập hàng trong ngày"
                         >
                             <History size={16} strokeWidth={2.5} />
@@ -1930,8 +1963,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActionMenuOpen(prev => !prev)}
                                 className={cn(
-                                    "w-9 h-9 shrink-0 rounded-full transition-all flex items-center justify-center border shadow-sm",
-                                    isActionMenuOpen ? "bg-[#725a38] text-white border-[#d4a574]" : "bg-[#8b6f47] hover:bg-[#725a38] text-white border-[#8b6f47]/40 dark:border-[#d4a574]/40"
+                                    "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer",
+                                    isActionMenuOpen ? "bg-[#8b6f47] text-white border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"
                                 )}
                                 title="Thao tác khác"
                             >
@@ -1946,7 +1979,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute right-0 top-full mt-2 w-60 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
+                                        className="absolute right-0 top-full mt-2 w-60 bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
                                     >
                                         {/* Preview Invoice */}
                                         <button
@@ -2270,98 +2303,143 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            <AnimatePresence>
-                                                                {searchTerm && !workingItem.product && (
-                                                                    <m.div
-                                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                                                        className="dropdown-premium min-w-[500px]"
-                                                                    >
-                                                                        <div className="max-h-[400px] overflow-y-auto no-scrollbar scroll-smooth" ref={productDropdownRef}>
-                                                                            {filteredProducts.map((p, idx) => (
-                                                                                <div
-                                                                                    key={p.id}
-                                                                                    onMouseEnter={() => setActiveIndex(idx)}
-                                                                                    onClick={() => {
-                                                                                        const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
-                                                                                        setWorkingItem({
-                                                                                            product: p,
-                                                                                            quantity: currentQty,
-                                                                                            price: p.latest_cost_price || p.cost_price,
-                                                                                            secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                            name: p.name
-                                                                                        });
-                                                                                        setSearchTerm(p.name);
-                                                                                        // useEffect sẽ tự lo việc focus
-                                                                                    }}
-                                                                                    onDoubleClick={() => {
-                                                                                        setEditingProduct(p);
-                                                                                        setIsEditModalOpen(true);
-                                                                                    }}
-                                                                                    className={cn(
-                                                                                        "dropdown-item flex justify-between items-center",
-                                                                                        idx === activeIndex && "active"
-                                                                                    )}
-                                                                                >
-                                                                                    <div className="flex-1 min-w-0 overflow-hidden mr-3">
-                                                                                        <div className={cn("font-black tracking-tight flex items-center gap-2 leading-relaxed min-w-0", idx === activeIndex ? "text-white" : "text-gray-800 dark:text-gray-100")}>
-                                                                                            <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                                <MarqueeText
-                                                                                                    text={p.name}
-                                                                                                    isActive={idx === activeIndex}
-                                                                                                    className="font-black tracking-tight leading-relaxed"
-                                                                                                    style={{
-                                                                                                        paddingLeft: idx === activeIndex ? '12px' : '0px'
-                                                                                                    }}
-                                                                                                />
+                                                            <Portal>
+                                                                <AnimatePresence>
+                                                                    {searchTerm && !workingItem.product && (
+                                                                        <m.div
+                                                                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                            transition={{ duration: 0.15 }}
+                                                                            className="dropdown-premium fixed !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                            style={{
+                                                                                top: workingSearchCoords.top,
+                                                                                left: workingSearchCoords.left,
+                                                                                width: Math.min(workingSearchCoords.width || 600, typeof window !== 'undefined' ? window.innerWidth - (workingSearchCoords.left || 0) - 16 : 600),
+                                                                                maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480)
+                                                                            }}
+                                                                        >
+                                                                            <div className="max-h-[480px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5" ref={productDropdownRef}>
+                                                                                {filteredProducts.map((p, idx) => (
+                                                                                    <div
+                                                                                        key={p.id}
+                                                                                        onMouseEnter={() => setActiveIndex(idx)}
+                                                                                        onClick={() => {
+                                                                                            const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
+                                                                                            setWorkingItem({
+                                                                                                product: p,
+                                                                                                quantity: currentQty,
+                                                                                                price: p.latest_cost_price || p.cost_price,
+                                                                                                secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                name: p.name
+                                                                                            });
+                                                                                            setSearchTerm(p.name);
+                                                                                        }}
+                                                                                        onDoubleClick={() => {
+                                                                                            setEditingProduct(p);
+                                                                                            setIsEditModalOpen(true);
+                                                                                        }}
+                                                                                        className={cn(
+                                                                                            "dropdown-item flex justify-between items-center",
+                                                                                            idx === activeIndex && "active"
+                                                                                        )}
+                                                                                    >
+                                                                                        <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                                                <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                                    <MarqueeText
+                                                                                                        text={p.name}
+                                                                                                        isActive={idx === activeIndex}
+                                                                                                        className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+                                                                                                        style={{
+                                                                                                            fontSize: idx === activeIndex ? "18px" : "16px",
+                                                                                                            paddingLeft: idx === activeIndex ? '12px' : '0px'
+                                                                                                        }}
+                                                                                                    />
+                                                                                                </div>
+                                                                                                {p.is_combo && (
+                                                                                                    <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                                )}
                                                                                             </div>
-                                                                                            {p.code && (
-                                                                                                <span className={cn(
-                                                                                                    "shrink-0 text-[9px] px-1.5 py-0.5 rounded font-black tabular-nums border",
-                                                                                                    idx === activeIndex ? "bg-white/20 text-white border-white/20" : "bg-transparent text-gray-400 border-gray-200 dark:border-slate-700"
-                                                                                                )}>
-                                                                                                    {p.code}
+                                                                                            <div className="flex items-center gap-5">
+                                                                                                <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                    {p.active_ingredient || ""}
                                                                                                 </span>
-                                                                                            )}
+                                                                                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                                                                    {p.code && (
+                                                                                                        <span className={cn(
+                                                                                                            "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors",
+                                                                                                            idx === activeIndex ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                        )}>
+                                                                                                            {p.code}
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                    <span className={cn(
+                                                                                                        "px-2 py-0.5 rounded-md border transition-colors",
+                                                                                                        idx === activeIndex ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                                                                                                    )}>
+                                                                                                        {normalizeUOM(p.unit)}
+                                                                                                    </span>
+                                                                                                    {p.multiplier > 1 && (
+                                                                                                        <span className={idx === activeIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
+                                                                                                            / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </div>
                                                                                         </div>
-                                                                                        <div className={cn("text-[10px] font-bold italic mb-0.5", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>{p.active_ingredient}</div>
-                                                                                        <div className={cn("text-[10px] uppercase font-black flex items-center gap-2", idx === activeIndex ? "text-white/70" : "text-gray-400")}>
-                                                                                            {normalizeUOM(p.unit)} {p.multiplier > 1 && `/ ${normalizeUOM(p.secondary_unit)} (x${p.multiplier})`}
-                                                                                            <span className={cn(
-                                                                                                "ml-2 px-2.5 py-1 rounded-lg text-sm font-black border shadow-sm",
-                                                                                                idx === activeIndex
-                                                                                                    ? "bg-white/20 text-white border-white/30"
-                                                                                                    : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30"
-                                                                                            )}>
-                                                                                                {p.stock}
-                                                                                            </span>
+
+                                                                                        <div className="flex items-center gap-8 relative z-10">
+                                                                                            <div
+                                                                                                className={cn(
+                                                                                                    "px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                    p.stock <= 0
+                                                                                                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                                                                                        : p.stock < 10
+                                                                                                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                                                                            : idx === activeIndex
+                                                                                                                ? "bg-white/20 text-white border-white/40"
+                                                                                                                : "bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30"
+                                                                                                )}
+                                                                                                title="Tồn kho thực tế"
+                                                                                            >
+                                                                                                <div className="flex items-center gap-1.5 tabular-nums">
+                                                                                                    <Package size={14} strokeWidth={2.5} />
+                                                                                                    <span className="tabular-nums font-black">{p.stock}</span>
+                                                                                                </div>
+                                                                                            </div>
+
+                                                                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                                                <div className={cn(
+                                                                                                    "text-[22px] font-black tracking-tighter tabular-nums",
+                                                                                                    idx === activeIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
+                                                                                                )}>
+                                                                                                    {formatNumber(p.cost_price)}
+                                                                                                </div>
+                                                                                                <div className={cn(
+                                                                                                    "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
+                                                                                                    idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                                                                                                )}>
+                                                                                                    <History size={10} strokeWidth={2.5} />
+                                                                                                    NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                </div>
+                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
-                                                                                    <div className="text-right flex flex-col items-end gap-1.5">
-                                                                                        <div className={cn("font-black text-lg tracking-tighter leading-none", idx === activeIndex ? "text-white" : "text-emerald-400")}>
-                                                                                            {formatNumber(p.cost_price)}
-                                                                                        </div>
-                                                                                        <div className={cn("text-[10px] font-bold uppercase flex items-center gap-1", idx === activeIndex ? "text-white/70" : "text-gray-400")}>
-                                                                                            <History size={10} strokeWidth={3} />
-                                                                                            Nhập cuối: {formatNumber(p.latest_cost_price || 0)}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                        {searchTerm && filteredProducts.length === 0 && (
-                                                                            <div
-                                                                                className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2"
-                                                                                onClick={() => { setQuickAddName(searchTerm); setShowQuickAddProduct(true); }}
-                                                                            >
-                                                                                <Plus size={16} /> Thêm sản phẩm mới: "{searchTerm}"
+                                                                                ))}
                                                                             </div>
-                                                                        )}
-                                                                    </m.div>
-                                                                )}
-                                                            </AnimatePresence>
+                                                                            {searchTerm && filteredProducts.length === 0 && (
+                                                                                <div
+                                                                                    className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2"
+                                                                                    onClick={() => { setQuickAddName(searchTerm); setShowQuickAddProduct(true); }}
+                                                                                >
+                                                                                    <Plus size={16} /> Thêm sản phẩm mới: "{searchTerm}"
+                                                                                </div>
+                                                                            )}
+                                                                        </m.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </Portal>
                                                         </div>
                                                     </td>
                                                     <td className="py-4 px-2 text-center">
@@ -2857,108 +2935,144 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                                         </div>
                                                                     )}
                                                                     {rowSearchIdx === idx && rowSearchTerm && (
-                                                                            <div className="dropdown-premium min-w-[500px] mt-2">
-                                                                                <div ref={rowSearchDropdownRef} className="max-h-64 overflow-y-auto no-scrollbar">
-                                                                                    {products.filter(p => {
+                                                                        <div className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden">
+                                                                            <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
+                                                                                {products.filter(p => {
+                                                                                    const s = rowSearchTerm.toLowerCase();
+                                                                                    return (p.name || "").toLowerCase().includes(s) ||
+                                                                                        (p.code || "").toLowerCase().includes(s) ||
+                                                                                        (p.active_ingredient || "").toLowerCase().includes(s);
+                                                                                })
+                                                                                    .sort((a, b) => {
                                                                                         const s = rowSearchTerm.toLowerCase();
-                                                                                        return (p.name || "").toLowerCase().includes(s) ||
-                                                                                            (p.code || "").toLowerCase().includes(s) ||
-                                                                                            (p.active_ingredient || "").toLowerCase().includes(s);
+                                                                                        const aName = (a.name || "").toLowerCase();
+                                                                                        const bName = (b.name || "").toLowerCase();
+                                                                                        if (aName.startsWith(s) && !bName.startsWith(s)) return -1;
+                                                                                        if (!aName.startsWith(s) && bName.startsWith(s)) return 1;
+                                                                                        if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
+                                                                                        if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
+                                                                                        return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
                                                                                     })
-                                                                                        .sort((a, b) => {
-                                                                                            const s = rowSearchTerm.toLowerCase();
-                                                                                            const aName = (a.name || "").toLowerCase();
-                                                                                            const bName = (b.name || "").toLowerCase();
-                                                                                            const aStarts = aName.startsWith(s);
-                                                                                            const bStarts = bName.startsWith(s);
-                                                                                            if (aStarts && !bStarts) return -1;
-                                                                                            if (!aStarts && bStarts) return 1;
-                                                                                            if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
-                                                                                            if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
-                                                                                            return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
-                                                                                        })
-                                                                                        .slice(0, 50).map((p, pIdx) => (
-                                                                                            <div
-                                                                                                key={p.id}
-                                                                                                onMouseEnter={() => setRowActiveIndex(pIdx)}
-                                                                                                onClick={() => {
-                                                                                                    let newCart = [...cart];
-                                                                                                    const currentQty = newCart[idx].quantity;
-                                                                                                    const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
-                                                                                                    if (existingIdx > -1) {
-                                                                                                        newCart[existingIdx].quantity += currentQty;
-                                                                                                        newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
-                                                                                                        newCart.splice(idx, 1);
-                                                                                                    } else {
-                                                                                                        newCart[idx] = {
-                                                                                                            ...newCart[idx],
-                                                                                                            product_id: p.id,
-                                                                                                            product_name: p.name,
-                                                                                                            unit: p.unit,
-                                                                                                            secondary_unit: p.secondary_unit,
-                                                                                                            multiplier: p.multiplier || 1,
-                                                                                                            price: p.cost_price,
-                                                                                                            stock: p.stock,
-                                                                                                            secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                                            active_ingredient: p.active_ingredient
-                                                                                                        };
-                                                                                                    }
-                                                                                                    setCart(newCart);
-                                                                                                    setRowSearchIdx(null);
-                                                                                                }}
-                                                                                                className={cn(
-                                                                                                    "dropdown-item flex justify-between items-center",
-                                                                                                    pIdx === rowActiveIndex && "active"
-                                                                                                )}
-                                                                                            >
-                                                                                                <div className="flex-1 min-w-0 overflow-hidden mr-3">
-                                                                                                    <div className={cn("font-black tracking-tight flex items-center gap-2 leading-relaxed min-w-0", pIdx === rowActiveIndex ? "text-white" : "text-gray-800 dark:text-gray-100")}>
-                                                                                                        <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                                            <MarqueeText
-                                                                                                                text={p.name}
-                                                                                                                isActive={pIdx === rowActiveIndex}
-                                                                                                                className="font-black tracking-tight leading-relaxed"
-                                                                                                                style={{
-                                                                                                                    paddingLeft: pIdx === rowActiveIndex ? '12px' : '0px'
-                                                                                                                }}
-                                                                                                            />
-                                                                                                        </div>
+                                                                                    .slice(0, 50).map((p, pIdx) => (
+                                                                                        <div
+                                                                                            key={p.id}
+                                                                                            onMouseEnter={() => setRowActiveIndex(pIdx)}
+                                                                                            onClick={() => {
+                                                                                                let newCart = [...cart];
+                                                                                                const currentQty = newCart[idx].quantity;
+                                                                                                const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
+                                                                                                if (existingIdx > -1) {
+                                                                                                    newCart[existingIdx].quantity += currentQty;
+                                                                                                    newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
+                                                                                                    newCart.splice(idx, 1);
+                                                                                                } else {
+                                                                                                    newCart[idx] = {
+                                                                                                        ...newCart[idx],
+                                                                                                        product_id: p.id,
+                                                                                                        product_name: p.name,
+                                                                                                        unit: p.unit,
+                                                                                                        secondary_unit: p.secondary_unit,
+                                                                                                        multiplier: p.multiplier || 1,
+                                                                                                        price: p.cost_price,
+                                                                                                        stock: p.stock,
+                                                                                                        secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                        active_ingredient: p.active_ingredient
+                                                                                                    };
+                                                                                                }
+                                                                                                setCart(newCart);
+                                                                                                setRowSearchIdx(null);
+                                                                                            }}
+                                                                                            className={cn(
+                                                                                                "dropdown-item flex justify-between items-center",
+                                                                                                pIdx === rowActiveIndex && "active"
+                                                                                            )}
+                                                                                        >
+                                                                                            <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                                                                                <div className="flex items-center gap-3 min-w-0">
+                                                                                                    <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                                        <MarqueeText
+                                                                                                            text={p.name}
+                                                                                                            isActive={pIdx === rowActiveIndex}
+                                                                                                            className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+                                                                                                            style={{
+                                                                                                                fontSize: pIdx === rowActiveIndex ? "18px" : "16px",
+                                                                                                                paddingLeft: pIdx === rowActiveIndex ? '12px' : '0px'
+                                                                                                            }}
+                                                                                                        />
+                                                                                                    </div>
+                                                                                                    {p.is_combo && (
+                                                                                                        <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-5">
+                                                                                                    <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                        {p.active_ingredient || ""}
+                                                                                                    </span>
+                                                                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                                                                         {p.code && (
                                                                                                             <span className={cn(
-                                                                                                                "shrink-0 text-[9px] px-1.5 py-0.5 rounded font-black tabular-nums border",
-                                                                                                                pIdx === rowActiveIndex ? "bg-white/20 text-white border-white/20" : "bg-transparent text-gray-400 border-gray-200 dark:border-slate-700"
+                                                                                                                "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors",
+                                                                                                                pIdx === rowActiveIndex ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300"
                                                                                                             )}>
                                                                                                                 {p.code}
                                                                                                             </span>
                                                                                                         )}
-                                                                                                    </div>
-                                                                                                    <div className={cn("text-[10px] font-bold italic mb-0.5", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>{p.active_ingredient}</div>
-                                                                                                    <div className={cn("text-[10px] uppercase font-black flex items-center gap-2", pIdx === rowActiveIndex ? "text-white/70" : "text-gray-400")}>
-                                                                                                        {normalizeUOM(p.unit)} {p.multiplier > 1 && `/ ${normalizeUOM(p.secondary_unit)} (x${p.multiplier})`}
                                                                                                         <span className={cn(
-                                                                                                            "ml-2 px-2.5 py-1 rounded-lg text-sm font-black border shadow-sm",
-                                                                                                            pIdx === rowActiveIndex
-                                                                                                                ? "bg-white/20 text-white border-white/30"
-                                                                                                                : "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30"
+                                                                                                            "px-2 py-0.5 rounded-md border transition-colors",
+                                                                                                            pIdx === rowActiveIndex ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
                                                                                                         )}>
-                                                                                                            {p.stock}
+                                                                                                            {normalizeUOM(p.unit)}
                                                                                                         </span>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                <div className="text-right flex flex-col items-end gap-1.5">
-                                                                                                    <div className={cn("font-black text-lg tracking-tighter leading-none", pIdx === rowActiveIndex ? "text-white" : "text-emerald-400")}>
-                                                                                                        {formatNumber(p.cost_price)}
-                                                                                                    </div>
-                                                                                                    <div className={cn("text-[10px] font-bold uppercase flex items-center gap-1", pIdx === rowActiveIndex ? "text-white/70" : "text-gray-400")}>
-                                                                                                        <History size={10} strokeWidth={3} />
-                                                                                                        Nhập cuối: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                        {p.multiplier > 1 && (
+                                                                                                            <span className={pIdx === rowActiveIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
+                                                                                                                / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
+                                                                                                            </span>
+                                                                                                        )}
                                                                                                     </div>
                                                                                                 </div>
                                                                                             </div>
-                                                                                        ))}
-                                                                                </div>
+
+                                                                                            <div className="flex items-center gap-8 relative z-10">
+                                                                                                <div
+                                                                                                    className={cn(
+                                                                                                        "px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                        p.stock <= 0
+                                                                                                            ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                                                                                            : p.stock < 10
+                                                                                                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                                                                                : pIdx === rowActiveIndex
+                                                                                                                    ? "bg-white/20 text-white border-white/40"
+                                                                                                                    : "bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30"
+                                                                                                    )}
+                                                                                                    title="Tồn kho thực tế"
+                                                                                                >
+                                                                                                    <div className="flex items-center gap-1.5 tabular-nums">
+                                                                                                        <Package size={14} strokeWidth={2.5} />
+                                                                                                        <span className="tabular-nums font-black">{p.stock}</span>
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                                                    <div className={cn(
+                                                                                                        "text-[22px] font-black tracking-tighter tabular-nums",
+                                                                                                        pIdx === rowActiveIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
+                                                                                                    )}>
+                                                                                                        {formatNumber(p.cost_price)}
+                                                                                                    </div>
+                                                                                                    <div className={cn(
+                                                                                                        "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
+                                                                                                        pIdx === rowActiveIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                                                                                                    )}>
+                                                                                                        <History size={10} strokeWidth={2.5} />
+                                                                                                        NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
                                                                             </div>
-                                                                        )}
+                                                                        </div>
+                                                                    )}
                                                                         {item.active_ingredient && (
                                                                             <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700 uppercase-none">
                                                                                 <div className="text-[10px] font-black uppercase text-emerald-400 mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div>

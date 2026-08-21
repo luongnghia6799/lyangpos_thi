@@ -1,10 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { User, Lock, ArrowRight, Sparkles, UserPlus, LogIn, Leaf, Sprout, Sun, Wheat, ShieldCheck, Network, Wifi, WifiOff, X, Check, Laptop, Plus } from 'lucide-react';
+import { 
+    User, Lock, ArrowRight, Sparkles, UserPlus, LogIn, Sprout, Wheat, Leaf,
+    Sun, Moon, ShieldCheck, Network, Wifi, WifiOff, X, Check, 
+    Laptop, Plus, Eye, EyeOff, Clock, Calendar, Zap, Shield, ChevronRight
+} from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { cn } from '../../lib/utils';
+
+// High-Performance Ambient Background (Pure Static CSS - 0% GPU Overhead)
+const FloatingBackground = ({ isDark }) => {
+    return (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+            {/* Pure CSS Static Radial Ambient Gradients */}
+            <div 
+                className="absolute inset-0 transition-opacity duration-700 pointer-events-none"
+                style={{
+                    background: isDark
+                        ? 'radial-gradient(circle at 15% 15%, rgba(5, 150, 105, 0.12) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(13, 148, 136, 0.12) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(217, 119, 6, 0.05) 0%, transparent 60%)'
+                        : 'radial-gradient(circle at 15% 15%, rgba(45, 80, 22, 0.08) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(212, 165, 116, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(74, 124, 89, 0.05) 0%, transparent 60%)'
+                }}
+            />
+
+            {/* Subtle Grid Pattern Overlay */}
+            <div 
+                className={cn(
+                    "absolute inset-0 transition-opacity duration-700 pointer-events-none",
+                    isDark ? "opacity-[0.03]" : "opacity-[0.02]"
+                )}
+                style={{
+                    backgroundImage: `radial-gradient(${isDark ? '#4ade80' : '#2d5016'} 1px, transparent 1px)`,
+                    backgroundSize: '36px 36px'
+                }}
+            />
+        </div>
+    );
+};
 
 export default function Welcome() {
     const [isLogin, setIsLogin] = useState(true);
@@ -15,28 +48,55 @@ export default function Welcome() {
         display_name: '',
         admin_secret: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
     const [isSecretAdminMode, setIsSecretAdminMode] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
     const [showLoginForm, setShowLoginForm] = useState(false);
+    const [selectedUserLoading, setSelectedUserLoading] = useState(null);
 
-    React.useEffect(() => {
-        if (users && users.length === 0) {
-            setShowLoginForm(true);
+    // Dark Mode state with immediate listener sync
+    const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+    const toggleDarkMode = () => {
+        const root = document.documentElement;
+        const newMode = !root.classList.contains('dark');
+        if (newMode) {
+            root.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            root.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
-    }, [users]);
+        setIsDark(newMode);
+        window.dispatchEvent(new Event('theme_changed'));
+    };
 
-    React.useEffect(() => {
+    // Live Clock & VN Date (Minute-based to optimize GPU/CPU performance)
+    const [time, setTime] = useState(new Date());
+
+    useEffect(() => {
+        // Update clock every 15 seconds instead of every second
+        const timer = setInterval(() => setTime(new Date()), 15000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Fetch users
+    useEffect(() => {
         const fetchUsers = async () => {
             try {
                 const res = await axios.get('/api/users');
                 if (Array.isArray(res.data)) {
                     setUsers(res.data);
+                    if (res.data.length === 0) {
+                        setShowLoginForm(true);
+                    }
                 }
             } catch (err) {
                 console.warn("Failed to fetch users in welcome screen", err);
+                setShowLoginForm(true);
             }
         };
         fetchUsers();
@@ -47,6 +107,7 @@ export default function Welcome() {
         
         if (savedPassword) {
             setLoading(true);
+            setSelectedUserLoading(user.username);
             setError('');
             try {
                 const res = await axios.post('/api/login', {
@@ -72,6 +133,7 @@ export default function Welcome() {
                 setShowLoginForm(true);
             } finally {
                 setLoading(false);
+                setSelectedUserLoading(null);
             }
         } else {
             setFormData({
@@ -86,49 +148,14 @@ export default function Welcome() {
         }
     };
 
-    const [time, setTime] = useState(new Date());
-    React.useEffect(() => {
-        const timer = setInterval(() => setTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
+    // Lunar & Solar Date Formatting
     const formatDateVN = (date) => {
         const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         const dayName = days[date.getDay()];
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        return `${dayName}, ngày ${day}/${month}/${year}`;
-    };
-
-    const getAuspiciousHours = (date) => {
-        const d = date.getDate();
-        const m = date.getMonth() + 1;
-        const y = date.getFullYear();
-        
-        let a = Math.floor((14 - m) / 12);
-        let y_calc = y + 4800 - a;
-        let m_calc = m + 12 * a - 3;
-        let jd = d + Math.floor((153 * m_calc + 2) / 5) + 365 * y_calc + Math.floor(y_calc / 4) - Math.floor(y_calc / 100) + Math.floor(y_calc / 400) - 32045;
-        
-        const dayChiIndex = (Math.floor(jd + 1.5) + 11) % 12;
-        
-        const mapping = {
-            0: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
-            6: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
-            1: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
-            7: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
-            2: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
-            8: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
-            3: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
-            9: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
-            4: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
-            10: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
-            5: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"],
-            11: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"]
-        };
-        
-        return mapping[dayChiIndex] || ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"];
+        return `${dayName}, ${day}/${month}/${year}`;
     };
 
     const getLunarDate = (date) => {
@@ -192,19 +219,41 @@ export default function Welcome() {
         }
     };
 
-    const randomQuote = React.useMemo(() => {
-        const quotes = [
-            "Quản lý thông minh - Tương lai thịnh vượng.",
-            "Tối ưu quy trình, nâng tầm hiệu quả kinh doanh.",
-            "Bán hàng nhanh chóng, quản lý dễ dàng.",
-            "Mỗi giao dịch hoàn thành là một niềm vui nhân đôi.",
-            "Kinh doanh hiệu quả là gốc rễ của sự thịnh vượng bền lâu.",
-            "Chăm sóc khách hàng tốt, gặt hái triệu niềm vui."
-        ];
-        return quotes[Math.floor(Math.random() * quotes.length)];
-    }, []);
+    const getAuspiciousHours = (date) => {
+        const d = date.getDate();
+        const m = date.getMonth() + 1;
+        const y = date.getFullYear();
+        
+        let a = Math.floor((14 - m) / 12);
+        let y_calc = y + 4800 - a;
+        let m_calc = m + 12 * a - 3;
+        let jd = d + Math.floor((153 * m_calc + 2) / 5) + 365 * y_calc + Math.floor(y_calc / 4) - Math.floor(y_calc / 100) + Math.floor(y_calc / 400) - 32045;
+        
+        const dayChiIndex = (Math.floor(jd + 1.5) + 11) % 12;
+        
+        const mapping = {
+            0: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
+            6: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
+            1: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
+            7: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
+            2: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
+            8: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
+            3: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
+            9: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
+            4: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
+            10: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
+            5: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"],
+            11: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"]
+        };
+        
+        return mapping[dayChiIndex] || ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"];
+    };
 
-    React.useEffect(() => {
+    const lunarInfo = useMemo(() => getLunarDate(time), [time]);
+    const auspiciousHours = useMemo(() => getAuspiciousHours(time), [time]);
+
+    // Global Enter key handler
+    useEffect(() => {
         const handleGlobalEnter = (e) => {
             if (e.key === 'Enter' && isLogin && formData.username && formData.password && !loading) {
                  if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'BUTTON') {
@@ -216,20 +265,18 @@ export default function Welcome() {
         return () => window.removeEventListener('keydown', handleGlobalEnter);
     }, [isLogin, formData, loading]);
 
+    // LAN Configuration
     const [showLanModal, setShowLanModal] = useState(false);
     const [lanIp, setLanIp] = useState(localStorage.getItem('server_ip') || '');
     const [testingConnection, setTestingConnection] = useState(false);
-    const [connectionStatus, setConnectionStatus] = useState(null); // 'success' | 'failed' | null
+    const [connectionStatus, setConnectionStatus] = useState(null);
     const [pingError, setPingError] = useState('');
     const [isClientMode, setIsClientMode] = useState(!!localStorage.getItem('server_ip'));
 
     const sanitizeIp = (input) => {
         let cleaned = input.trim();
-        // Loại bỏ http:// hoặc https:// nếu người dùng lỡ nhập/copy
         cleaned = cleaned.replace(/^(https?:\/\/)/i, '');
-        // Loại bỏ ký tự gạch chéo cuối dòng nếu có
         cleaned = cleaned.replace(/\/+$/, '');
-        // Loại bỏ cổng (ví dụ :3579 hoặc :5001) nếu người dùng copy nguyên URL
         cleaned = cleaned.replace(/:\d+$/, '');
         return cleaned;
     };
@@ -240,9 +287,7 @@ export default function Welcome() {
         if (/^https?:\/\//i.test(clean)) return clean;
         if (clean.toLowerCase() === 'localhost') return 'http://localhost:3579';
         const hasLetters = /[a-zA-Z]/.test(clean);
-        if (hasLetters) {
-            return `https://${clean}`;
-        }
+        if (hasLetters) return `https://${clean}`;
         return `http://${clean}:3579`;
     };
 
@@ -258,9 +303,8 @@ export default function Welcome() {
         setPingError('');
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 3500);
             
-            // Tự động nhận diện môi trường Tauri để sử dụng native fetch qua Rust
             let fetchFn = window.fetch;
             if (window.__TAURI_INTERNALS__) {
                 try {
@@ -295,11 +339,11 @@ export default function Welcome() {
             setConnectionStatus('failed');
             let errorMsg = 'Không thể kết nối đến máy chủ.';
             if (window.location.protocol === 'https:') {
-                errorMsg = `Safari trên iOS chặn kết nối HTTP nội bộ khi truy cập qua Vercel HTTPS. Vui lòng mở đường dẫn trực tiếp: http://${cleanedIp}:3579 trên Safari.`;
+                errorMsg = `Safari trên iOS chặn kết nối HTTP nội bộ khi truy cập qua Vercel HTTPS. Vui lòng mở đường dẫn: http://${cleanedIp}:3579`;
             } else if (err && err.name === 'AbortError') {
                 errorMsg = 'Hết thời gian chờ kết nối (Timeout 3.5s). Vui lòng kiểm tra IP và kết nối WiFi.';
             } else if (err && (err.name === 'TypeError' || String(err).includes('Fetch') || String(err).includes('Load failed'))) {
-                errorMsg = `Safari không thể kết nối tới http://${cleanedIp}:3579 (TypeError). Vui lòng đảm bảo thiết bị Safari và Máy POS kết nối cùng một mạng WiFi.`;
+                errorMsg = `Không thể kết nối tới http://${cleanedIp}:3579. Đảm bảo cùng kết nối chung một mạng LAN/WiFi.`;
             } else {
                 errorMsg = typeof err === 'string' ? err : (err && err.message ? err.message : String(err));
             }
@@ -321,12 +365,8 @@ export default function Welcome() {
             localStorage.removeItem('server_ip');
         }
         setShowLanModal(false);
-        // Reload page to re-initialize Axios base URL with the new configuration
         window.location.reload();
     };
-
-
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -369,32 +409,672 @@ export default function Welcome() {
         }
     };
 
-    return (
-        <div className={cn("min-h-[100dvh] w-full flex flex-col items-center justify-center bg-transparent relative", showLoginForm ? "h-[100dvh] overflow-hidden" : "overflow-y-auto py-12 sm:py-20")}>
+    const serverIp = localStorage.getItem('server_ip');
 
-            {/* LAN Configuration Button in top-right */}
-            <div className="absolute top-[max(env(safe-area-inset-top,16px),16px)] right-4 sm:right-6 sm:top-6 z-50">
-                <m.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowLanModal(true)}
-                    className="flex items-center gap-1.5 sm:gap-2.5 px-3 py-2 sm:px-5 sm:py-3 border border-[#d4a574]/20 hover:border-[#2d5016] rounded-xl sm:rounded-2xl shadow-lg transition-all text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#8b6f47] hover:text-[#2d5016] dark:text-emerald-400/80 dark:hover:text-emerald-400 cursor-pointer"
-                >
-                    {localStorage.getItem('server_ip') ? (
-                        <>
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500" />
-                            <Network size={14} className="sm:w-4 sm:h-4" />
-                            <span className="max-w-[100px] sm:max-w-none truncate">LAN: {localStorage.getItem('server_ip')}</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500" />
-                            <Wifi size={14} className="sm:w-4 sm:h-4" />
-                            <span>Cục bộ</span>
-                        </>
+    return (
+        <div className={cn(
+            "h-[100dvh] w-full flex flex-col justify-between items-center relative overflow-hidden select-none transition-colors duration-700",
+            isDark ? "bg-[#070b14] text-slate-100" : "bg-[#faf8f3] text-[#2d5016]"
+        )}>
+            {/* Dynamic Animated Atmospheric Background */}
+            <FloatingBackground isDark={isDark} />
+
+            {/* Top Navigation Bar: Date & Clock Widget (Left) + Theme & LAN Badges (Right) */}
+            <header className="w-full shrink-0 z-40 px-4 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 max-w-7xl mx-auto">
+                {/* Left: Vietnamese Lunar & Real-time Clock Widget */}
+                <m.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={cn(
+                        "hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-2xl border backdrop-blur-xl shadow-xs group transition-all duration-300",
+                        isDark 
+                            ? "bg-slate-900/60 border-slate-800/80 hover:border-emerald-500/40 text-slate-300" 
+                            : "bg-white/70 border-[#d4a574]/25 hover:border-[#2d5016]/40 text-[#2d5016]"
                     )}
-                </m.button>
-            </div>
+                >
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+                        <span className="text-xs font-mono font-bold tracking-tight">
+                            {time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    </div>
+
+                    <div className="h-3 w-px bg-current opacity-20" />
+
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                        <Calendar size={13} className={isDark ? "text-emerald-400" : "text-[#8b6f47]"} />
+                        <span>{formatDateVN(time)}</span>
+                    </div>
+
+                    <div className="h-3 w-px bg-current opacity-20" />
+
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-tight text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                        <Wheat size={11} />
+                        <span>Âm lịch: {String(lunarInfo.day).padStart(2, '0')}/{String(lunarInfo.month).padStart(2, '0')} {lunarInfo.year}</span>
+                    </div>
+                </m.div>
+
+                {/* Right: Theme Toggle & LAN Modal Button */}
+                <m.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="flex items-center gap-2 ml-auto"
+                >
+                    {/* Dark/Light Mode Switcher */}
+                    <m.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={toggleDarkMode}
+                        title={isDark ? "Chuyển giao diện sáng" : "Chuyển giao diện tối"}
+                        className={cn(
+                            "p-2 sm:px-3 sm:py-1.5 rounded-2xl border backdrop-blur-xl shadow-xs flex items-center gap-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-300",
+                            isDark
+                                ? "bg-slate-900/70 border-slate-800 text-amber-400 hover:border-amber-400/50 hover:bg-slate-800/80 shadow-amber-400/5"
+                                : "bg-white/70 border-[#d4a574]/25 text-[#8b6f47] hover:text-[#2d5016] hover:border-[#2d5016]/40 hover:bg-white/90"
+                        )}
+                    >
+                        {isDark ? (
+                            <>
+                                <Sun size={14} className="text-amber-400" />
+                                <span className="hidden sm:inline">Chế độ sáng</span>
+                            </>
+                        ) : (
+                            <>
+                                <Moon size={14} className="text-slate-700" />
+                                <span className="hidden sm:inline">Chế độ tối</span>
+                            </>
+                        )}
+                    </m.button>
+
+                    {/* LAN Configuration Button */}
+                    <m.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowLanModal(true)}
+                        className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 border rounded-2xl backdrop-blur-xl shadow-xs transition-all duration-300 text-[11px] font-black uppercase tracking-wider cursor-pointer",
+                            serverIp
+                                ? (isDark 
+                                    ? "bg-blue-950/40 border-blue-500/30 text-blue-400 hover:border-blue-400" 
+                                    : "bg-blue-50/80 border-blue-200 text-blue-800 hover:border-blue-500")
+                                : (isDark 
+                                    ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:border-emerald-400" 
+                                    : "bg-emerald-50/80 border-emerald-200 text-[#2d5016] hover:border-[#2d5016]")
+                        )}
+                    >
+                        {serverIp ? (
+                            <>
+                                <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
+                                <Network size={14} />
+                                <span className="max-w-[120px] sm:max-w-none truncate">LAN: {serverIp}</span>
+                            </>
+                        ) : (
+                            <>
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
+                                <Wifi size={14} />
+                                <span>Cục bộ</span>
+                            </>
+                        )}
+                    </m.button>
+                </m.div>
+            </header>
+
+            {/* Main Interactive Hub Container */}
+            <main className="w-full flex-1 min-h-0 flex flex-col items-center justify-center relative z-20 px-4 sm:px-6 py-2 max-w-6xl mx-auto overflow-hidden">
+                {/* Brand / Hero Logo Section */}
+                <div className="text-center mb-3 sm:mb-4 shrink-0 flex flex-col items-center">
+                    {/* Glowing Animated Logo Aura */}
+                    <m.div
+                        initial={{ scale: 0.7, opacity: 0, y: -15 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 140,
+                            damping: 18
+                        }}
+                        className="relative mb-2 group cursor-pointer"
+                        whileHover={{ scale: 1.05 }}
+                    >
+                        {/* Shimmering Halo Backdrop */}
+                        <div className={cn(
+                            "absolute inset-0 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition-all duration-700",
+                            isDark 
+                                ? "bg-gradient-to-tr from-emerald-600/40 via-teal-500/40 to-amber-500/30" 
+                                : "bg-gradient-to-tr from-[#2d5016]/30 via-emerald-500/20 to-[#d4a574]/40"
+                        )} />
+
+                        <div className={cn(
+                            "relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full p-1.5 border backdrop-blur-2xl shadow-2xl flex items-center justify-center transition-all duration-500",
+                            isDark 
+                                ? "bg-slate-900/80 border-slate-800/90 shadow-emerald-950/50" 
+                                : "bg-white/80 border-[#d4a574]/30 shadow-[#2d5016]/10"
+                        )}>
+                            <img
+                                src={logo}
+                                alt="LyangPOS Logo"
+                                className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(45,80,22,0.25)] group-hover:rotate-3 transition-transform duration-500"
+                            />
+                        </div>
+                    </m.div>
+
+                    {/* Brand Title & Glowing Tagline */}
+                    <m.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.6 }}
+                        className="space-y-0.5"
+                    >
+                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-1">
+                            <span className={cn(
+                                "bg-gradient-to-r bg-clip-text text-transparent font-extrabold italic",
+                                isDark 
+                                    ? "from-emerald-300 via-teal-200 to-emerald-400" 
+                                    : "from-[#2d5016] via-[#3e6b20] to-[#2d5016]"
+                            )}>
+                                Lyang
+                            </span>
+                            <span className="text-[#d4a574] not-italic drop-shadow-sm font-black">
+                                POS
+                            </span>
+                        </h1>
+
+                        <p className={cn(
+                            "font-bold uppercase tracking-[0.25em] text-[8px] sm:text-[9px]",
+                            isDark ? "text-emerald-400/80" : "text-[#8b6f47]"
+                        )}>
+                            Hệ thống quản lý bán hàng nông nghiệp thông minh
+                        </p>
+
+                        {/* Slogan */}
+                        <div className="flex items-center justify-center pt-0.5">
+                            <div className={cn(
+                                "text-[11px] sm:text-xs font-semibold italic flex items-center gap-1.5",
+                                isDark ? "text-slate-400" : "text-emerald-900/70"
+                            )}>
+                                <Sparkles size={12} className="text-amber-500 shrink-0" />
+                                <span>“Quản lý thông minh - Tương lai thịnh vượng”</span>
+                            </div>
+                        </div>
+                    </m.div>
+                </div>
+
+                {/* Content Switcher: Accounts Grid or Dedicated Login/Register Form */}
+                <AnimatePresence mode="wait">
+                    {showLoginForm ? (
+                        /* Premium Login / Register Glassmorphism Card */
+                        <m.div
+                            key="login-form-card"
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                            className={cn(
+                                "w-full max-w-sm sm:max-w-[470px] min-h-[500px] sm:min-h-[560px] max-h-[76vh] overflow-y-auto no-scrollbar rounded-[2.5rem] sm:rounded-[3rem] border backdrop-blur-2xl p-6 sm:p-9 shadow-2xl relative flex flex-col justify-between group transition-all duration-500",
+                                isDark 
+                                    ? "bg-slate-900/90 border-slate-800/90 shadow-black/80" 
+                                    : "bg-white/90 border-[#d4a574]/30 shadow-[#2d5016]/15"
+                            )}
+                        >
+                            {/* Card Ambient Glow Line */}
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-80" />
+
+                            {/* Back to Accounts Button */}
+                            {users.length > 0 && (
+                                <m.button 
+                                    whileHover={{ x: -3 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={() => setShowLoginForm(false)}
+                                    className={cn(
+                                        "w-full py-2.5 sm:py-3 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all mb-4 sm:mb-5 flex items-center justify-center gap-2 border border-dashed cursor-pointer",
+                                        isDark 
+                                            ? "bg-slate-800/50 hover:bg-slate-800 border-slate-700 text-emerald-400" 
+                                            : "bg-[#faf8f3]/80 hover:bg-white border-[#d4a574]/40 text-[#8b6f47] hover:text-[#2d5016]"
+                                    )}
+                                >
+                                    <ArrowRight size={14} className="rotate-180" />
+                                    <span>Quay lại danh sách tài khoản</span>
+                                </m.button>
+                            )}
+
+                            {/* Login / Register Toggle Tabs */}
+                            <div className={cn(
+                                "flex p-1.5 rounded-2xl mb-4 sm:mb-6 relative border transition-colors",
+                                isDark 
+                                    ? "bg-slate-950/60 border-slate-800" 
+                                    : "bg-[#faf8f3] border-[#d4a574]/20"
+                            )}>
+                                <m.div
+                                    className="absolute inset-y-1.5 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] dark:from-emerald-700 dark:to-teal-600 shadow-md"
+                                    initial={false}
+                                    animate={{
+                                        left: isLogin ? '6px' : '50%',
+                                        width: 'calc(50% - 6px)'
+                                    }}
+                                    transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsLogin(true); setIsSecretAdminMode(false); setError(''); }}
+                                    className={cn(
+                                        "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
+                                        isLogin 
+                                            ? "text-white" 
+                                            : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
+                                    )}
+                                >
+                                    <LogIn size={15} /> Đăng nhập
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { 
+                                        setIsLogin(false); 
+                                        setIsSecretAdminMode(!isSecretAdminMode);
+                                        setError(''); 
+                                    }}
+                                    className={cn(
+                                        "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
+                                        !isLogin 
+                                            ? "text-white" 
+                                            : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
+                                    )}
+                                >
+                                    <ShieldCheck size={15} /> {isSecretAdminMode ? 'ĐK Quản Trị' : 'Đăng ký'}
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 flex-1 flex flex-col justify-between">
+                                <div className="space-y-4 sm:space-y-4.5">
+                                    {/* Mobile / Desktop Quick User Pills */}
+                                    {users.length > 0 && (
+                                        <div className="pb-1">
+                                            <p className={cn(
+                                                "text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5",
+                                                isDark ? "text-emerald-400/80" : "text-[#8b6f47]"
+                                            )}>
+                                                <Zap size={12} className="text-amber-500" />
+                                                <span>Chọn nhanh:</span>
+                                            </p>
+                                            <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
+                                                {users.map(u => {
+                                                    const isSelected = formData.username === u.username;
+                                                    const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
+
+                                                    return (
+                                                        <button
+                                                            key={u.id || u.username}
+                                                            type="button"
+                                                            onClick={() => handleSelectUser(u)}
+                                                            className={cn(
+                                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider shrink-0 transition-all cursor-pointer",
+                                                                isSelected
+                                                                    ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm"
+                                                                    : (isDark 
+                                                                        ? "bg-slate-800/60 border-slate-700 text-slate-300 hover:border-emerald-500/60 hover:text-emerald-300" 
+                                                                        : "bg-white/80 border-[#d4a574]/30 text-[#8b6f47] hover:border-[#2d5016] hover:text-[#2d5016]")
+                                                            )}
+                                                        >
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[8px] font-black">
+                                                                {initial}
+                                                            </div>
+                                                            <span>{u.display_name?.split(' ')[0] || u.username}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Register Display Name */}
+                                    <AnimatePresence mode="wait">
+                                        {!isLogin && (
+                                            <m.div
+                                                key="displayName"
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="space-y-1.5 overflow-hidden"
+                                            >
+                                                <label className={cn(
+                                                    "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
+                                                    isDark ? "text-slate-400" : "text-[#8b6f47]"
+                                                )}>
+                                                    Tên hiển thị / Họ tên
+                                                </label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
+                                                        <Sparkles size={18} />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        className={cn(
+                                                            "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 font-bold text-sm sm:text-base outline-none transition-all",
+                                                            isDark 
+                                                                ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
+                                                                : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
+                                                        )}
+                                                        placeholder="Ví dụ: Nguyễn Văn A"
+                                                        value={formData.display_name}
+                                                        onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                                                        required={!isLogin}
+                                                    />
+                                                </div>
+
+                                                {isSecretAdminMode && (
+                                                    <m.div
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="space-y-1.5 pt-2"
+                                                    >
+                                                        <label className="text-[10px] sm:text-[11px] font-black text-rose-500 uppercase ml-3 flex items-center gap-1.5">
+                                                            <Shield size={13} /> Mã bảo mật cấp quyền Quản Trị
+                                                        </label>
+                                                        <div className="relative group">
+                                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-rose-500">
+                                                                <ShieldCheck size={18} />
+                                                            </div>
+                                                            <input
+                                                                type="password"
+                                                                className="w-full bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/50 focus:border-rose-500 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 text-rose-700 dark:text-rose-300 placeholder-rose-300 dark:placeholder-rose-700 outline-none font-bold text-sm sm:text-base"
+                                                                placeholder="Nhập mã bí mật Admin..."
+                                                                value={formData.admin_secret}
+                                                                onChange={e => setFormData({ ...formData, admin_secret: e.target.value })}
+                                                                required={isSecretAdminMode}
+                                                            />
+                                                        </div>
+                                                    </m.div>
+                                                )}
+                                            </m.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Username Field */}
+                                    <div className="space-y-1.5">
+                                        <label className={cn(
+                                            "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
+                                            isDark ? "text-slate-400" : "text-[#8b6f47]"
+                                        )}>
+                                            Tên đăng nhập
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
+                                                <User size={18} />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                className={cn(
+                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 font-bold text-sm sm:text-base outline-none transition-all",
+                                                    isDark 
+                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
+                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
+                                                )}
+                                                placeholder="Tên tài khoản (username)"
+                                                value={formData.username}
+                                                onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Password Field with Eye Toggle */}
+                                    <div className="space-y-1.5">
+                                        <label className={cn(
+                                            "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
+                                            isDark ? "text-slate-400" : "text-[#8b6f47]"
+                                        )}>
+                                            Mật khẩu
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
+                                                <Lock size={18} />
+                                            </div>
+                                            <input
+                                                id="welcome-password-input"
+                                                type={showPassword ? "text" : "password"}
+                                                className={cn(
+                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-12 font-bold text-sm sm:text-base outline-none transition-all",
+                                                    isDark 
+                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
+                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
+                                                )}
+                                                placeholder="••••••••"
+                                                value={formData.password}
+                                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                                required
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Remember Me Checkbox */}
+                                    {isLogin && (
+                                        <div className="flex items-center justify-between pt-1 ml-1">
+                                            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
+                                                <div className={cn(
+                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all",
+                                                    rememberMe 
+                                                        ? "bg-[#2d5016] dark:bg-emerald-600 border-[#2d5016] dark:border-emerald-600 text-white shadow-sm" 
+                                                        : (isDark ? "border-slate-700 bg-slate-900" : "border-[#d4a574]/40 bg-white")
+                                                )}>
+                                                    {rememberMe && <Check size={13} strokeWidth={3} />}
+                                                </div>
+                                                <input
+                                                    type="checkbox"
+                                                    className="hidden"
+                                                    checked={rememberMe}
+                                                    onChange={e => setRememberMe(e.target.checked)}
+                                                />
+                                                <span className={cn(
+                                                    "text-xs sm:text-sm font-bold transition-colors",
+                                                    rememberMe 
+                                                        ? (isDark ? "text-emerald-400" : "text-[#2d5016]") 
+                                                        : (isDark ? "text-slate-400" : "text-[#8b6f47]")
+                                                )}>
+                                                    Ghi nhớ đăng nhập
+                                                </span>
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    {/* Error Notification Banner */}
+                                    {error && (
+                                        <m.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-black text-center uppercase tracking-wider flex items-center justify-center gap-2"
+                                        >
+                                            <X size={15} />
+                                            <span>{error}</span>
+                                        </m.div>
+                                    )}
+                                </div>
+
+                                {/* Submit Button */}
+                                <m.button
+                                    id="login-form-submit-btn"
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full mt-4 sm:mt-5 bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-[0.15em] py-4 sm:py-4.5 rounded-2xl shadow-xl shadow-[#2d5016]/20 hover:shadow-[#2d5016]/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-60"
+                                >
+                                    {loading ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Đang xử lý...</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span>{isLogin ? "Đăng nhập hệ thống" : "Hoàn tất đăng ký"}</span>
+                                            <ArrowRight size={18} />
+                                        </>
+                                    )}
+                                </m.button>
+                            </form>
+                        </m.div>
+                    ) : (
+                        /* Horizontal Accounts Flow Row (Glassmorphic Cards) */
+                        <m.div
+                            key="accounts-row"
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15 }}
+                            transition={{ duration: 0.35 }}
+                            className="w-full flex flex-col items-center shrink-0 my-auto"
+                        >
+                            <div className="text-center mb-2 sm:mb-3">
+                                <span className={cn(
+                                    "px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest border shadow-xs inline-flex items-center gap-1.5",
+                                    isDark 
+                                        ? "bg-slate-900/60 border-slate-800 text-emerald-400" 
+                                        : "bg-white/70 border-[#d4a574]/30 text-[#8b6f47]"
+                                )}>
+                                    <Sparkles size={11} className="text-amber-500" />
+                                    <span>Chọn tài khoản để bắt đầu ca làm việc</span>
+                                </span>
+                            </div>
+
+                            <div className="flex gap-3 sm:gap-5 overflow-x-auto w-full max-w-full py-2 px-2 no-scrollbar scroll-smooth items-center justify-center flex-wrap">
+                                {/* Recent Accounts Cards */}
+                                {users.map(u => {
+                                    const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
+                                    const isCurrentSelected = selectedUserLoading === u.username;
+
+                                    return (
+                                        <m.div
+                                            key={u.id || u.username}
+                                            whileHover={{ y: -5, scale: 1.03 }}
+                                            whileTap={{ scale: 0.97 }}
+                                            onClick={() => handleSelectUser(u)}
+                                            className={cn(
+                                                "w-36 sm:w-44 md:w-48 rounded-[1.8rem] sm:rounded-[2.2rem] border backdrop-blur-2xl p-4 sm:p-5 flex flex-col items-center justify-between min-h-[160px] sm:min-h-[190px] shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group cursor-pointer text-center",
+                                                isDark 
+                                                    ? "bg-slate-900/80 border-slate-800 hover:border-emerald-500/60 hover:shadow-emerald-950/40" 
+                                                    : "bg-white/80 border-[#d4a574]/30 hover:border-[#2d5016]/60 hover:shadow-[#2d5016]/10"
+                                            )}
+                                        >
+                                            {/* Top Subtle Ambient Light */}
+                                            <div className="absolute -top-10 -right-10 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/25 transition-all duration-500" />
+
+                                            {/* Avatar with Glowing Halo */}
+                                            <div className="relative mb-2 mt-1">
+                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md group-hover:rotate-6 transition-transform duration-500">
+                                                    <div className={cn(
+                                                        "w-full h-full rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shadow-inner",
+                                                        isDark ? "bg-slate-900 text-emerald-300" : "bg-white text-[#2d5016]"
+                                                    )}>
+                                                        {isCurrentSelected ? (
+                                                            <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                                                        ) : (
+                                                            initial
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* User Details */}
+                                            <div className="w-full space-y-0.5">
+                                                <h3 className={cn(
+                                                    "text-xs sm:text-sm font-black truncate tracking-tight transition-colors",
+                                                    isDark 
+                                                        ? "text-slate-100 group-hover:text-emerald-400" 
+                                                        : "text-[#2d5016] group-hover:text-[#1e3a0f]"
+                                                )}>
+                                                    {u.display_name || u.username}
+                                                </h3>
+                                                <p className={cn(
+                                                    "text-[9px] font-bold uppercase tracking-wider",
+                                                    isDark ? "text-slate-400" : "text-[#8b6f47]"
+                                                )}>
+                                                    @{u.username}
+                                                </p>
+                                            </div>
+
+                                            {/* Quick Enter Action Badge */}
+                                            <div className={cn(
+                                                "mt-2 w-full py-1 px-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all",
+                                                isDark 
+                                                    ? "bg-slate-800/60 border-slate-700/80 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-500 text-slate-300" 
+                                                    : "bg-[#faf8f3] border-[#d4a574]/20 group-hover:bg-[#2d5016] group-hover:text-white group-hover:border-[#2d5016] text-[#8b6f47]"
+                                            )}>
+                                                <span>Vào ca</span>
+                                                <ChevronRight size={11} className="group-hover:translate-x-1 transition-transform" />
+                                            </div>
+                                        </m.div>
+                                    );
+                                })}
+
+                                {/* Other Account / Add New Card */}
+                                <m.div
+                                    whileHover={{ y: -5, scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => {
+                                        setShowLoginForm(true);
+                                        setFormData({ username: '', password: '', display_name: '', admin_secret: '' });
+                                    }}
+                                    className={cn(
+                                        "w-36 sm:w-44 md:w-48 rounded-[1.8rem] sm:rounded-[2.2rem] border-2 border-dashed backdrop-blur-2xl p-4 sm:p-5 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[190px] shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer text-center group",
+                                        isDark 
+                                            ? "bg-slate-900/40 border-slate-800 hover:border-emerald-500/80 hover:bg-slate-900/80" 
+                                            : "bg-white/50 border-[#d4a574]/40 hover:border-[#2d5016] hover:bg-white/80"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-dashed flex items-center justify-center mb-2.5 transition-all duration-300 group-hover:scale-110",
+                                        isDark 
+                                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950" 
+                                            : "border-[#2d5016]/30 bg-[#2d5016]/10 text-[#2d5016] group-hover:bg-[#2d5016] group-hover:text-white"
+                                    )}>
+                                        <Plus size={22} />
+                                    </div>
+                                    <span className={cn(
+                                        "text-[11px] sm:text-xs font-black uppercase tracking-wider",
+                                        isDark ? "text-emerald-400" : "text-[#2d5016]"
+                                    )}>
+                                        Đăng nhập khác
+                                    </span>
+                                    <p className="text-[8px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                        Tạo hoặc đổi tài khoản
+                                    </p>
+                                </m.div>
+                            </div>
+                        </m.div>
+                    )}
+                </AnimatePresence>
+            </main>
+
+            {/* Footer Status Bar & Auspicious Hours Tip */}
+            <footer className="w-full shrink-0 z-30 px-4 py-2 sm:py-2.5 border-t backdrop-blur-xl transition-colors duration-500 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center">
+                {/* Auspicious Hours Daily Tip */}
+                <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-semibold opacity-85">
+                    <span className={cn(
+                        "px-2 py-0.5 rounded-lg border font-bold uppercase tracking-wider text-[8px] sm:text-[9px]",
+                        isDark ? "bg-emerald-950/60 border-emerald-800/80 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-[#2d5016]"
+                    )}>
+                        🌾 Giờ Hoàng Đạo
+                    </span>
+                    <span className={isDark ? "text-slate-400" : "text-emerald-900/80"}>
+                        {auspiciousHours.join(", ")}
+                    </span>
+                </div>
+
+                {/* System Credit */}
+                <p className={cn(
+                    "text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-1.5",
+                    isDark ? "text-slate-500" : "text-[#8b6f47]/60"
+                )}>
+                    <Leaf size={11} className="text-emerald-500" />
+                    <span>LyangPOS Intelligent Agri Ecosystem • {new Date().getFullYear()}</span>
+                </p>
+            </footer>
 
             {/* Modal LAN Configuration */}
             <AnimatePresence>
@@ -406,7 +1086,7 @@ export default function Welcome() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setShowLanModal(false)}
-                            className="absolute inset-0 bg-slate-950/40 dark:bg-black/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
                         />
 
                         {/* Modal Body */}
@@ -414,48 +1094,75 @@ export default function Welcome() {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="bg-[#faf8f3] dark:bg-slate-900 border-2 border-[#d4a574]/20 p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden"
+                            className={cn(
+                                "border-2 p-6 sm:p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden transition-all duration-300",
+                                isDark 
+                                    ? "bg-slate-900/95 border-emerald-500/20 text-slate-100 shadow-black/80" 
+                                    : "bg-white/95 border-[#d4a574]/40 text-[#2d5016] shadow-[#2d5016]/15"
+                            )}
                         >
-                            {/* Decorative wheat background */}
-                            <div className="absolute right-0 bottom-0 opacity-[0.03] pointer-events-none -rotate-12 translate-x-4 translate-y-4">
-                                <Wheat size={180} />
-                            </div>
+                            {/* Card Ambient Glow Line */}
+                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2d5016] via-[#d4a574] to-[#2d5016] dark:from-emerald-600 dark:via-teal-400 dark:to-emerald-600 opacity-90" />
 
                             {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-emerald-100/50 dark:bg-emerald-950/30 rounded-2xl text-[#2d5016] dark:text-emerald-400">
-                                        <Network size={20} />
+                            <div className="flex items-center justify-between mb-6 pt-1">
+                                <div className="flex items-center gap-3.5">
+                                    <div className="p-3 bg-gradient-to-br from-[#2d5016]/10 to-[#d4a574]/20 dark:from-emerald-500/20 dark:to-teal-500/10 rounded-2xl text-[#2d5016] dark:text-emerald-400 border border-[#2d5016]/10 dark:border-emerald-400/20 shadow-xs">
+                                        <Network size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight">Cấu hình kết nối LAN</h3>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Liên kết dữ liệu giữa các thiết bị</p>
+                                        <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-[#2d5016] dark:text-white">Cấu hình kết nối mạng</h3>
+                                        <p className="text-[10px] font-black text-[#8b6f47] dark:text-emerald-400/80 uppercase tracking-widest mt-0.5">Liên kết dữ liệu giữa các máy POS</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setShowLanModal(false)}
-                                    className="p-2 hover:bg-transparent dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    className="p-2.5 rounded-xl border border-transparent hover:border-[#d4a574]/30 hover:bg-[#faf8f3] dark:hover:bg-slate-800 text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400 transition-all cursor-pointer"
                                 >
-                                    <X size={16} />
+                                    <X size={18} />
                                 </button>
                             </div>
 
-                            <div className="space-y-6">
-                                {/* Mode Selection Switcher */}
-                                <div className="grid grid-cols-2 gap-3 bg-[#faf8f3] dark:bg-slate-950/50 p-1.5 rounded-2xl border border-[#d4a574]/10">
+                            <div className="space-y-5">
+                                {/* Mode Selection Switcher with animated pill */}
+                                <div className={cn(
+                                    "flex p-1.5 rounded-2xl relative border transition-colors",
+                                    isDark 
+                                        ? "bg-slate-950/70 border-slate-800" 
+                                        : "bg-[#faf8f3] border-[#d4a574]/30"
+                                )}>
+                                    <m.div
+                                        className="absolute inset-y-1.5 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] dark:from-emerald-700 dark:to-teal-600 shadow-md"
+                                        initial={false}
+                                        animate={{
+                                            left: !isClientMode ? '6px' : '50%',
+                                            width: 'calc(50% - 6px)'
+                                        }}
+                                        transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => { setIsClientMode(false); setConnectionStatus(null); }}
-                                        className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${!isClientMode ? 'bg-[#2d5016] text-white shadow-md' : 'text-[#8b6f47] hover:text-[#2d5016]'}`}
+                                        className={cn(
+                                            "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
+                                            !isClientMode 
+                                                ? "text-white" 
+                                                : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
+                                        )}
                                     >
-                                        <Laptop size={14} /> Chạy Cục bộ
+                                        <Laptop size={15} /> Chạy cục bộ
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setIsClientMode(true)}
-                                        className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${isClientMode ? 'bg-[#2d5016] text-white shadow-md' : 'text-[#8b6f47] hover:text-[#2d5016]'}`}
+                                        className={cn(
+                                            "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
+                                            isClientMode 
+                                                ? "text-white" 
+                                                : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
+                                        )}
                                     >
-                                        <Network size={14} /> Máy khách LAN
+                                        <Network size={15} /> Máy khách LAN
                                     </button>
                                 </div>
 
@@ -467,13 +1174,20 @@ export default function Welcome() {
                                         className="space-y-4 overflow-hidden"
                                     >
                                         <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-[#8b6f47] uppercase ml-1 tracking-wider">Địa chỉ IP Máy Chủ chính</label>
+                                            <label className="text-[10px] sm:text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 uppercase ml-2 tracking-wider">
+                                                Địa chỉ IP Máy Chủ chính
+                                            </label>
                                             <input
                                                 type="text"
                                                 placeholder="Ví dụ: 192.168.1.15"
                                                 value={lanIp}
                                                 onChange={(e) => { setLanIp(e.target.value); setConnectionStatus(null); }}
-                                                className="w-full bg-[#faf8f3] dark:bg-slate-950/50 border-2 border-transparent focus:border-[#d4a574]/30 focus:bg-transparent rounded-2xl py-3.5 px-4 font-mono font-bold text-sm text-gray-800 dark:text-emerald-300 outline-none transition-all shadow-inner"
+                                                className={cn(
+                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 px-4 font-mono font-bold text-sm outline-none transition-all shadow-inner",
+                                                    isDark 
+                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-emerald-300 placeholder-slate-600" 
+                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40"
+                                                )}
                                             />
                                         </div>
 
@@ -482,23 +1196,25 @@ export default function Welcome() {
                                             <m.div
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
-                                                className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-2 justify-center"
+                                                className="p-3.5 bg-emerald-500/15 border border-emerald-500/40 rounded-2xl text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center gap-2 justify-center shadow-xs"
                                             >
-                                                <Check size={14} /> Kết nối Máy Chủ thành công!
+                                                <Check size={16} strokeWidth={2.5} /> 
+                                                <span>Kết nối Máy Chủ thành công!</span>
                                             </m.div>
                                         )}
                                         {connectionStatus === 'failed' && (
                                             <m.div
                                                 initial={{ opacity: 0, scale: 0.95 }}
                                                 animate={{ opacity: 1, scale: 1 }}
-                                                className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 text-[10px] font-black uppercase tracking-wider flex flex-col items-center gap-2 justify-center"
+                                                className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-black uppercase tracking-wider flex flex-col items-center gap-1.5 justify-center shadow-xs"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <WifiOff size={14} /> Lỗi kết nối! Kiểm tra lại IP/Wifi.
+                                                    <WifiOff size={16} /> 
+                                                    <span>Lỗi kết nối! Kiểm tra lại IP hoặc WiFi.</span>
                                                 </div>
                                                 {pingError && (
-                                                    <div className="mt-1.5 text-[9px] text-rose-500/80 font-mono select-text text-center lowercase border-t border-rose-500/10 pt-1.5 w-full">
-                                                        chi tiet: {pingError}
+                                                    <div className="text-[10px] text-rose-500/80 font-mono text-center normal-case border-t border-rose-500/15 pt-1 w-full">
+                                                        {pingError}
                                                     </div>
                                                 )}
                                             </m.div>
@@ -508,39 +1224,63 @@ export default function Welcome() {
                                             type="button"
                                             onClick={handleTestConnection}
                                             disabled={testingConnection || !lanIp.trim()}
-                                            className="w-full py-3.5 bg-transparent hover:bg-[#faf8f3] border-2 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-wider text-[10px] rounded-2xl shadow-sm hover:shadow active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                                            className={cn(
+                                                "w-full py-4 border-2 rounded-2xl font-black uppercase tracking-wider text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer",
+                                                isDark 
+                                                    ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/40" 
+                                                    : "border-[#2d5016]/20 bg-emerald-50/70 text-[#2d5016] hover:bg-emerald-100/70 hover:border-[#2d5016]/40"
+                                            )}
                                         >
                                             {testingConnection ? (
                                                 <>
-                                                    <div className="w-3.5 h-3.5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                                                    <span>ĐANG KIỂM TRA...</span>
+                                                    <div className="w-4 h-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                                                    <span>ĐANG KIỂM TRA KẾT NỐI...</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Wifi size={14} /> Kiểm tra kết nối mạng
+                                                    <Wifi size={16} /> 
+                                                    <span>Kiểm tra kết nối mạng</span>
                                                 </>
                                             )}
                                         </button>
                                     </m.div>
                                 ) : (
-                                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-800 dark:text-emerald-400 text-[10px] font-bold leading-relaxed uppercase tracking-wider text-center">
-                                        🏠 Ứng dụng sẽ chạy độc lập, sử dụng cơ sở dữ liệu nội bộ trên máy tính này.
+                                    <div className={cn(
+                                        "p-5 rounded-2xl border flex items-start gap-3.5 shadow-sm transition-colors",
+                                        isDark 
+                                            ? "bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-teal-950/20 border-emerald-500/20 text-emerald-200" 
+                                            : "bg-gradient-to-br from-emerald-500/[0.07] via-[#faf8f3] to-amber-500/[0.05] border-[#2d5016]/15 text-[#2d5016]"
+                                    )}>
+                                        <div className="p-2.5 bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-400 rounded-xl shrink-0">
+                                            <Laptop size={20} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="text-xs font-black uppercase tracking-wider">Chế độ Máy Độc Lập</h4>
+                                            <p className="text-xs font-medium leading-relaxed opacity-90">
+                                                Ứng dụng sẽ hoạt động cục bộ, sử dụng cơ sở dữ liệu nội bộ trực tiếp trên máy tính này.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
                                 {/* Modal Footer buttons */}
-                                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-[#d4a574]/15">
+                                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#d4a574]/20 dark:border-slate-800">
                                     <button
                                         type="button"
                                         onClick={() => setShowLanModal(false)}
-                                        className="py-3.5 bg-[#2d5016] text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-[#4a7c59] transition-all shadow-md active:scale-98 cursor-pointer"
+                                        className={cn(
+                                            "py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98] cursor-pointer border",
+                                            isDark 
+                                                ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800" 
+                                                : "bg-[#faf8f3] border-[#d4a574]/40 text-[#8b6f47] hover:bg-white hover:text-[#2d5016]"
+                                        )}
                                     >
                                         HỦY BỎ
                                     </button>
                                     <button
                                         type="button"
                                         onClick={handleSaveLanConfig}
-                                        className="py-3.5 bg-[#2d5016] text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-[#4a7c59] transition-all shadow-md active:scale-98 cursor-pointer"
+                                        className="py-4 bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:opacity-95 transition-all shadow-xl shadow-[#2d5016]/20 active:scale-[0.98] cursor-pointer"
                                     >
                                         LƯU CẤU HÌNH
                                     </button>
@@ -550,360 +1290,6 @@ export default function Welcome() {
                     </div>
                 )}
             </AnimatePresence>
-
-            {/* Organic Background Decorations */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#2d5016]/5 rounded-full blur-[100px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#d4a574]/10 rounded-full blur-[100px]" />
-
-                {/* Floating Icons for Agri Vibe */}
-                <div className="absolute top-[20%] right-[15%] text-[#2d5016]/10">
-                    <Leaf size={120} />
-                </div>
-                <div className="absolute bottom-[20%] left-[10%] text-[#d4a574]/10">
-                    <Wheat size={160} />
-                </div>
-            </div>
-
-
-
-
-            <m.div
-                initial={{ opacity: 0, y: 30, scale: 0.9, filter: 'blur(20px)' }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0.01px)' }}
-                transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                className={cn("w-full transition-all duration-500 relative z-10 px-4 sm:p-6 mt-10 sm:mt-0 flex flex-col justify-center items-center", showLoginForm ? "max-w-md h-full sm:h-auto" : "max-w-6xl")}
-            >
-
-                {/* Brand / Logo Section */}
-                <div className="text-center mb-6">
-                    <m.div
-                        initial={{ scale: 0.5, opacity: 0, rotate: -20 }}
-                        animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                        transition={{
-                            delay: 0.4,
-                            type: "spring",
-                            stiffness: 150,
-                            damping: 20
-                        }}
-                        className="inline-flex items-center justify-center w-24 h-24 sm:w-40 sm:h-40 mb-1 sm:mb-4 group"
-                    >
-                        <img
-                            src={logo}
-                            alt="Logo"
-                            className="w-full h-full object-contain drop-shadow-[0_20px_50px_rgba(45,80,22,0.3)] group-hover:scale-110 transition-transform duration-700 ease-out"
-                        />
-                    </m.div>
-
-                    <m.div
-                        initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-                        animate={{ opacity: 1, y: 0, filter: 'blur(0.01px)' }}
-                        transition={{ delay: 0.6, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                        <h1 className="text-3xl sm:text-5xl font-black text-primary dark:text-emerald-400 tracking-tighter mb-0.5 sm:mb-2 italic">
-                            Lyang<span className="text-[#d4a574] not-italic">POS</span>
-                        </h1>
-                        <p className="text-[#8b6f47] dark:text-emerald-400/60 font-bold uppercase tracking-[0.2em] text-[10px]">
-                            Hệ thống quản lý bán hàng thông minh • {new Date().getFullYear()}
-                        </p>
-                    </m.div>
-
-                </div>
-
-                <AnimatePresence mode="wait">
-                    {showLoginForm ? (
-                        /* Form Context Card */
-                        <m.div
-                            key="login-form-card"
-                            initial={{ opacity: 0, scale: 0.95, y: 15, filter: 'blur(10px)' }}
-                            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0.01px)' }}
-                            exit={{ opacity: 0, scale: 0.95, y: -15, filter: 'blur(10px)' }}
-                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="bg-transparent rounded-[2rem] sm:rounded-[3rem] border sm:border-2 border-[#d4a574]/20 p-5 sm:p-8 shadow-2xl relative overflow-hidden group w-full"
-                        >
-                        {/* Decorative Wheat on Card */}
-                        <div className="absolute -right-6 -bottom-6 opacity-[0.05] -rotate-12 group-hover:rotate-0 transition-transform duration-700 pointer-events-none">
-                            <Wheat size={120} />
-                        </div>
-
-                        {users.length > 0 && (
-                            <button 
-                                type="button"
-                                onClick={() => setShowLoginForm(false)}
-                                className="w-full py-2 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-[#8b6f47] dark:text-emerald-400/80 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all mb-4 border border-dashed border-slate-300 dark:border-slate-700/60"
-                            >
-                                ← Quay lại danh sách tài khoản
-                            </button>
-                        )}
-
-                        {/* Login/Register Toggle */}
-                        <div className="flex bg-[#faf8f3] dark:bg-slate-950/50 p-1 sm:p-1.5 rounded-[1.8rem] mb-4 sm:mb-8 relative border border-[#d4a574]/10">
-                            <m.div
-                                className="absolute inset-y-1.5 rounded-[1.4rem] bg-gradient-to-r from-[#2d5016] to-[#4a7c59] shadow-lg shadow-[#2d5016]/20"
-                                initial={false}
-                                animate={{
-                                    left: isLogin ? '6px' : '50%',
-                                    width: 'calc(50% - 6px)'
-                                }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            />
-                            <button
-                                onClick={() => { setIsLogin(true); setIsSecretAdminMode(false); setError(''); }}
-                                className={`flex-1 relative z-10 py-2.5 sm:py-3.5 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${isLogin ? 'text-white' : 'text-[#8b6f47] hover:text-[#2d5016]'}`}
-                            >
-                                <LogIn size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> Đăng nhập
-                            </button>
-                            <button
-                                onClick={() => { 
-                                    setIsLogin(false); 
-                                    setIsSecretAdminMode(!isSecretAdminMode);
-                                    setError(''); 
-                                }}
-                                className={`flex-1 relative z-10 py-2.5 sm:py-3.5 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${!isLogin ? 'text-white' : 'text-[#8b6f47] hover:text-[#2d5016]'}`}
-                            >
-                                <ShieldCheck size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> {isSecretAdminMode ? 'ĐK Admin' : 'Đăng ký'}
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
-                            {/* Mobile Quick Selector */}
-                            {users.length > 0 && (
-                                <div className="block md:hidden border-b border-[#d4a574]/10 pb-3 mb-2">
-                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-emerald-400/60 uppercase tracking-widest mb-2">Chọn tài khoản nhanh:</p>
-                                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                                        {users.map(u => {
-                                            const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
-                                            const gradients = [
-                                                "from-emerald-500 to-teal-650",
-                                                "from-rose-500 to-orange-600",
-                                                "from-blue-500 to-indigo-600",
-                                                "from-amber-500 to-yellow-600",
-                                                "from-purple-500 to-pink-600"
-                                            ];
-                                            const gradIdx = (u.id || 0) % gradients.length;
-                                            const gradient = gradients[gradIdx];
-                                            const isSelected = formData.username === u.username;
-
-                                            return (
-                                                <button
-                                                    key={u.id}
-                                                    type="button"
-                                                    onClick={() => handleSelectUser(u)}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider shrink-0 transition-all ${
-                                                        isSelected
-                                                            ? "bg-[#2d5016] text-white border-[#2d5016]"
-                                                            : "bg-white/30 dark:bg-slate-800/30 border-[#d4a574]/20 text-[#8b6f47] dark:text-emerald-400"
-                                                    }`}
-                                                >
-                                                    <div className="w-4 h-4 rounded-full bg-transparent border border-[#d4a574]/25 flex items-center justify-center text-[#2d5016] dark:text-emerald-400 text-[8px] font-black">
-                                                        {initial}
-                                                    </div>
-                                                    <span>{u.display_name?.split(' ')[0] || u.username}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                            <AnimatePresence mode="wait">
-                                {!isLogin && (
-                                    <m.div
-                                        key="displayName"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        className="space-y-1.5"
-                                    >
-                                        <label className="text-[10px] font-black text-[#8b6f47] uppercase ml-4">Tên hiển thị</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#d4a574] group-focus-within:text-[#2d5016] transition-colors">
-                                                <Sparkles size={18} />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                className="w-full bg-[#faf8f3] dark:bg-slate-950/50 border-2 border-transparent focus:border-[#d4a574]/30 focus:bg-transparent rounded-[1rem] sm:rounded-2xl py-3 sm:py-4 pl-12 sm:pl-14 pr-4 text-[#2d5016] placeholder-[#8b6f47]/40 outline-none transition-all font-bold shadow-inner"
-                                                placeholder="Họ tên của bạn..."
-                                                value={formData.display_name}
-                                                onChange={e => setFormData({ ...formData, display_name: e.target.value })}
-                                                required={!isLogin}
-                                            />
-                                        </div>
-                                        
-                                        <AnimatePresence>
-                                            {isSecretAdminMode && (
-                                                <m.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    exit={{ height: 0, opacity: 0 }}
-                                                    className="overflow-hidden space-y-1.5 mt-4"
-                                                >
-                                                    <label className="text-[10px] font-black text-rose-500 uppercase ml-4 flex items-center gap-2">
-                                                        <Lock size={10} /> Mật khẩu bí mật cấp Admin
-                                                    </label>
-                                                    <div className="relative group">
-                                                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-rose-400 group-focus-within:text-rose-600 transition-colors">
-                                                            <ShieldCheck size={18} />
-                                                        </div>
-                                                        <input
-                                                            type="password"
-                                                            className="w-full bg-rose-50 dark:bg-rose-950/20 border-2 border-rose-200/50 focus:border-rose-500 rounded-[1rem] sm:rounded-2xl py-3 sm:py-4 pl-12 sm:pl-14 pr-4 text-rose-700 dark:text-rose-300 placeholder-rose-300 outline-none transition-all font-bold"
-                                                            placeholder="Nhập mã bí mật..."
-                                                            value={formData.admin_secret}
-                                                            onChange={e => setFormData({ ...formData, admin_secret: e.target.value })}
-                                                            required={isSecretAdminMode}
-                                                        />
-                                                    </div>
-                                                </m.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </m.div>
-                                )}
-                            </AnimatePresence>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-[#8b6f47] uppercase ml-4">Tên đăng nhập</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#d4a574] group-focus-within:text-[#2d5016] transition-colors">
-                                        <User size={18} />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-[#faf8f3] dark:bg-slate-950/50 border-2 border-transparent focus:border-[#d4a574]/30 focus:bg-transparent rounded-[1rem] sm:rounded-2xl py-3 sm:py-4 pl-12 sm:pl-14 pr-4 text-[#2d5016] placeholder-[#8b6f47]/40 outline-none transition-all font-bold shadow-inner"
-                                        placeholder="Username"
-                                        value={formData.username}
-                                        onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-[#8b6f47] uppercase ml-4">Mật khẩu</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-[#d4a574] group-focus-within:text-[#2d5016] transition-colors">
-                                        <Lock size={18} />
-                                    </div>
-                                    <input
-                                        id="welcome-password-input"
-                                        type="password"
-                                        className="w-full bg-[#faf8f3] dark:bg-slate-950/50 border-2 border-transparent focus:border-[#d4a574]/30 focus:bg-transparent rounded-[1rem] sm:rounded-2xl py-3 sm:py-4 pl-12 sm:pl-14 pr-4 text-[#2d5016] placeholder-[#8b6f47]/40 outline-none transition-all font-bold shadow-inner"
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {isLogin && (
-                                <div className="flex items-center gap-2 ml-2">
-                                    <label className="flex items-center gap-3 cursor-pointer group/check">
-                                        <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${rememberMe ? 'bg-[#2d5016] border-[#2d5016]' : 'bg-transparent border-[#d4a574]/40 group-hover/check:border-[#2d5016]'}`}>
-                                            {rememberMe && <m.div initial={{ scale: 0 }} animate={{ scale: 1 }}><ArrowRight size={12} className="text-white -rotate-45" /></m.div>}
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            className="hidden"
-                                            checked={rememberMe}
-                                            onChange={e => setRememberMe(e.target.checked)}
-                                        />
-                                        <span className={`text-[11px] font-black transition-colors uppercase tracking-wider ${rememberMe ? 'text-[#2d5016]' : 'text-[#8b6f47] group-hover/check:text-[#2d5016]'}`}>
-                                            Ghi nhớ tài khoản
-                                        </span>
-                                    </label>
-                                </div>
-                            )}
-
-                            {error && (
-                                <m.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-200/50 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-[11px] font-black text-center uppercase tracking-wider"
-                                >
-                                    {error}
-                                </m.div>
-                            )}
-
-                            <button
-                                id="login-form-submit-btn"
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white font-black uppercase tracking-[0.2em] py-3.5 sm:py-4 rounded-2xl shadow-xl shadow-[#2d5016]/20 hover:shadow-[#2d5016]/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-2 sm:mt-4 group disabled:opacity-50"
-                            >
-                                {loading ? (
-                                    <div className="flex items-center gap-2">
-                                        Đang xử lý...
-                                    </div>
-                                ) : (
-                                    "Xác nhận"
-                                )}
-                            </button>
-                        </form>
-                        </m.div>
-                    ) : (
-                        /* Accounts Horizontal Scroll Row */
-                        <m.div
-                            key="accounts-row"
-                            initial={{ opacity: 0, scale: 0.98, y: 10, filter: 'blur(5px)' }}
-                            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0.01px)' }}
-                            exit={{ opacity: 0, scale: 0.98, y: -10, filter: 'blur(5px)' }}
-                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="flex gap-6 overflow-x-auto w-full max-w-full py-8 px-4 no-scrollbar scroll-smooth items-stretch mt-4 snap-x snap-mandatory justify-start"
-                        >
-                            {/* Đăng nhập khác Card */}
-                            <m.div
-                                whileHover={{ y: -4, scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                    setShowLoginForm(true);
-                                    setFormData({ username: '', password: '', display_name: '' });
-                                }}
-                                className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-3xl p-5 flex flex-col items-center justify-center min-h-[160px] cursor-pointer shadow-lg hover:shadow-xl transition-all hover:border-[#2d5016] dark:hover:border-emerald-500 w-40 shrink-0 snap-start"
-                            >
-                                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 border border-primary/20">
-                                    <Plus size={24} />
-                                </div>
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-emerald-450">Đăng nhập khác</span>
-                            </m.div>
-
-                            {/* Recent User Cards */}
-                            {users.map(u => {
-                                const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
-
-                                return (
-                                    <m.div
-                                        key={u.id}
-                                        whileHover={{ y: -4, scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleSelectUser(u)}
-                                        className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/45 rounded-3xl p-5 flex flex-col items-center justify-center min-h-[160px] shadow-lg hover:shadow-xl transition-all relative overflow-hidden group text-center cursor-pointer w-40 shrink-0 snap-start"
-                                    >
-                                        <div className="flex flex-col items-center justify-center w-full">
-                                            <div className="relative mb-2 mt-1">
-                                                <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-200 font-black text-xl shadow-md border border-slate-200 dark:border-slate-700/80 ring-4 ring-slate-100 dark:ring-slate-800/40 group-hover:scale-105 transition-transform duration-300">
-                                                    {initial}
-                                                </div>
-                                            </div>
-                                            <h3 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide text-center group-hover:text-[#2d5016] dark:group-hover:text-emerald-450 transition-colors mt-2">
-                                                {u.display_name || u.username}
-                                            </h3>
-                                        </div>
-                                    </m.div>
-                                );
-                            })}
-                        </m.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Footer Credits */}
-                <div className="text-center mt-6 sm:mt-10">
-                    <p className="text-[#8b6f47]/40 dark:text-emerald-900 text-[10px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-                        <Leaf size={12} /> LyangPOS Sustainable Agri System • 2024
-                    </p>
-                </div>
-            </m.div>
-
-
         </div>
     );
 }

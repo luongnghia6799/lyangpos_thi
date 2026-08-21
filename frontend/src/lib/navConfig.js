@@ -65,8 +65,6 @@ export const DEFAULT_NAV_SECTIONS = [
         isAccounting: true,
         roles: ['admin', 'accountant', 'user'],
         items: [
-            { id: 'detailed_reports', path: '/detailed-reports', label: 'Xuất Báo Cáo Kế Toán', icon: Download, roles: ['admin', 'accountant', 'user'], desc: 'Xuất file dữ liệu chi tiết cho kế toán' },
-            { id: 'accounting_mapping', path: '/accounting/mapping', label: 'Cấu hình Mẫu Excel', icon: SettingsIcon, roles: ['admin', 'accountant', 'user'], desc: 'Ánh xạ cột dữ liệu theo biểu mẫu riêng' },
             { id: 'accounting_inventory', path: '/accounting/inventory', label: 'Kho kế toán', icon: Scale, roles: ['admin', 'accountant', 'user'], desc: 'Đối soát hàng hóa & giá vốn kế toán' },
         ]
     },
@@ -121,8 +119,6 @@ export const NAV_PRESETS = [
         hiddenPaths: [
             '/inventory/conversion',
             '/analysis',
-            '/detailed-reports',
-            '/accounting/mapping',
             '/accounting/inventory',
             '/roles',
             '/invoice-designer',
@@ -143,8 +139,6 @@ export const NAV_PRESETS = [
             '/inventory/conversion',
             '/analysis',
             '/reports',
-            '/detailed-reports',
-            '/accounting/mapping',
             '/accounting/inventory',
             '/partner-profile',
             '/vouchers',

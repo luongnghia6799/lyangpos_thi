@@ -47,27 +47,40 @@ jobs:
         with:
           python-version: '3.11'
 
+      # 1. Build Frontend dist first (so PyInstaller can bundle frontend/dist)
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+
+      # 2. Build Python Sidecar Backend
       - name: Build Python Sidecar Backend
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.platform.deployment_target }}
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt pyinstaller
-          pyinstaller --clean --noconfirm backend/lyang-backend.spec
+          cd backend
+          pyinstaller --clean --noconfirm lyang-backend.spec
+          cd ..
           
           mkdir -p frontend/src-tauri/bin
-          # Copy binary file to the exact Tauri sidecar target triple format
-          cp dist/lyang-backend frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
+          # PyInstaller outputs to backend/dist or dist
+          if [ -f "backend/dist/lyang-backend" ]; then
+            cp backend/dist/lyang-backend frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
+          else
+            cp dist/lyang-backend frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
+          fi
           chmod +x frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
           echo "Created sidecar binary for ${{ matrix.platform.target }}"
 
-      - name: Build Tauri Frontend & macOS Bundle
+      # 3. Build Tauri DMG
+      - name: Build Tauri macOS Bundle
         working-directory: frontend
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.platform.deployment_target }}
         run: |
-          npm install
-          npm run build
           npx tauri build --target ${{ matrix.platform.target }}
 
       - name: Upload Build Artifacts to GitHub Action

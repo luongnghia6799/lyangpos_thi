@@ -6,6 +6,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.spec
+!backend/lyang-backend.spec
 
 # Database & Binaries
 *.db

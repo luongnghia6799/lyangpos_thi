@@ -1,0 +1,89 @@
+name: Build macOS (Big Sur Compatible)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: Build macOS (${{ matrix.platform.name }})
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Intel Mac (x86_64 - macOS 11+ Big Sur)
+            os: macos-13 # macos-13 runs on Intel x86_64
+            target: x86_64-apple-darwin
+            deployment_target: '11.0'
+          - name: Apple Silicon (M1/M2/M3/M4)
+            os: macos-14 # macos-14 runs on Apple Silicon ARM64
+            target: aarch64-apple-darwin
+            deployment_target: '11.0'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Python Sidecar Backend
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.platform.deployment_target }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pyinstaller
+          pyinstaller --clean --noconfirm backend/lyang-backend.spec
+          
+          mkdir -p frontend/src-tauri/bin
+          # Copy binary file to the exact Tauri sidecar target triple format
+          cp dist/lyang-backend frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
+          chmod +x frontend/src-tauri/bin/lyang-backend-${{ matrix.platform.target }}
+          echo "Created sidecar binary for ${{ matrix.platform.target }}"
+
+      - name: Build Tauri Frontend & macOS Bundle
+        working-directory: frontend
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.platform.deployment_target }}
+        run: |
+          npm install
+          npm run build
+          npx tauri build --target ${{ matrix.platform.target }}
+
+      - name: Upload Build Artifacts to GitHub Action
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyangPOS-${{ matrix.platform.target }}-DMG
+          path: |
+            frontend/src-tauri/target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
+            frontend/src-tauri/target/release/bundle/dmg/*.dmg
+
+      - name: Release to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            frontend/src-tauri/target/${{ matrix.platform.target }}/release/bundle/dmg/*.dmg
+            frontend/src-tauri/target/release/bundle/dmg/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -61,12 +61,24 @@ import {
     Trash2,
     Eye,
     EyeOff,
-    Edit
+    Edit,
+    Sparkles
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Portal from '../../components/Portal';
+import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
+import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
+import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';
+import presetMarketIllustration from '../../assets/wallpapers/preset_market_illustration.jpg';
+
+const WALLPAPER_PRESETS = [
+    { id: 1, name: "Signature Lyang", path: preset1Signature, desc: "Tối giản ấm cúng" },
+    { id: 2, name: "Cafe Latte", path: preset2Latte, desc: "Cà phê & Trà" },
+    { id: 3, name: "Nông Trại Xanh (Vector)", path: presetFarmIllustration, desc: "Đồi xanh & Xe táo" },
+    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" }
+];
 
 ChartJS.register(
     CategoryScale,
@@ -1435,7 +1447,62 @@ export default function Dashboard() {
                                             </label>
                                         )}
                                         
-                                        {/* URL input removed */}
+                                        {/* Brand Default Wallpaper Preset Gallery */}
+                                        <div className="space-y-2 pt-2 border-t border-border/60">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <Sparkles size={14} className="text-amber-500" />
+                                                    Bộ sưu tập hình nền LyangPOS
+                                                </label>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-1 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-border/60">
+                                                {WALLPAPER_PRESETS.map((preset) => (
+                                                    <button
+                                                        key={preset.id}
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const response = await fetch(preset.path);
+                                                                const blob = await response.blob();
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => {
+                                                                    const base64 = reader.result;
+                                                                    setAppWallpaper(prev => ({
+                                                                        ...prev,
+                                                                        image: base64,
+                                                                        size: 'cover',
+                                                                        position: 'center',
+                                                                        opacity: 90,
+                                                                        blur: 0,
+                                                                        glassBlur: 8,
+                                                                        glassOpacity: 15
+                                                                    }));
+                                                                };
+                                                                reader.readAsDataURL(blob);
+                                                            } catch (err) {
+                                                                console.error('Error loading preset wallpaper:', err);
+                                                            }
+                                                        }}
+                                                        className="group/preset relative flex flex-col items-center gap-1 p-1 rounded-xl border border-border/80 hover:border-primary bg-card/60 hover:bg-primary/5 transition-all cursor-pointer shadow-2xs hover:scale-[1.03] active:scale-95 text-left"
+                                                        title={preset.desc}
+                                                    >
+                                                        <div className="w-full h-16 rounded-lg overflow-hidden border border-border/60 relative">
+                                                            <img 
+                                                                src={preset.path} 
+                                                                alt={preset.name} 
+                                                                className="w-full h-full object-cover group-hover/preset:scale-110 transition-transform duration-300"
+                                                            />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-1">
+                                                                <span className="text-[7.5px] font-black text-white uppercase tracking-wider truncate">Chọn</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-foreground truncate w-full text-center leading-tight">
+                                                            {preset.name}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                     
                                     <div className="space-y-2">

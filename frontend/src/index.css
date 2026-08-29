@@ -415,12 +415,15 @@ input, button, select, textarea, optgroup, option {
 }
 
 .input-premium {
-  @apply w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 outline-none transition-all duration-300 text-slate-900 dark:text-slate-100;
+  @apply w-full border rounded-2xl px-4 py-3 outline-none transition-all duration-300;
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-color) !important;
 }
 
 select option {
-  background-color: #ffffff;
-  color: #1e293b;
+  background-color: var(--bg-color);
+  color: var(--text-main);
 }
 
 .dark select option,
@@ -430,7 +433,7 @@ select option {
 }
 
 .input-premium:focus {
-  @apply border-primary bg-white dark:bg-slate-950;
+  border-color: var(--primary-color) !important;
   box-shadow: 0 0 20px -5px var(--primary-color);
 }
 

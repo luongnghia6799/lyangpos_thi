@@ -202,6 +202,11 @@ export default function Purchase() {
     const [scanApiKey, setScanApiKey] = useState('');
     const [scanMapping, setScanMapping] = useState({});
     const [saveNoticeStyle, setSaveNoticeStyle] = useState(() => localStorage.getItem("pos_save_notice_style") || "card");
+    const [keepOrderAfterSave, setKeepOrderAfterSave] = useState(() => localStorage.getItem("pos_keep_order_after_save") === "true");
+    const [transparentCartTable, setTransparentCartTable] = useState(() => {
+        const t = localStorage.getItem("pos_transparent_cart_table");
+        return t === null ? true : t === "true";
+    });
 
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
@@ -658,8 +663,23 @@ export default function Purchase() {
     const [isHeldSidebarOpen, setIsHeldSidebarOpen] = useState(false);
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
     const [historyPartner, setHistoryPartner] = useState(null);
-    const [keepOrderAfterSave, setKeepOrderAfterSave] = useState(() => localStorage.getItem("pos_keep_order_after_save") === "true");
-const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
+    const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
+
+    useEffect(() => {
+        const syncChan = new BroadcastChannel('pos_data_sync');
+        syncChan.onmessage = (e) => {
+            if (e.data?.type === 'UI_SETTING_UPDATED') {
+                if (e.data.key === 'pos_keep_order_after_save') {
+                    setKeepOrderAfterSave(e.data.value === 'true');
+                } else if (e.data.key === 'pos_save_notice_style') {
+                    setSaveNoticeStyle(e.data.value);
+                } else if (e.data.key === 'pos_transparent_cart_table') {
+                    setTransparentCartTable(e.data.value === 'true');
+                }
+            }
+        };
+        return () => syncChan.close();
+    }, []);
     const toggleSummaryLayout = () => {
         const next = summaryLayoutMode === 'sidebar' ? 'bottom' : 'sidebar';
         setSummaryLayoutMode(next);
@@ -705,7 +725,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
         const startH = bottomSummaryHeight;
         const onMouseMove = (moveEvent) => {
             const deltaY = startY - moveEvent.clientY;
-            const newH = Math.min(Math.max(startH + deltaY, 70), 320);
+            const newH = Math.min(Math.max(startH + deltaY, 96), 320);
             setBottomSummaryHeight(newH);
         };
         const onMouseUp = () => {
@@ -738,16 +758,18 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
     const partnerInputRef = React.useRef(null);
 
     const [workingSearchCoords, setWorkingSearchCoords] = useState({ top: 0, left: 0, width: 600 });
-    useEffect(() => {
+    React.useLayoutEffect(() => {
         if (searchTerm && !workingItem?.product) {
             const updateCoords = () => {
                 if (searchInputRef.current) {
                     const rect = searchInputRef.current.getBoundingClientRect();
-                    setWorkingSearchCoords({
-                        top: rect.bottom + 6,
-                        left: rect.left,
-                        width: Math.max(rect.width, 600)
-                    });
+                    if (rect.width > 0 && rect.bottom > 0) {
+                        setWorkingSearchCoords({
+                            top: rect.bottom + 6,
+                            left: rect.left,
+                            width: Math.max(rect.width, 600)
+                        });
+                    }
                 }
             };
             updateCoords();
@@ -1685,7 +1707,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             e.preventDefault();
                                             setIsPartnerHovered(false);
                                             setActiveIndex(prev => {
-                                                const next = Math.min(prev + 1, filteredPartners.length);
+                                                const maxIdx = partnerSearch ? Math.max(0, filteredPartners.length - 1) : filteredPartners.length;
+                                                const next = Math.min(prev + 1, maxIdx);
                                                 if (partnerDropdownRef.current) {
                                                     const targetEl = partnerDropdownRef.current.querySelector(`[data-index="${next}"]`);
                                                     targetEl?.scrollIntoView({ block: "nearest" });
@@ -1706,12 +1729,19 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         } else if (e.key === 'Enter') {
                                             e.preventDefault();
                                             setIsPartnerHovered(false);
-                                            if (activeIndex === 0) {
-                                                setSelectedPartner(null);
-                                                setPartnerSearch('');
-                                            } else if (filteredPartners[activeIndex - 1]) {
-                                                setSelectedPartner(filteredPartners[activeIndex - 1]);
-                                                setPartnerSearch('');
+                                            if (!partnerSearch) {
+                                                if (activeIndex === 0) {
+                                                    setSelectedPartner(null);
+                                                    setPartnerSearch('');
+                                                } else if (filteredPartners[activeIndex - 1]) {
+                                                    setSelectedPartner(filteredPartners[activeIndex - 1]);
+                                                    setPartnerSearch('');
+                                                }
+                                            } else {
+                                                if (filteredPartners[activeIndex]) {
+                                                    setSelectedPartner(filteredPartners[activeIndex]);
+                                                    setPartnerSearch('');
+                                                }
                                             }
                                             setIsPartnerDropdownOpen(false);
                                             setTimeout(() => searchInputRef.current?.focus(), 50);
@@ -1788,31 +1818,33 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         ref={partnerDropdownRef}
                                     >
                                         <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
-                                            <div
-                                                data-index={0}
-                                                className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
-                                                onMouseEnter={() => setActiveIndex(0)}
-                                                onClick={() => {
-                                                    setIsPartnerHovered(false);
-                                                    setSelectedPartner(null);
-                                                    setPartnerSearch('');
-                                                    setIsPartnerDropdownOpen(false);
-                                                    setTimeout(() => searchInputRef.current?.focus(), 50);
-                                                }}
-                                            >
-                                                <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0", activeIndex === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}>
-                                                    <Truck size={22} strokeWidth={2.5} />
+                                            {!partnerSearch && (
+                                                <div
+                                                    data-index={0}
+                                                    className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
+                                                    onMouseEnter={() => setActiveIndex(0)}
+                                                    onClick={() => {
+                                                        setIsPartnerHovered(false);
+                                                        setSelectedPartner(null);
+                                                        setPartnerSearch('');
+                                                        setIsPartnerDropdownOpen(false);
+                                                        setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                    }}
+                                                >
+                                                    <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0", activeIndex === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}>
+                                                        <Truck size={22} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div className="py-1">
+                                                        <div className={cn("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", activeIndex === 0 ? "text-white" : "text-slate-900 dark:text-white")}>NHÀ CUNG CẤP VÃNG LAI</div>
+                                                        <div className={cn("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", activeIndex === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</div>
+                                                    </div>
                                                 </div>
-                                                <div className="py-1">
-                                                    <div className={cn("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", activeIndex === 0 ? "text-white" : "text-slate-900 dark:text-white")}>NHÀ CUNG CẤP VÃNG LAI</div>
-                                                    <div className={cn("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", activeIndex === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</div>
-                                                </div>
-                                            </div>
+                                            )}
                                             {filteredPartners.map((p, idx) => (
                                                 <div
                                                     key={p.id}
-                                                    data-index={idx + 1}
-                                                    onMouseEnter={() => setActiveIndex(idx + 1)}
+                                                    data-index={partnerSearch ? idx : idx + 1}
+                                                    onMouseEnter={() => setActiveIndex(partnerSearch ? idx : idx + 1)}
                                                     onClick={() => {
                                                         setIsPartnerHovered(false);
                                                         setSelectedPartner(p);
@@ -1820,7 +1852,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                         setIsPartnerDropdownOpen(false);
                                                         setTimeout(() => searchInputRef.current?.focus(), 50);
                                                     }}
-                                                    className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", activeIndex === idx + 1 && "active")}
+                                                    className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", (partnerSearch ? activeIndex === idx : activeIndex === idx + 1) && "active")}
                                                 >
                                                     <div className="flex items-center gap-3.5 min-w-0 pr-3">
                                                         <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", activeIndex === idx + 1 ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] shadow-sm")}>
@@ -2090,6 +2122,35 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             </div>
                                         </button>
 
+                                        {/* Transparent Cart Table Toggle */}
+                                        <button
+                                            onClick={() => {
+                                                const newVal = !transparentCartTable;
+                                                setTransparentCartTable(newVal);
+                                                localStorage.setItem("pos_transparent_cart_table", newVal ? "true" : "false");
+                                                try {
+                                                    const syncChan = new BroadcastChannel('pos_data_sync');
+                                                    syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_transparent_cart_table', value: newVal ? 'true' : 'false' });
+                                                    syncChan.close();
+                                                } catch (e) {}
+                                            }}
+                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 w-full text-left"
+                                        >
+                                            <div className="flex items-center gap-2.5">
+                                                <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                <div className="flex flex-col text-left">
+                                                    <span className="font-black uppercase tracking-tight text-[11px]">Lớp phủ mờ giỏ hàng</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{transparentCartTable ? "bật: lớp kính mờ nổi bật" : "tắt: trong suốt trùng màu nền"}</span>
+                                                </div>
+                                            </div>
+                                            <div className={cn(
+                                                "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
+                                                transparentCartTable ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                            )}>
+                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                            </div>
+                                        </button>
+
                                         {/* Layout Toggle */}
                                         <button
                                             onClick={() => {
@@ -2131,7 +2192,146 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
-                        <div className="flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-sm">
+                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" : "bg-transparent border border-border/30 shadow-none")}>
+                            <AnimatePresence>
+                                {historyLoading && (
+                                    <m.div
+                                        key="purchase-history-sync-overlay"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"
+                                    >
+                                        <div className="relative w-16 h-16 flex items-center justify-center">
+                                            <div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" />
+                                            <div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" />
+                                            <div className="w-9 h-9 flex items-center justify-center relative z-10">
+                                                <img src={LyangLogo} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
+                                                Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
+                                            </span>
+                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">
+                                                Đang đồng bộ dữ liệu...
+                                            </span>
+                                        </div>
+                                    </m.div>
+                                )}
+                            </AnimatePresence>
+                            <AnimatePresence>
+                                {cart.length === 0 && !workingItem.product && !searchTerm && (
+                                    <m.div
+                                        key="purchase-empty-cart-overlay"
+                                        initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                                        className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
+                                    >
+                                        <div className="flex flex-col items-center justify-center max-w-xl w-full mx-auto pointer-events-auto">
+                                            {/* Mascot Header */}
+                                            <div className="flex items-center gap-4 mb-3">
+                                                <m.img
+                                                    src="/assets/images/user_mascot.png"
+                                                    alt="Lyang Mascot"
+                                                    className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
+                                                    draggable="false"
+                                                    initial={{ scale: 0.8, rotate: -6 }}
+                                                    animate={{ scale: 1, rotate: 0 }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                                />
+                                                <div className="flex flex-col text-left">
+                                                    <span className="text-base sm:text-lg font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight">
+                                                        Đơn Nhập Hàng Chưa Có Sản Phẩm
+                                                    </span>
+                                                    <span className="text-xs font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-0.5">
+                                                        Tìm kiếm sản phẩm (F2) hoặc quét mã vạch ở ô trên để nhập kho
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Fully Transparent Shortcut Grid */}
+                                            <div className="w-full">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
+                                                    {/* F2: Tìm kiếm */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
+                                                    </m.div>
+
+                                                    {/* F3: Chọn NCC */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn NCC</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
+                                                    </m.div>
+
+                                                    {/* F4: Tạo phiếu mới */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo phiếu mới</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
+                                                    </m.div>
+
+                                                    {/* F6: Thêm SP mới */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thêm SP mới</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
+                                                    </m.div>
+
+                                                    {/* F8: Lưu tạm phiếu */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm phiếu</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
+                                                    </m.div>
+
+                                                    {/* F12: Lưu / In phiếu */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In phiếu</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
+                                                    </m.div>
+
+                                                    {/* Tab: Chuyển ô */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
+                                                    </m.div>
+
+                                                    {/* Enter: Thêm vào đơn */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào đơn</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
+                                                    </m.div>
+
+                                                    {/* Ctrl+Z: Hoàn tác */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
+                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
+                                                    </m.div>
+
+                                                    {/* Ctrl+Arrow: Đổi phiếu */}
+                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi phiếu</span>
+                                                        <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
+                                                    </m.div>
+                                                </div>
+
+                                                <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
+                                                        <span>Đóng popup / Hủy</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
+                                                        <span>Đổi chế độ nhập</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </m.div>
+                                )}
+                            </AnimatePresence>
                             <div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent">
                                 {/* Subtle wheat grain pattern overlay */}
                                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
@@ -2163,33 +2363,33 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 <col style={{ width: "14%" }} />
                                                 <col style={{ width: "4%" }} />
                                             </colgroup>
-                                            <thead className="bg-transparent backdrop-blur-md sticky top-0 z-[100] print:hidden border-b border-[#8b6f47]/15 dark:border-white/10 shadow-xs">
+                                            <thead className="bg-transparent sticky top-0 z-[100] print:hidden border-b border-border/60">
                                                 <tr className="border-none">
-                                                    <th rowSpan={2} className="py-1.5 px-2 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Stt</th>
-                                                    <th className="px-4 py-1 align-middle whitespace-nowrap">
+                                                    <th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Stt</th>
+                                                    <th className="px-4 py-1.5 align-middle whitespace-nowrap">
                                                         <div className="flex items-center justify-between w-full gap-4">
-                                                            <span className="font-black uppercase tracking-[0.1em] text-[9px] text-slate-500/80 dark:text-slate-400">Danh mục sản phẩm nhập hàng</span>
+                                                            <span className="font-black uppercase tracking-wider text-[10px] text-foreground">Danh mục sản phẩm nhập hàng</span>
                                                         </div>
                                                     </th>
-                                                    <th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-x border-white/10 dark:border-slate-800/20 whitespace-nowrap">Đơn vị</th>
-                                                    <th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Quy đổi</th>
-                                                    <th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Số lượng</th>
-                                                    <th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Giá nhập</th>
-                                                    <th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 whitespace-nowrap">Thành tiền</th>
+                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-x border-border/40 whitespace-nowrap">Đơn vị</th>
+                                                    <th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Quy đổi</th>
+                                                    <th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Số lượng</th>
+                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Giá nhập</th>
+                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 whitespace-nowrap">Thành tiền</th>
                                                     <th rowSpan={2} className="text-center" />
                                                 </tr>
-                                                <tr className="border-t border-slate-200 dark:border-white/10 dark:border-slate-800/20 bg-transparent">
-                                                    <td className="px-4 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">
+                                                <tr className="border-t border-border/40 bg-transparent">
+                                                    <td className="px-4 py-1.5 text-center border-r border-border/40 whitespace-nowrap">
                                                         <div className="flex items-center justify-center gap-1.5">
-                                                            <div className="w-1 h-1 rounded-full bg-primary/40" />
-                                                            <span className="text-[8px] font-black text-slate-400/80 uppercase tracking-widest">{totalItems} items</span>
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                                            <span className="text-[9px] font-black text-primary uppercase tracking-widest">{totalItems} items</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-3 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">
-                                                        <span className="text-xs font-black text-slate-500 tabular-nums">{formatNumber(totalSecondaryQty)}</span>
+                                                    <td className="px-3 py-1.5 text-center border-r border-border/40 whitespace-nowrap">
+                                                        <span className="text-xs font-black text-foreground tabular-nums">{formatNumber(totalSecondaryQty)}</span>
                                                     </td>
-                                                    <td className="px-3 py-1 text-center whitespace-nowrap">
-                                                        <span className="text-xs font-black text-primary/80 tabular-nums">{formatNumber(totalQty)}</span>
+                                                    <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                                                        <span className="text-xs font-black text-primary tabular-nums font-mono">{formatNumber(totalQty)}</span>
                                                     </td>
                                                 </tr>
                                             </thead>
@@ -2225,6 +2425,16 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                                         const val = e.target.value;
                                                                         setSearchTerm(val);
                                                                         setActiveIndex(0);
+                                                                        if (searchInputRef.current) {
+                                                                            const rect = searchInputRef.current.getBoundingClientRect();
+                                                                            if (rect.width > 0 && rect.bottom > 0) {
+                                                                                setWorkingSearchCoords({
+                                                                                    top: rect.bottom + 6,
+                                                                                    left: rect.left,
+                                                                                    width: Math.max(rect.width, 600)
+                                                                                });
+                                                                            }
+                                                                        }
                                                                         // if user edits, clear current product to show dropdown
                                                                         if (workingItem.product && val !== workingItem.name) {
                                                                             setWorkingItem({ ...workingItem, product: null, name: val });
@@ -2305,13 +2515,13 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                             )}
                                                             <Portal>
                                                                 <AnimatePresence>
-                                                                    {searchTerm && !workingItem.product && (
+                                                                    {searchTerm && !workingItem.product && workingSearchCoords.top > 0 && (
                                                                         <m.div
                                                                             initial={{ opacity: 0, y: 8, scale: 0.96 }}
                                                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                                                             exit={{ opacity: 0, y: 8, scale: 0.96 }}
                                                                             transition={{ duration: 0.15 }}
-                                                                            className="dropdown-premium fixed !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                            className="dropdown-premium fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
                                                                                 left: workingSearchCoords.left,
@@ -2431,7 +2641,11 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                                             {searchTerm && filteredProducts.length === 0 && (
                                                                                 <div
                                                                                     className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2"
-                                                                                    onClick={() => { setQuickAddName(searchTerm); setShowQuickAddProduct(true); }}
+                                                                                    onClick={() => {
+                                                                                        setQuickAddName(searchTerm);
+                                                                                        setSearchTerm('');
+                                                                                        setShowQuickAddProduct(true);
+                                                                                    }}
                                                                                 >
                                                                                     <Plus size={16} /> Thêm sản phẩm mới: "{searchTerm}"
                                                                                 </div>
@@ -2597,37 +2811,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 </tr>
 
                                                 <AnimatePresence initial={false}>
-                                                    {historyLoading ? (
+                                                    {cart.map((item, idx) => (
                                                         <m.tr
-                                                            key="loading-skeleton"
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            exit={{ opacity: 0 }}
-                                                            className="w-full border-none bg-transparent"
-                                                        >
-                                                            <td colSpan={8} className="h-[400px] text-center relative align-middle border-none bg-transparent">
-                                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 select-none">
-                                                                    <div className="relative w-16 h-16 flex items-center justify-center">
-                                                                        <div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/20 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" />
-                                                                        <div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" />
-                                                                        <div className="w-9 h-9 flex items-center justify-center relative z-10">
-                                                                            <img src={LyangLogo} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" />
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex flex-col items-center gap-1">
-                                                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
-                                                                            Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
-                                                                        </span>
-                                                                        <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3 py-1 rounded-full bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/15 dark:border-white/10 shadow-xs">
-                                                                            Đang đồng bộ dữ liệu...
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </m.tr>
-                                                    ) : (
-                                                        cart.map((item, idx) => (
-                                                            <m.tr
                                                                 key={`cart-row-${idx}`}
                                                                 layout
                                                                 initial={{ opacity: 0, x: -20 }}
@@ -3265,8 +3450,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                                     </button>
                                                                 </td>
                                                             </m.tr>
-                                                        ))
-                                                    )}
+                                                        ))}
                                                 </AnimatePresence>
                                             </tbody>
                                         </table>
@@ -3668,8 +3852,8 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                         {/* Bottom Summary Panel when in 'bottom' mode */}
                         {summaryLayoutMode === 'bottom' && (
                             <div 
-                                style={{ height: `${bottomSummaryHeight}px`, minHeight: '75px', maxHeight: '320px' }}
-                                className="mt-1 bg-transparent border-0 rounded-[1.8rem] p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between select-none"
+                                style={{ height: `${bottomSummaryHeight}px`, minHeight: '96px', maxHeight: '320px' }}
+                                className="mt-1 bg-transparent border-0 rounded-[1.8rem] p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between overflow-visible select-none"
                             >
                                 {/* Top Drag Handle for Resizing */}
                                 <div
@@ -3704,16 +3888,16 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 }
                                             }}
                                             className={cn(
-                                                "flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card",
+                                                "flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md",
                                                 (selectedPartner?.debt_balance || 0) > 0
-                                                    ? "bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-transparent border-rose-500/30 text-rose-700 dark:text-rose-300 shadow-rose-500/5"
+                                                    ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]"
                                                     : (selectedPartner?.debt_balance || 0) < 0
-                                                        ? "bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-transparent border-emerald-500/30 text-emerald-700 dark:text-emerald-400 shadow-emerald-500/5"
-                                                        : "bg-black/[0.03] dark:bg-white/[0.03] border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40"
+                                                        ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+                                                        : "bg-card/40 hover:bg-card/70 border-border/80 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
                                             )}
                                             title={selectedPartner ? `Xem lịch sử nợ NCC ${selectedPartner.name}` : "Chưa chọn NCC"}
                                         >
-                                            <div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.11] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none">
+                                            <div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none">
                                                 <Wallet size={42} strokeWidth={1.5} />
                                             </div>
                                             <div className="flex items-center justify-between w-full relative z-10 pt-0.5">
@@ -3725,10 +3909,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                         initial={{ opacity: 0, scale: 0.8 }}
                                                         animate={{ opacity: 1, scale: 1 }}
                                                         className={cn(
-                                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal",
+                                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal shadow-sm",
                                                             (selectedPartner.debt_balance || 0) > 0 
-                                                                ? "bg-rose-500 text-white shadow-sm shadow-rose-500/20" 
-                                                                : "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20"
+                                                                ? "bg-rose-500 text-white shadow-rose-500/30" 
+                                                                : "bg-emerald-600 text-white shadow-emerald-600/30"
                                                         )}
                                                     >
                                                         {(selectedPartner.debt_balance || 0) > 0 ? "Khách nợ" : "Mình nợ"}
@@ -3746,7 +3930,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                         ? "text-rose-600 dark:text-rose-400" 
                                                         : (selectedPartner?.debt_balance || 0) < 0 
                                                             ? "text-emerald-600 dark:text-emerald-400" 
-                                                            : "text-slate-400 dark:text-slate-500"
+                                                            : "text-muted-foreground"
                                                 )}
                                             >
                                                 {formatNumber(Math.abs(selectedPartner?.debt_balance || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span>
@@ -3757,7 +3941,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         <div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5">
                                             <button
                                                 onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setToast({ message: 'Vui lòng chọn NCC trước', type: 'warning' })}
-                                                className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] text-[9px] font-black hover:bg-[#8b6f47]/15 dark:hover:bg-white/10 transition-all text-center tracking-wider shadow-sm hover:scale-[1.02] active:scale-[0.98] group/sno"
+                                                className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-border/80 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm"
                                                 title="Lịch sử đơn nhập NCC"
                                             >
                                                 <div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none">
@@ -3768,10 +3952,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             <button
                                                 onClick={() => setIsConsignment(prev => !prev)}
                                                 className={cn(
-                                                    "relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl text-[9px] font-black tracking-wider transition-all text-center shadow-sm hover:scale-[1.02] active:scale-[0.98] group/gk",
+                                                    "relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl text-[9px] font-black tracking-wider transition-all text-center shadow-xs hover:scale-[1.02] active:scale-[0.98] group/gk backdrop-blur-sm",
                                                     isConsignment
-                                                        ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400 shadow-sm shadow-amber-500/20"
-                                                        : "border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] hover:bg-[#8b6f47]/15 dark:hover:bg-white/10"
+                                                        ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                                                        : "border border-border/80 bg-card/40 text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25"
                                                 )}
                                                 title={isConsignment ? "Đang chọn: Đơn hàng gửi kho (Bấm để tắt)" : "Chọn đơn hàng gửi kho (Bấm để bật)"}
                                             >
@@ -3797,10 +3981,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             <button
                                                 onClick={() => { setPaymentMethod('Cash'); setAmountPaid(totalAmount); }}
                                                 className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/cash",
+                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm",
                                                     paymentMethod === 'Cash' 
-                                                        ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-600/30 border border-emerald-500/50" 
-                                                        : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10"
+                                                        ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" 
+                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -3814,10 +3998,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             <button
                                                 onClick={() => { setPaymentMethod('Debt'); setAmountPaid(0); }}
                                                 className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/debt",
+                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm",
                                                     paymentMethod === 'Debt' 
-                                                        ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-rose-600/30 border border-rose-500/50" 
-                                                        : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10"
+                                                        ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60" 
+                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -3831,10 +4015,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                             <button
                                                 onClick={() => setPaymentMethod('Transfer')}
                                                 className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/ck",
+                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm",
                                                     paymentMethod === 'Transfer' 
-                                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30 border border-blue-500/50" 
-                                                        : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10"
+                                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60" 
+                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -3849,7 +4033,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
 
                                         {paymentMethod === 'Transfer' ? (
                                             <CustomSelect
-                                                className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-black/[0.02] dark:bg-white/[0.02] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-sm"
+                                                className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-card/40 border border-border/80 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm"
                                                 value={selectedBankAccountId}
                                                 onChange={(e) => setSelectedBankAccountId(e.target.value)}
                                                 options={bankAccounts.map(acc => ({
@@ -3858,11 +4042,11 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 }))}
                                             />
                                         ) : (
-                                            <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-[#8b6f47]/20 dark:border-white/10 shadow-sm focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/15 group/pay-input transition-all duration-300">
-                                                <div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-[#8b6f47] dark:text-[#d4a574] pointer-events-none -rotate-6 select-none overflow-hidden">
+                                            <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-border/80 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm">
+                                                <div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none overflow-hidden">
                                                     <ReceiptText size={42} strokeWidth={1.5} />
                                                 </div>
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#8b6f47]/70 dark:text-[#d4a574]/70 uppercase tracking-widest pointer-events-none z-10">
+                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-muted-foreground uppercase tracking-widest pointer-events-none z-10">
                                                     Thanh toán:
                                                 </span>
                                                 <input
@@ -3870,7 +4054,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     readOnly={paymentMethod === 'Cash'}
                                                     className={cn(
                                                         "w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10",
-                                                        paymentMethod === 'Cash' ? "text-[#2d5016]/70 dark:text-emerald-400/70 cursor-not-allowed" : "text-[#2d5016] dark:text-emerald-400"
+                                                        paymentMethod === 'Cash' ? "text-primary/70 cursor-not-allowed" : "text-primary"
                                                     )}
                                                     value={formatNumber(amountPaid)}
                                                     onChange={(e) => setAmountPaid(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
@@ -3879,7 +4063,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     <button
                                                         type="button"
                                                         onClick={() => setAmountPaid(totalAmount + (oldDebt < 0 ? Math.abs(oldDebt) : 0))}
-                                                        className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-md transition-all duration-200 active:scale-95 z-30 cursor-pointer"
+                                                        className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-200 active:scale-95 z-30 cursor-pointer"
                                                         title="Thanh toán toàn bộ đơn nhập và nợ cũ"
                                                     >
                                                         Trả hết
@@ -3894,13 +4078,13 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.3, delay: 0.1 }}
-                                        className="md:col-span-3 h-full p-2 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-sm hover:border-[#8b6f47]/40 transition-all duration-300 relative overflow-hidden group/debt-change"
+                                        className="md:col-span-3 h-full p-2 px-3 rounded-2xl bg-card/40 border border-border/80 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
                                     >
                                         <div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none">
                                             <ArrowLeftRight size={48} strokeWidth={1.5} />
                                         </div>
                                         <div className="flex items-center justify-between relative z-10 pt-0.5">
-                                            <span className="text-[9px] font-black text-[#8b6f47]/80 dark:text-[#d4a574]/80 uppercase tracking-wider leading-normal">
+                                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">
                                                 Biến động nợ
                                             </span>
                                             <m.span
@@ -3910,10 +4094,10 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 className={cn(
                                                     "text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal",
                                                     remainingDebt < oldDebt 
-                                                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" 
+                                                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" 
                                                         : remainingDebt > oldDebt 
-                                                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" 
-                                                            : "bg-black/[0.05] dark:bg-white/[0.05] text-slate-500"
+                                                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" 
+                                                            : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
                                                 )}
                                             >
                                                 {remainingDebt < oldDebt ? "+ Tăng nợ" : remainingDebt > oldDebt ? "- Giảm nợ" : "Không đổi"}
@@ -3933,7 +4117,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                             {oldDebt > 0 ? "Khách nợ" : "Mình nợ"}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase shrink-0 leading-normal">Hết nợ</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>
                                                     )}
                                                 </div>
                                                 <m.div
@@ -3941,7 +4125,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     initial={{ opacity: 0, scale: 0.95 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     transition={{ duration: 0.25 }}
-                                                    className={cn("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", oldDebt > 0 ? "text-rose-500 dark:text-rose-400" : oldDebt < 0 ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400")}
+                                                    className={cn("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", oldDebt > 0 ? "text-rose-500 dark:text-rose-400" : oldDebt < 0 ? "text-emerald-500 dark:text-emerald-400" : "text-muted-foreground")}
                                                 >
                                                     {formatNumber(Math.abs(oldDebt))}<span className="text-[9px] font-normal ml-0.5">đ</span>
                                                 </m.div>
@@ -3989,11 +4173,11 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                     >
                                         <div 
                                             onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
-                                            className="flex-1 h-full p-2 px-3.5 rounded-xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.25)] dark:shadow-[0_0_20px_rgba(16,185,129,0.35)] group/total-main"
+                                            className="flex-1 h-full p-2 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main"
                                             title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
                                         >
                                             {/* Subtle glass reflection overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent pointer-events-none" />
+                                            <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" />
                                             <div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none">
                                                 <ShoppingBag size={76} strokeWidth={1.2} />
                                             </div>
@@ -4006,7 +4190,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     initial={{ opacity: 0, scale: 0.8 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     transition={{ duration: 0.2 }}
-                                                    className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/15 text-emerald-100 backdrop-blur-sm"
+                                                    className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]"
                                                 >
                                                     {cart.length} món
                                                 </m.span>
@@ -4016,7 +4200,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                 initial={{ opacity: 0, y: -4, scale: 0.98 }}
                                                 animate={{ opacity: 1, scale: 1 }}
                                                 transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                                className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10"
+                                                className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
                                             >
                                                 {formatNumber(totalAmount)}
                                                 <span className="text-xs font-normal ml-0.5 opacity-90">đ</span>
@@ -4029,7 +4213,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     whileTap={{ scale: 0.95 }}
                                                     disabled={cart.length === 0}
                                                     onClick={handleHold}
-                                                    className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center justify-center border border-[#8b6f47]/25 dark:border-white/10 hover:bg-[#8b6f47]/15 transition-all shadow-sm group/btn-pause"
+                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm"
                                                     title="Tạm đơn [F4]"
                                                 >
                                                     <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none">
@@ -4041,7 +4225,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     whileTap={{ scale: 0.95 }}
                                                     disabled={cart.length === 0 || loading}
                                                     onClick={() => handleSave(false)}
-                                                    className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/25 dark:border-emerald-400/25 hover:bg-emerald-500/15 transition-all shadow-sm group/btn-save"
+                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all shadow-xs group/btn-save backdrop-blur-sm"
                                                     title="Lưu đơn [Ctrl+S]"
                                                 >
                                                     <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none">
@@ -4053,7 +4237,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     whileTap={{ scale: 0.95 }}
                                                     disabled={cart.length === 0 || loading}
                                                     onClick={() => handleSave(true)}
-                                                    className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/40 hover:scale-[1.02] active:scale-95 transition-all group/btn-print"
+                                                    className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print"
                                                     title="Lưu và In hóa đơn [F9]"
                                                 >
                                                     <div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none">
@@ -4069,7 +4253,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                     onClick={() => navigateHistory('prev')}
                                                     whileHover={{ scale: 1.03 }}
                                                     whileTap={{ scale: 0.95 }}
-                                                    className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow transition-all cursor-pointer"
+                                                    className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer"
                                                     title="Xem đơn trước"
                                                 >
                                                     <ChevronLeft size={18} strokeWidth={2.8} />
@@ -4083,7 +4267,7 @@ const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.ge
                                                         "flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all",
                                                         historyStep === 0
                                                             ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed"
-                                                            : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow cursor-pointer"
+                                                            : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer"
                                                     )}
                                                     title="Xem đơn kế tiếp"
                                                 >

@@ -99,7 +99,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                 {active && !isLite && (
                     <m.div
                         layoutId="sidebar-active-pill"
-                        className="absolute inset-0 rounded-2xl bg-[#2d5016]/10 dark:bg-emerald-500/15 backdrop-blur-xl shadow-xs shadow-[#2d5016]/5 z-0"
+                        className="absolute inset-0 rounded-2xl bg-[#2d5016]/10 dark:bg-emerald-500/15 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-white/15 shadow-sm shadow-[#2d5016]/5 z-0"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     />
                 )}
@@ -254,7 +254,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black bg-[#2d5016]/10 dark:bg-emerald-500/15 shadow-xs shadow-[#2d5016]/5"
+                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#8b6f47]/30 dark:border-white/15 shadow-sm shadow-[#2d5016]/5"
                             : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5"),
                     isCollapsed ? "justify-center px-0 mx-4" : ""
                 )}
@@ -1516,9 +1516,8 @@ export default function Layout({ children }) {
             {/* Bottom Actions Cluster */}
             <div 
                 className={cn(
-                    "mb-3 rounded-3xl backdrop-blur-xl transition-all duration-300",
-                    isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2",
-                    "bg-transparent"
+                    "mb-3 backdrop-blur-xl transition-all duration-300 border border-[#8b6f47]/30 dark:border-white/10 bg-white/10 dark:bg-black/10 shadow-sm",
+                    isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2.5"
                 )} 
                 style={isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {}}
             >
@@ -1629,8 +1628,8 @@ export default function Layout({ children }) {
                         color: liteTheme.text
                     } : {}}
                     className={cn(
-                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-[#2d5016]/10 dark:hover:bg-white/10",
-                        isSidebarCollapsed ? "py-2 min-h-[36px]" : "py-3 min-h-[44px]",
+                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-[#2d5016]/10 dark:hover:bg-white/10 border-t border-[#8b6f47]/20 dark:border-white/10 pt-1.5",
+                        isSidebarCollapsed ? "py-1.5 min-h-[34px]" : "py-2.5 min-h-[40px]",
                         isLiteMode ? "" : "text-[#2d5016] dark:text-[#d4a574] hover:opacity-90"
                     )}
                 >

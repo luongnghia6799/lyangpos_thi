@@ -483,9 +483,37 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                                 )}>
                                                                     {formatNumber(order.total_amount || order.total)}
                                                                 </div>
-                                                                <div className="flex flex-col gap-1 transition-all duration-200 opacity-0 scale-90 translate-x-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 w-0 group-hover:w-auto overflow-hidden">
-                                                                    <button onClick={(e) => { e.stopPropagation(); if (order.is_voucher) onEditVoucher && onEditVoucher(order); else onEditOrder && onEditOrder(order); }} className="p-1 bg-white/10 hover:bg-white/20 text-white/40 hover:text-white rounded-md transition-all"><Edit size={10} /></button>
-                                                                    <button onClick={(e) => { e.stopPropagation(); if (order.is_voucher) onDeleteVoucher && onDeleteVoucher(order); else onDeleteOrder && onDeleteOrder(order.id); }} className="p-1 bg-rose-500/10 hover:bg-rose-500/30 text-white/40 hover:text-rose-400 rounded-md transition-all"><Trash2 size={10} /></button>
+                                                                <div className="flex items-center gap-1">
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={(e) => { 
+                                                                            e.stopPropagation(); 
+                                                                            if (order.is_voucher) {
+                                                                                onEditVoucher && onEditVoucher(order);
+                                                                            } else {
+                                                                                onEditOrder && onEditOrder(order);
+                                                                            }
+                                                                        }} 
+                                                                        className="p-1.5 bg-white/10 hover:bg-emerald-500/30 text-white/60 hover:text-emerald-300 rounded-lg transition-all border border-white/10 hover:border-emerald-400/40 shadow-sm"
+                                                                        title="Nạp đơn ra giỏ hàng để sửa"
+                                                                    >
+                                                                        <Edit size={12} strokeWidth={2.5} />
+                                                                    </button>
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={(e) => { 
+                                                                            e.stopPropagation(); 
+                                                                            if (order.is_voucher) {
+                                                                                onDeleteVoucher && onDeleteVoucher(order);
+                                                                            } else {
+                                                                                onDeleteOrder && onDeleteOrder(order.id);
+                                                                            }
+                                                                        }} 
+                                                                        className="p-1.5 bg-rose-500/10 hover:bg-rose-500/30 text-white/50 hover:text-rose-300 rounded-lg transition-all border border-rose-500/20 shadow-sm"
+                                                                        title="Xóa đơn hàng"
+                                                                    >
+                                                                        <Trash2 size={12} strokeWidth={2.5} />
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>

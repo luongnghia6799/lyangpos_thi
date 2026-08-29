@@ -665,15 +665,6 @@ function App() {
                 <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
               </Routes>
             </Suspense>
-
-            {/* Global Ambient Bottom Screen Glow (Dual-Corner Focused Glow) */}
-            {/* Left Corner Neon Beam & Ambient Aura */}
-            <div className="fixed bottom-0 left-0 w-1/3 sm:w-2/5 h-[3px] bg-gradient-to-r from-emerald-400 via-teal-400/70 to-transparent pointer-events-none z-[999999] shadow-[0_-2px_15px_rgba(52,211,153,0.7)]" />
-            <div className="fixed bottom-0 left-0 w-56 sm:w-72 h-16 bg-gradient-to-tr from-emerald-500/35 via-teal-500/15 to-transparent blur-xl pointer-events-none z-[999998] rounded-tr-full" />
-
-            {/* Right Corner Neon Beam & Ambient Aura */}
-            <div className="fixed bottom-0 right-0 w-1/3 sm:w-2/5 h-[3px] bg-gradient-to-l from-amber-400 via-emerald-400/70 to-transparent pointer-events-none z-[999999] shadow-[0_-2px_15px_rgba(251,191,36,0.65)]" />
-            <div className="fixed bottom-0 right-0 w-56 sm:w-72 h-16 bg-gradient-to-tl from-amber-400/35 via-emerald-500/15 to-transparent blur-xl pointer-events-none z-[999998] rounded-tl-full" />
           </Router>
         </MotionConfig>
       </LazyMotion>

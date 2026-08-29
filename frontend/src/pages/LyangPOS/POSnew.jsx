@@ -1216,7 +1216,8 @@ function a0({
     [Rc, zi] = i.useState(!1),
     [Jr, Yr] = i.useState(() => {
       const t = localStorage.getItem("pos_bottom_summary_height");
-      return t ? parseInt(t, 10) : 105;
+      const parsed = t ? parseInt(t, 10) : 105;
+      return Math.max(parsed, 96);
     }),
     [tn, an] = i.useState(!1),
     Ii = t => {
@@ -1225,7 +1226,7 @@ function a0({
         r = Jr,
         s = l => {
           const d = a - l.clientY,
-            o = Math.min(Math.max(r + d, 70), 320);
+            o = Math.min(Math.max(r + d, 96), 320);
           Yr(o);
         },
         n = () => {
@@ -1367,6 +1368,23 @@ function a0({
     [It, Ca] = i.useState(0),
     [Li, os] = i.useState(!1),
     [ds, Sa] = i.useState(!1),
+    [showFloatingMascot, setShowFloatingMascot] = i.useState(() => localStorage.getItem('ui_show_pos_mascot') !== 'false'),
+    [animateMascot, setAnimateMascot] = i.useState(() => localStorage.getItem('ui_mascot_animate') === 'true'),
+    [mascotConfig, setMascotConfig] = i.useState(() => {
+      try {
+        const saved = localStorage.getItem('pos_mascot_config');
+        return saved ? JSON.parse(saved) : { x: 0, y: 0, scale: 1.1 };
+      } catch {
+        return { x: 0, y: 0, scale: 1.1 };
+      }
+    }),
+    savePosMascotConfig = (newCfg) => {
+      setMascotConfig(prev => {
+        const updated = { ...prev, ...newCfg };
+        localStorage.setItem('pos_mascot_config', JSON.stringify(updated));
+        return updated;
+      });
+    },
     [Ta, $i] = i.useState(null),
     [cn, cs] = i.useState(1),
     [ps, vt] = i.useState(!1),
@@ -1578,16 +1596,18 @@ function a0({
       });
       gr(!1), Wa("");
     };
-  i.useEffect(() => {
+  i.useLayoutEffect(() => {
     if (Z && !m?.product && Li) {
       const updateCoords = () => {
         if (se.current) {
           const rect = se.current.getBoundingClientRect();
-          setProductSearchCoords({
-            top: rect.bottom + 6,
-            left: rect.left,
-            width: Math.max(rect.width, 700)
-          });
+          if (rect.width > 0 && rect.bottom > 0) {
+            setProductSearchCoords({
+              top: rect.bottom + 6,
+              left: rect.left,
+              width: Math.max(rect.width, 700)
+            });
+          }
         }
       };
       updateCoords();
@@ -1817,6 +1837,10 @@ function a0({
         showCashGiven: !0,
         showChange: !0
       };
+    }),
+    [transparentCartTable, setTransparentCartTable] = i.useState(() => {
+      const t = localStorage.getItem("pos_transparent_cart_table");
+      return t === null ? true : t === "true";
     });
   i.useEffect(() => {
     localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
@@ -1874,7 +1898,7 @@ function a0({
         queryKey: ["partners"]
       }), E.invalidateQueries({
         queryKey: ["products"]
-      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_block_tab_unit_price" ? setBlockTabPrice(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
+      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_block_tab_unit_price" ? setBlockTabPrice(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_transparent_cart_table" ? setTransparentCartTable(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
         ...r,
         ui_enable_smart_sorting: a.data.value
       }));
@@ -3106,7 +3130,8 @@ function a0({
                       W(!1), Ge(t.target.value), g !== "remote_inspect" && p && F(null), Ue(!0), rs(0);
                     }} onKeyDown={t => {
                       if (t.key === "Escape") t.preventDefault(), W(!1), Ue(!1);else if (t.key === "ArrowDown") t.preventDefault(), W(!1), rs(a => {
-                        const r = Math.min(a + 1, Cr.length),
+                        const maxIdx = yt ? Math.max(0, Cr.length - 1) : Cr.length,
+                          r = Math.min(a + 1, maxIdx),
                           s = xs.current;
                         if (s) {
                           const n = s.querySelector(`[data-index="${r}"]`);
@@ -3126,9 +3151,17 @@ function a0({
                         }
                         return r;
                       });else if (t.key === "Enter") {
-                        if (t.preventDefault(), W(!1), We === 0) g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1);else if (Cr[We - 1]) {
-                          const a = Cr[We - 1];
-                          g === "remote_inspect" ? Aa(a) : F(a), Ge(""), Ue(!1);
+                        if (t.preventDefault(), W(!1), !yt) {
+                          if (We === 0) g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1);
+                          else if (Cr[We - 1]) {
+                            const a = Cr[We - 1];
+                            g === "remote_inspect" ? Aa(a) : F(a), Ge(""), Ue(!1);
+                          }
+                        } else {
+                          if (Cr[We]) {
+                            const a = Cr[We];
+                            g === "remote_inspect" ? Aa(a) : F(a), Ge(""), Ue(!1);
+                          }
                         }
                         setTimeout(() => se.current?.focus(), 50);
                       }
@@ -3177,11 +3210,11 @@ function a0({
                       scale: 0.96
                     }} transition={{
                       duration: 0.15
-                    }} className="absolute top-full left-0 mt-2 dropdown-premium !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5"><x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
+                    }} className="absolute top-full left-0 mt-2 dropdown-premium !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
-                        }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>{Cr.map((t, a) => <x.div key={t.id} data-index={a + 1} onClick={() => {
+                        }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => <x.div key={t.id} data-index={yt ? a : a + 1} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
-                        }} className={c("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", We === a + 1 && "active")}><div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", We === a + 1 ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm")}><Ir size={22} strokeWidth={2.5} /></div><div className="flex flex-col gap-0.5 min-w-0 py-0.5"><div className="flex items-center gap-2 min-w-0"><span className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", We === a + 1 ? "bg-white/20 border-white/40 text-white" : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : t.is_customer ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400")}>{t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"}</span><p className={c("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5", We === a + 1 ? "text-white" : "text-slate-900 dark:text-white")}>{t.name}</p></div><div className={c("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", We === a + 1 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}><span className="flex items-center gap-1 shrink-0"><Jn size={12} strokeWidth={2.5} className="opacity-60" />{t.phone || "---"}</span>{t.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><Yn size={12} strokeWidth={2.5} className="opacity-60" />{t.address}</span>}</div></div></div><div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2"><p className={c("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", We === a + 1 ? "text-white" : (t.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (t.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>{vl(t.debt_balance || 0)}</p><div className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors border", We === a + 1 ? "bg-white/20 border-white/40 text-white" : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50")}>{(t.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (t.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}</div></div></x.div>)}</div>{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-slate-100 dark:border-slate-800 px-4 py-3 cursor-pointer" onClick={() => {
+                        }} className={c("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", (yt ? We === a : We === a + 1) && "active")}><div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", (yt ? We === a : We === a + 1) ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm")}><Ir size={22} strokeWidth={2.5} /></div><div className="flex flex-col gap-0.5 min-w-0 py-0.5"><div className="flex items-center gap-2 min-w-0"><span className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", (yt ? We === a : We === a + 1) ? "bg-white/20 border-white/40 text-white" : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : t.is_customer ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400")}>{t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"}</span><p className={c("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5", (yt ? We === a : We === a + 1) ? "text-white" : "text-slate-900 dark:text-white")}>{t.name}</p></div><div className={c("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", (yt ? We === a : We === a + 1) ? "text-white/80" : "text-slate-500 dark:text-slate-400")}><span className="flex items-center gap-1 shrink-0"><Jn size={12} strokeWidth={2.5} className="opacity-60" />{t.phone || "---"}</span>{t.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><Yn size={12} strokeWidth={2.5} className="opacity-60" />{t.address}</span>}</div></div></div><div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2"><p className={c("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", (yt ? We === a : We === a + 1) ? "text-white" : (t.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (t.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>{vl(t.debt_balance || 0)}</p><div className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors border", (yt ? We === a : We === a + 1) ? "bg-white/20 border-white/40 text-white" : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50")}>{(t.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (t.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}</div></div></x.div>)}</div>{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-slate-100 dark:border-slate-800 px-4 py-3 cursor-pointer" onClick={() => {
                           dn(yt), cr(!0), Ue(!1);
                         }}><div className="flex items-center gap-3"><div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center group-hover/add:rotate-90 transition-transform text-primary shrink-0"><Ot size={18} strokeWidth={3} /></div><div className="py-0.5"><p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-normal">Đối tác mới</p><p className="text-sm font-black uppercase tracking-tight text-primary leading-snug pt-0.5">Tạo nhanh "{yt}"</p></div></div><Dr size={18} strokeWidth={3} className="opacity-40 group-hover/add:translate-x-1 transition-transform" /></div>}</x.div>}</P></div><x.button whileHover={{
                   y: -2,
@@ -3307,6 +3340,17 @@ function a0({
                           }), a.close();
                         } catch {}
                       }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                        const t = !transparentCartTable;
+                        setTransparentCartTable(t), localStorage.setItem("pos_transparent_cart_table", t ? "true" : "false");
+                        try {
+                          const a = new BroadcastChannel("pos_data_sync");
+                          a.postMessage({
+                            type: "UI_SETTING_UPDATED",
+                            key: "pos_transparent_cart_table",
+                            value: t ? "true" : "false"
+                          }), a.close();
+                        } catch {}
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Lớp phủ mờ giỏ hàng</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{transparentCartTable ? "bật: lớp kính mờ nổi bật" : "tắt: trong suốt trùng màu nền"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", transparentCartTable ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
                         Ct(!1), Ci();
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-4 shrink-0"><div className="flex items-center gap-4 ml-auto"><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
@@ -3375,7 +3419,127 @@ function a0({
               type: "spring",
               stiffness: 300,
               damping: 30
-            }} className="flex flex-col min-h-0 flex-1"><div className="flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-sm"><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-auto no-scrollbar-on-empty z-10"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            }} className="flex flex-col min-h-0 flex-1"><div className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" : "bg-transparent border border-border/30 shadow-none")}><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (
+              <x.div
+                key="pos-empty-cart-overlay"
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
+              >
+                <div className="flex flex-col items-center justify-center max-w-xl w-full mx-auto pointer-events-auto">
+                  {/* Mascot Header with soft float */}
+                  <div className="flex items-center gap-4 mb-3">
+                    <x.img
+                      src="/assets/images/user_mascot.png"
+                      alt="Lyang Mascot"
+                      className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
+                      draggable="false"
+                      initial={{ scale: 0.8, rotate: -6 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    />
+                    <div className="flex flex-col text-left">
+                      <span className="text-base sm:text-lg font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight">
+                        Giỏ Hàng Chưa Có Sản Phẩm
+                      </span>
+                      <span className="text-xs font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-0.5">
+                        Gõ tên sản phẩm (F2) hoặc quét mã vạch ở ô trên để bắt đầu tạo đơn
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fully Transparent Shortcut Grid */}
+                  <div className="w-full">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
+                      {/* F2: Tìm kiếm */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
+                      </x.div>
+
+                      {/* F3: Chọn khách */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn khách</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
+                      </x.div>
+
+                      {/* F4: Tạo đơn mới */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo đơn mới</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
+                      </x.div>
+
+                      {/* F6: Món tự do */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Món tự do</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
+                      </x.div>
+
+                      {/* F8: Lưu tạm */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm đơn</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
+                      </x.div>
+
+                      {/* F9: Thanh toán */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thanh toán</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
+                      </x.div>
+
+                      {/* F10: Đọc tiền */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Đọc số tiền</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F10</kbd>
+                      </x.div>
+
+                      {/* F12: Lưu / In */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In đơn</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
+                      </x.div>
+
+                      {/* Tab: Chuyển ô */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
+                      </x.div>
+
+                      {/* Enter: Thêm món */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào giỏ</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
+                      </x.div>
+
+                      {/* Ctrl+Z: Hoàn tác */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
+                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
+                      </x.div>
+
+                      {/* Ctrl+Arrow: Đổi hóa đơn */}
+                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi tab đơn</span>
+                        <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
+                      </x.div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
+                      <div className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
+                        <span>Đóng popup / Hủy</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
+                        <span>Đơn treo / Chờ</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </x.div>
+            )}</P><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-auto no-scrollbar-on-empty z-10"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -3393,7 +3557,7 @@ function a0({
                             width: "14%"
                           }} /><col style={{
                             width: "5%"
-                          }} /></colgroup><thead className="bg-transparent backdrop-blur-md sticky top-0 z-[100] print:hidden border-b border-[#8b6f47]/15 dark:border-white/10 shadow-xs"><tr className="border-none"><th rowSpan={2} className="py-1.5 px-2 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Stt</th><th rowSpan={2} className="py-1.5 px-2 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Soạn</th><th className="px-4 py-1 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full gap-4"><div onClick={t => {
+                          }} /></colgroup><thead className="bg-transparent sticky top-0 z-[100] print:hidden border-b border-border/60"><tr className="border-none"><th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Stt</th><th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Soạn</th><th className="px-4 py-1.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full gap-4"><div onClick={t => {
                                   t.stopPropagation();
                                   const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
                                   Na(r => ({
@@ -3404,32 +3568,32 @@ function a0({
                                     key: "ui_enable_smart_sorting",
                                     value: a
                                   });
-                                }} className="flex items-center gap-3 group/sort-wrapper cursor-pointer shrink-0"><span className="font-black uppercase tracking-[0.1em] text-[9px] text-slate-500/80 dark:text-slate-400 group-hover/sort-wrapper:text-primary transition-colors">Danh mục sản phẩm</span><div className={c("relative w-14 h-5 rounded-lg p-0.5 transition-all duration-500 border", J.ui_enable_smart_sorting === "true" ? "bg-primary/20 border-primary/30 " : "bg-transparent-panel0/10 border-slate-500/20")}><x.div layout={!0} transition={{
+                                }} className="flex items-center gap-3 group/sort-wrapper cursor-pointer shrink-0"><span className="font-black uppercase tracking-wider text-[10px] text-foreground hover:text-primary transition-colors">Danh mục sản phẩm</span><div className={c("relative w-14 h-5 rounded-lg p-0.5 transition-all duration-500 border", J.ui_enable_smart_sorting === "true" ? "bg-primary/20 border-primary/40 shadow-xs" : "bg-black/5 dark:bg-white/10 border-border")}><x.div layout={!0} transition={{
                                       type: "spring",
                                       stiffness: 400,
                                       damping: 30
-                                    }} className={c("absolute inset-y-0.5 w-[55%] rounded-md flex items-center justify-center gap-1  text-[7px] font-black uppercase tracking-tighter transition-all", J.ui_enable_smart_sorting === "true" ? "right-0.5 bg-primary text-white" : "left-0.5 bg-white/40 text-slate-500")}>{J.ui_enable_smart_sorting === "true" ? "AUTO" : "MAN"}</x.div></div></div><div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">{fe.map((t, a) => {
+                                    }} className={c("absolute inset-y-0.5 w-[55%] rounded-md flex items-center justify-center gap-1 text-[7.5px] font-black uppercase tracking-tighter transition-all", J.ui_enable_smart_sorting === "true" ? "right-0.5 bg-primary text-white shadow-xs" : "left-0.5 bg-card text-muted-foreground border border-border/40")}>{J.ui_enable_smart_sorting === "true" ? "AUTO" : "MAN"}</x.div></div></div><div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">{fe.map((t, a) => {
                                     const r = t.id === g,
                                       s = t.id === ne;
                                     return <div className="group/tab relative shrink-0"><button onClick={n => {
                                         n.stopPropagation(), es(t.id);
                                       }} className={`
-                                            relative flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black tracking-widest transition-all border
-                                            ${r ? "bg-primary border-primary text-white shadow-md shadow-primary/10" : "bg-transparent border border-slate-300 dark:border-white/25 text-slate-600 dark:text-slate-300 hover:border-primary dark:hover:border-emerald-400 hover:bg-black/5 dark:hover:bg-white/5"}
-                                          `}>{s && <span className="flex items-end gap-[1.5px] h-2.5 mr-1.5 pb-[1px] shrink-0"><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
+                                            relative flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black tracking-wider transition-all border
+                                            ${r ? "bg-primary border-primary text-white shadow-sm" : "bg-transparent border-border/80 text-foreground/80 hover:border-primary hover:text-primary hover:bg-primary/5"}
+                                          `}>{s && <span className="flex items-end gap-[1.5px] h-2.5 mr-1 pb-[1px] shrink-0"><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "40%"
                                           }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "70%"
                                           }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
                                             height: "100%"
-                                          }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${r ? "text-white/50" : "text-slate-400/50"}`} onClick={n => {
+                                          }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${r ? "text-white/70" : "text-muted-foreground"}`} onClick={n => {
                                           n.stopPropagation(), Ei(t.id, n);
                                         }}>✕</span>}</button>{!s && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50"><button onClick={n => {
                                           n.stopPropagation(), me(t.id);
                                         }} className="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded-lg shadow-xl flex items-center gap-0.5 hover:bg-blue-600 transition-colors border border-white/20">Ghim quét</button></div>}</div>;
                                   })}{q && <div className="group/tab relative shrink-0"><button onClick={t => {
                                       t.stopPropagation(), f("remote_inspect");
-                                    }} className={`relative flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black tracking-widest transition-all border cursor-pointer ${g === "remote_inspect" ? "bg-emerald-600 border-emerald-600 text-white shadow-none" : "bg-transparent border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-none"}`}><Comp_go size={12} className="mr-1 shrink-0 text-inherit" /><span className="font-extrabold flex items-center gap-0.5 text-inherit">.{(() => {
+                                    }} className={`relative flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wider transition-all border cursor-pointer ${g === "remote_inspect" ? "bg-emerald-600 border-emerald-600 text-white shadow-none" : "bg-transparent border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-none"}`}><Comp_go size={12} className="mr-1 shrink-0 text-inherit" /><span className="font-extrabold flex items-center gap-0.5 text-inherit">.{(() => {
                                           const t = k?.ip_address || (q.includes(".") ? q : "");
                                           if (!t) return "LOCAL";
                                           const a = t.split(".");
@@ -3438,9 +3602,9 @@ function a0({
                                         t.stopPropagation(), br(null), g === "remote_inspect" && f(fe[0]?.id || "tab1");
                                       }}>✕</span></button></div>}{fe.length < 5 && <button onClick={t => {
                                     t.stopPropagation(), Pi();
-                                  }} className="w-5 h-5 flex items-center justify-center bg-transparent border border-dashed border-black/25 dark:border-white/25 rounded-md text-slate-400 hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[9px]" title="Thêm đơn mới">＋</button>}<div className="relative shrink-0 ml-2 pl-2 border-l border-slate-300 dark:border-white/25"><button ref={bs} onClick={t => {
+                                  }} className="w-6 h-6 flex items-center justify-center bg-transparent border border-dashed border-border/80 hover:border-primary rounded-xl text-foreground/70 hover:text-primary hover:bg-primary/5 transition-all text-xs font-bold" title="Thêm đơn mới">＋</button>}<div className="relative shrink-0 ml-2 pl-2 border-l border-border/50"><button ref={bs} onClick={t => {
                                       t.stopPropagation(), Ma(!Zt);
-                                    }} className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-none border-none bg-transparent ${Zt || q ? "text-emerald-500" : "text-slate-500 dark:text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/10"}`} title={(() => {
+                                    }} className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-none border-none bg-transparent ${Zt || q ? "text-emerald-500" : "text-foreground/70 hover:text-emerald-500 hover:bg-emerald-500/10"}`} title={(() => {
                                       const t = new Set();
                                       return `Giám sát máy trạm (${hr.filter(r => {
                                         const s = r.ip_address || r.terminal_id;
@@ -3484,7 +3648,7 @@ function a0({
                                             left: "100px",
                                             zIndex: 99999
                                           };
-                                        })()} className="w-[340px] bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-3.5 space-y-3 text-slate-900 dark:text-slate-100 ring-1 ring-black/5 dark:ring-white/5" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-400"><div className="flex items-center gap-1.5"><Comp_qr size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
+                                        })()} className="w-[340px] bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3.5 space-y-3 text-foreground ring-1 ring-border" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-border flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"><div className="flex items-center gap-1.5"><Comp_qr size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-muted-foreground hover:text-rose-500 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
                                               const t = new Set(),
                                                 a = [],
                                                 r = [...hr].sort((s, n) => {
@@ -3496,24 +3660,34 @@ function a0({
                                                 const n = s.ip_address || s.terminal_id;
                                                 n && !t.has(n) && (t.add(n), a.push(s));
                                               }
-                                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-slate-400">Không tìm thấy máy trạm nào online</div> : a.map(s => {
+                                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Không tìm thấy máy trạm nào online</div> : a.map(s => {
                                                 const n = q === s.terminal_id,
                                                   l = s.total_items || (s.cart ? s.cart.reduce((u, h) => u + (h.quantity || 1), 0) : 0),
                                                   d = (s.terminal_id || "").includes("Mobile") || (s.current_page || "").includes("Mobile"),
                                                   o = s.total_amount || 0;
-                                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 dark:border-emerald-400 text-slate-900 dark:text-emerald-200 shadow-md shadow-emerald-500/5" : "bg-slate-50/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
+                                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 text-foreground shadow-md shadow-emerald-500/5" : "bg-card/60 border-border hover:bg-card")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
                                                     br(s.terminal_id), Ma(!1), f("remote_inspect");
-                                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500")}>{d ? <Rs size={16} /> : <Comp_qr size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-slate-900 dark:text-slate-100">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
+                                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-card border-border text-muted-foreground")}>{d ? <Rs size={16} /> : <Comp_qr size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-foreground">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-muted-foreground truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
                                                     u.stopPropagation(), hn(s.cart);
                                                   }} className="p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs" title="Sao chép nhanh giỏ hàng từ máy này"><Pn size={13} /></button></div>;
                                               });
-                                            })()}</div></x.div></Fn> : null}</P></div></div></div></th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-x border-white/10 dark:border-slate-800/20 whitespace-nowrap">Đơn vị</th><th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Quy đổi</th><th className="py-1.5 px-3 text-center font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Số lượng</th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap">Đơn giá</th><th rowSpan={2} className="py-1.5 px-3 text-center align-middle font-black uppercase text-[9px] tracking-widest text-slate-400 whitespace-nowrap">Thành tiền</th><th rowSpan={2} className="text-center" /></tr><tr className="border-t border-slate-200 dark:border-white/10 dark:border-slate-800/20 bg-transparent"><td className="px-4 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><div className="w-1 h-1 rounded-full bg-primary/40" /><span className="text-[8px] font-black text-slate-400/80 uppercase tracking-widest">{ll} items</span></div></td><td className="px-3 py-1 text-center border-r border-white/10 dark:border-slate-800/20 whitespace-nowrap"><span className="text-xs font-black text-slate-500 tabular-nums">{z(dl)}</span></td><td className="px-3 py-1 text-center whitespace-nowrap"><span className="text-xs font-black text-primary/80 tabular-nums">{z(ol)}</span></td></tr></thead><tbody className="divide-none"><tr className="bg-transparent sticky top-[60px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row" onDoubleClick={() => {
+                                            })()}</div></x.div></Fn> : null}</P></div></div></div></th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-x border-border/40 whitespace-nowrap">Đơn vị</th><th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Quy đổi</th><th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Số lượng</th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Đơn giá</th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 whitespace-nowrap">Thành tiền</th><th rowSpan={2} className="text-center" /></tr><tr className="border-t border-border/40 bg-transparent"><td className="px-4 py-1.5 text-center border-r border-border/40 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-primary" /><span className="text-[9px] font-black text-primary uppercase tracking-widest">{ll} items</span></div></td><td className="px-3 py-1.5 text-center border-r border-border/40 whitespace-nowrap"><span className="text-xs font-black text-foreground tabular-nums">{z(dl)}</span></td><td className="px-3 py-1.5 text-center whitespace-nowrap"><span className="text-xs font-black text-primary tabular-nums font-mono">{z(ol)}</span></td></tr></thead><tbody className="divide-none"><tr className="bg-transparent sticky top-[60px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row" onDoubleClick={() => {
                             m.product && (Vt(m.product), vt(!0));
                           }}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
                             }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-3 px-2 text-center cursor-pointer select-none rounded-l-xl group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs hover:shadow-md hover:shadow-primary/20"><Nd size={16} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td className="py-3 px-2 w-12 min-w-[48px] max-w-[48px] text-center"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs"><Ot size={18} strokeWidth={2.5} /></div></td><td className="py-4 px-2 relative w-[540px] min-w-[540px] max-w-[540px]"><div className="relative group/search flex items-center gap-2"><div className="relative flex-1"><div className="relative"><div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={20} strokeWidth={3} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-auto py-2.5 pl-12 pr-16 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl font-black text-slate-800 dark:text-white outline-none transition-all focus:border-primary/50 dark:focus:border-emerald-500/50 focus:ring-4 focus:ring-primary/10 dark:focus:ring-emerald-500/10 focus:bg-transparent leading-relaxed placeholder:normal-case placeholder:leading-relaxed" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
                                       ae(a), Ft(0), os(!0);
+                                      if (se.current) {
+                                        const rect = se.current.getBoundingClientRect();
+                                        if (rect.width > 0 && rect.bottom > 0) {
+                                          setProductSearchCoords({
+                                            top: rect.bottom + 6,
+                                            left: rect.left,
+                                            width: Math.max(rect.width, 700)
+                                          });
+                                        }
+                                      }
                                       if (!a || a.trim() === "") {
                                         He({
                                           product: null,
@@ -3630,8 +3804,8 @@ function a0({
                                   La(!0), $a({
                                     name: "",
                                     price: ""
-                                  }), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-9 px-2.5 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-5 h-5 rounded-lg bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={13} strokeWidth={3} /></div><div className="px-1.5 py-0.5 rounded-md bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[8px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && Li && <x.div key="pos-product-dropdown" initial={{
+                                  }), ae(""), setTimeout(() => ys.current?.focus(), 100);
+                                }} tabIndex={-1} className="h-9 px-2.5 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-5 h-5 rounded-lg bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={13} strokeWidth={3} /></div><div className="px-1.5 py-0.5 rounded-md bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[8px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && Li && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
                                   y: -5
                                 }} animate={{
@@ -3642,7 +3816,7 @@ function a0({
                                   y: -5
                                 }} transition={{
                                   duration: 0.15
-                                }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
+                                }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
                                   backgroundColor: Mt.glassBg,
                                   top: productSearchCoords.top,
                                   left: productSearchCoords.left,
@@ -3757,17 +3931,7 @@ function a0({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa dòng"><Comp_ke size={20} /></button>}</td></tr><P initial={!1}>{fn && <x.tr key="loading-skeleton" className="w-full border-none bg-transparent" initial={{
-                              opacity: 0
-                            }} animate={{
-                              opacity: 1
-                            }} exit={{
-                              opacity: 0,
-                              scale: 0.95,
-                              transition: {
-                                duration: 0.2
-                              }
-                            }}><td colSpan={9} className="h-[400px] text-center relative align-middle border-none bg-transparent"><div className="absolute inset-0 flex flex-col items-center justify-center gap-3.5 select-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/20 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3 py-1 rounded-full bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/15 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></div></td></x.tr>}{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout={!0} initial={{
+                                }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa dòng"><Comp_ke size={20} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout={!0} initial={{
                               opacity: 0,
                               x: -20
                             }} animate={{
@@ -4245,9 +4409,9 @@ function a0({
                 return <div style={{
                   minHeight: `${Jr}px`,
                   height: `${Jr}px`
-                }} className={c("relative mt-1 bg-transparent border-0 rounded-[1.5rem] p-1 shadow-none shrink-0 no-print flex flex-col justify-center overflow-hidden transition-[height] duration-75", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
+                }} className={c("relative mt-1 bg-transparent border-0 rounded-[1.5rem] p-1 shadow-none shrink-0 no-print flex flex-col justify-center overflow-visible transition-[height] duration-75", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
                     Yr(105), localStorage.setItem("pos_bottom_summary_height", "105");
-                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch w-full h-full"><x.div initial={{
+                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch w-full h-full"><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4255,15 +4419,15 @@ function a0({
                       y: 0
                     }} transition={{
                       duration: 0.3
-                    }} className="md:col-span-2 flex flex-col justify-between gap-1.5 min-w-0 h-full"><div onClick={() => {
+                    }} className="md:col-span-2 flex flex-col justify-between gap-1 min-w-0 h-full"><div onClick={() => {
                         a ? kt(!0) : zt.current?.focus();
-                      }} className={c("flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card", s > 0 ? "bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-transparent border-rose-500/30 text-rose-700 dark:text-rose-300 shadow-rose-500/5" : s < 0 ? "bg-gradient-to-br from-emerald-500/15 via-emerald-500/10 to-transparent border-emerald-500/30 text-emerald-700 dark:text-emerald-400 shadow-emerald-500/5" : "bg-black/[0.03] dark:bg-white/[0.03] border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40")} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.11] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">Dư nợ</span>{a && s !== 0 && <x.span initial={{
+                      }} className={c("flex-1 min-h-[34px] relative overflow-hidden p-1 px-2.5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md", s > 0 ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]" : s < 0 ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "bg-card/40 hover:bg-card/70 border-border/80 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20")} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">Dư nợ</span>{a && s !== 0 && <x.span initial={{
                             opacity: 0,
                             scale: 0.8
                           }} animate={{
                             opacity: 1,
                             scale: 1
-                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal", s > 0 ? "bg-rose-500 text-white shadow-sm shadow-rose-500/20" : "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><x.div key={Math.abs(s || 0)} initial={{
+                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal shadow-sm", s > 0 ? "bg-rose-500 text-white shadow-rose-500/30" : "bg-emerald-600 text-white shadow-emerald-600/30")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><x.div key={Math.abs(s || 0)} initial={{
                           opacity: 0,
                           y: -3
                         }} animate={{
@@ -4271,7 +4435,7 @@ function a0({
                           y: 0
                         }} transition={{
                           duration: 0.25
-                        }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 transition-colors duration-300 relative z-10", s > 0 ? "text-rose-600 dark:text-rose-400" : s < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span></x.div></div><div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5"><button onClick={() => ja(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] text-[9px] font-black hover:bg-[#8b6f47]/15 dark:hover:bg-white/10 transition-all text-center tracking-wider shadow-sm hover:scale-[1.02] active:scale-[0.98] group/sno" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] text-[9px] font-black hover:bg-[#8b6f47]/15 dark:hover:bg-white/10 transition-all text-center tracking-wider shadow-sm hover:scale-[1.02] active:scale-[0.98] group/thuchi" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
+                        }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 transition-colors duration-300 relative z-10", s > 0 ? "text-rose-600 dark:text-rose-400" : s < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span></x.div></div><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch gap-1"><button onClick={() => ja(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-border/80 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-border/80 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/thuchi backdrop-blur-sm" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4280,7 +4444,7 @@ function a0({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.05
-                    }} className="md:col-span-3 flex flex-col justify-between gap-1.5 h-full"><div className="flex-1 min-h-[30px] max-h-9 flex items-stretch w-full gap-1.5"><button onClick={() => {
+                    }} className="md:col-span-3 flex flex-col justify-between gap-1 h-full"><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch w-full gap-1"><button onClick={() => {
                           g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
                             ...w,
                             payment_method: "Cash"
@@ -4289,7 +4453,7 @@ function a0({
                             payment_method: "Cash",
                             cart: k?.cart || []
                           }).catch(() => {})) : (ge("Cash"), re($));
-                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/cash", n === "Cash" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-600/30 border border-emerald-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none", n === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Do size={34} strokeWidth={1.8} /></div><span className="relative z-10">TIỀN MẶT</span></button><button onClick={() => {
+                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm", n === "Cash" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none", n === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Do size={34} strokeWidth={1.8} /></div><span className="relative z-10">TIỀN MẶT</span></button><button onClick={() => {
                           g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
                             ...w,
                             payment_method: "Debt"
@@ -4298,10 +4462,10 @@ function a0({
                             payment_method: "Debt",
                             cart: k?.cart || []
                           }).catch(() => {})) : (ge("Debt"), re(0));
-                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/debt", n === "Debt" ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-rose-600/30 border border-rose-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none", n === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Po size={34} strokeWidth={1.8} /></div><span className="relative z-10">CÔNG NỢ</span></button><button onClick={() => ge("Transfer")} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer group/ck", n === "Transfer" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-600/30 border border-blue-500/50" : "bg-black/[0.03] dark:bg-white/[0.03] text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/15 dark:hover:bg-white/10")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none", n === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Es size={34} strokeWidth={1.8} /></div><span className="relative z-10">C/K</span></button></div>{n === "Transfer" ? <Comp_zn className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-black/[0.02] dark:bg-white/[0.02] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-sm" value={ss} onChange={S => ns(S.target.value)} options={ln.map(S => ({
+                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm", n === "Debt" ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60" : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none", n === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Po size={34} strokeWidth={1.8} /></div><span className="relative z-10">CÔNG NỢ</span></button><button onClick={() => ge("Transfer")} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm", n === "Transfer" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60" : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none", n === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Es size={34} strokeWidth={1.8} /></div><span className="relative z-10">C/K</span></button></div>{n === "Transfer" ? <Comp_zn className="flex-1 min-h-[30px] max-h-10 w-full p-1 bg-card/40 border border-border/80 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm" value={ss} onChange={S => ns(S.target.value)} options={ln.map(S => ({
                         value: S.id,
                         label: `${S.bank_name} - ${S.account_number}`
-                      }))} /> : <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-[#8b6f47]/20 dark:border-white/10 shadow-sm focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/15 group/pay-input transition-all duration-300"><div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-[#8b6f47] dark:text-[#d4a574] pointer-events-none -rotate-6 select-none overflow-hidden"><Comp_ca size={42} strokeWidth={1.5} /></div><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-[#8b6f47]/70 dark:text-[#d4a574]/70 uppercase tracking-widest pointer-events-none z-10">Thanh toán:</span><input type="text" readOnly={n === "Cash" || n === "Pending" || g === "remote_inspect"} className={c("w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10", n === "Cash" || n === "Pending" || g === "remote_inspect" ? "text-[#2d5016]/70 dark:text-emerald-400/70 cursor-not-allowed" : "text-[#2d5016] dark:text-emerald-400")} value={z(o)} onChange={S => re(parseFloat(S.target.value.replace(/,/g, "")) || 0)} />{g !== "remote_inspect" && (n === "Debt" || n === "Transfer" || n === "Combined" || I === "Debt" || I === "Transfer") && <button type="button" onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-md transition-all duration-200 active:scale-95 z-30 cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</button>}</div>}</x.div><x.div initial={{
+                      }))} /> : <div className="flex-1 min-h-[30px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-border/80 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm"><div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none overflow-hidden"><Comp_ca size={42} strokeWidth={1.5} /></div><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-muted-foreground uppercase tracking-widest pointer-events-none z-10">Thanh toán:</span><input type="text" readOnly={n === "Cash" || n === "Pending" || g === "remote_inspect"} className={c("w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10", n === "Cash" || n === "Pending" || g === "remote_inspect" ? "text-primary/70 cursor-not-allowed" : "text-primary")} value={z(o)} onChange={S => re(parseFloat(S.target.value.replace(/,/g, "")) || 0)} />{g !== "remote_inspect" && (n === "Debt" || n === "Transfer" || n === "Combined" || I === "Debt" || I === "Transfer") && <button type="button" onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-200 active:scale-95 z-30 cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</button>}</div>}</x.div><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4310,19 +4474,19 @@ function a0({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.1
-                    }} className="md:col-span-3 h-full p-2 px-3 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-sm hover:border-[#8b6f47]/40 transition-all duration-300 relative overflow-hidden group/debt-change"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-[#8b6f47]/80 dark:text-[#d4a574]/80 uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <x.span initial={{
+                    }} className="md:col-span-3 h-full p-1.5 px-3 rounded-2xl bg-card/40 border border-border/80 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <x.span initial={{
                           opacity: 0,
                           scale: 0.85
                         }} animate={{
                           opacity: 1,
                           scale: 1
-                        }} className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 leading-normal">Thối lại</x.span> : <x.span key={b > h ? "up" : b < h ? "down" : "same"} initial={{
+                        }} className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] leading-normal">Thối lại</x.span> : <x.span key={b > h ? "up" : b < h ? "down" : "same"} initial={{
                           opacity: 0,
                           scale: 0.85
                         }} animate={{
                           opacity: 1,
                           scale: 1
-                        }} className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal", b > h ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : b < h ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-black/[0.05] dark:bg-white/[0.05] text-slate-500")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</x.span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase shrink-0 leading-normal">Hết nợ</span>}</div><x.div key={Math.abs(h)} initial={{
+                        }} className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal", b > h ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : b < h ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</x.span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>}</div><x.div key={Math.abs(h)} initial={{
                             opacity: 0,
                             scale: 0.95
                           }} animate={{
@@ -4330,7 +4494,7 @@ function a0({
                             scale: 1
                           }} transition={{
                             duration: 0.25
-                          }} className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-slate-400")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><x.div key={u > l ? Math.max(0, u - l) : Math.abs(b)} initial={{
+                          }} className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-muted-foreground")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><x.div key={u > l ? Math.max(0, u - l) : Math.abs(b)} initial={{
                             opacity: 0,
                             scale: 0.95
                           }} animate={{
@@ -4347,7 +4511,7 @@ function a0({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.15
-                    }} className="md:col-span-4 flex items-stretch gap-2 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-2 px-3.5 rounded-xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.25)] dark:shadow-[0_0_20px_rgba(16,185,129,0.35)] group/total-main" title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
+                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
                             opacity: 0,
                             scale: 0.8
                           }} animate={{
@@ -4355,7 +4519,7 @@ function a0({
                             scale: 1
                           }} transition={{
                             duration: 0.2
-                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/15 text-emerald-100 backdrop-blur-sm">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
+                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
                           opacity: 0,
                           y: -4,
                           scale: 0.98
@@ -4367,9 +4531,9 @@ function a0({
                           type: "spring",
                           stiffness: 450,
                           damping: 25
-                        }} className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></x.div></div><div className="flex flex-col justify-between gap-1.5 shrink-0 min-w-[140px] h-full"><div className="flex-1 min-h-[32px] max-h-11 flex items-stretch gap-1.5 justify-between"><x.button whileTap={{
+                        }} className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></x.div></div><div className="flex flex-col justify-between gap-1 shrink-0 min-w-[135px] h-full"><div className="flex-1 min-h-[28px] max-h-11 flex items-stretch gap-1 justify-between"><x.button whileTap={{
                             scale: 0.95
-                          }} disabled={d === 0 || g === "remote_inspect"} onClick={wr} className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center justify-center border border-[#8b6f47]/25 dark:border-white/10 hover:bg-[#8b6f47]/15 transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause" title="Tạm đơn [F4]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none"><Comp_jt size={28} strokeWidth={1.8} /></div><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" /></x.button><x.button whileTap={{
+                          }} disabled={d === 0 || g === "remote_inspect"} onClick={wr} className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm" title="Tạm đơn [F4]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none"><Comp_jt size={28} strokeWidth={1.8} /></div><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" /></x.button><x.button whileTap={{
                             scale: 0.95
                           }} disabled={d === 0 || Be} onClick={() => {
                             g === "remote_inspect" ? et({
@@ -4386,7 +4550,7 @@ function a0({
                                 });
                               }
                             }) : Re(!1);
-                          }} className="relative overflow-hidden flex-1 h-full bg-black/[0.04] dark:bg-white/[0.04] text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/25 dark:border-emerald-400/25 hover:bg-emerald-500/15 transition-all shadow-sm group/btn-save" title="Lưu đơn [Ctrl+S]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none"><Er size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <Er size={16} strokeWidth={2.5} className="relative z-10" />}</x.button><x.button whileTap={{
+                          }} className="relative overflow-hidden flex-1 h-full bg-card/40 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all shadow-xs group/btn-save backdrop-blur-sm" title="Lưu đơn [Ctrl+S]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none"><Er size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <Er size={16} strokeWidth={2.5} className="relative z-10" />}</x.button><x.button whileTap={{
                             scale: 0.95
                           }} disabled={d === 0 || Be} onClick={() => {
                             g === "remote_inspect" ? et({
@@ -4403,15 +4567,15 @@ function a0({
                                 });
                               }
                             }) : Re(!0);
-                          }} className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-600/30 hover:shadow-emerald-600/50 border border-emerald-400/40 hover:scale-[1.02] active:scale-95 transition-all group/btn-print" title="Lưu và In hóa đơn [F9]"><div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none"><Fa size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <Fa size={17} strokeWidth={2.5} className="relative z-10" />}</x.button></div><div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full"><x.button onClick={() => na("prev")} whileHover={{
+                          }} className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print" title="Lưu và In hóa đơn [F9]"><div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none"><Fa size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <Fa size={17} strokeWidth={2.5} className="relative z-10" />}</x.button></div><div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full"><x.button onClick={() => na("prev")} whileHover={{
                             scale: 1.03
                           }} whileTap={{
                             scale: 0.95
-                          }} className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow transition-all cursor-pointer" title="Xem đơn trước"><Comp_qs size={18} strokeWidth={2.8} /></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileHover={Ce === 0 ? {} : {
+                          }} className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer" title="Xem đơn trước"><Comp_qs size={18} strokeWidth={2.8} /></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileHover={Ce === 0 ? {} : {
                             scale: 1.03
                           }} whileTap={Ce === 0 ? {} : {
                             scale: 0.95
-                          }} className={c("flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all", Ce === 0 ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed" : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow cursor-pointer")} title="Xem đơn kế tiếp"><Dr size={18} strokeWidth={2.8} /></x.button></div></div></x.div></div></div>;
+                          }} className={c("flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all", Ce === 0 ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed" : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer")} title="Xem đơn kế tiếp"><Dr size={18} strokeWidth={2.8} /></x.button></div></div></x.div></div></div>;
               })()}</x.div>{Ze === "sidebar" && <x.div initial={!1} animate={{
               width: ka ? "360px" : "90px"
             }} transition={{

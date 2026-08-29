@@ -16,6 +16,17 @@ import CategoryManager from '../../components/CategoryManager';
 import SidebarManager from '../../components/SidebarManager';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
+import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
+import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
+import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';
+import presetMarketIllustration from '../../assets/wallpapers/preset_market_illustration.jpg';
+
+const WALLPAPER_PRESETS = [
+    { id: 1, name: "Signature Lyang", path: preset1Signature, desc: "Tối giản ấm cúng" },
+    { id: 2, name: "Cafe Latte", path: preset2Latte, desc: "Cà phê & Trà" },
+    { id: 3, name: "Nông Trại Xanh (Vector)", path: presetFarmIllustration, desc: "Đồi xanh & Xe táo" },
+    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" }
+];
 
 export default function Settings() {
     const [settings, setSettings] = useState({
@@ -1085,6 +1096,7 @@ export default function Settings() {
                                         <div className="flex items-center gap-1.5 p-1 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-900/10 dark:border-slate-800 self-start sm:self-auto overflow-x-auto no-scrollbar">
                                             {[
                                                 { id: 'sidebar', label: 'Menu Sidebar', icon: Layers, desc: 'Ẩn/hiện các trang' },
+                                                { id: 'wallpaper', label: 'Hình Nền App', icon: Sparkles, desc: '11 Presets & Tùy chỉnh' },
                                                 { id: 'general', label: 'Mascot & Hệ thống', icon: Monitor, desc: 'Con trỏ, Mascot, Kế toán' },
                                                 { id: 'categories', label: 'Ngành hàng', icon: Leaf, desc: 'Danh mục Categories' },
                                             ].map(sub => {
@@ -1114,6 +1126,90 @@ export default function Settings() {
                                     {uiSubTab === 'sidebar' && (
                                         <div className="animate-[fadeIn_0.2s_ease-out]">
                                             <SidebarManager onToast={setToast} onUpdateSetting={updateSetting} />
+                                        </div>
+                                    )}
+
+                                    {/* SUBTAB: WALLPAPER MANAGER */}
+                                    {uiSubTab === 'wallpaper' && (
+                                        <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+                                            <div className="p-6 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/5 dark:border-slate-700 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-sm font-black uppercase tracking-wide text-gray-800 dark:text-emerald-300 flex items-center gap-2">
+                                                            <Sparkles size={16} className="text-amber-500" />
+                                                            Bộ sưu tập 11 Hình Nền LyangPOS Chính Thức
+                                                        </h3>
+                                                        <p className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest mt-0.5">
+                                                            Thiết kế độc quyền, tối ưu hoàn hảo cho cả Light & Dark Mode
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            localStorage.removeItem("pos_cart_wallpaper");
+                                                            window.dispatchEvent(new Event("app_wallpaper_changed"));
+                                                            setToast({ message: "Đã xóa hình nền, dùng giao diện mặc định", type: "info" });
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                        Gỡ hình nền
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                                                    {WALLPAPER_PRESETS.map((preset) => (
+                                                        <button
+                                                            key={preset.id}
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const response = await fetch(preset.path);
+                                                                    const blob = await response.blob();
+                                                                    const reader = new FileReader();
+                                                                    reader.onloadend = () => {
+                                                                        const base64 = reader.result;
+                                                                        const config = {
+                                                                            image: base64,
+                                                                            size: 'cover',
+                                                                            position: 'center',
+                                                                            opacity: 90,
+                                                                            blur: 0,
+                                                                            glassBlur: 8,
+                                                                            glassOpacity: 15
+                                                                        };
+                                                                        localStorage.setItem("pos_cart_wallpaper", JSON.stringify(config));
+                                                                        window.dispatchEvent(new Event("app_wallpaper_changed"));
+                                                                        setToast({ message: `Đã áp dụng hình nền: ${preset.name}`, type: "success" });
+                                                                    };
+                                                                    reader.readAsDataURL(blob);
+                                                                } catch (err) {
+                                                                    console.error('Error setting preset wallpaper:', err);
+                                                                    setToast({ message: "Lỗi khi áp dụng hình nền", type: "error" });
+                                                                }
+                                                            }}
+                                                            className="group/preset relative flex flex-col p-2 rounded-2xl border border-emerald-900/10 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 hover:border-emerald-500 transition-all cursor-pointer shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-98 text-left"
+                                                        >
+                                                            <div className="w-full h-24 rounded-xl overflow-hidden border border-black/5 dark:border-white/5 relative mb-2">
+                                                                <img 
+                                                                    src={preset.path} 
+                                                                    alt={preset.name} 
+                                                                    className="w-full h-full object-cover group-hover/preset:scale-105 transition-transform duration-300"
+                                                                />
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-2">
+                                                                    <span className="text-[9px] font-black text-white uppercase tracking-wider">Áp dụng ngay ✓</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="font-black text-xs text-gray-800 dark:text-emerald-100 truncate">
+                                                                {preset.name}
+                                                            </div>
+                                                            <div className="text-[9px] font-bold text-gray-400 dark:text-slate-400 truncate">
+                                                                {preset.desc}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
@@ -1157,25 +1253,26 @@ export default function Settings() {
                                                                 <Bot size={18} />
                                                             </div>
                                                             <div className="min-w-0">
-                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Trợ lý ảo Doraemon</div>
-                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Trợ giúp trực quan mọi trang</div>
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot ở Màn Hình POS</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Hiện Mascot cậu bé nón rơm tương tác tại POS</div>
                                                             </div>
                                                         </div>
                                                         <button
                                                             onClick={() => {
-                                                                const newVal = settings.ui_show_doraemon === 'true' ? 'false' : 'true';
-                                                                updateSetting('ui_show_doraemon', newVal);
-                                                                localStorage.setItem('ui_show_doraemon', newVal);
+                                                                const curVal = localStorage.getItem('ui_show_pos_mascot') !== 'false';
+                                                                const newVal = curVal ? 'false' : 'true';
+                                                                localStorage.setItem('ui_show_pos_mascot', newVal);
                                                                 window.dispatchEvent(new Event('storage'));
+                                                                setToast({ message: newVal === 'true' ? "Đã bật Mascot tại POS" : "Đã tắt Mascot tại POS", type: "info" });
                                                             }}
                                                             className={cn(
                                                                 "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                                settings.ui_show_doraemon === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                                (localStorage.getItem('ui_show_pos_mascot') !== 'false') ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
                                                             )}
                                                         >
                                                             <div className={cn(
                                                                 "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                                settings.ui_show_doraemon === 'true' ? "translate-x-[18px]" : "translate-x-0"
+                                                                (localStorage.getItem('ui_show_pos_mascot') !== 'false') ? "translate-x-[18px]" : "translate-x-0"
                                                             )} />
                                                         </button>
                                                     </div>

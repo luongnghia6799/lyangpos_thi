@@ -678,23 +678,23 @@ const PrintTemplate = forwardRef(({
                 if (type === 'PartnerLedger') {
                     summaryRowsCount += 3;
                 } else if (!isDelivery && (type === 'Sale' || type === 'Purchase' || type === 'Report')) {
-                    const hasOldDebt = ((showOldDebt ?? s.invoice_show_old_debt === 'true')) && data.partner_id && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
+                    const hasOldDebt = (showOldDebt !== undefined ? !!showOldDebt : s.invoice_show_old_debt === 'true') && data.partner_id && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
                     if (hasOldDebt) summaryRowsCount += 1;
 
-                    const hasCashGiven = ((showCashGiven ?? s.invoice_show_cash_given === 'true')) && data.cash_given > 0;
+                    const hasCashGiven = (showCashGiven !== undefined ? !!showCashGiven : s.invoice_show_cash_given === 'true') && data.cash_given > 0;
                     if (hasCashGiven) summaryRowsCount += 1;
 
-                    const hasChange = ((showChange ?? s.invoice_show_change === 'true')) && data.cash_given > (data.total_amount || 0);
+                    const hasChange = (showChange !== undefined ? !!showChange : s.invoice_show_change === 'true') && data.cash_given > (data.total_amount || 0);
                     if (hasChange) summaryRowsCount += 1;
 
-                    const hasPayment = ((showPayment ?? s.invoice_show_paid === 'true'));
+                    const hasPayment = (showPayment !== undefined ? !!showPayment : s.invoice_show_paid === 'true');
                     if (hasPayment) summaryRowsCount += 1;
 
                     const balance = type === 'Sale'
                         ? (data.total_amount + (data.old_debt || 0)) - (data.amount_paid || 0)
                         : (data.old_debt || 0) - (data.total_amount - (data.amount_paid || 0));
                     const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || ((data.old_debt || 0) !== 0);
-                    const hasBalance = ((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
+                    const hasBalance = (showRemaining !== undefined ? !!showRemaining : s.invoice_show_balance === 'true') && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true');
                     if (hasBalance) summaryRowsCount += 1;
                 }
             }

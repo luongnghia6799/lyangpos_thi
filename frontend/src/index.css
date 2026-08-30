@@ -642,7 +642,9 @@ body {
   div[class*="h-screen"],
   div[class*="h-[100dvh]"],
   div[class*="overflow-hidden"],
-  div[class*="overflow-y-auto"] {
+  div[class*="overflow-y-auto"],
+  div[class*="flex-col"],
+  div[class*="flex-1"] {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;

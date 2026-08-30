@@ -2390,15 +2390,19 @@ const PrintTemplate = forwardRef(({
                             </div>
 
                             {/* Summary & Notes Section */}
-                            <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {notesEl}
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                        {summaryEl}
-                                    </div>
-                                </div>
+                            <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
+                                                {notesEl}
+                                            </td>
+                                            <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
+                                                {summaryEl}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
 
                             {/* Signatures */}

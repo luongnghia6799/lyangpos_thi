@@ -2232,7 +2232,7 @@ const PrintTemplate = forwardRef(({
                         </table>
                     )
                 ) : (
-                    (() => {
+                    isPreview ? (() => {
                         const allDetails = data.details || [];
                         const isPaged = !isThermal;
 
@@ -2478,7 +2478,87 @@ const PrintTemplate = forwardRef(({
                                 })}
                             </div>
                         );
-                    })()
+                    })() : (
+                        <table className="print-layout-table" style={{ width: '100%', border: 'none', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
+                            {s.invoice_repeat_header_on_later_pages === 'true' ? (
+                                <thead>
+                                    <tr>
+                                        <td style={{ border: 'none', padding: 0 }}>
+                                            <div style={headerStyle}>
+                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                    {logoEl}
+                                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                        {shopNameEl}
+                                                        {shopInfoEl}
+                                                    </div>
+                                                </div>
+                                                {titleEl}
+                                            </div>
+                                            <div style={infoGridStyle}>
+                                                <div>
+                                                    {customerNameEl}
+                                                    {customerPhoneEl}
+                                                    {customerAddressEl}
+                                                    {voucherNoteEl}
+                                                </div>
+                                                {invoiceMetaEl}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </thead>
+                            ) : null}
+                            <tbody>
+                                <tr>
+                                    <td style={{ border: 'none', padding: 0 }}>
+                                        {s.invoice_repeat_header_on_later_pages !== 'true' && (
+                                            <>
+                                                <div style={headerStyle}>
+                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                        {logoEl}
+                                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                            {shopNameEl}
+                                                            {shopInfoEl}
+                                                        </div>
+                                                    </div>
+                                                    {titleEl}
+                                                </div>
+                                                <div style={infoGridStyle}>
+                                                    <div>
+                                                        {customerNameEl}
+                                                        {customerPhoneEl}
+                                                        {customerAddressEl}
+                                                        {voucherNoteEl}
+                                                    </div>
+                                                    {invoiceMetaEl}
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Table Area */}
+                                        {tableEl}
+
+                                        {/* Summary Section */}
+                                        <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {notesEl}
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                    {summaryEl}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Signatures */}
+                                        {signaturesEl}
+
+                                        {/* Thank You Message */}
+                                        {thankYouEl}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    )
                 )}
 
                 {String(s.invoice_show_watermark) === 'true' && (

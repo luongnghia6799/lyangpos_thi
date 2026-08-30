@@ -636,16 +636,17 @@ body {
   html,
   body,
   #root,
-  #root > div:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  main:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  .main-content:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  div[class*="h-screen"]:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  div[class*="h-[100dvh]"]:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  div[class*="overflow-hidden"]:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]),
-  div[class*="overflow-y-auto"]:not(.no-print):not([class*="no-print"]):not(.print-hidden):not([class*="print:hidden"]) {
+  #root > div,
+  main,
+  .main-content,
+  div[class*="h-screen"],
+  div[class*="h-[100dvh]"],
+  div[class*="overflow-hidden"],
+  div[class*="overflow-y-auto"] {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;

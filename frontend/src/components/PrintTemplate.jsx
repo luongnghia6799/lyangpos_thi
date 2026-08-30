@@ -1710,25 +1710,25 @@ const PrintTemplate = forwardRef(({
                                 </div>
                             ) : (
                                 <>
-                                    {((showOldDebt ?? s.invoice_show_old_debt === 'true')) && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && safeOldDebt !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
+                                    {(showOldDebt !== undefined ? !!showOldDebt : s.invoice_show_old_debt === 'true') && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && safeOldDebt !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Nợ cũ:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeOldDebt)}</div>
                                         </div>
                                     )}
-                                    {((showCashGiven ?? s.invoice_show_cash_given === 'true')) && safeCashGiven > 0 && (
+                                    {(showCashGiven !== undefined ? !!showCashGiven : s.invoice_show_cash_given === 'true') && safeCashGiven > 0 && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Khách đưa:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeCashGiven)}</div>
                                         </div>
                                     )}
-                                    {((showChange ?? s.invoice_show_change === 'true')) && safeCashGiven > safeTotalAmount && (
+                                    {(showChange !== undefined ? !!showChange : s.invoice_show_change === 'true') && safeCashGiven > safeTotalAmount && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Tiền thối:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeCashGiven - safeTotalAmount)}</div>
                                         </div>
                                     )}
-                                    {((showPayment ?? s.invoice_show_paid === 'true')) && (
+                                    {(showPayment !== undefined ? !!showPayment : s.invoice_show_paid === 'true') && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Thanh toán:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeAmountPaid)}</div>
@@ -1741,7 +1741,8 @@ const PrintTemplate = forwardRef(({
 
                                         // Show "Remaining" if balance is non-zero or explicitly requested, even if old debt was zero
                                         const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || (safeOldDebt !== 0);
-                                        if (((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
+                                        const shouldShowRemaining = showRemaining !== undefined ? !!showRemaining : s.invoice_show_balance === 'true';
+                                        if (shouldShowRemaining && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
                                             return wrap(
                                                 "Còn lại / Dư nợ",
                                                 "invoice_total_balance_size",

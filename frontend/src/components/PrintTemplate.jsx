@@ -655,7 +655,7 @@ const PrintTemplate = forwardRef(({
             maxBottom = Math.max(maxBottom, notesY + 60);
             hasAny = true;
         }
-        if (s.invoice_show_total_amount === 'true') {
+        if (s.invoice_show_total_amount !== 'false') {
             let summaryRowsCount = 0;
             if (isVoucher) {
                 summaryRowsCount = 1;
@@ -1485,7 +1485,7 @@ const PrintTemplate = forwardRef(({
                             </tr>
                         );
                     })}
-                    {!hideFooter && (type !== 'Report') && (s.invoice_show_total_items === 'true' || s.invoice_show_total_qty === 'true' || s.invoice_show_total_secondary_qty === 'true') && (
+                    {!hideFooter && (type !== 'Report') && (s.invoice_show_total_items !== 'false' || s.invoice_show_total_qty !== 'false' || s.invoice_show_total_secondary_qty === 'true') && (
                         <tr className="invoice-summary-row">
                             <td colSpan={100} style={{
                                 ...tdStyle,
@@ -1507,11 +1507,11 @@ const PrintTemplate = forwardRef(({
                                         flexWrap: 'wrap',
                                         gap: '15px'
                                     }}>
-                                        {s.invoice_show_total_items === 'true' && (
+                                        {s.invoice_show_total_items !== 'false' && (
                                             <span>Tổng: <strong>{totalItems}</strong> SP</span>
                                         )}
 
-                                        {s.invoice_show_total_qty === 'true' && (
+                                        {s.invoice_show_total_qty !== 'false' && (
                                             <>
                                                 <span style={{ color: '#ccc' }}>|</span>
                                                 <span>SL: <strong>{totalQty}</strong></span>

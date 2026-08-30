@@ -2258,6 +2258,9 @@ const PrintTemplate = forwardRef(({
                         const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
 
                         const renderStandardPages = (isForPreview) => {
+                            const size = s.paper_size || 'A4';
+                            const pageH_mm = size === 'A5' ? 210 : (size === 'A6' ? 148 : 297);
+                            const paddingMm = useDefaultMargins ? 0 : Math.max(mt, ml, mr, mb);
                             const firstPageAvailH = printableH;
                             const otherPageAvailH = Math.max(200, printableH - otherHeaderH);
                             const firstPageCap = Math.max(1, Math.floor((firstPageAvailH - firstHeaderH - totalSectionH) / estRowH));

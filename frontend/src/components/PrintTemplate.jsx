@@ -2538,7 +2538,7 @@ const PrintTemplate = forwardRef(({
                                         {tableEl}
 
                                         {/* Summary Section */}
-                                        <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                        <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                     {notesEl}
@@ -2550,10 +2550,14 @@ const PrintTemplate = forwardRef(({
                                         </div>
 
                                         {/* Signatures */}
-                                        {signaturesEl}
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            {signaturesEl}
+                                        </div>
 
                                         {/* Thank You Message */}
-                                        {thankYouEl}
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                            {thankYouEl}
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>

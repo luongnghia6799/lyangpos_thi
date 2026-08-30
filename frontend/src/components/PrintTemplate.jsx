@@ -2232,259 +2232,25 @@ const PrintTemplate = forwardRef(({
                         </table>
                     )
                 ) : (
-                    isPreview ? (() => {
+                    (() => {
                         const allDetails = data.details || [];
-                        const isPaged = !isThermal;
-
-                        // Dynamic height-based capacity calculation matching actual print rendering
                         const rowPad = parseInt(s.invoice_row_padding || 4);
                         const rowLh = parseFloat(s.invoice_table_line_height || 1.15);
                         const fontSz = parseInt(s.invoice_table_content_size || 12);
                         const estRowH = Math.max(18, fontSz * rowLh + rowPad * 2 + 4);
+                        
+                        const printableH = isPreview ? (s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120)) : 1120;
+                        const firstHeaderH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
+                        const otherHeaderH = s.invoice_repeat_header_on_later_pages === 'true' ? firstHeaderH : 35;
+                        const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
 
-                        const paperH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
-                        const hdrH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
-                        const sumH = 140 + (parseInt(s.invoice_total_section_margin_top || 0));
-                        const marginH = (mt + mb) * 3.78;
-
-                        const singlePageAvailH = paperH - hdrH - sumH - marginH;
-                        const singlePageCap = Math.max(1, Math.floor(singlePageAvailH / estRowH));
-
-                        const firstPageAvailH = paperH - hdrH - marginH - 40;
-                        const firstPageCap = Math.max(1, Math.floor(firstPageAvailH / estRowH));
-
-                        const repeatHdrH = s.invoice_repeat_header_on_later_pages === 'true' ? hdrH : 35;
-                        const otherPageAvailH = paperH - repeatHdrH - marginH - 40;
-                        const otherPageCap = Math.max(1, Math.floor(otherPageAvailH / estRowH));
-
-                        // Single page if items fit completely with summary
-                        if (!isPaged || allDetails.length <= singlePageCap) {
-                            return (
-                                <>
-                                    <div style={headerStyle}>
-                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                            {logoEl}
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                {shopNameEl}
-                                                {shopInfoEl}
-                                            </div>
-                                        </div>
-                                        {titleEl}
-                                    </div>
-
-                                    {/* General Info */}
-                                    <div style={infoGridStyle}>
-                                        <div>
-                                            {customerNameEl}
-                                            {customerPhoneEl}
-                                            {customerAddressEl}
-                                            {voucherNoteEl}
-                                        </div>
-                                        {invoiceMetaEl}
-                                    </div>
-
-                                    {/* Table Area */}
-                                    {tableEl}
-
-                                    {/* Summary Section */}
-                                    <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                {notesEl}
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                {summaryEl}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Signatures */}
-                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                        {signaturesEl}
-                                    </div>
-
-                                    {/* Thank You Message */}
-                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                        {thankYouEl}
-                                    </div>
-
-                                    {/* Page Number */}
-                                    {renderPageNumber(1, 1)}
-                                </>
-                            );
-                        }
-
-                        // Multi-page layout chunking with realistic height estimation
-                        const pages = [];
-                        let remaining = [...allDetails];
-
-                        // SumH includes totals summary, notes, signatures, thank you, and page spacing (~260px)
-                        const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
-                        const laterPageWithSummaryCap = Math.max(1, Math.floor((otherPageAvailH - realisticSumH) / estRowH));
-
-                        // Decide page 1 count
-                        let p1Count;
-                        if (allDetails.length <= firstPageCap + laterPageWithSummaryCap) {
-                            p1Count = Math.min(firstPageCap, Math.max(1, allDetails.length - laterPageWithSummaryCap));
-                            if (allDetails.length - p1Count > laterPageWithSummaryCap) {
-                                p1Count = Math.min(firstPageCap, allDetails.length - laterPageWithSummaryCap);
-                            }
-                        } else {
-                            p1Count = firstPageCap;
-                        }
-
-                        pages.push({
-                            pageIndex: 0,
-                            items: remaining.slice(0, p1Count),
-                            startIndex: 0
-                        });
-                        remaining = remaining.slice(p1Count);
-
-                        // Subsequent pages
-                        while (remaining.length > 0) {
-                            const startIndex = allDetails.length - remaining.length;
-                            let count;
-                            if (remaining.length <= laterPageWithSummaryCap) {
-                                count = remaining.length;
-                            } else if (remaining.length <= otherPageCap + laterPageWithSummaryCap) {
-                                count = Math.min(otherPageCap, Math.max(1, remaining.length - laterPageWithSummaryCap));
-                            } else {
-                                count = Math.min(remaining.length, otherPageCap);
-                            }
-
-                            pages.push({
-                                pageIndex: pages.length,
-                                items: remaining.slice(0, count),
-                                startIndex
-                            });
-                            remaining = remaining.slice(count);
-                        }
-
-                        const totalPages = pages.length;
-
-                        return (
-                            <div className="print-pages-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: isPreview ? '40px' : '0px' }}>
-                                {pages.map((p, idx) => {
-                                    const isFirstPage = idx === 0;
-                                    const isLastPage = idx === totalPages - 1;
-                                    const pageNum = idx + 1;
-
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className="print-page-sheet"
-                                            style={{
-                                                ...containerStyle,
-                                                minHeight: height,
-                                                height: 'auto',
-                                                marginBottom: isPreview && idx < totalPages - 1 ? '10px' : '0',
-                                                boxShadow: isPreview ? '0 20px 45px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)' : 'none',
-                                                position: 'relative',
-                                                pageBreakAfter: !isLastPage ? 'always' : 'auto',
-                                                breakAfter: !isLastPage ? 'page' : 'auto'
-                                            }}
-                                        >
-                                            {/* Header */}
-                                            {isFirstPage ? (
-                                                <>
-                                                    <div style={headerStyle}>
-                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                            {logoEl}
-                                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                                {shopNameEl}
-                                                                {shopInfoEl}
-                                                            </div>
-                                                        </div>
-                                                        {titleEl}
-                                                    </div>
-
-                                                    <div style={infoGridStyle}>
-                                                        <div>
-                                                            {customerNameEl}
-                                                            {customerPhoneEl}
-                                                            {customerAddressEl}
-                                                            {voucherNoteEl}
-                                                        </div>
-                                                        {invoiceMetaEl}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                s.invoice_repeat_header_on_later_pages === 'true' ? (
-                                                    <>
-                                                        <div style={headerStyle}>
-                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                                {logoEl}
-                                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                                    {shopNameEl}
-                                                                    {shopInfoEl}
-                                                                </div>
-                                                            </div>
-                                                            {titleEl}
-                                                        </div>
-
-                                                        <div style={infoGridStyle}>
-                                                            <div>
-                                                                {customerNameEl}
-                                                                {customerPhoneEl}
-                                                                {customerAddressEl}
-                                                                {voucherNoteEl}
-                                                            </div>
-                                                            {invoiceMetaEl}
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ddd', paddingBottom: '6px', marginBottom: '8px' }}>
-                                                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase' }}>
-                                                            {s.shop_name?.toUpperCase()} - {getInvoiceTitle()} #{data.display_id || data.id} (Trang {pageNum})
-                                                        </span>
-                                                        <span style={{ fontSize: '10px', color: '#64748b' }}>
-                                                            {data.date ? formatDate(data.date) : ''}
-                                                        </span>
-                                                    </div>
-                                                )
-                                            )}
-
-                                            {/* Table for this Page */}
-                                            <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
-                                                {renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}
-                                            </div>
-
-                                            {/* Last Page Content: Totals, Debt, Notes, Signatures */}
-                                            {isLastPage && (
-                                                <>
-                                                    <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                {notesEl}
-                                                            </div>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                                {summaryEl}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                        {signaturesEl}
-                                                    </div>
-                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                        {thankYouEl}
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            {/* Page Number Indicator */}
-                                            {renderPageNumber(pageNum, totalPages)}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })() : (
-                        (() => {
-                            // Single page estimation
+                        const renderStandardPages = (isForPreview) => {
                             const firstPageAvailH = printableH;
                             const otherPageAvailH = Math.max(200, printableH - otherHeaderH);
                             const firstPageCap = Math.max(1, Math.floor((firstPageAvailH - firstHeaderH - totalSectionH) / estRowH));
                             const otherPageCap = Math.max(1, Math.floor(otherPageAvailH / estRowH));
+                            const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
+                            const laterPageWithSummaryCap = Math.max(1, Math.floor((otherPageAvailH - realisticSumH) / estRowH));
 
                             if (allDetails.length <= firstPageCap) {
                                 return (
@@ -2499,148 +2265,54 @@ const PrintTemplate = forwardRef(({
                                             </div>
                                             {titleEl}
                                         </div>
-
                                         <div style={infoGridStyle}>
-                                            <div>
-                                                {customerNameEl}
-                                                {customerPhoneEl}
-                                                {customerAddressEl}
-                                                {voucherNoteEl}
-                                            </div>
+                                            <div>{customerNameEl}{customerPhoneEl}{customerAddressEl}{voucherNoteEl}</div>
                                             {invoiceMetaEl}
                                         </div>
-
-                                        {/* Table Area */}
                                         <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
                                             {renderTable(allDetails, 0, false, 'page-1', false)}
                                         </div>
-
-                                        {/* Summary Section */}
                                         <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    {notesEl}
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    {summaryEl}
-                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{notesEl}</div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>{summaryEl}</div>
                                             </div>
                                         </div>
-
-                                        {/* Signatures */}
-                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                            {signaturesEl}
-                                        </div>
-
-                                        {/* Thank You Message */}
-                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                            {thankYouEl}
-                                        </div>
-
-                                        {/* Page Number */}
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>{signaturesEl}</div>
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>{thankYouEl}</div>
                                         {renderPageNumber(1, 1)}
                                     </>
                                 );
                             }
 
-                            // Multi-page layout chunking with realistic height estimation
                             const pages = [];
                             let remaining = [...allDetails];
-
-                            // SumH includes totals summary, notes, signatures, thank you, and page spacing (~260px)
-                            const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
-                            const laterPageWithSummaryCap = Math.max(1, Math.floor((otherPageAvailH - realisticSumH) / estRowH));
-
-                            // Decide page 1 count
-                            let p1Count;
-                            if (allDetails.length <= firstPageCap + laterPageWithSummaryCap) {
-                                p1Count = Math.min(firstPageCap, Math.max(1, allDetails.length - laterPageWithSummaryCap));
-                                if (allDetails.length - p1Count > laterPageWithSummaryCap) {
-                                    p1Count = Math.min(firstPageCap, allDetails.length - laterPageWithSummaryCap);
-                                }
-                            } else {
-                                p1Count = firstPageCap;
-                            }
-
-                            pages.push({
-                                pageIndex: 0,
-                                items: remaining.slice(0, p1Count),
-                                startIndex: 0
-                            });
+                            let p1Count = allDetails.length <= firstPageCap + laterPageWithSummaryCap ? Math.min(firstPageCap, Math.max(1, allDetails.length - laterPageWithSummaryCap)) : firstPageCap;
+                            
+                            pages.push({ pageIndex: 0, items: remaining.slice(0, p1Count), startIndex: 0 });
                             remaining = remaining.slice(p1Count);
-
-                            // Subsequent pages
                             while (remaining.length > 0) {
-                                const startIndex = allDetails.length - remaining.length;
-                                let count;
-                                if (remaining.length <= laterPageWithSummaryCap) {
-                                    count = remaining.length;
-                                } else if (remaining.length <= otherPageCap + laterPageWithSummaryCap) {
-                                    count = Math.min(otherPageCap, Math.max(1, remaining.length - laterPageWithSummaryCap));
-                                } else {
-                                    count = Math.min(remaining.length, otherPageCap);
-                                }
-
-                                pages.push({
-                                    pageIndex: pages.length,
-                                    items: remaining.slice(0, count),
-                                    startIndex
-                                });
+                                let count = remaining.length <= laterPageWithSummaryCap ? remaining.length : (remaining.length <= otherPageCap + laterPageWithSummaryCap ? Math.min(otherPageCap, Math.max(1, remaining.length - laterPageWithSummaryCap)) : Math.min(remaining.length, otherPageCap));
+                                pages.push({ pageIndex: pages.length, items: remaining.slice(0, count), startIndex: allDetails.length - remaining.length });
                                 remaining = remaining.slice(count);
                             }
 
-                            const totalPages = pages.length;
-
                             return (
-                                <div className="print-pages-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: isPreview ? '40px' : '0px' }}>
+                                <div className="print-pages-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: isForPreview ? '40px' : '0px' }}>
                                     {pages.map((p, idx) => {
                                         const isFirstPage = idx === 0;
-                                        const isLastPage = idx === totalPages - 1;
+                                        const isLastPage = idx === pages.length - 1;
                                         const pageNum = idx + 1;
-
                                         return (
-                                            <div
-                                                key={`sheet-${idx}`}
-                                                className="print-page-sheet"
-                                                style={{
-                                                    width: '100%',
-                                                    minHeight: isPreview ? `${pageH_mm}mm` : 'auto',
-                                                    height: isPreview ? `${pageH_mm}mm` : 'auto',
-                                                    boxSizing: 'border-box',
-                                                    position: 'relative',
-                                                    pageBreakAfter: isLastPage ? 'auto' : 'always',
-                                                    breakAfter: isLastPage ? 'auto' : 'page',
-                                                    marginBottom: (!isLastPage && !isPreview) ? 0 : undefined,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    backgroundColor: '#fff',
-                                                    boxShadow: isPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none',
-                                                    borderRadius: isPreview ? '8px' : '0',
-                                                    padding: isPreview ? `${paddingMm}mm` : '0',
-                                                    overflow: 'hidden'
-                                                }}
-                                            >
-                                                {/* Page Header */}
+                                            <div key={`sheet-${idx}`} className="print-page-sheet" style={{ width: '100%', minHeight: isForPreview ? `${pageH_mm}mm` : 'auto', height: isForPreview ? `${pageH_mm}mm` : 'auto', boxSizing: 'border-box', position: 'relative', pageBreakAfter: isLastPage ? 'auto' : 'always', breakAfter: isLastPage ? 'auto' : 'page', marginBottom: (!isLastPage && !isForPreview) ? 0 : undefined, display: 'flex', flexDirection: 'column', backgroundColor: '#fff', boxShadow: isForPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none', borderRadius: isForPreview ? '8px' : '0', padding: isForPreview ? `${paddingMm}mm` : '0', overflow: 'hidden' }}>
                                                 {isFirstPage ? (
                                                     <>
                                                         <div style={headerStyle}>
-                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                                {logoEl}
-                                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                                    {shopNameEl}
-                                                                    {shopInfoEl}
-                                                                </div>
-                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>{logoEl}<div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{shopNameEl}{shopInfoEl}</div></div>
                                                             {titleEl}
                                                         </div>
-
                                                         <div style={infoGridStyle}>
-                                                            <div>
-                                                                {customerNameEl}
-                                                                {customerPhoneEl}
-                                                                {customerAddressEl}
-                                                                {voucherNoteEl}
-                                                            </div>
+                                                            <div>{customerNameEl}{customerPhoneEl}{customerAddressEl}{voucherNoteEl}</div>
                                                             {invoiceMetaEl}
                                                         </div>
                                                     </>
@@ -2651,49 +2323,33 @@ const PrintTemplate = forwardRef(({
                                                                 <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{s.invoice_shop_name || 'CỬA HÀNG'}</span>
                                                                 <span style={{ fontSize: '11px', color: '#64748b' }}>Hóa đơn: #{data.display_id || data.id} (tiếp theo)</span>
                                                             </div>
-                                                            <span style={{ fontSize: '10px', color: '#64748b' }}>
-                                                                {data.date ? formatDate(data.date) : ''}
-                                                            </span>
+                                                            <span style={{ fontSize: '10px', color: '#64748b' }}>{data.date ? formatDate(data.date) : ''}</span>
                                                         </div>
                                                     )
                                                 )}
-
-                                                {/* Table for this Page */}
-                                                <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
-                                                    {renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}
-                                                </div>
-
-                                                {/* Last Page Content: Totals, Debt, Notes, Signatures */}
+                                                <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>{renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}</div>
                                                 {isLastPage && (
                                                     <>
                                                         <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                                    {notesEl}
-                                                                </div>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                                    {summaryEl}
-                                                                </div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{notesEl}</div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>{summaryEl}</div>
                                                             </div>
                                                         </div>
-                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                            {signaturesEl}
-                                                        </div>
-                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                                            {thankYouEl}
-                                                        </div>
+                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>{signaturesEl}</div>
+                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>{thankYouEl}</div>
                                                     </>
                                                 )}
-
-                                                {/* Page Number Indicator */}
-                                                {renderPageNumber(pageNum, totalPages)}
+                                                {renderPageNumber(pageNum, pages.length)}
                                             </div>
                                         );
                                     })}
                                 </div>
                             );
-                        })()
-                    )
+                        };
+
+                        return renderStandardPages(isPreview);
+                    })()
                 )}
 
                 {String(s.invoice_show_watermark) === 'true' && (

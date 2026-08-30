@@ -26,8 +26,10 @@ const $l = DialogPrimitive.Close;
 const Hl = DialogPrimitive.Title;
 const Kl = DialogPrimitive.Description;
 import { motion as x, useMotionValue as In, useSpring as Dn, MotionConfig as ro, AnimatePresence as Ws } from "framer-motion";
-import { ReceiptText as ReceiptTextIcon, FileText as FileTextIcon, Copy as Pn, Trash2 as so, User as Qn, X as Xn, Phone as Jn, MapPin as Yn, Plus as Zn, ChevronRight as no, FileText as ei, Pause as io, ChevronLeft as lo, Users as oo, History as ti, Menu as co, Bot as En, Eye as po, Tv as qr, Volume2 as la, ShoppingCart as uo, Bell as mo, PanelRight as xo, PanelBottom as ho, TrendingUp as bo, Satellite as go, Coins as Rs, Zap as fo, Search as yo, PackageX as vo, TriangleAlert as As, Package as ko, RefreshCcw as wo, RotateCcw as jo, TrendingDown as _o, CircleAlert as No, Droplets as Co, Check as Os, Sparkles as Es, Activity as So, Sprout as To, Wallet as zo, Truck as Io, Banknote as Do, CreditCard as Po, ArrowLeftRight as Eo, ArrowRight as qo, ShoppingBag as Mo, Save as Wo, Printer as Ro, Clock as Ao, LoaderCircle as ai, Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote } from "lucide-react";
+import { ReceiptText as ReceiptTextIcon, FileText as FileTextIcon, Copy as Pn, Trash2 as so, User as Qn, X as Xn, Phone as Jn, MapPin as Yn, Plus as Zn, ChevronRight as no, FileText as ei, Pause as io, ChevronLeft as lo, Users as oo, History as ti, Menu as co, Bot as En, Eye as po, Tv as qr, Volume2 as la, ShoppingCart as uo, Bell as mo, PanelRight as xo, PanelBottom as ho, TrendingUp as bo, Satellite as go, Coins as Rs, Zap as fo, Search as yo, PackageX as vo, TriangleAlert as As, Package as ko, RefreshCcw as wo, RotateCcw as jo, TrendingDown as _o, CircleAlert as No, Droplets as Co, Check as Os, Sparkles as Es, Activity as So, Sprout as To, Wallet as zo, Truck as Io, Banknote as Do, CreditCard as Po, ArrowLeftRight as Eo, ArrowRight as qo, ShoppingBag as Mo, Save as Wo, Printer as Ro, Clock as Ao, LoaderCircle as ai, Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon } from "lucide-react";
 import { DEFAULT_SETTINGS as Gl } from "@/lib/settings";
+const TvMonitorIcon = qr;
+const SatelliteIcon = go;
 import PrintTemplate from "@/components/PrintTemplate";
 const Ul = PrintTemplate;
 import TaxCalculatorModal from "@/components/TaxCalculatorModal";
@@ -53,7 +55,7 @@ const zn = CustomSelect;
 import MarqueeText from "@/components/MarqueeText";
 const Ps = MarqueeText;
 import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } from "@/queries/useProductData";
-import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs } from "@/lib/utils";
+import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, playAddToCartSound } from "@/lib/utils";
 import Portal from "@/components/Portal";
 const Fn = Portal;
 import POSHistoryPanel from "@/components/POSHistoryPanel";
@@ -84,7 +86,9 @@ const Ls = (v, N) => {
         Ie = N.find(Le => Le.id === B.product_id),
         dt = Ie && Ie.alias && Ie.alias.trim() ? Ie.alias.trim() : B.product_name;
       X.push(`${ue} ${je} ${dt}`);
-    }), window.currentPackingQueue && window.currentPackingQueue.stop();
+    });
+    X.push("Đã soạn xong");
+    window.currentPackingQueue && window.currentPackingQueue.stop();
     let xe = 0,
       W = null,
       pe = null,
@@ -1091,6 +1095,13 @@ function a0({
     [ar, Ct] = i.useState(!1),
     [ga, Vs] = i.useState(() => localStorage.getItem("pos_keep_order_after_save") === "true"),
     [blockTabPrice, setBlockTabPrice] = i.useState(() => localStorage.getItem("pos_block_tab_unit_price") === "true"),
+    [typingSoundEnabled, setTypingSoundEnabled] = i.useState(() => localStorage.getItem("pos_typing_sound_enabled") !== "false"),
+    [soundThemeSuccess, setSoundThemeSuccess] = i.useState(() => localStorage.getItem("pos_sound_theme_success") || "chime"),
+    [soundThemeAction, setSoundThemeAction] = i.useState(() => localStorage.getItem("pos_sound_theme_action") || "pop_bubble"),
+    [soundThemeCartAdd, setSoundThemeCartAdd] = i.useState(() => localStorage.getItem("pos_sound_theme_cart_add") || "barcode_beep"),
+    [soundThemeTyping, setSoundThemeTyping] = i.useState(() => localStorage.getItem("pos_sound_theme_typing") || "mechanical"),
+    [soundThemeError, setSoundThemeError] = i.useState(() => localStorage.getItem("pos_sound_theme_error") || "buzz_low"),
+    [showHotkeysGuide, setShowHotkeysGuide] = i.useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true"),
     $r = i.useRef(null);
   i.useEffect(() => {
     const t = a => {
@@ -1110,8 +1121,14 @@ function a0({
   }, [Lr]);
   const [pc, uc] = i.useState(() => localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng"),
     [mc, xc] = i.useState(() => localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng"),
-    [hc, bc] = i.useState(() => localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý"),
-    [gc, fc] = i.useState(() => localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý"),
+    [hc, bc] = i.useState(() => {
+      const saved = localStorage.getItem("pos_tts_thankyou_template");
+      return saved && saved !== "Cảm ơn quý khách đã chọn Sáu Quý" ? saved : "Cảm ơn quý khách";
+    }),
+    [gc, fc] = i.useState(() => {
+      const saved = localStorage.getItem("pos_tts_thankyou_partner_template");
+      return saved && saved !== "Cảm ơn {partner} đã chọn Sáu Quý" ? saved : "Cảm ơn {partner}";
+    }),
     [yc, vc] = i.useState(() => localStorage.getItem("pos_tts_enable_thankyou") !== "false"),
     [kc, wc] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_template") === "true"),
     [jc, _c] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_thankyou") === "true"),
@@ -1898,7 +1915,7 @@ function a0({
         queryKey: ["partners"]
       }), E.invalidateQueries({
         queryKey: ["products"]
-      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_block_tab_unit_price" ? setBlockTabPrice(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_transparent_cart_table" ? setTransparentCartTable(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
+      }), p && ws(p.id)) : a.data.type === "SETTINGS_UPDATED" ? (_n(), Nn()) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_keep_order_after_save" ? Vs(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_block_tab_unit_price" ? setBlockTabPrice(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_transparent_cart_table" ? setTransparentCartTable(a.data.value === "true") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_typing_sound_enabled" ? setTypingSoundEnabled(a.data.value !== "false") : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_sound_theme_success" ? setSoundThemeSuccess(a.data.value) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_sound_theme_action" ? setSoundThemeAction(a.data.value) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "pos_sound_theme_typing" ? setSoundThemeTyping(a.data.value) : a.data.type === "UI_SETTING_UPDATED" && a.data.key === "ui_enable_smart_sorting" && Na(r => ({
         ...r,
         ui_enable_smart_sorting: a.data.value
       }));
@@ -2144,7 +2161,7 @@ function a0({
               b = (p?.name || "").trim(),
               S = b && b.toLowerCase() !== "khách lẻ" && b.toLowerCase() !== "khách vãng lai" && b.toLowerCase() !== "ncc vãng lai",
               w = h || !S ? "" : b,
-              U = (w ? localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner} đã chọn Sáu Quý" : localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý").replace(/{partner}/gi, w || "quý khách").replace(/{customer}/gi, w || "quý khách"),
+              U = (w ? localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner}" : localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách").replace(/{partner}/gi, w || "quý khách").replace(/{customer}/gi, w || "quý khách"),
               L = `${U}_${u}`;
             let ce;
             if (window.preloadedTtsAudios && window.preloadedTtsAudios[L]) ce = window.preloadedTtsAudios[L], ce.currentTime = 0;else {
@@ -2246,7 +2263,7 @@ function a0({
   const pl = async t => {
       try {
         const a = await M.get(`/api/orders/${t}`);
-        a.data && Ka(a.data);
+        a.data && (await Ka(a.data));
       } catch (a) {
         console.error("Error fetching order", a), G({
           message: "Không tìm thấy hóa đơn",
@@ -2254,28 +2271,40 @@ function a0({
         });
       }
     },
-    Ka = t => {
-      Gt(t.id), Br(t), H(t.details.map(a => {
+    Ka = async t => {
+      let orderObj = t;
+      if (!orderObj) return;
+      if ((!orderObj.details || orderObj.details.length === 0) && orderObj.id) {
+        try {
+          const res = await M.get(`/api/orders/${orderObj.id}`);
+          if (res.data) orderObj = res.data;
+        } catch (e) {
+          console.error("Error fetching full order details", e);
+        }
+      }
+      Gt(orderObj.id), Br(orderObj);
+      const detailsList = orderObj.details || orderObj.items || [];
+      H(detailsList.map(a => {
         const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
-          product_name: a.product_name,
-          unit: a.product_unit,
-          secondary_unit: a.secondary_unit,
-          multiplier: a.multiplier || 1,
+          product_name: a.product_name || a.name || r?.name,
+          unit: a.product_unit || a.unit || r?.unit,
+          secondary_unit: a.secondary_unit || r?.secondary_unit,
+          multiplier: a.multiplier || r?.multiplier || 1,
           price: a.price,
           cost_price: r ? r.cost_price : a.cost_price,
           latest_cost_price: r ? r.latest_cost_price : a.latest_cost_price,
           quantity: a.quantity,
-          secondary_qty: a.quantity / (a.multiplier || 1),
+          secondary_qty: a.quantity / (a.multiplier || r?.multiplier || 1),
           stock: r ? r.stock : a.stock || 0,
           latest_audit: r?.latest_audit,
-          active_ingredient: a.active_ingredient,
+          active_ingredient: a.active_ingredient || r?.active_ingredient,
           is_manual_price: !0,
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
         };
-      })), $e(t.note || ""), re(t.amount_paid || 0), Ye(t.cash_given || 0), ge(t.payment_method), qt(t.shipping_status || null), ra(t.shipping_address || ""), sa(t.shipping_phone || ""), t.partner_id ? nr(t.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
+      })), $e(orderObj.note || ""), re(orderObj.amount_paid || 0), Ye(orderObj.cash_given || 0), ge(orderObj.payment_method || "Cash"), qt(orderObj.shipping_status || null), ra(orderObj.shipping_address || ""), sa(orderObj.shipping_phone || ""), orderObj.partner_id ? nr(orderObj.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
     },
     na = async t => {
       let a;
@@ -2419,7 +2448,7 @@ function a0({
               type: "success"
             });
             try {
-              ht("Đã soạn xong toàn bộ đơn hàng");
+              ht("Đã soạn xong");
             } catch {}
           }
         }
@@ -2784,19 +2813,25 @@ function a0({
         is_manual_price: d,
         isPacked: !1,
         cartId: Math.random().toString(36).substr(2, 9)
-      }, ...y]), localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
-        const b = localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
+      }, ...y]), playAddToCartSound(soundThemeCartAdd), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
+        const b = Za && localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
           S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
         if (window.cartSpeechTimeout && (clearTimeout(window.cartSpeechTimeout), window.cartSpeechTimeout = null), u === 0) ht("Đã xóa");else {
           const w = u < 0,
             O = Math.abs(u),
             U = w ? `Trả hàng ${O}` : O;
-          if (b && t.alias && t.alias.trim()) {
-            const L = t.alias.trim();
+          const shouldReadQty = er;
+          const alias = t.alias && t.alias.trim() ? t.alias.trim() : t.name;
+          
+          if (b && shouldReadQty) {
             S === "qty_first" ? (ht(U), window.cartSpeechTimeout = setTimeout(() => {
-              ht(L);
-            }, 1500), rr.current[g] = t.id) : rr.current[g] === t.id ? ht(U) : (ht(`${L}, ${U}`), rr.current[g] = t.id);
-          } else ht(U), rr.current[g] = t.id;
+              ht(alias);
+            }, 1500), rr.current[g] = t.id) : rr.current[g] === t.id ? ht(U) : (ht(`${alias}, ${U}`), rr.current[g] = t.id);
+          } else if (b) {
+            rr.current[g] !== t.id && (ht(alias), rr.current[g] = t.id);
+          } else if (shouldReadQty) {
+            ht(U), rr.current[g] = t.id;
+          }
         }
       }
       ae(""), Ft(0), He({
@@ -2812,13 +2847,17 @@ function a0({
     },
     xl = t => {
       const a = ve[t];
-      if (a && (H(r => r.map(s => s.cartId === a.cartId ? {
-        ...s,
-        isPacked: !s.isPacked
-      } : s)), !a.isPacked)) {
-        const r = T.find(n => n.id === a.product_id),
-          s = r && r.alias && r.alias.trim() ? r.alias.trim() : a.product_name;
-        ht(`${s}, ${a.quantity}`);
+      if (a) {
+        const nextPacked = !a.isPacked;
+        H(r => r.map(s => s.cartId === a.cartId ? {
+          ...s,
+          isPacked: nextPacked
+        } : s));
+        if (nextPacked) {
+          const r = T.find(n => n.id === a.product_id),
+            s = r && r.alias && r.alias.trim() ? r.alias.trim() : a.product_name;
+          ht(`${s}, ${a.quantity}`);
+        }
       }
     },
     _r = (t, a, r) => {
@@ -3352,9 +3391,9 @@ function a0({
                         } catch {}
                       }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Lớp phủ mờ giỏ hàng</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{transparentCartTable ? "bật: lớp kính mờ nổi bật" : "tắt: trong suốt trùng màu nền"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", transparentCartTable ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
                         Ct(!1), Ci();
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-4 shrink-0"><div className="flex items-center gap-4 ml-auto"><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
-                    x: 20,
+                    x: -20,
                     scale: 0.8
                   }} animate={{
                     opacity: 1,
@@ -3362,9 +3401,105 @@ function a0({
                     scale: 1
                   }} exit={{
                     opacity: 0,
-                    x: 20,
+                    x: -20,
                     scale: 0.8
-                  }} className="hidden xl:flex items-center gap-2 h-9 bg-white/80 dark:bg-slate-900/60 backdrop-blur-xl rounded-full px-3 border border-slate-200/80 dark:border-slate-800 shadow-sm shrink-0"><div className="w-6 h-6 bg-primary text-white rounded-lg flex items-center justify-center shadow-xs shrink-0"><Comp_u_d size={13} strokeWidth={3} /></div><div className="flex flex-col justify-center"><p className="text-[7.5px] font-black text-primary uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-slate-800 dark:text-slate-100 tabular-nums leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P><Zo variant="purchase" gpuDisabled={Ya} /></div></div></div><P>{va && <Ee><div className="fixed inset-0 z-[2000] flex justify-end font-sans"><x.div initial={{
+                  }} className="hidden xl:flex items-center h-9 relative overflow-hidden bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 rounded-2xl px-3 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 group/revenue box-border"><div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/revenue:scale-110 group-hover/revenue:rotate-6"><Comp_u_d size={26} strokeWidth={2.5} /></div><div className="flex flex-col justify-center leading-none relative z-10"><p className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] tabular-nums tracking-tight leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-2 shrink-0"><div className="flex items-center gap-2 ml-auto"><div className="flex items-center gap-1 shrink-0 h-[26px]"><div className="max-w-[120px] overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-1 shrink-0">{fe.map((t, a) => {
+                    const r = t.id === g,
+                      s = t.id === ne;
+                    return <div key={t.id} className="group/tab relative shrink-0"><button onClick={n => {
+                        n.stopPropagation(), es(t.id);
+                      }} className={c("relative flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black tracking-wide transition-all border cursor-pointer select-none shrink-0 h-[26px]", r ? "bg-[#2d5016] text-white border-[#2d5016] shadow-xs" : "bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/20 hover:border-[#2d5016]/40")}>{s && <span className="flex items-end gap-[1px] h-1.5 mr-0.5 pb-[1px] shrink-0"><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                          height: "40%"
+                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                          height: "70%"
+                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                          height: "100%"
+                        }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={c("inline-flex items-center justify-center w-3 h-3 rounded-full ml-0.5 transition-colors text-[8px]", r ? "text-white/70 hover:text-white hover:bg-white/20" : "text-[#8b6f47]/60 hover:text-rose-500 hover:bg-rose-500/15")} onClick={n => {
+                          n.stopPropagation(), Ei(t.id, n);
+                        }}>✕</span>}</button>{!s && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50"><button onClick={n => {
+                          n.stopPropagation(), me(t.id);
+                        }} className="bg-slate-800 text-white text-[8px] px-1 py-0.5 rounded-lg shadow-xl flex items-center gap-0.5 hover:bg-blue-600 transition-colors border border-white/20 whitespace-nowrap">Ghim quét</button></div>}</div>;
+                  })}{q && <div className="group/tab relative shrink-0"><button onClick={t => {
+                      t.stopPropagation(), f("remote_inspect");
+                    }} className={c("relative flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black tracking-wider transition-all border cursor-pointer shrink-0 h-[26px]", g === "remote_inspect" ? "bg-emerald-600 border-emerald-600 text-white shadow-xs" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20")}><SatelliteIcon size={11} className="mr-0.5 shrink-0 text-inherit" /><span className="font-extrabold flex items-center gap-0.5 text-inherit">.{(() => {
+                          const t = k?.ip_address || (q.includes(".") ? q : "");
+                          if (!t) return "LOCAL";
+                          const a = t.split(".");
+                          return a[a.length - 1];
+                        })()}</span><span className="inline-flex items-center justify-center w-3 h-3 rounded-full ml-0.5 hover:bg-emerald-500/20 hover:text-emerald-600 transition-colors text-emerald-500/60 text-[8px]" onClick={t => {
+                        t.stopPropagation(), br(null), g === "remote_inspect" && f(fe[0]?.id || "tab1");
+                      }}>✕</span></button></div>}</div>{fe.length < 5 && <button onClick={t => {
+                    t.stopPropagation(), Pi();
+                  }} className="w-[26px] h-[26px] flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/15 border border-dashed border-[#8b6f47]/30 hover:border-[#2d5016] rounded-lg text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] transition-all text-[10px] font-black cursor-pointer shrink-0" title="Thêm tab đơn mới (Ctrl+N)">＋</button>}<div className="relative shrink-0"><button ref={bs} onClick={t => {
+                      t.stopPropagation(), Ma(!Zt);
+                    }} className={c("relative w-[26px] h-[26px] rounded-lg flex items-center justify-center transition-all cursor-pointer border shrink-0", Zt || q ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-xs" : "bg-[#2d5016]/10 hover:bg-[#2d5016]/20 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 hover:border-[#2d5016]/40")} title={(() => {
+                      const t = new Set();
+                      return `Giám sát máy trạm (${hr.filter(r => {
+                        const s = r.ip_address || r.terminal_id;
+                        return s && !t.has(s) ? (t.add(s), !0) : !1;
+                      }).length} máy online)`;
+                    })()}><TvMonitorIcon size={11} strokeWidth={2.3} className="shrink-0" />{(() => {
+                        const t = new Set(),
+                          a = hr.filter(r => {
+                            const s = r.ip_address || r.terminal_id;
+                            return s && !t.has(s) ? (t.add(s), !0) : !1;
+                          });
+                        return a.length > 0 && <span className="absolute -top-1 -right-1 flex h-3 min-w-3 px-0.5 items-center justify-center rounded-full bg-emerald-500 text-[6.5px] font-black text-white shadow-xs ring-1 ring-card">{a.length}</span>;
+                      })()}</button><P>{Zt ? <Fn><x.div initial={{
+                          opacity: 0,
+                          scale: 0.95,
+                          y: -10
+                        }} animate={{
+                          opacity: 1,
+                          scale: 1,
+                          y: 0
+                        }} exit={{
+                          opacity: 0,
+                          scale: 0.95,
+                          y: -10
+                        }} transition={{
+                          duration: 0.15,
+                          ease: "easeOut"
+                        }} style={(() => {
+                          if (bs.current) {
+                            const t = bs.current.getBoundingClientRect();
+                            return {
+                              position: "fixed",
+                              top: t.bottom + 6 + "px",
+                              right: Math.max(10, window.innerWidth - t.right) + "px",
+                              zIndex: 99999
+                            };
+                          }
+                          return {
+                            position: "fixed",
+                            top: "100px",
+                            right: "100px",
+                            zIndex: 99999
+                          };
+                        })()} className="w-[340px] bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3.5 space-y-3 text-foreground ring-1 ring-border" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-border flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"><div className="flex items-center gap-1.5"><TvMonitorIcon size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-muted-foreground hover:text-rose-500 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
+                              const t = new Set(),
+                                a = [],
+                                r = [...hr].sort((s, n) => {
+                                  const l = (s.terminal_name || "").includes("MÁY POS") || (s.terminal_id || "").includes("127.0.0.1"),
+                                    d = (n.terminal_name || "").includes("MÁY POS") || (n.terminal_id || "").includes("127.0.0.1");
+                                  return l && !d ? 1 : !l && d ? -1 : (n.terminal_id || "").length - (s.terminal_id || "").length;
+                                });
+                              for (const s of r) {
+                                const n = s.ip_address || s.terminal_id;
+                                n && !t.has(n) && (t.add(n), a.push(s));
+                              }
+                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Không tìm thấy máy trạm nào online</div> : a.map(s => {
+                                const n = q === s.terminal_id,
+                                  l = s.total_items || (s.cart ? s.cart.reduce((u, h) => u + (h.quantity || 1), 0) : 0),
+                                  d = (s.terminal_id || "").includes("Mobile") || (s.current_page || "").includes("Mobile"),
+                                  o = s.total_amount || 0;
+                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 text-foreground shadow-md shadow-emerald-500/5" : "bg-card/60 border-border hover:bg-card")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
+                                    br(s.terminal_id), Ma(!1), f("remote_inspect");
+                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-card border-border text-muted-foreground")}>{d ? <Rs size={16} /> : <TvMonitorIcon size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-foreground">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-muted-foreground truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
+                                    u.stopPropagation(), hn(s.cart);
+                                  }} className="p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs" title="Sao chép nhanh giỏ hàng từ máy này"><Pn size={13} /></button></div>;
+                              });
+                            })()}</div></x.div></Fn> : null}</P></div></div><HeavyClock variant="purchase" gpuDisabled={Ya} /></div></div></div><P>{va && <Ee><div className="fixed inset-0 z-[2000] flex justify-end font-sans"><x.div initial={{
                   opacity: 0
                 }} animate={{
                   opacity: 1
@@ -3419,7 +3554,7 @@ function a0({
               type: "spring",
               stiffness: 300,
               damping: 30
-            }} className="flex flex-col min-h-0 flex-1"><div className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" : "bg-transparent border border-border/30 shadow-none")}><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (
+            }} className="flex flex-col min-h-0 flex-1"><div className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border-0 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent border-0 shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
                 initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -3428,118 +3563,139 @@ function a0({
                 transition={{ type: "spring", stiffness: 350, damping: 28 }}
                 className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
               >
-                <div className="flex flex-col items-center justify-center max-w-xl w-full mx-auto pointer-events-auto">
-                  {/* Mascot Header with soft float */}
-                  <div className="flex items-center gap-4 mb-3">
-                    <x.img
-                      src="/assets/images/user_mascot.png"
-                      alt="Lyang Mascot"
-                      className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
-                      draggable="false"
-                      initial={{ scale: 0.8, rotate: -6 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    />
-                    <div className="flex flex-col text-left">
-                      <span className="text-base sm:text-lg font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight">
-                        Giỏ Hàng Chưa Có Sản Phẩm
+                <div className="flex flex-col items-center justify-center max-w-4xl w-full mx-auto pointer-events-auto">
+                  <div 
+                    onClick={() => setShowHotkeysGuide(prev => {
+                      const next = !prev;
+                      try { localStorage.setItem("pos_show_hotkeys_guide", String(next)); } catch (e) {}
+                      return next;
+                    })}
+                    className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
+                  >
+                    <div className="relative shrink-0">
+                      <x.img
+                        src="/assets/images/user_mascot.png"
+                        alt="Lyang Mascot"
+                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
+                        draggable="false"
+                        initial={{ scale: 0.8, rotate: -6 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight flex items-center gap-2">
+                        <span>Giỏ Hàng Chưa Có Sản Phẩm</span>
                       </span>
-                      <span className="text-xs font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-0.5">
+                      <span className="text-xs sm:text-sm font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-1 whitespace-nowrap">
                         Gõ tên sản phẩm (F2) hoặc quét mã vạch ở ô trên để bắt đầu tạo đơn
                       </span>
                     </div>
                   </div>
 
-                  {/* Fully Transparent Shortcut Grid */}
-                  <div className="w-full">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
-                      {/* F2: Tìm kiếm */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
-                      </x.div>
+                  {/* Fully Transparent Shortcut Grid (Collapsed by Default) */}
+                  <Ws>
+                    {showHotkeysGuide && (
+                      <x.div
+                        key="hotkeys-guide-panel"
+                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                        className="w-full overflow-hidden"
+                      >
+                        <div className="w-full pt-1">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
+                            {/* F2: Tìm kiếm */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
+                            </x.div>
 
-                      {/* F3: Chọn khách */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn khách</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
-                      </x.div>
+                            {/* F3: Chọn khách */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn khách</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
+                            </x.div>
 
-                      {/* F4: Tạo đơn mới */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo đơn mới</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
-                      </x.div>
+                            {/* F4: Tạo đơn mới */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo đơn mới</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
+                            </x.div>
 
-                      {/* F6: Món tự do */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Món tự do</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
-                      </x.div>
+                            {/* F6: Món tự do */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Món tự do</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
+                            </x.div>
 
-                      {/* F8: Lưu tạm */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm đơn</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
-                      </x.div>
+                            {/* F8: Lưu tạm */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm đơn</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
+                            </x.div>
 
-                      {/* F9: Thanh toán */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thanh toán</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
-                      </x.div>
+                            {/* F9: Thanh toán */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thanh toán</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
+                            </x.div>
 
-                      {/* F10: Đọc tiền */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Đọc số tiền</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F10</kbd>
-                      </x.div>
+                            {/* F10: Đọc tiền */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Đọc số tiền</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F10</kbd>
+                            </x.div>
 
-                      {/* F12: Lưu / In */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In đơn</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
-                      </x.div>
+                            {/* F12: Lưu / In */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In đơn</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
+                            </x.div>
 
-                      {/* Tab: Chuyển ô */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
-                      </x.div>
+                            {/* Tab: Chuyển ô */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
+                            </x.div>
 
-                      {/* Enter: Thêm món */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào giỏ</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
-                      </x.div>
+                            {/* Enter: Thêm món */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào giỏ</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
+                            </x.div>
 
-                      {/* Ctrl+Z: Hoàn tác */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
-                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
-                      </x.div>
+                            {/* Ctrl+Z: Hoàn tác */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
+                            </x.div>
 
-                      {/* Ctrl+Arrow: Đổi hóa đơn */}
-                      <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi tab đơn</span>
-                        <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
-                      </x.div>
-                    </div>
+                            {/* Ctrl+Arrow: Đổi hóa đơn */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi tab đơn</span>
+                              <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
+                            </x.div>
+                          </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
-                      <div className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
-                        <span>Đóng popup / Hủy</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
-                        <span>Đơn treo / Chờ</span>
-                      </div>
-                    </div>
-                  </div>
+                          <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
+                            <div className="flex items-center gap-1.5">
+                              <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
+                              <span>Đóng popup / Hủy</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
+                              <span>Đơn treo / Chờ</span>
+                            </div>
+                          </div>
+                        </div>
+                      </x.div>
+                    )}
+                  </Ws>
                 </div>
               </x.div>
-            )}</P><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-auto no-scrollbar-on-empty z-10"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}</P><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -3557,126 +3713,52 @@ function a0({
                             width: "14%"
                           }} /><col style={{
                             width: "5%"
-                          }} /></colgroup><thead className="bg-transparent sticky top-0 z-[100] print:hidden border-b border-border/60"><tr className="border-none"><th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Stt</th><th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Soạn</th><th className="px-4 py-1.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full gap-4"><div onClick={t => {
-                                  t.stopPropagation();
-                                  const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
-                                  Na(r => ({
-                                    ...r,
-                                    ui_enable_smart_sorting: a
-                                  })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
-                                    type: "UI_SETTING_UPDATED",
-                                    key: "ui_enable_smart_sorting",
-                                    value: a
-                                  });
-                                }} className="flex items-center gap-3 group/sort-wrapper cursor-pointer shrink-0"><span className="font-black uppercase tracking-wider text-[10px] text-foreground hover:text-primary transition-colors">Danh mục sản phẩm</span><div className={c("relative w-14 h-5 rounded-lg p-0.5 transition-all duration-500 border", J.ui_enable_smart_sorting === "true" ? "bg-primary/20 border-primary/40 shadow-xs" : "bg-black/5 dark:bg-white/10 border-border")}><x.div layout={!0} transition={{
-                                      type: "spring",
-                                      stiffness: 400,
-                                      damping: 30
-                                    }} className={c("absolute inset-y-0.5 w-[55%] rounded-md flex items-center justify-center gap-1 text-[7.5px] font-black uppercase tracking-tighter transition-all", J.ui_enable_smart_sorting === "true" ? "right-0.5 bg-primary text-white shadow-xs" : "left-0.5 bg-card text-muted-foreground border border-border/40")}>{J.ui_enable_smart_sorting === "true" ? "AUTO" : "MAN"}</x.div></div></div><div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">{fe.map((t, a) => {
-                                    const r = t.id === g,
-                                      s = t.id === ne;
-                                    return <div className="group/tab relative shrink-0"><button onClick={n => {
-                                        n.stopPropagation(), es(t.id);
-                                      }} className={`
-                                            relative flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black tracking-wider transition-all border
-                                            ${r ? "bg-primary border-primary text-white shadow-sm" : "bg-transparent border-border/80 text-foreground/80 hover:border-primary hover:text-primary hover:bg-primary/5"}
-                                          `}>{s && <span className="flex items-end gap-[1.5px] h-2.5 mr-1 pb-[1px] shrink-0"><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
-                                            height: "40%"
-                                          }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
-                                            height: "70%"
-                                          }} /><span className={`w-[2px] rounded-full ${r ? "bg-white" : "bg-blue-500"}`} style={{
-                                            height: "100%"
-                                          }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={`inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${r ? "text-white/70" : "text-muted-foreground"}`} onClick={n => {
-                                          n.stopPropagation(), Ei(t.id, n);
-                                        }}>✕</span>}</button>{!s && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50"><button onClick={n => {
-                                          n.stopPropagation(), me(t.id);
-                                        }} className="bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded-lg shadow-xl flex items-center gap-0.5 hover:bg-blue-600 transition-colors border border-white/20">Ghim quét</button></div>}</div>;
-                                  })}{q && <div className="group/tab relative shrink-0"><button onClick={t => {
-                                      t.stopPropagation(), f("remote_inspect");
-                                    }} className={`relative flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-black tracking-wider transition-all border cursor-pointer ${g === "remote_inspect" ? "bg-emerald-600 border-emerald-600 text-white shadow-none" : "bg-transparent border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 shadow-none"}`}><Comp_go size={12} className="mr-1 shrink-0 text-inherit" /><span className="font-extrabold flex items-center gap-0.5 text-inherit">.{(() => {
-                                          const t = k?.ip_address || (q.includes(".") ? q : "");
-                                          if (!t) return "LOCAL";
-                                          const a = t.split(".");
-                                          return a[a.length - 1];
-                                        })()}</span><span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full ml-1 hover:bg-emerald-500/20 hover:text-emerald-600 transition-colors text-emerald-500/50" onClick={t => {
-                                        t.stopPropagation(), br(null), g === "remote_inspect" && f(fe[0]?.id || "tab1");
-                                      }}>✕</span></button></div>}{fe.length < 5 && <button onClick={t => {
-                                    t.stopPropagation(), Pi();
-                                  }} className="w-6 h-6 flex items-center justify-center bg-transparent border border-dashed border-border/80 hover:border-primary rounded-xl text-foreground/70 hover:text-primary hover:bg-primary/5 transition-all text-xs font-bold" title="Thêm đơn mới">＋</button>}<div className="relative shrink-0 ml-2 pl-2 border-l border-border/50"><button ref={bs} onClick={t => {
-                                      t.stopPropagation(), Ma(!Zt);
-                                    }} className={`relative w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shadow-none border-none bg-transparent ${Zt || q ? "text-emerald-500" : "text-foreground/70 hover:text-emerald-500 hover:bg-emerald-500/10"}`} title={(() => {
-                                      const t = new Set();
-                                      return `Giám sát máy trạm (${hr.filter(r => {
-                                        const s = r.ip_address || r.terminal_id;
-                                        return s && !t.has(s) ? (t.add(s), !0) : !1;
-                                      }).length} máy online)`;
-                                    })()}><Comp_qr size={14} className={Zt || q ? "text-emerald-500" : ""} />{(() => {
-                                        const t = new Set(),
-                                          a = hr.filter(r => {
-                                            const s = r.ip_address || r.terminal_id;
-                                            return s && !t.has(s) ? (t.add(s), !0) : !1;
-                                          });
-                                        return a.length > 0 && <span className="absolute top-0 right-0 flex h-3 w-3 items-center justify-center rounded-full bg-emerald-500 text-[7px] font-black text-white shadow-sm">{a.length}</span>;
-                                      })()}</button><P>{Zt ? <Fn><x.div initial={{
-                                          opacity: 0,
-                                          scale: 0.95,
-                                          y: -10
-                                        }} animate={{
-                                          opacity: 1,
-                                          scale: 1,
-                                          y: 0
-                                        }} exit={{
-                                          opacity: 0,
-                                          scale: 0.95,
-                                          y: -10
-                                        }} transition={{
-                                          duration: 0.15,
-                                          ease: "easeOut"
-                                        }} style={(() => {
-                                          if (bs.current) {
-                                            const t = bs.current.getBoundingClientRect();
-                                            return {
-                                              position: "fixed",
-                                              top: t.bottom + 6 + "px",
-                                              left: Math.max(10, t.left) + "px",
-                                              zIndex: 99999
-                                            };
-                                          }
-                                          return {
-                                            position: "fixed",
-                                            top: "100px",
-                                            left: "100px",
-                                            zIndex: 99999
-                                          };
-                                        })()} className="w-[340px] bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3.5 space-y-3 text-foreground ring-1 ring-border" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-border flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"><div className="flex items-center gap-1.5"><Comp_qr size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-muted-foreground hover:text-rose-500 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
-                                              const t = new Set(),
-                                                a = [],
-                                                r = [...hr].sort((s, n) => {
-                                                  const l = (s.terminal_name || "").includes("MÁY POS") || (s.terminal_id || "").includes("127.0.0.1"),
-                                                    d = (n.terminal_name || "").includes("MÁY POS") || (n.terminal_id || "").includes("127.0.0.1");
-                                                  return l && !d ? 1 : !l && d ? -1 : (n.terminal_id || "").length - (s.terminal_id || "").length;
-                                                });
-                                              for (const s of r) {
-                                                const n = s.ip_address || s.terminal_id;
-                                                n && !t.has(n) && (t.add(n), a.push(s));
-                                              }
-                                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Không tìm thấy máy trạm nào online</div> : a.map(s => {
-                                                const n = q === s.terminal_id,
-                                                  l = s.total_items || (s.cart ? s.cart.reduce((u, h) => u + (h.quantity || 1), 0) : 0),
-                                                  d = (s.terminal_id || "").includes("Mobile") || (s.current_page || "").includes("Mobile"),
-                                                  o = s.total_amount || 0;
-                                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 text-foreground shadow-md shadow-emerald-500/5" : "bg-card/60 border-border hover:bg-card")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
-                                                    br(s.terminal_id), Ma(!1), f("remote_inspect");
-                                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-card border-border text-muted-foreground")}>{d ? <Rs size={16} /> : <Comp_qr size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-foreground">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-muted-foreground truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
-                                                    u.stopPropagation(), hn(s.cart);
-                                                  }} className="p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs" title="Sao chép nhanh giỏ hàng từ máy này"><Pn size={13} /></button></div>;
-                                              });
-                                            })()}</div></x.div></Fn> : null}</P></div></div></div></th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-x border-border/40 whitespace-nowrap">Đơn vị</th><th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Quy đổi</th><th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Số lượng</th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Đơn giá</th><th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 whitespace-nowrap">Thành tiền</th><th rowSpan={2} className="text-center" /></tr><tr className="border-t border-border/40 bg-transparent"><td className="px-4 py-1.5 text-center border-r border-border/40 whitespace-nowrap"><div className="flex items-center justify-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-primary" /><span className="text-[9px] font-black text-primary uppercase tracking-widest">{ll} items</span></div></td><td className="px-3 py-1.5 text-center border-r border-border/40 whitespace-nowrap"><span className="text-xs font-black text-foreground tabular-nums">{z(dl)}</span></td><td className="px-3 py-1.5 text-center whitespace-nowrap"><span className="text-xs font-black text-primary tabular-nums font-mono">{z(ol)}</span></td></tr></thead><tbody className="divide-none"><tr className="bg-transparent sticky top-[60px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row" onDoubleClick={() => {
+                          }} /></colgroup><thead className="bg-transparent sticky top-0 z-[100] print:hidden border-none"><tr className="border-none"><th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Stt</th><th onClick={t => {
+                                t.stopPropagation();
+                                if (ve && ve.length > 0) {
+                                  const anyPacked = ve.some(item => item.isPacked);
+                                  if (anyPacked) {
+                                    H(r => r.map(item => ({ ...item, isPacked: false })));
+                                    G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
+                                  } else {
+                                    H(r => r.map(item => ({ ...item, isPacked: true })));
+                                    G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
+                                  }
+                                }
+                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" title="Bấm để uncheck toàn bộ / soạn lại">Soạn</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm</span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20"><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400 animate-pulse" />{ll} món</span></div><div onClick={t => {
+                                    t.stopPropagation();
+                                    const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
+                                    Na(r => ({
+                                      ...r,
+                                      ui_enable_smart_sorting: a
+                                    })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
+                                      type: "UI_SETTING_UPDATED",
+                                      key: "ui_enable_smart_sorting",
+                                      value: a
+                                    });
+                                  }} className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#8b6f47]/5 dark:bg-white/5 hover:bg-[#8b6f47]/10 dark:hover:bg-white/10 border border-[#8b6f47]/20 dark:border-white/10 cursor-pointer transition-all select-none" title="Gom nhóm thông minh tự động (Smart Sorting)"><span className="text-[8.5px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">GOM NHÓM</span><div className={c("relative w-5.5 h-3 rounded-full transition-colors duration-300 p-0.5", J.ui_enable_smart_sorting === "true" ? "bg-primary" : "bg-black/20 dark:bg-white/20")}><x.div layout={!0} transition={{
+                                        type: "spring",
+                                        stiffness: 500,
+                                        damping: 30
+                                      }} className={c("w-2 h-2 rounded-full bg-white shadow-xs", J.ui_enable_smart_sorting === "true" ? "ml-auto" : "mr-auto")} /></div></div></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn giá</th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row" onDoubleClick={() => {
                             m.product && (Vt(m.product), vt(!0));
                           }}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
-                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-3 px-2 text-center cursor-pointer select-none rounded-l-xl group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs hover:shadow-md hover:shadow-primary/20"><Nd size={16} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td className="py-3 px-2 w-12 min-w-[48px] max-w-[48px] text-center"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs"><Ot size={18} strokeWidth={2.5} /></div></td><td className="py-4 px-2 relative w-[540px] min-w-[540px] max-w-[540px]"><div className="relative group/search flex items-center gap-2"><div className="relative flex-1"><div className="relative"><div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={20} strokeWidth={3} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-auto py-2.5 pl-12 pr-16 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl font-black text-slate-800 dark:text-white outline-none transition-all focus:border-primary/50 dark:focus:border-emerald-500/50 focus:ring-4 focus:ring-primary/10 dark:focus:ring-emerald-500/10 focus:bg-transparent leading-relaxed placeholder:normal-case placeholder:leading-relaxed" autoComplete="off" value={Z} onChange={t => {
+                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-2.5 px-1 text-center cursor-pointer select-none rounded-l-xl group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs"><Nd size={15} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td onClick={t => {
+                                t.stopPropagation();
+                                if (ve && ve.length > 0) {
+                                  const anyPacked = ve.some(item => item.isPacked);
+                                  if (anyPacked) {
+                                    H(r => r.map(item => ({ ...item, isPacked: false })));
+                                    G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
+                                  } else {
+                                    H(r => r.map(item => ({ ...item, isPacked: true })));
+                                    G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
+                                  }
+                                }
+                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs hover:bg-primary/25 active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-all focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
+                                      playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
                                       if (se.current) {
                                         const rect = se.current.getBoundingClientRect();
@@ -3738,9 +3820,9 @@ function a0({
                                       });else if (t.key === "Enter") {
                                         t.preventDefault();
                                         const a = t.target.value.trim();
-                                        let r = !1;
-                                        if (a && (r = js(a), r)) {
-                                          ae("");
+                                        if (m.product && m.product.id) {
+                                          const r = m.quantity && m.quantity !== 0 ? m.quantity : 1;
+                                          ia(m.product, r, m.price);
                                           return;
                                         }
                                         if (a && wt.length === 0) {
@@ -3751,19 +3833,12 @@ function a0({
                                           return;
                                         }
                                         if (Z && wt[De]) {
-                                          const s = wt[De];
-                                          if (Te === "Retail" || !s.secondary_unit) ia(s, 1, R[s.id] !== void 0 ? R[s.id] : s.sale_price);else {
-                                            const n = m.quantity !== 0 ? m.quantity : 1;
-                                            He({
-                                              product: s,
-                                              quantity: n,
-                                              price: R[s.id] !== void 0 ? R[s.id] : s.sale_price,
-                                              secondary_qty: n / (s.multiplier || 1),
-                                              name: s.name,
-                                              latest_audit: s.latest_audit
-                                            }), ae(s.name), setTimeout(() => Pa.current?.focus(), 0);
-                                          }
-                                        }
+                                           const a = wt[De],
+                                             r = m.quantity && m.quantity !== 0 ? m.quantity : 1,
+                                             pPrice = R[a.id] !== void 0 ? R[a.id] : a.sale_price;
+                                           ia(a, r, pPrice);
+                                           return;
+                                         }
                                       } else if (t.key === "Tab") {
                                         if (t.preventDefault(), t.stopPropagation(), m.product) {
                                           const a = Te === "Wholesale" && m.product.secondary_unit ? Pa : Pt;
@@ -3787,16 +3862,16 @@ function a0({
                                       t.target.select(), os(!0);
                                     }} onBlur={() => {
                                       setTimeout(() => os(!1), 200);
-                                    }} ref={se} />{m.product && <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2"><div className="flex items-center gap-4 relative z-[200]"><div onClick={t => {
-                                          t.stopPropagation();
-                                          const a = t.currentTarget.getBoundingClientRect();
-                                          Xt(m.product), za({
-                                            top: a.top,
-                                            bottom: a.bottom,
-                                            left: a.left,
-                                            right: a.right
-                                          }), Dt(!0);
-                                        }} className={c("px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", m.product.stock <= 0 ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 shadow-rose-500/10" : m.product.stock < 10 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-amber-500/10" : "bg-primary/15 text-primary dark:text-emerald-400 border-primary/30 shadow-primary/10")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1.5 tabular-nums">{m.product.stock <= 0 ? <Pr size={14} strokeWidth={2.5} /> : m.product.stock < 10 ? <Comp_da size={14} strokeWidth={2.5} className="" /> : <Qa size={14} strokeWidth={2.5} />}<span className="tabular-nums font-black">{m.product.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3.5 bg-current opacity-25 shrink-0" /><div className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={13} strokeWidth={2.2} className="shrink-0 opacity-90" /><span className="tabular-nums font-black">{m.product.accounting_stock || 0}</span></div></>}</div></div></div>}</div></div><x.button whileHover={{
+                                    }} ref={se} />{m.product && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5"><div className="flex items-center gap-2 relative z-[200]"><div onClick={t => {
+                                      t.stopPropagation();
+                                      const a = t.currentTarget.getBoundingClientRect();
+                                      Xt(m.product), za({
+                                        top: a.top,
+                                        bottom: a.bottom,
+                                        left: a.left,
+                                        right: a.right
+                                      }), Dt(!0);
+                                    }} className={c("px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", m.product.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : m.product.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{m.product.stock <= 0 ? <Pr size={13} strokeWidth={2.8} className="text-white shrink-0" /> : m.product.stock < 10 ? <Comp_da size={13} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950 shrink-0" /> : <Qa size={13} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{m.product.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={12} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{m.product.accounting_stock || 0}</span></div></>}</div></div></div>}</div></div><x.button whileHover={{
                                   scale: 1.02
                                 }} whileTap={{
                                   scale: 0.95
@@ -3805,7 +3880,7 @@ function a0({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-9 px-2.5 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-5 h-5 rounded-lg bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={13} strokeWidth={3} /></div><div className="px-1.5 py-0.5 rounded-md bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[8px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && Li && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
+                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && Li && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
                                   y: -5
                                 }} animate={{
@@ -3837,8 +3912,8 @@ function a0({
                                               fontSize: a === De ? "18px" : "16px",
                                               paddingLeft: a === De ? "12px" : "0px"
                                             }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}</div><div className="flex items-center gap-5"><span className="text-[11px] font-black italic tracking-wide transition-colors" style={{
-                                            color: a === De ? Mt.accentMuted : Mt.muted
-                                          }}>{t.active_ingredient || ""}</span><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300")}>{t.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}</div></div></div><div className="flex items-center gap-8 relative z-10"><div onClick={r => {
+                                              color: a === De ? Mt.accentMuted : Mt.muted
+                                            }}>{t.active_ingredient || ""}</span><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{t.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300")}>{t.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}</div></div></div><div className="flex items-center gap-8 relative z-10"><div onClick={r => {
                                           r.stopPropagation();
                                           const s = r.currentTarget.getBoundingClientRect();
                                           Xt(t), za({
@@ -3847,81 +3922,81 @@ function a0({
                                             left: s.left,
                                             right: s.right
                                           }), Dt(!0);
-                                        }} className={c("px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", t.stock <= 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30" : t.stock < 10 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30" : a === De ? "bg-white/20 text-white border-white/40" : "bg-primary/10 text-primary dark:text-emerald-400 border-primary/30")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1.5 tabular-nums">{t.stock <= 0 ? <Pr size={14} strokeWidth={2.5} /> : t.stock < 10 ? <Comp_da size={14} strokeWidth={2.5} className="" /> : <Qa size={14} strokeWidth={2.5} />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3.5 shrink-0", a === De ? "bg-white/40" : "bg-current opacity-25")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", a === De ? "text-white" : "text-blue-600 dark:text-blue-400")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={13} strokeWidth={2.2} className="shrink-0 opacity-90" /><span className="tabular-nums font-black">{t.accounting_stock || 0}</span></div></>}</div><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
-                                            color: a === De ? Mt.accent : Mt.main
-                                          }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
-                                    dn(Z), ur(!0);
-                                  }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</P></Fn></td><td className="py-4 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200 text-xs">{Ae(m.product?.unit || "-")}</div>{m.product?.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-4 px-2">{m.product?.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10  transition-all"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" id="working-sec-qty" ref={Pa} tabIndex={Te === "Wholesale" ? 0 : -1} value={m.product ? m.secondary_qty : ""} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
-                                  const a = parseFloat(t.target.value) || 0;
-                                  He(r => {
-                                    const s = parseFloat(r.product?.multiplier) || 1;
-                                    return {
-                                      ...r,
-                                      secondary_qty: a,
-                                      quantity: a * s
-                                    };
-                                  });
-                                }} onKeyDown={t => {
-                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), Pt.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
-                                }} /><span className="text-[10px] font-black text-muted-foreground uppercase pr-2">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center">N/A</div>}</td><td className="py-4 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-foreground  transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
-                                  const a = parseFloat(t.target.value) || 0;
-                                  He(r => {
-                                    const s = parseFloat(r.product?.multiplier) || 1;
-                                    return {
-                                      ...r,
-                                      quantity: a,
-                                      secondary_qty: a / s
-                                    };
-                                  });
-                                }} onKeyDown={t => {
-                                  t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), blockTabPrice ? t.target.select?.() : ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
-                                }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => {
-                                  He(t => ({
-                                    ...t,
-                                    quantity: t.quantity * -1,
-                                    secondary_qty: t.secondary_qty * -1
-                                  })), Pt.current?.focus();
-                                }} title="Đổi thành Trả Hàng (Âm)"><Ms size={12} strokeWidth={3} /></button></div></td><td className="py-4 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(m.product.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(m.product.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-transparent border border-black/10 dark:border-white/5 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg transition-all ", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
-                                  const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
-                                  He({
-                                    ...m,
-                                    price: a
-                                  });
-                                }} onKeyDown={t => {
-                                  t.key === "Enter" ? (t.preventDefault(), zs(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
-                                }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
-                                    opacity: 0,
-                                    scale: 0.8,
-                                    y: -5
-                                  }} animate={{
-                                    opacity: 1,
-                                    scale: 1,
-                                    y: 0
-                                  }} className="bg-rose-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-rose-500/30 border border-white/20"><Comp_da size={12} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
-                                    opacity: 0,
-                                    scale: 0.8,
-                                    y: -5
-                                  }} animate={{
-                                    opacity: 1,
-                                    scale: 1,
-                                    y: 0
-                                  }} className="bg-orange-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  shadow-orange-500/30 border border-white/20"><$n size={12} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
-                                    opacity: 0,
-                                    scale: 0.8,
-                                    y: -5
-                                  }} animate={{
-                                    opacity: 1,
-                                    scale: 1,
-                                    y: 0
-                                  }} className="bg-amber-500/90 text-white text-[9px] px-2 py-1.5 rounded-xl font-black whitespace-nowrap z-10 flex items-center gap-1.5  border border-white/20"><Cd size={12} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
-                                    opacity: 0,
-                                    scale: 0.8,
-                                    y: -5
-                                  }} animate={{
-                                    opacity: 1,
-                                    scale: 1,
-                                    y: 0
-                                  }} className="px-2 py-1 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1.5 overflow-hidden"><Sd size={12} className="text-white fill-white/20" /><span className="text-[9px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-4 px-4 text-right"><div className={c("font-black text-lg transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-4 px-2 text-center">{m.product && <button onClick={() => {
+                                        }} className={c("px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", t.stock <= 0 ? "bg-rose-600 text-white" : t.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white", a === De ? "border-white/90 shadow-sm" : "border-white/20 dark:border-white/20")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1.5 tabular-nums">{t.stock <= 0 ? <Pr size={14} strokeWidth={2.8} className="text-white shrink-0" /> : t.stock < 10 ? <Comp_da size={14} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={14} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3.5 shrink-0", t.stock < 10 && t.stock > 0 ? "bg-slate-950/30" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={13} strokeWidth={2.4} className={c("shrink-0", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")} /><span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.accounting_stock || 0}</span></div></>}</div><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
+                                              color: a === De ? Mt.accent : Mt.main
+                                            }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
+                                      dn(Z), ur(!0);
+                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</P></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-white/60 dark:focus-within:bg-black/30 focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty || ""} id="working-sec-qty" autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    const a = parseFloat(t.target.value) || 0;
+                                    He(r => {
+                                      const s = parseFloat(r.product?.multiplier) || 1;
+                                      return {
+                                        ...r,
+                                        secondary_qty: a,
+                                        quantity: a * s
+                                      };
+                                    });
+                                  }} onKeyDown={t => {
+                                    t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), Pt.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                  }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    const a = parseFloat(t.target.value) || 0;
+                                    He(r => {
+                                      const s = parseFloat(r.product?.multiplier) || 1;
+                                      return {
+                                        ...r,
+                                        quantity: a,
+                                        secondary_qty: a / s
+                                      };
+                                    });
+                                  }} onKeyDown={t => {
+                                    t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), blockTabPrice ? t.target.select?.() : ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                  }} /><button tabIndex={-1} className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-white/60 dark:bg-black/40 text-[#8b6f47] dark:text-[#d4a574] rounded-full border border-white/50 dark:border-white/10 hover:bg-white active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100 shadow-xs" onClick={() => {
+                                    He(t => ({
+                                      ...t,
+                                      quantity: t.quantity * -1,
+                                      secondary_qty: t.secondary_qty * -1
+                                    })), Pt.current?.focus();
+                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
+                                    He({
+                                      ...m,
+                                      price: a
+                                    });
+                                  }} onKeyDown={t => {
+                                    t.key === "Enter" ? (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
+                                  }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
+                                    }} animate={{
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
+                                    }} className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
+                                    }} animate={{
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
+                                    }} className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
+                                    }} animate={{
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
+                                    }} className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
+                                    }} animate={{
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
+                                    }} className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -3931,7 +4006,7 @@ function a0({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa dòng"><Comp_ke size={20} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout={!0} initial={{
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout={!0} initial={{
                               opacity: 0,
                               x: -20
                             }} animate={{
@@ -4132,7 +4207,7 @@ function a0({
                                           right: n.right
                                         }), Dt(!0);
                                       }
-                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/40 dark:bg-rose-500/30" : t.stock < 10 ? "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 dark:bg-amber-500/30" : "bg-primary/20 text-primary dark:text-emerald-400 border-primary/40 dark:bg-primary/30")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.5} className="opacity-90" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.5} className="opacity-90" /> : <Qa size={12} strokeWidth={2.5} className="opacity-90" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-current opacity-25 shrink-0" /><div className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.2} className="shrink-0 opacity-90" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div></div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}<P>{Tt === a && zt && <x.div initial={{
+                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div></div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}<P>{Tt === a && zt && <x.div initial={{
                                       opacity: 0,
                                       y: -5
                                     }} animate={{
@@ -4186,7 +4261,7 @@ function a0({
                                                 paddingLeft: s === It ? "12px" : "0px"
                                               }} /></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}</div><div className="flex items-center gap-5"><span className="text-[11px] font-black italic tracking-wide transition-colors" style={{
                                               color: s === It ? Mt.accentMuted : Mt.muted
-                                            }}>{r.active_ingredient || ""}</span><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}</div></div></div><div className="flex items-center gap-8 relative z-10"><div onClick={n => {
+                                            }}>{r.active_ingredient || ""}</span><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:border-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}</div></div></div><div className="flex items-center gap-8 relative z-10"><div onClick={n => {
                                                 n.stopPropagation();
                                                 const l = n.currentTarget.getBoundingClientRect();
                                                 Xt(r), za({
@@ -4195,7 +4270,7 @@ function a0({
                                                   left: l.left,
                                                   right: l.right
                                                 }), Dt(!0);
-                                              }} className={c("px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", r.stock <= 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30" : r.stock < 10 ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30" : s === It ? "bg-white/20 text-white border-white/40" : "bg-primary/10 text-primary dark:text-emerald-400 border-primary/30")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1.5 tabular-nums">{r.stock <= 0 ? <Pr size={14} strokeWidth={2.5} /> : r.stock < 10 ? <Comp_da size={14} strokeWidth={2.5} className="" /> : <Qa size={14} strokeWidth={2.5} />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3.5 shrink-0", s === It ? "bg-white/40" : "bg-current opacity-25")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-blue-600 dark:text-blue-400")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={13} strokeWidth={2.2} className="shrink-0 opacity-90" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
+                                              }} className={c("px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", r.stock <= 0 ? s === It ? "bg-rose-600 text-white border-white/50 shadow-lg font-black" : "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : r.stock < 10 ? s === It ? "bg-amber-500 text-slate-950 border-white/50 shadow-lg font-black" : "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : s === It ? "bg-[#2d5016] text-white border-white/50 shadow-lg font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1.5 tabular-nums">{r.stock <= 0 ? <Pr size={14} strokeWidth={2.8} className={s === It ? "text-white shrink-0" : "text-white shrink-0"} /> : r.stock < 10 ? <Comp_da size={14} strokeWidth={2.8} className={s === It ? "text-slate-950 shrink-0" : "text-amber-950 dark:text-slate-950 shrink-0"} /> : <Qa size={14} strokeWidth={2.8} className={s === It ? "text-white shrink-0" : "text-white shrink-0"} />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3.5 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={13} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
                                               color: s === It ? Mt.accent : Mt.main
                                             }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></x.div>}</P>{t.active_ingredient && <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700"><div className="text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div><div className="text-xs font-bold leading-relaxed">{t.active_ingredient}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
@@ -4409,9 +4484,9 @@ function a0({
                 return <div style={{
                   minHeight: `${Jr}px`,
                   height: `${Jr}px`
-                }} className={c("relative mt-1 bg-transparent border-0 rounded-[1.5rem] p-1 shadow-none shrink-0 no-print flex flex-col justify-center overflow-visible transition-[height] duration-75", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
+                }} className={c("relative mt-1 p-1 px-1.5 rounded-2xl shrink-0 no-print flex flex-col justify-center overflow-visible transition-[height] duration-75 bg-transparent border-0 shadow-none", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
                     Yr(105), localStorage.setItem("pos_bottom_summary_height", "105");
-                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch w-full h-full"><x.div initial={{
+                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch w-full h-full relative z-10"><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4421,7 +4496,7 @@ function a0({
                       duration: 0.3
                     }} className="md:col-span-2 flex flex-col justify-between gap-1 min-w-0 h-full"><div onClick={() => {
                         a ? kt(!0) : zt.current?.focus();
-                      }} className={c("flex-1 min-h-[34px] relative overflow-hidden p-1 px-2.5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md", s > 0 ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]" : s < 0 ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "bg-card/40 hover:bg-card/70 border-border/80 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20")} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">Dư nợ</span>{a && s !== 0 && <x.span initial={{
+                      }} className={c("flex-1 min-h-[34px] relative overflow-hidden p-1 px-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md", s > 0 ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]" : s < 0 ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "bg-card/40 hover:bg-card/70 border-border/80 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20")} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">Dư nợ</span>{a && s !== 0 && <x.span initial={{
                             opacity: 0,
                             scale: 0.8
                           }} animate={{
@@ -4511,7 +4586,7 @@ function a0({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.15
-                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
+                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded-lg text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
                             opacity: 0,
                             scale: 0.8
                           }} animate={{
@@ -4519,7 +4594,7 @@ function a0({
                             scale: 1
                           }} transition={{
                             duration: 0.2
-                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
+                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-lg bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
                           opacity: 0,
                           y: -4,
                           scale: 0.98
@@ -4893,8 +4968,13 @@ function a0({
                     damping: 25
                   }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top"><Mn data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
               setEditingHistoryOrder(t);
-            }} onEditOrder={t => {
-              setEditingHistoryOrder(t);
+            }} onEditOrder={async t => {
+              kt(!1);
+              await Ka(t);
+              G({
+                message: `Đã nạp hóa đơn #${t.display_id || t.id} ra giỏ hàng!`,
+                type: "success"
+              });
             }} onDeleteOrder={Sn} onEditVoucher={t => {
               Ia({
                 ...t,
@@ -5071,64 +5151,665 @@ function a0({
                         console.error("Failed to open URL using tauri shell", r);
                       }
                       window.open(a, "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no");
-                    }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Xo size={16} strokeWidth={2.5} /><span>Mở trong Trình duyệt (Để Cast TV)</span></button></div></x.div></div>}</P></Ee><Ee><P>{Lr && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => ba(!1)}><x.div initial={{
-                  scale: 0.92,
+                    }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Xo size={16} strokeWidth={2.5} /><span>Mở trong Trình duyệt (Để Cast TV)</span></button></div></x.div></div>}</P></Ee><Ee><P>{Lr && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => ba(!1)}><x.div initial={{
+                  scale: 0.94,
                   opacity: 0,
-                  y: 20
+                  y: 15
                 }} animate={{
                   scale: 1,
                   opacity: 1,
                   y: 0
                 }} exit={{
-                  scale: 0.92,
+                  scale: 0.94,
                   opacity: 0,
-                  y: 20
-                }} onClick={t => t.stopPropagation()} className="bg-white dark:bg-slate-900 backdrop-blur-2xl w-full max-w-lg rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden relative p-6 space-y-4 text-foreground max-h-[90vh] flex flex-col"><div className="flex justify-between items-center"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center"><Comp_la size={20} strokeWidth={2.5} /></div><div><h3 className="font-black text-lg uppercase tracking-tight">Cài đặt giọng đọc (Loa)</h3><p className="text-[11px] font-bold text-slate-400">Tùy chỉnh thông báo âm thanh & câu đọc</p></div></div><button onClick={() => ba(!1)} className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} strokeWidth={2.5} /></button></div><div className="flex p-1 bg-slate-100 dark:bg-slate-800/70 rounded-2xl gap-1"><button type="button" onClick={() => cc("general")} className={c("flex-1 py-2 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", dc === "general" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}><SetIcon size={14} strokeWidth={2.5} /><span>Cài đặt chung</span></button><button type="button" onClick={() => cc("templates")} className={c("flex-1 py-2 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", dc === "templates" ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}><MsgQuote size={14} strokeWidth={2.5} /><span>Mẫu câu đọc</span></button></div>{dc === "general" ? <div className="space-y-4 overflow-y-auto pr-1"><div className="space-y-2"><label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Giọng đọc chính</label><div className="grid grid-cols-3 gap-2"><button type="button" onClick={() => Ar("off")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "off" ? "bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Uo size={18} strokeWidth={2.5} />Tắt âm</button><button type="button" onClick={() => Ar("female")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "female" ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Comp_la size={18} strokeWidth={2.5} />Giọng Nữ</button><button type="button" onClick={() => Ar("male")} className={c("py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border", ft === "male" ? "bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/20 scale-[1.02]" : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-transparent hover:bg-slate-200 dark:hover:bg-slate-800")}><Comp_la size={18} strokeWidth={2.5} />Giọng Nam</button></div></div><div className="space-y-2 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-800"><div className="flex justify-between items-center text-xs font-black"><span className="uppercase tracking-wider text-slate-500 dark:text-slate-400">Tốc độ đọc</span><span className="text-emerald-600 dark:text-emerald-400 font-mono">{Or}x</span></div><input type="range" min="1.0" max="2.0" step="0.1" value={Or} onChange={ji} className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg" /></div><div className="space-y-2"><label className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Nội dung thông báo</label><div className="grid grid-cols-2 gap-2 text-xs font-bold"><button type="button" onClick={() => {
-                        const t = !Za;
-                        gi(t), localStorage.setItem("pos_tts_read_product", t.toString());
-                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", Za ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={Za} readOnly={!0} className="accent-emerald-600 rounded" /><span>Tên sản phẩm</span></button><button type="button" onClick={() => {
-                        const t = !er;
-                        fi(t), localStorage.setItem("pos_tts_read_qty", t.toString());
-                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", er ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={er} readOnly={!0} className="accent-emerald-600 rounded" /><span>Số lượng</span></button><button type="button" onClick={() => {
-                        const t = !xa;
-                        yi(t), localStorage.setItem("pos_tts_read_total", t.toString());
-                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", xa ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={xa} readOnly={!0} className="accent-emerald-600 rounded" /><span>Tổng tiền thanh toán</span></button><button type="button" onClick={() => {
-                        const t = !ha;
-                        vi(t), localStorage.setItem("pos_tts_read_thanks", t.toString());
-                      }} className={c("flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left", ha ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300" : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 text-slate-500")}><input type="checkbox" checked={ha} readOnly={!0} className="accent-emerald-600 rounded" /><span>Lời cảm ơn</span></button></div></div></div> : <div className="space-y-4 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar"><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><div className="flex items-center justify-between"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Comp_uo size={15} strokeWidth={2.5} className="shrink-0" /> Đọc khi quét / thêm món</label><span className="text-[10px] text-slate-400 font-semibold">Thứ tự đọc</span></div><div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => {
-                        Wc("name_first");
-                        localStorage.setItem("pos_tts_cart_speech_order", "name_first");
-                      }} className={c("py-2 px-2.5 rounded-xl text-xs font-bold border transition-all", Mc === "name_first" ? "bg-emerald-600 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700")}>Tên món ➜ Số lượng</button><button type="button" onClick={() => {
-                        Wc("qty_first");
-                        localStorage.setItem("pos_tts_cart_speech_order", "qty_first");
-                      }} className={c("py-2 px-2.5 rounded-xl text-xs font-bold border transition-all", Mc === "qty_first" ? "bg-emerald-600 text-white border-emerald-500 shadow-sm" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700")}>Số lượng ➜ Tên món</button></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Do size={15} strokeWidth={2.5} className="shrink-0" /> Đọc tổng tiền thanh toán</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu (Khách lẻ):</span><span className="text-[10px] text-slate-400">Dùng: {'{amount}'}</span></div><input type="text" value={pc} onChange={t => {
-                        uc(t.target.value);
-                        localStorage.setItem("pos_tts_currency_template", t.target.value);
-                      }} placeholder="số tiền của quý khách là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}, {'{amount}'}</span></div><input type="text" value={mc} onChange={t => {
-                        xc(t.target.value);
-                        localStorage.setItem("pos_tts_currency_partner_template", t.target.value);
-                      }} placeholder="số tiền của {partner} là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Po size={15} strokeWidth={2.5} className="shrink-0" /> Đọc chuyển khoản (VietQR / Ngân hàng)</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu chuyển khoản:</span><span className="text-[10px] text-slate-400">Dùng: {'{amount}'}</span></div><input type="text" value={Nc} onChange={t => {
-                        Cc(t.target.value);
-                        localStorage.setItem("pos_tts_transfer_template", t.target.value);
-                      }} placeholder="số tiền cần chuyển khoản là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Mẫu câu chuyển khoản (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}, {'{amount}'}</span></div><input type="text" value={Sc} onChange={t => {
-                        Tc(t.target.value);
-                        localStorage.setItem("pos_tts_transfer_partner_template", t.target.value);
-                      }} placeholder="số tiền cần chuyển khoản của {partner} là {amount} đồng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div><div className="space-y-3 p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/60 dark:border-slate-800"><label className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><Es size={15} strokeWidth={2.5} className="shrink-0" /> Lời cảm ơn sau bán hàng</label><div className="space-y-2"><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Lời cảm ơn (Khách lẻ):</span></div><input type="text" value={hc} onChange={t => {
-                        bc(t.target.value);
-                        localStorage.setItem("pos_tts_thankyou_template", t.target.value);
-                      }} placeholder="Cảm ơn quý khách đã mua hàng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div><div><div className="flex justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1"><span>Lời cảm ơn (Có tên khách):</span><span className="text-[10px] text-slate-400">Dùng: {'{partner}'}</span></div><input type="text" value={gc} onChange={t => {
-                        fc(t.target.value);
-                        localStorage.setItem("pos_tts_thankyou_partner_template", t.target.value);
-                      }} placeholder="Cảm ơn {partner} đã mua hàng" className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" /></div></div></div></div>}<div className="flex items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800"><button type="button" onClick={() => {
-                      const sampleAmount = "năm mươi nghìn đồng",
-                        samplePartner = "anh Nam",
-                        sampleTotal = (pc || "số tiền của quý khách là {amount} đồng").replace("{amount}", sampleAmount).replace(/{partner}/gi, samplePartner),
-                        sampleThanks = (hc || "Xin cảm ơn quý khách!").replace(/{partner}/gi, samplePartner),
-                        sampleText = dc === "templates" ? `${sampleTotal}. ${sampleThanks}` : "Đã thêm 2 chai nước khoáng, tổng tiền năm mươi nghìn đồng. Xin cảm ơn quý khách!",
-                        a = Ls(sampleText, ki || (ft === "male" ? "edge-vi-male" : "edge-vi-female")),
-                        r = new Audio(a);
-                      r.playbackRate = Or || 1.4, r.play().catch(s => console.error("Test voice play failed:", s));
-                    }} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl font-black text-xs uppercase tracking-wider text-slate-700 dark:text-slate-200 transition-all flex items-center justify-center gap-2"><Comp_la size={16} />Phát thử giọng</button><button type="button" onClick={() => ba(!1)} className="py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-600/20 active:scale-98">Xong</button></div></x.div></div>}</P></Ee><P>{C && <Ee><div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"><x.div initial={{
+                  y: 15
+                }} onClick={t => t.stopPropagation()} className="bg-[#fcfbf9] dark:bg-[#071510] backdrop-blur-2xl w-full max-w-2xl rounded-[2.5rem] border border-[#8b6f47]/30 dark:border-emerald-500/20 shadow-[0_25px_70px_rgba(0,0,0,0.35)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.6)] overflow-hidden relative p-6 space-y-4 text-foreground max-h-[90vh] flex flex-col box-border">
+                  {/* Header */}
+                  <div className="flex justify-between items-center pb-1">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-11 h-11 rounded-2xl bg-[#8b6f47]/10 dark:bg-emerald-500/15 border border-[#8b6f47]/25 dark:border-emerald-500/30 text-[#8b6f47] dark:text-emerald-400 flex items-center justify-center shadow-inner shrink-0">
+                        <la size={22} strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-lg text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-1 flex items-center gap-2">
+                          <span>Cài đặt âm thanh & Giọng đọc</span>
+                        </h3>
+                        <p className="text-[11px] font-bold text-[#8b6f47]/80 dark:text-emerald-400/70">Tùy biến hiệu ứng Web Audio & Giọng đọc AI thời gian thực</p>
+                      </div>
+                    </div>
+                    <button onClick={() => ba(!1)} className="w-9 h-9 flex items-center justify-center hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all hover:rotate-90">
+                      <Xn size={18} strokeWidth={2.5} />
+                    </button>
+                  </div>
+
+                  {/* Nav Tabs */}
+                  <div className="flex p-1 bg-[#f4efe6] dark:bg-[#040e0a] rounded-2xl gap-1 border border-[#8b6f47]/20 dark:border-white/5">
+                    <button type="button" onClick={() => cc("general")} className={c("flex-1 py-2 px-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", dc === "general" ? "bg-white dark:bg-[#0f2e21] text-[#8b6f47] dark:text-emerald-300 shadow-sm border border-[#8b6f47]/25 dark:border-emerald-500/40" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}>
+                      <SetIcon size={14} strokeWidth={2.5} /><span>Giọng đọc TTS</span>
+                    </button>
+                    <button type="button" onClick={() => cc("sounds")} className={c("flex-1 py-2 px-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", dc === "sounds" ? "bg-white dark:bg-[#0f2e21] text-[#8b6f47] dark:text-emerald-300 shadow-sm border border-[#8b6f47]/25 dark:border-emerald-500/40" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}>
+                      <MuIcon size={14} strokeWidth={2.5} /><span>Hiệu ứng âm thanh</span>
+                    </button>
+                    <button type="button" onClick={() => cc("templates")} className={c("flex-1 py-2 px-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", dc === "templates" ? "bg-white dark:bg-[#0f2e21] text-[#8b6f47] dark:text-emerald-300 shadow-sm border border-[#8b6f47]/25 dark:border-emerald-500/40" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200")}>
+                      <MsgQuote size={14} strokeWidth={2.5} /><span>Mẫu câu thông báo</span>
+                    </button>
+                  </div>
+
+                  {/* Tab 2: Hiệu ứng âm thanh */}
+                  {dc === "sounds" ? (
+                    <div className="space-y-3.5 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar">
+                      {/* 1. Thêm món */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                            <uo size={15} strokeWidth={2.5} /> 1. Âm thanh khi thêm món vào giỏ
+                          </label>
+                          <button type="button" onClick={() => playAddToCartSound(soundThemeCartAdd)} className="text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 hover:underline flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#8b6f47]/10 dark:bg-emerald-500/10 border border-[#8b6f47]/15 dark:border-emerald-500/20 cursor-pointer">
+                            <la size={12} /><span>Nghe thử</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-bold">
+                          {[
+                            { id: 'barcode_beep', label: 'Tít máy quét' },
+                            { id: 'bubble_drop', label: 'Giọt nước' },
+                            { id: 'laser_blip', label: 'Tia Laser' },
+                            { id: 'bell_ding', label: 'Chuông Ting' },
+                            { id: 'wood_click', label: 'Gõ thanh mộc' },
+                            { id: 'coin_drop', label: 'Thả đồng xu' },
+                            { id: 'cyber_pop', label: 'Cyber Pop' },
+                            { id: 'off', label: 'Tắt âm', isOff: true }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setSoundThemeCartAdd(t.id);
+                                localStorage.setItem('pos_sound_theme_cart_add', t.id);
+                                playAddToCartSound(t.id);
+                                try {
+                                  const bc = new BroadcastChannel('pos_data_sync');
+                                  bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_sound_theme_cart_add', value: t.id });
+                                  bc.close();
+                                } catch(e){}
+                              }}
+                              className={c(
+                                "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                                soundThemeCartAdd === t.id
+                                  ? t.isOff
+                                    ? "bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-black shadow-xs ring-1 ring-rose-500/30"
+                                    : "bg-[#8b6f47]/15 dark:bg-emerald-500/20 border-[#8b6f47] dark:border-emerald-500 text-[#694e2b] dark:text-emerald-200 font-black shadow-xs ring-1 ring-[#8b6f47]/30 dark:ring-emerald-500/40"
+                                  : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-[#8b6f47]/40 dark:hover:border-emerald-500/30"
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                {t.isOff ? <Uo size={13} className="text-rose-500 shrink-0" /> : <la size={13} className="text-[#8b6f47] dark:text-emerald-400 shrink-0" />}
+                                <span className="truncate">{t.label}</span>
+                              </div>
+                              {soundThemeCartAdd === t.id && (
+                                t.isOff ? <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" /> : <Vo size={14} className="text-[#8b6f47] dark:text-emerald-400 shrink-0 ml-1" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. Hoàn tất lưu đơn */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                            <Lo size={15} strokeWidth={2.5} /> 2. Âm thanh hoàn tất / Lưu đơn
+                          </label>
+                          <button type="button" onClick={() => Is(soundThemeSuccess)} className="text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 hover:underline flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#8b6f47]/10 dark:bg-emerald-500/10 border border-[#8b6f47]/15 dark:border-emerald-500/20 cursor-pointer">
+                            <la size={12} /><span>Nghe thử</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs font-bold">
+                          {[
+                            { id: 'chime', label: 'Chuông Triad ngân' },
+                            { id: 'cash_register', label: 'Két tiền Cha-ching' },
+                            { id: 'digital_pos', label: 'POS Điện tử' },
+                            { id: 'mario', label: 'Ăn xu Arcade' },
+                            { id: 'subtle_wood', label: 'Gỗ Mộc Marimba' },
+                            { id: 'fanfare', label: 'Khải hoàn Fanfare' },
+                            { id: 'zen_bell', label: 'Chuông Bát Thiền' },
+                            { id: 'coin_clink', label: 'Tiếng Xu Keng' },
+                            { id: 'off', label: 'Tắt âm', isOff: true }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setSoundThemeSuccess(t.id);
+                                localStorage.setItem('pos_sound_theme_success', t.id);
+                                Is(t.id);
+                                try {
+                                  const bc = new BroadcastChannel('pos_data_sync');
+                                  bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_sound_theme_success', value: t.id });
+                                  bc.close();
+                                } catch(e){}
+                              }}
+                              className={c(
+                                "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                                soundThemeSuccess === t.id
+                                  ? t.isOff
+                                    ? "bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-black shadow-xs ring-1 ring-rose-500/30"
+                                    : "bg-[#8b6f47]/15 dark:bg-emerald-500/20 border-[#8b6f47] dark:border-emerald-500 text-[#694e2b] dark:text-emerald-200 font-black shadow-xs ring-1 ring-[#8b6f47]/30 dark:ring-emerald-500/40"
+                                  : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-[#8b6f47]/40 dark:hover:border-emerald-500/30"
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                {t.isOff ? <Uo size={13} className="text-rose-500 shrink-0" /> : <la size={13} className="text-[#8b6f47] dark:text-emerald-400 shrink-0" />}
+                                <span className="truncate">{t.label}</span>
+                              </div>
+                              {soundThemeSuccess === t.id && (
+                                t.isOff ? <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" /> : <Vo size={14} className="text-[#8b6f47] dark:text-emerald-400 shrink-0 ml-1" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 3. Thao tác click */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                            <Es size={15} strokeWidth={2.5} /> 3. Âm thao tác (Chọn, Đổi tab, Xóa)
+                          </label>
+                          <button type="button" onClick={() => Ds(soundThemeAction)} className="text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 hover:underline flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#8b6f47]/10 dark:bg-emerald-500/10 border border-[#8b6f47]/15 dark:border-emerald-500/20 cursor-pointer">
+                            <la size={12} /><span>Nghe thử</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-bold">
+                          {[
+                            { id: 'pop_bubble', label: 'Bóng nước Pop' },
+                            { id: 'click_switch', label: 'Nút bấm sắc' },
+                            { id: 'tap_wooden', label: 'Gõ lách cách' },
+                            { id: 'beep_soft', label: 'Tít êm dịu' },
+                            { id: 'whoosh_subtle', label: 'Lướt gió Whoosh' },
+                            { id: 'camera_snap', label: 'Máy ảnh Snap' },
+                            { id: 'off', label: 'Tắt âm', isOff: true }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setSoundThemeAction(t.id);
+                                localStorage.setItem('pos_sound_theme_action', t.id);
+                                Ds(t.id);
+                                try {
+                                  const bc = new BroadcastChannel('pos_data_sync');
+                                  bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_sound_theme_action', value: t.id });
+                                  bc.close();
+                                } catch(e){}
+                              }}
+                              className={c(
+                                "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                                soundThemeAction === t.id
+                                  ? t.isOff
+                                    ? "bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-black shadow-xs ring-1 ring-rose-500/30"
+                                    : "bg-[#8b6f47]/15 dark:bg-emerald-500/20 border-[#8b6f47] dark:border-emerald-500 text-[#694e2b] dark:text-emerald-200 font-black shadow-xs ring-1 ring-[#8b6f47]/30 dark:ring-emerald-500/40"
+                                  : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-[#8b6f47]/40 dark:hover:border-emerald-500/30"
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                {t.isOff ? <Uo size={13} className="text-rose-500 shrink-0" /> : <la size={13} className="text-[#8b6f47] dark:text-emerald-400 shrink-0" />}
+                                <span className="truncate">{t.label}</span>
+                              </div>
+                              {soundThemeAction === t.id && (
+                                t.isOff ? <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" /> : <Vo size={14} className="text-[#8b6f47] dark:text-emerald-400 shrink-0 ml-1" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4. Gõ phím tìm kiếm */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                            <yo size={15} strokeWidth={2.5} /> 4. Âm thanh gõ ô tìm kiếm (F2)
+                          </label>
+                          <button type="button" onClick={() => playTypingSoundUtil(soundThemeTyping)} className="text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 hover:underline flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#8b6f47]/10 dark:bg-emerald-500/10 border border-[#8b6f47]/15 dark:border-emerald-500/20 cursor-pointer">
+                            <la size={12} /><span>Nghe thử</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-bold">
+                          {[
+                            { id: 'mechanical', label: 'Phím cơ Blue' },
+                            { id: 'thock_deep', label: 'Phím Thocky' },
+                            { id: 'typewriter', label: 'Máy đánh chữ' },
+                            { id: 'soft_click', label: 'Màng phím nhẹ' },
+                            { id: 'bubble_typing', label: 'Bong bóng nước' },
+                            { id: 'retro_beep', label: 'Terminal cổ' },
+                            { id: 'off', label: 'Tắt âm', isOff: true }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setSoundThemeTyping(t.id);
+                                localStorage.setItem('pos_sound_theme_typing', t.id);
+                                playTypingSoundUtil(t.id);
+                                try {
+                                  const bc = new BroadcastChannel('pos_data_sync');
+                                  bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_sound_theme_typing', value: t.id });
+                                  bc.close();
+                                } catch(e){}
+                              }}
+                              className={c(
+                                "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                                soundThemeTyping === t.id
+                                  ? t.isOff
+                                    ? "bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-black shadow-xs ring-1 ring-rose-500/30"
+                                    : "bg-[#8b6f47]/15 dark:bg-emerald-500/20 border-[#8b6f47] dark:border-emerald-500 text-[#694e2b] dark:text-emerald-200 font-black shadow-xs ring-1 ring-[#8b6f47]/30 dark:ring-emerald-500/40"
+                                  : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-[#8b6f47]/40 dark:hover:border-emerald-500/30"
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                {t.isOff ? <Uo size={13} className="text-rose-500 shrink-0" /> : <la size={13} className="text-[#8b6f47] dark:text-emerald-400 shrink-0" />}
+                                <span className="truncate">{t.label}</span>
+                              </div>
+                              {soundThemeTyping === t.id && (
+                                t.isOff ? <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" /> : <Vo size={14} className="text-[#8b6f47] dark:text-emerald-400 shrink-0 ml-1" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 5. Cảnh báo & Lỗi */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-rose-500/20 dark:border-rose-500/25">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                            <As size={15} strokeWidth={2.5} /> 5. Âm cảnh báo & Báo lỗi
+                          </label>
+                          <button type="button" onClick={() => Sl(soundThemeError)} className="text-[11px] font-black text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 cursor-pointer">
+                            <la size={12} /><span>Nghe thử</span>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs font-bold">
+                          {[
+                            { id: 'buzz_low', label: 'Rè trầm báo động' },
+                            { id: 'glass_bonk', label: 'Gõ kính đanh' },
+                            { id: 'chord_warn', label: 'Hợp âm cảnh báo' },
+                            { id: 'off', label: 'Tắt âm', isOff: true }
+                          ].map(t => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                setSoundThemeError(t.id);
+                                localStorage.setItem('pos_sound_theme_error', t.id);
+                                Sl(t.id);
+                                try {
+                                  const bc = new BroadcastChannel('pos_data_sync');
+                                  bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_sound_theme_error', value: t.id });
+                                  bc.close();
+                                } catch(e){}
+                              }}
+                              className={c(
+                                "p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                                soundThemeError === t.id
+                                  ? "bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-black shadow-xs ring-1 ring-rose-500/30"
+                                  : "bg-white dark:bg-[#06140e] border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-rose-500/40"
+                              )}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                {t.isOff ? <Uo size={13} className="text-rose-500 shrink-0" /> : <As size={13} className="text-rose-500 shrink-0" />}
+                                <span className="truncate">{t.label}</span>
+                              </div>
+                              {soundThemeError === t.id && <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 ml-1" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : dc === "general" ? (
+                    /* Tab 1: Cài đặt Giọng đọc TTS */
+                    <div className="space-y-4 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar">
+                      {/* Voice Mode */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                          <span>Giọng đọc chính (TTS Engine)</span>
+                          <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-bold">Edge Neural AI (Tự nhiên)</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => Ar("off")}
+                            className={c(
+                              "py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border cursor-pointer",
+                              ft === "off"
+                                ? "bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20 scale-[1.02]"
+                                : "bg-white dark:bg-[#06140e] text-slate-700 dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/5 hover:bg-[#f4efe6] dark:hover:bg-white/5"
+                            )}
+                          >
+                            <Uo size={20} strokeWidth={2.5} />
+                            <span>Tắt giọng đọc</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => Ar("female")}
+                            className={c(
+                              "py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border cursor-pointer",
+                              ft === "female"
+                                ? "bg-[#8b6f47] dark:bg-emerald-600 text-white border-[#8b6f47] dark:border-emerald-500 shadow-md shadow-[#8b6f47]/20 dark:shadow-emerald-600/20 scale-[1.02]"
+                                : "bg-white dark:bg-[#06140e] text-slate-700 dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/5 hover:bg-[#f4efe6] dark:hover:bg-white/5"
+                            )}
+                          >
+                            <la size={20} strokeWidth={2.5} />
+                            <span>Giọng Nữ (Hoài My)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => Ar("male")}
+                            className={c(
+                              "py-3 px-2 rounded-2xl font-black text-xs uppercase tracking-tight flex flex-col items-center gap-1.5 transition-all border cursor-pointer",
+                              ft === "male"
+                                ? "bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/20 scale-[1.02]"
+                                : "bg-white dark:bg-[#06140e] text-slate-700 dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/5 hover:bg-[#f4efe6] dark:hover:bg-white/5"
+                            )}
+                          >
+                            <la size={20} strokeWidth={2.5} />
+                            <span>Giọng Nam (Nam Minh)</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Speed Slider */}
+                      <div className="space-y-2 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-4 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex justify-between items-center text-xs font-black">
+                          <span className="uppercase tracking-wider text-slate-700 dark:text-slate-300">Tốc độ đọc giọng</span>
+                          <span className="px-2 py-0.5 rounded-lg bg-[#8b6f47]/15 dark:bg-emerald-500/15 text-[#8b6f47] dark:text-emerald-300 font-mono font-black text-xs">
+                            {Or}x {Or === 1.4 ? "(Chuẩn tối ưu)" : ""}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1.0"
+                          max="2.0"
+                          step="0.1"
+                          value={Or}
+                          onChange={ji}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                        <div className="flex justify-between gap-1 pt-1">
+                          {[1.0, 1.2, 1.4, 1.6, 1.8, 2.0].map(sp => (
+                            <button
+                              key={sp}
+                              type="button"
+                              onClick={() => {
+                                wi(sp);
+                                localStorage.setItem("pos_speech_rate", sp.toString());
+                                setTimeout(() => Ss(T), 100);
+                              }}
+                              className={c(
+                                "px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer",
+                                Or === sp ? "bg-[#8b6f47] dark:bg-emerald-600 text-white shadow-xs" : "bg-white dark:bg-[#06140e] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-[#8b6f47]/20 dark:border-white/5"
+                              )}
+                            >
+                              {sp}x
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Content options */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Tùy chọn đọc nội dung</label>
+                        <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const t = !Za;
+                              gi(t), localStorage.setItem("pos_tts_read_product", t.toString());
+                            }}
+                            className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left cursor-pointer", Za ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
+                          >
+                            <input type="checkbox" checked={Za} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
+                            <span>Đọc tên sản phẩm</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const t = !er;
+                              fi(t), localStorage.setItem("pos_tts_read_qty", t.toString());
+                            }}
+                            className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left cursor-pointer", er ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
+                          >
+                            <input type="checkbox" checked={er} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
+                            <span>Đọc số lượng món</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const t = !xa;
+                              yi(t), localStorage.setItem("pos_tts_read_total", t.toString());
+                            }}
+                            className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left cursor-pointer", xa ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
+                          >
+                            <input type="checkbox" checked={xa} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
+                            <span>Đọc tổng tiền hóa đơn</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const t = !ha;
+                              vi(t), localStorage.setItem("pos_tts_read_thanks", t.toString());
+                            }}
+                            className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left cursor-pointer", ha ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
+                          >
+                            <input type="checkbox" checked={ha} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
+                            <span>Đọc lời cảm ơn sau lưu</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const t = !typingSoundEnabled;
+                              setTypingSoundEnabled(t);
+                              localStorage.setItem("pos_typing_sound_enabled", t ? "true" : "false");
+                              try {
+                                const a = new BroadcastChannel("pos_data_sync");
+                                a.postMessage({
+                                  type: "UI_SETTING_UPDATED",
+                                  key: "pos_typing_sound_enabled",
+                                  value: t ? "true" : "false"
+                                }), a.close();
+                              } catch {}
+                            }}
+                            className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left col-span-2 cursor-pointer", typingSoundEnabled ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
+                          >
+                            <input type="checkbox" checked={typingSoundEnabled} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
+                            <span>Bật tiếng lách cách bàn phím khi gõ tìm kiếm (F2)</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Tab 3: Mẫu câu thông báo */
+                    <div className="space-y-3.5 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar">
+                      {/* Thứ tự đọc khi quét */}
+                      <div className="space-y-2.5 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                            <uo size={15} strokeWidth={2.5} className="shrink-0" /> Thứ tự đọc khi quét / thêm món
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              Wc("name_first");
+                              localStorage.setItem("pos_tts_cart_speech_order", "name_first");
+                            }}
+                            className={c("py-2.5 px-3 rounded-xl text-xs font-black border transition-all cursor-pointer", Mc === "name_first" ? "bg-[#8b6f47] dark:bg-emerald-600 text-white border-[#8b6f47] dark:border-emerald-500 shadow-sm" : "bg-white dark:bg-[#06140e] text-slate-700 dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/5")}
+                          >
+                            Tên món ➜ Số lượng
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              Wc("qty_first");
+                              localStorage.setItem("pos_tts_cart_speech_order", "qty_first");
+                            }}
+                            className={c("py-2.5 px-3 rounded-xl text-xs font-black border transition-all cursor-pointer", Mc === "qty_first" ? "bg-[#8b6f47] dark:bg-emerald-600 text-white border-[#8b6f47] dark:border-emerald-500 shadow-sm" : "bg-white dark:bg-[#06140e] text-slate-700 dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/5")}
+                          >
+                            Số lượng ➜ Tên món
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Đọc tổng tiền */}
+                      <div className="space-y-3 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                          <Do size={15} strokeWidth={2.5} className="shrink-0" /> Đọc tổng tiền thanh toán
+                        </label>
+                        <div className="space-y-2.5">
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Mẫu câu (Khách lẻ):</span>
+                              <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-mono">Dùng: {'{amount}'}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={pc}
+                              onChange={t => {
+                                uc(t.target.value);
+                                localStorage.setItem("pos_tts_currency_template", t.target.value);
+                              }}
+                              placeholder="số tiền của quý khách là {amount} đồng"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Mẫu câu (Có tên đối tác / khách hàng):</span>
+                              <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-mono">Dùng: {'{partner}'}, {'{amount}'}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={mc}
+                              onChange={t => {
+                                xc(t.target.value);
+                                localStorage.setItem("pos_tts_currency_partner_template", t.target.value);
+                              }}
+                              placeholder="số tiền của {partner} là {amount} đồng"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Chuyển khoản */}
+                      <div className="space-y-3 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                          <Po size={15} strokeWidth={2.5} className="shrink-0" /> Đọc chuyển khoản (VietQR / Ngân hàng)
+                        </label>
+                        <div className="space-y-2.5">
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Mẫu câu chuyển khoản:</span>
+                              <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-mono">Dùng: {'{amount}'}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={Nc}
+                              onChange={t => {
+                                Cc(t.target.value);
+                                localStorage.setItem("pos_tts_transfer_template", t.target.value);
+                              }}
+                              placeholder="số tiền cần chuyển khoản là {amount} đồng"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Mẫu câu chuyển khoản (Có tên khách):</span>
+                              <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-mono">Dùng: {'{partner}'}, {'{amount}'}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={Sc}
+                              onChange={t => {
+                                Tc(t.target.value);
+                                localStorage.setItem("pos_tts_transfer_partner_template", t.target.value);
+                              }}
+                              placeholder="số tiền cần chuyển khoản của {partner} là {amount} đồng"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lời cảm ơn */}
+                      <div className="space-y-3 p-3.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <label className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-2">
+                          <Es size={15} strokeWidth={2.5} className="shrink-0" /> Lời cảm ơn sau bán hàng
+                        </label>
+                        <div className="space-y-2.5">
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Lời cảm ơn (Khách lẻ):</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={hc}
+                              onChange={t => {
+                                bc(t.target.value);
+                                localStorage.setItem("pos_tts_thankyou_template", t.target.value);
+                              }}
+                              placeholder="Cảm ơn quý khách"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                              <span>Lời cảm ơn (Có tên khách):</span>
+                              <span className="text-[10px] text-[#8b6f47] dark:text-emerald-400 font-mono">Dùng: {'{partner}'}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={gc}
+                              onChange={t => {
+                                fc(t.target.value);
+                                localStorage.setItem("pos_tts_thankyou_partner_template", t.target.value);
+                              }}
+                              placeholder="Cảm ơn {partner}"
+                              className="w-full p-2.5 bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-[#8b6f47] dark:focus:border-emerald-500 focus:ring-1 focus:ring-[#8b6f47]/40"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modal Footer */}
+                  <div className="flex items-center gap-3 pt-3 border-t border-[#8b6f47]/20 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sampleAmount = "năm mươi nghìn đồng",
+                          samplePartner = "anh Nam",
+                          sampleTotal = (pc || "số tiền của quý khách là {amount} đồng").replace("{amount}", sampleAmount).replace(/{partner}/gi, samplePartner),
+                          sampleThanks = (hc || "Xin cảm ơn quý khách!").replace(/{partner}/gi, samplePartner),
+                          sampleText = dc === "templates" ? `${sampleTotal}. ${sampleThanks}` : "Đã thêm 2 chai nước khoáng, tổng tiền năm mươi nghìn đồng. Xin cảm ơn quý khách!",
+                          a = Ls(sampleText, ki || (ft === "male" ? "edge-vi-male" : "edge-vi-female")),
+                          r = new Audio(a);
+                        r.playbackRate = Or || 1.4, r.play().catch(s => console.error("Test voice play failed:", s));
+                      }}
+                      className="flex-1 py-3 px-4 bg-[#f4efe6] hover:bg-[#eae3d5] dark:bg-[#0a1f16] dark:hover:bg-[#0e291e] border border-[#8b6f47]/20 dark:border-emerald-500/20 rounded-2xl font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-emerald-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    >
+                      <la size={16} /><span>Phát thử giọng mẫu</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => ba(!1)}
+                      className="py-3 px-8 bg-gradient-to-r from-[#8b6f47] to-[#6e5433] dark:from-emerald-600 dark:to-teal-600 hover:opacity-95 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-[#8b6f47]/20 dark:shadow-emerald-600/25 active:scale-98 cursor-pointer"
+                    >
+                      Xong & Lưu
+                    </button>
+                  </div>
+                </x.div></div>}</P></Ee><P>{C && <Ee><div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"><x.div initial={{
                   opacity: 0
                 }} animate={{
                   opacity: 1
@@ -5184,8 +5865,10 @@ function a0({
                 message: `Đã thêm ${a.name} vào giỏ hàng`,
                 type: "success"
               });
-            }} onEditOrder={t => {
-              setIsHistoryPanelOpen(!1), Ka(t), G({
+            }} onEditOrder={async t => {
+              setIsHistoryPanelOpen(!1);
+              await Ka(t);
+              G({
                 message: `Đã nạp hóa đơn #${t.display_id || t.id} ra giỏ hàng!`,
                 type: "success"
               });

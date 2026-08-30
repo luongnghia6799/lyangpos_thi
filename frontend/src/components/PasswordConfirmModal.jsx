@@ -36,7 +36,7 @@ export default function PasswordConfirmModal({
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-transparent w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-white dark:border-slate-800 flex flex-col"
+                            className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col"
                         >
                             <div className="p-6 flex flex-col items-center text-center">
                                 <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4 border text-rose-600 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-400 border-rose-200 dark:border-rose-800">
@@ -54,15 +54,15 @@ export default function PasswordConfirmModal({
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder={placeholder}
-                                        className="w-full p-4 bg-transparent rounded-2xl border-2 border-transparent focus:border-emerald-500 outline-none font-bold text-center text-gray-800 dark:text-white transition-all text-lg"
+                                        className="w-full p-4 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 outline-none font-bold text-center text-gray-800 dark:text-white transition-all text-lg"
                                     />
                                 </form>
                             </div>
 
-                            <div className="p-6 bg-transparent/50 dark:bg-slate-800/50 border-t dark:border-slate-800 flex gap-3">
+                            <div className="p-6 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex gap-3">
                                 <button
                                     onClick={onCancel}
-                                    className="flex-1 px-4 py-3 bg-transparent text-gray-400 dark:text-gray-500 rounded-2xl text-xs font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 hover:bg-transparent transition-all active:scale-95"
+                                    className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 rounded-2xl text-xs font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
                                 >
                                     Hủy bỏ
                                 </button>

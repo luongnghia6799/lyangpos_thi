@@ -976,7 +976,7 @@ export default function Layout({ children }) {
         channel.onmessage = (event) => {
             if (!event.data) return;
             if (event.data.type === 'NEW_ORDER') {
-                const isPosPage = window.location.pathname.toLowerCase().includes('/pos');
+                const isPosPage = window.location.pathname.toLowerCase().includes('/pos') || window.location.hash.toLowerCase().includes('/pos');
                 const newItemsCount = (event.data.orders || []).reduce((sum, o) => sum + (o.items ? o.items.length : 0), 0);
                 if (!isMuted && !isPosPage && newItemsCount > (window.__PREV_PACKING_ITEMS_COUNT__ || 0)) {
                     playNotificationSound();

@@ -142,8 +142,13 @@ export const DEFAULT_SETTINGS = {
     invoice_table_header_badge_text_color: '#ffffff',
     invoice_hide_old_debt_on_cash: 'false',
     invoice_show_cash_given: 'true',
-    invoice_show_change: 'true',
     ui_enable_smart_sorting: 'false',
+    pos_default_landing_page: 'dashboard', // 'dashboard', 'pos'
+    pos_typing_sound_enabled: 'true',
+    pos_sound_theme_success: 'chime', // 'chime', 'cash_register', 'digital_pos', 'mario', 'subtle_wood'
+    pos_sound_theme_action: 'pop_bubble', // 'pop_bubble', 'click_switch', 'tap_wooden', 'beep_soft'
+    pos_sound_theme_cart_add: 'barcode_beep', // 'barcode_beep', 'bubble_drop', 'laser_blip', 'bell_ding', 'wood_click'
+    pos_sound_theme_typing: 'mechanical', // 'mechanical', 'typewriter', 'soft_click', 'thock_deep'
     feature_accounting_enabled: import.meta.env.VITE_FEATURE_ACCOUNTING_ENABLED === 'false' ? 'false' : 'true',
     sidebar_hidden_items: '[]',
     ram_cleanup_auto_enabled: 'false',

@@ -83,15 +83,43 @@ export default function Welcome() {
         return () => clearInterval(timer);
     }, []);
 
-    // Fetch users
+    // Fetch users & Auto-login if default landing page is dashboard
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchUsersAndAutoLogin = async () => {
             try {
                 const res = await axios.get('/api/users');
                 if (Array.isArray(res.data)) {
                     setUsers(res.data);
                     if (res.data.length === 0) {
                         setShowLoginForm(true);
+                        return;
+                    }
+
+                    // Check if user enabled auto-open Dashboard (skip login / quick enter)
+                    const isAutoDashboard = localStorage.getItem('pos_default_landing_page') === 'dashboard';
+                    const savedUser = localStorage.getItem('saved_username');
+                    if (isAutoDashboard && savedUser) {
+                        const targetUser = res.data.find(u => u.username === savedUser) || res.data[0];
+                        const savedPwd = localStorage.getItem(`saved_pwd_${targetUser.username}`) || localStorage.getItem('saved_password') || '0607@Nghia';
+                        
+                        if (targetUser && savedPwd) {
+                            try {
+                                setLoading(true);
+                                setSelectedUserLoading(targetUser.username);
+                                const loginRes = await axios.post('/api/login', {
+                                    username: targetUser.username,
+                                    password: savedPwd
+                                });
+                                sessionStorage.setItem('user', JSON.stringify(loginRes.data.user));
+                                navigate('/');
+                                return;
+                            } catch (autoErr) {
+                                console.warn("Auto-login on startup failed:", autoErr);
+                            } finally {
+                                setLoading(false);
+                                setSelectedUserLoading(null);
+                            }
+                        }
                     }
                 }
             } catch (err) {
@@ -99,7 +127,7 @@ export default function Welcome() {
                 setShowLoginForm(true);
             }
         };
-        fetchUsers();
+        fetchUsersAndAutoLogin();
     }, []);
 
     const handleSelectUser = async (user) => {

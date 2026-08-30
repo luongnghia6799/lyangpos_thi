@@ -172,175 +172,476 @@ export const smartSortItems = (items) => {
     });
 };
 
-export const playSuccessSound = () => {
-  console.log("[Sound Debug] playSuccessSound called");
+export const playSuccessSound = (profileOverride) => {
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  const profile = profileOverride || localStorage.getItem('pos_sound_theme_success') || 'chime';
+  if (profile === 'off') return;
 
-        const playTone = (freq, time, duration, volume = 0.3) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time);
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
 
-            gain.gain.setValueAtTime(0, time);
-            gain.gain.linearRampToValueAtTime(volume, time + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    const playTone = (freq, time, duration, volume = 0.25, type = 'sine') => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+    };
 
-            osc.start(time);
-            osc.stop(time + duration);
-        };
+    if (profile === 'cash_register') {
+      // Crisp bell "Cha-ching"
+      playTone(987.77, now, 0.1, 0.25, 'triangle'); // B5
+      playTone(1318.51, now + 0.08, 0.45, 0.3, 'sine'); // E6
+      playTone(2637.02, now + 0.09, 0.35, 0.15, 'sine'); // E7 harmonic
+    } else if (profile === 'digital_pos') {
+      // Two crisp modern high beeps
+      playTone(1760, now, 0.08, 0.25, 'sine'); // A6
+      playTone(2349.32, now + 0.09, 0.15, 0.3, 'sine'); // D7
+    } else if (profile === 'mario') {
+      // 8-bit Coin power-up
+      playTone(987.77, now, 0.08, 0.2, 'square'); // B5
+      playTone(1318.51, now + 0.08, 0.35, 0.25, 'square'); // E6
+    } else if (profile === 'subtle_wood') {
+      // Organic marimba double tap
+      playTone(523.25, now, 0.12, 0.3, 'triangle');
+      playTone(783.99, now + 0.1, 0.2, 0.25, 'triangle');
+    } else if (profile === 'fanfare') {
+      // 4-note victory arpeggio: C5 -> E5 -> G5 -> C6
+      playTone(523.25, now, 0.1, 0.2, 'triangle');
+      playTone(659.25, now + 0.08, 0.1, 0.22, 'triangle');
+      playTone(783.99, now + 0.16, 0.12, 0.25, 'triangle');
+      playTone(1046.50, now + 0.26, 0.5, 0.3, 'sine');
+    } else if (profile === 'zen_bell') {
+      // Resonant singing bell with long decay
+      playTone(880, now, 0.8, 0.25, 'sine');
+      playTone(1760, now, 0.6, 0.12, 'sine');
+      playTone(2640, now, 0.4, 0.06, 'sine');
+    } else if (profile === 'coin_clink') {
+      // Golden coin clink
+      playTone(3200, now, 0.06, 0.2, 'sine');
+      playTone(4000, now + 0.04, 0.15, 0.25, 'triangle');
+      playTone(2800, now + 0.07, 0.2, 0.15, 'sine');
+    } else {
+      // Default: Warmer triad chime (C5 -> E5 -> G5)
+      playTone(523.25, now, 0.5, 0.22, 'sine');
+      playTone(659.25, now + 0.12, 0.5, 0.2, 'sine');
+      playTone(783.99, now + 0.24, 0.7, 0.22, 'sine');
+    }
+  } catch (e) { console.error("Audio success sound failed", e); }
+};
 
-        const now = ctx.currentTime;
-        // Increased volume for warmer triad
-        playTone(523.25, now, 0.6, 0.25);      // C5
-        playTone(659.25, now + 0.15, 0.6, 0.2);  // E5
-        playTone(783.99, now + 0.3, 0.8, 0.18);  // G5
-    } catch (e) { console.error("Audio success sound failed", e); }
+export const playAddToCartSound = (profileOverride) => {
+  if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  const profile = profileOverride || localStorage.getItem('pos_sound_theme_cart_add') || 'barcode_beep';
+  if (profile === 'off') return;
+
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+
+    const playTone = (freq, time, duration, volume = 0.25, type = 'sine') => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+    };
+
+    if (profile === 'bubble_drop') {
+      // Gentle water droplet pop
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(840, now + 0.05);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (profile === 'laser_blip') {
+      // Futuristic laser blip
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(2400, now);
+      osc.frequency.exponentialRampToValueAtTime(400, now + 0.04);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (profile === 'bell_ding') {
+      // Crystal clear ding
+      playTone(1760, now, 0.12, 0.22, 'triangle'); // A6
+    } else if (profile === 'wood_click') {
+      // Warm wooden block tap
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(750, now);
+      osc.frequency.exponentialRampToValueAtTime(160, now + 0.04);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (profile === 'coin_drop') {
+      // Short coin bounce
+      playTone(2800, now, 0.04, 0.22, 'sine');
+      playTone(3600, now + 0.03, 0.08, 0.25, 'triangle');
+    } else if (profile === 'cyber_pop') {
+      // Crisp cyber micro pop
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1400, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.03);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.16, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.start(now);
+      osc.stop(now + 0.03);
+    } else {
+      // Default: barcode_beep (Crisp scanner beep: 2093Hz C7)
+      playTone(2093, now, 0.055, 0.22, 'sine');
+    }
+  } catch (e) { }
 };
 
 export const playTickSound = () => {
-  console.log("[Sound Debug] playTickSound called");
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
 
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.03);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(450, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.03);
 
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.002); // Increased from 0.05
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
 
-        osc.start();
-        osc.stop(ctx.currentTime + 0.03);
-    } catch (e) { }
+    osc.start(now);
+    osc.stop(now + 0.03);
+  } catch (e) { }
 };
 
-export const playPopSound = () => {
-  console.log("[Sound Debug] playPopSound called");
+export const playPopSound = (profileOverride) => {
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  const profile = profileOverride || localStorage.getItem('pos_sound_theme_action') || 'pop_bubble';
+  if (profile === 'off') return;
 
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.08);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.01); // Increased from 0.08
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-
-        osc.start();
-        osc.stop(ctx.currentTime + 0.08);
-    } catch (e) { }
+    if (profile === 'click_switch') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1200, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.start(now);
+      osc.stop(now + 0.03);
+    } else if (profile === 'tap_wooden') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(650, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.04);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (profile === 'beep_soft') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1046.50, now); // C6
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } else if (profile === 'whoosh_subtle') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(540, now + 0.04);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (profile === 'camera_snap') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1800, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.025);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+      osc.start(now);
+      osc.stop(now + 0.025);
+    } else {
+      // Default: pop_bubble
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.07);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      osc.start(now);
+      osc.stop(now + 0.07);
+    }
+  } catch (e) { }
 };
 
 export const playNotificationSound = () => {
-  console.log("[Sound Debug] playNotificationSound called");
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-
-        const playTone = (freq, time, duration, volume = 0.3) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(0, time);
-            gain.gain.linearRampToValueAtTime(volume, time + 0.03);
-            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-            osc.start(time);
-            osc.stop(time + duration);
-        };
-
-        const now = ctx.currentTime;
-        // Louder "Ding-Dong"
-        playTone(440.00, now, 0.6, 0.3);      // A4 (Ding)
-        playTone(349.23, now + 0.4, 1.0, 0.25); // F4 (Dong)
-    } catch (e) { }
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const playTone = (freq, time, duration, volume = 0.25) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+    };
+    const now = ctx.currentTime;
+    playTone(440.00, now, 0.5, 0.25);
+    playTone(349.23, now + 0.35, 0.8, 0.22);
+  } catch (e) { }
 };
 
-export const playErrorSound = () => {
-  console.log("[Sound Debug] playErrorSound called");
+export const playErrorSound = (profileOverride) => {
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  const profile = profileOverride || localStorage.getItem('pos_sound_theme_error') || 'buzz_low';
+  if (profile === 'off') return;
 
-        // Low 'donk' sound
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
 
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    const playTone = (freq, time, duration, volume = 0.25, type = 'sawtooth') => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, time);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      osc.start(time);
+      osc.stop(time + duration);
+    };
 
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-    } catch (e) { }
+    if (profile === 'glass_bonk') {
+      playTone(350, now, 0.12, 0.25, 'triangle');
+      playTone(180, now + 0.04, 0.15, 0.2, 'sine');
+    } else if (profile === 'chord_warn') {
+      playTone(311.13, now, 0.25, 0.2, 'sawtooth'); // Eb4
+      playTone(261.63, now, 0.25, 0.2, 'sawtooth'); // C4
+    } else {
+      // Default: buzz_low
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(90, now + 0.15);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    }
+  } catch (e) { }
 };
 
 export const playTabSound = () => {
-  console.log("[Sound Debug] playTabSound called");
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
-    if (localStorage.getItem('pos_notifications_muted') === 'true') return;
-    try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return;
-        const ctx = new AudioContextClass();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
 
-        // Slightly lower frequency (1000 instead of 1500) and higher volume (0.3)
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(950, now);
 
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.002);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
-        osc.start();
-        osc.stop(ctx.currentTime + 0.05);
-    } catch (e) { }
+    osc.start(now);
+    osc.stop(now + 0.045);
+  } catch (e) { }
 };
+
+export const playTypingSound = (profileOverride) => {
+  if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+  if (localStorage.getItem('pos_typing_sound_enabled') === 'false') return;
+  const profile = profileOverride || localStorage.getItem('pos_sound_theme_typing') || 'mechanical';
+  if (profile === 'off') return;
+
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (profile === 'typewriter') {
+      // Vintage typewriter mechanical strike
+      const pitch = 2200 + Math.random() * 600;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.02);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      osc.start(now);
+      osc.stop(now + 0.02);
+    } else if (profile === 'soft_click') {
+      // Subtle membrane / bubble tap
+      const pitch = 850 + Math.random() * 200;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.03);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.16, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      osc.start(now);
+      osc.stop(now + 0.03);
+    } else if (profile === 'thock_deep') {
+      // Deep thocky switch (Gateron Oil King / Ink Black feel)
+      const pitch = 500 + Math.random() * 150;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(90, now + 0.04);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.24, now + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (profile === 'bubble_typing') {
+      // Water bubble droplet typing
+      const pitch = 700 + Math.random() * 400;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(pitch * 1.5, now + 0.02);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      osc.start(now);
+      osc.stop(now + 0.02);
+    } else if (profile === 'retro_beep') {
+      // 8-bit retro computer key
+      const pitch = 900 + Math.random() * 200;
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(pitch, now);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      osc.start(now);
+      osc.stop(now + 0.02);
+    } else {
+      // Default: mechanical blue / brown switch crisp click
+      const pitch = 1700 + Math.random() * 500;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(pitch, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.025);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+      osc.start(now);
+      osc.stop(now + 0.025);
+    }
+  } catch (e) { }
+};
+
 
 // Simple in-memory cache for audio buffers to achieve 0ms TTS delay via Web Audio API
 const ttsAudioCache = {};
@@ -387,10 +688,12 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
             return null;
           }
           const resAxios = await axios.get(audioUrl, { responseType: 'arraybuffer' });
-          const responseObj = new Response(resAxios.data, {
-            headers: { 'Content-Type': 'audio/mpeg' }
-          });
-          await cache.put(audioUrl, responseObj);
+          if (resAxios.data && resAxios.data.byteLength >= 100) {
+            const responseObj = new Response(resAxios.data, {
+              headers: { 'Content-Type': 'audio/mpeg' }
+            });
+            await cache.put(audioUrl, responseObj);
+          }
         } catch (err) {
           console.warn("Low-priority Cache API write failed:", err);
         }
@@ -411,20 +714,28 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
         try {
           const cache = await caches.open(CACHE_NAME);
           cachedResponse = await cache.match(audioUrl);
+          if (cachedResponse) {
+            const buf = await cachedResponse.arrayBuffer();
+            if (buf && buf.byteLength >= 100) {
+              arrayBuffer = buf;
+            } else {
+              // Delete corrupted / 0-byte cache entry from Cache API
+              await cache.delete(audioUrl);
+              cachedResponse = null;
+            }
+          }
         } catch (err) {
           console.warn("Cache API matching failed:", err);
         }
       }
 
-      if (cachedResponse) {
-        arrayBuffer = await cachedResponse.arrayBuffer();
-      } else {
+      if (!arrayBuffer) {
         // 2. If not in Cache API, fetch from backend via Axios (bypasses Tauri CORS/Mixed Content)
         const resAxios = await axios.get(audioUrl, { responseType: 'arraybuffer' });
         arrayBuffer = resAxios.data;
         
-        // Save to browser cache for future page loads
-        if (typeof caches !== 'undefined') {
+        // Save to browser cache for future page loads only if valid
+        if (typeof caches !== 'undefined' && arrayBuffer && arrayBuffer.byteLength >= 100) {
           try {
             const cache = await caches.open(CACHE_NAME);
             const responseObj = new Response(arrayBuffer, {
@@ -530,7 +841,7 @@ export const precacheCommonTTS = (products = []) => {
       textsToPrecache.push(numberToViText(i));
     }
     
-    const thankYouText = localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách đã chọn Sáu Quý";
+    const thankYouText = localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách";
     textsToPrecache.push(thankYouText);
 
     // 2. Pre-cache alias + quantities (1 to 10, and round tens like 20, 30, 40, 50) for products with alias, and the raw alias itself
@@ -693,11 +1004,10 @@ let lastSpokenText = "";
 let lastSpokenTime = 0;
 
 export const speakNumber = (num, isCurrency = false, partnerName = "", customTemplate = "") => {
-  console.trace("speakNumber trace");
+  if (localStorage.getItem('pos_tts_mode') === 'off') return;
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
   if (localStorage.getItem('pos_notifications_muted') === 'true') return;
   try {
-    console.log("speakNumber invoked:", { num, isCurrency, partnerName, customTemplate, pos_tts_mode: localStorage.getItem("pos_tts_mode") });
     // Clean partner name: ignore defaults like "Khách lẻ"
     const cleanPartner = (partnerName || "").trim();
     const isRealPartner = cleanPartner && 

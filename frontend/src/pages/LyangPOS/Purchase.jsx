@@ -4,7 +4,7 @@ import { m, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell } from 'lucide-react';
 import HeavyClock from '../../components/HeavyClock';
 import { formatCurrency, formatNumber, formatDebt, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
-import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound } from '../../lib/utils';
+import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound, playTypingSound } from '../../lib/utils';
 import { useLocation } from 'react-router-dom';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import Toast from '../../components/Toast';
@@ -664,6 +664,7 @@ export default function Purchase() {
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
     const [historyPartner, setHistoryPartner] = useState(null);
     const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
+    const [typingSoundEnabled, setTypingSoundEnabled] = useState(() => localStorage.getItem('pos_typing_sound_enabled') !== 'false');
 
     useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
@@ -675,6 +676,8 @@ export default function Purchase() {
                     setSaveNoticeStyle(e.data.value);
                 } else if (e.data.key === 'pos_transparent_cart_table') {
                     setTransparentCartTable(e.data.value === 'true');
+                } else if (e.data.key === 'pos_typing_sound_enabled') {
+                    setTypingSoundEnabled(e.data.value !== 'false');
                 }
             }
         };
@@ -1840,51 +1843,54 @@ export default function Purchase() {
                                                     </div>
                                                 </div>
                                             )}
-                                            {filteredPartners.map((p, idx) => (
-                                                <div
-                                                    key={p.id}
-                                                    data-index={partnerSearch ? idx : idx + 1}
-                                                    onMouseEnter={() => setActiveIndex(partnerSearch ? idx : idx + 1)}
-                                                    onClick={() => {
-                                                        setIsPartnerHovered(false);
-                                                        setSelectedPartner(p);
-                                                        setPartnerSearch('');
-                                                        setIsPartnerDropdownOpen(false);
-                                                        setTimeout(() => searchInputRef.current?.focus(), 50);
-                                                    }}
-                                                    className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", (partnerSearch ? activeIndex === idx : activeIndex === idx + 1) && "active")}
-                                                >
-                                                    <div className="flex items-center gap-3.5 min-w-0 pr-3">
-                                                        <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", activeIndex === idx + 1 ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] shadow-sm")}>
-                                                            <Truck size={22} strokeWidth={2.5} />
-                                                        </div>
-                                                        <div className="flex flex-col gap-0.5 min-w-0 py-0.5">
-                                                            <div className="flex items-center gap-2 min-w-0">
-                                                                <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0", activeIndex === idx + 1 ? "bg-white/20 border-white/40 text-white" : "bg-[#8b6f47]/15 border-[#8b6f47]/30 text-[#8b6f47] dark:text-[#d4a574]")}>
-                                                                    NCC
-                                                                </span>
-                                                                <p className={cn("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5", activeIndex === idx + 1 ? "text-white" : "text-slate-900 dark:text-white")}>{p.name}</p>
+                                            {filteredPartners.map((p, idx) => {
+                                                const isItemActive = partnerSearch ? activeIndex === idx : activeIndex === idx + 1;
+                                                return (
+                                                    <div
+                                                        key={p.id}
+                                                        data-index={partnerSearch ? idx : idx + 1}
+                                                        onMouseEnter={() => setActiveIndex(partnerSearch ? idx : idx + 1)}
+                                                        onClick={() => {
+                                                            setIsPartnerHovered(false);
+                                                            setSelectedPartner(p);
+                                                            setPartnerSearch('');
+                                                            setIsPartnerDropdownOpen(false);
+                                                            setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                        }}
+                                                        className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", isItemActive && "active")}
+                                                    >
+                                                        <div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3">
+                                                            <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", isItemActive ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] shadow-sm")}>
+                                                                <Truck size={22} strokeWidth={2.5} />
                                                             </div>
-                                                            <div className={cn("flex items-center gap-3.5 text-xs font-bold tracking-wide opacity-80 leading-relaxed", activeIndex === idx + 1 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
-                                                                <span className="flex items-center gap-1 shrink-0"><Phone size={12} strokeWidth={2.5} className="opacity-60" />{p.phone || "---"}</span>
-                                                                {p.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><MapPin size={12} strokeWidth={2.5} className="opacity-60" />{p.address}</span>}
+                                                            <div className="flex flex-col gap-0.5 min-w-0 py-0.5">
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", isItemActive ? "bg-white/20 border-white/40 text-white" : "bg-[#8b6f47]/15 border-[#8b6f47]/30 text-[#8b6f47] dark:text-[#d4a574]")}>
+                                                                        NCC
+                                                                    </span>
+                                                                    <p className={cn("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : "text-slate-900 dark:text-white")}>{p.name}</p>
+                                                                </div>
+                                                                <div className={cn("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", isItemActive ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
+                                                                    <span className="flex items-center gap-1 shrink-0"><Phone size={12} strokeWidth={2.5} className="opacity-60" />{p.phone || "---"}</span>
+                                                                    {p.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><MapPin size={12} strokeWidth={2.5} className="opacity-60" />{p.address}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2">
+                                                            <p className={cn("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : (p.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (p.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>
+                                                                {((p.debt_balance || 0) > 0 ? "+" : "") + formatNumber(Math.abs(p.debt_balance || 0))}
+                                                            </p>
+                                                            <div className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors", 
+                                                                isItemActive 
+                                                                    ? "bg-white/20 border-white/40 text-white" 
+                                                                    : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50"
+                                                            )}>
+                                                                {(p.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (p.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right flex flex-col items-end gap-1 shrink-0 pl-2">
-                                                        <p className={cn("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5", activeIndex === idx + 1 ? "text-white" : (p.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (p.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>
-                                                            {((p.debt_balance || 0) > 0 ? "+" : "") + formatNumber(Math.abs(p.debt_balance || 0))}
-                                                        </p>
-                                                        <div className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors", 
-                                                            activeIndex === idx + 1 
-                                                                ? "bg-white/20 border-white/40 text-white" 
-                                                                : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50"
-                                                        )}>
-                                                            {(p.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (p.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </m.div>
                                 )}
@@ -2192,7 +2198,7 @@ export default function Purchase() {
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
-                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border border-border/80 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" : "bg-transparent border border-border/30 shadow-none")}>
+                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border-0 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent border-0 shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}>
                             <AnimatePresence>
                                 {historyLoading && (
                                     <m.div
@@ -2333,15 +2339,7 @@ export default function Purchase() {
                                 )}
                             </AnimatePresence>
                             <div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent">
-                                {/* Subtle wheat grain pattern overlay */}
-                                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-                                    backgroundImage: `repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 111, 71, 0.1) 10px, rgba(139, 111, 71, 0.1) 20px),
-                                             radial-gradient(circle at 3px 3px, rgba(45, 80, 22, 0.08) 1px, transparent 0)`,
-                                    backgroundSize: '40px 40px, 30px 30px',
-                                    backgroundPosition: '0 0, 15px 15px'
-                                }}></div>
-
-                                <div className="absolute inset-0 overflow-auto no-scrollbar-on-empty z-10">
+                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]">
                                     <div className="w-full transition-colors relative group/decoration pb-[400px]">
                                         {/* Background Decoration Layer */}
                                         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
@@ -2352,7 +2350,7 @@ export default function Purchase() {
                                                 <Wheat size={400} />
                                             </div>
                                         </div>
-                                        <table className="w-full text-left border-separate border-spacing-0 table-fixed">
+                                        <table className="w-full text-left border-collapse table-fixed">
                                             <colgroup>
                                                 <col style={{ width: "4%" }} />
                                                 <col style={{ width: "42%" }} />
@@ -2363,40 +2361,44 @@ export default function Purchase() {
                                                 <col style={{ width: "14%" }} />
                                                 <col style={{ width: "4%" }} />
                                             </colgroup>
-                                            <thead className="bg-transparent sticky top-0 z-[100] print:hidden border-b border-border/60">
+                                            <thead className="bg-transparent sticky top-0 z-[100] print:hidden border-none">
                                                 <tr className="border-none">
-                                                    <th rowSpan={2} className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Stt</th>
-                                                    <th className="px-4 py-1.5 align-middle whitespace-nowrap">
-                                                        <div className="flex items-center justify-between w-full gap-4">
-                                                            <span className="font-black uppercase tracking-wider text-[10px] text-foreground">Danh mục sản phẩm nhập hàng</span>
+                                                    <th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Stt</th>
+                                                    <th className="px-3 py-2.5 align-middle whitespace-nowrap">
+                                                        <div className="flex items-center justify-between w-full gap-2">
+                                                            <span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm nhập hàng</span>
+                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400 animate-pulse" />
+                                                                {totalItems} món
+                                                            </span>
                                                         </div>
                                                     </th>
-                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-x border-border/40 whitespace-nowrap">Đơn vị</th>
-                                                    <th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Quy đổi</th>
-                                                    <th className="py-2 px-3 text-center font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Số lượng</th>
-                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 border-r border-border/40 whitespace-nowrap">Giá nhập</th>
-                                                    <th rowSpan={2} className="py-2 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-foreground/80 whitespace-nowrap">Thành tiền</th>
-                                                    <th rowSpan={2} className="text-center" />
-                                                </tr>
-                                                <tr className="border-t border-border/40 bg-transparent">
-                                                    <td className="px-4 py-1.5 text-center border-r border-border/40 whitespace-nowrap">
-                                                        <div className="flex items-center justify-center gap-1.5">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                            <span className="text-[9px] font-black text-primary uppercase tracking-widest">{totalItems} items</span>
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th>
+                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">
+                                                        <div className="flex flex-col items-center justify-center leading-tight">
+                                                            <span>Quy đổi</span>
+                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalSecondaryQty > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>
+                                                                {totalSecondaryQty > 0 ? formatNumber(totalSecondaryQty) : "—"}
+                                                            </span>
                                                         </div>
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-center border-r border-border/40 whitespace-nowrap">
-                                                        <span className="text-xs font-black text-foreground tabular-nums">{formatNumber(totalSecondaryQty)}</span>
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-center whitespace-nowrap">
-                                                        <span className="text-xs font-black text-primary tabular-nums font-mono">{formatNumber(totalQty)}</span>
-                                                    </td>
+                                                    </th>
+                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">
+                                                        <div className="flex flex-col items-center justify-center leading-tight">
+                                                            <span>Số lượng</span>
+                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalQty > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>
+                                                                {totalQty > 0 ? formatNumber(totalQty) : "—"}
+                                                            </span>
+                                                        </div>
+                                                    </th>
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Giá nhập</th>
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th>
+                                                    <th className="py-2.5 px-2 text-center align-middle" />
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className="bg-transparent sticky top-[52px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/15 dark:border-white/5 transition-all hover:bg-white/5 dark:hover:bg-slate-800/10 group/working-row cursor-pointer"
+                                                    className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer"
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {
                                                             setEditingProduct(workingItem.product);
@@ -2404,25 +2406,26 @@ export default function Purchase() {
                                                         }
                                                     }}
                                                 >
-                                                    <td className="py-4 px-2 text-center">
-                                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto">
-                                                            <Plus size={18} className="text-primary" />
+                                                    <td className="py-2.5 px-2 text-center">
+                                                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs">
+                                                            <Plus size={16} strokeWidth={2.5} className="text-primary dark:text-emerald-400" />
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-2 relative">
+                                                    <td className="py-2.5 px-2 relative">
                                                         <div className="relative group/search">
                                                             <div className="relative">
-                                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 text-gray-400">
-                                                                    <Search size={20} />
+                                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors">
+                                                                    <Search size={18} strokeWidth={2.5} />
                                                                 </div>
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
-                                                                    className="w-full py-2.5 px-2.5 pl-12 bg-transparent border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 focus:bg-transparent rounded-xl font-black text-gray-800 dark:text-gray-100 outline-none transition-all shadow-none leading-relaxed placeholder:normal-case placeholder:leading-relaxed"
+                                                                    className="w-full h-10 py-0 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] text-slate-900 dark:text-white outline-none transition-all focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]"
                                                                     autoComplete="off"
                                                                     value={searchTerm}
                                                                     onChange={(e) => {
                                                                         const val = e.target.value;
+                                                                        playTypingSound();
                                                                         setSearchTerm(val);
                                                                         setActiveIndex(0);
                                                                         if (searchInputRef.current) {
@@ -2502,9 +2505,9 @@ export default function Purchase() {
                                                                 />
                                                             </div>
                                                             {workingItem.product && (
-                                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
                                                                     <span className={cn(
-                                                                        "px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-tight backdrop-blur-md border transition-all shadow-sm",
+                                                                        "px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all shadow-xs font-sans",
                                                                         workingItem.product.stock < 10
                                                                             ? "bg-red-500/20 text-red-600 border-red-500/30"
                                                                             : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
@@ -2640,14 +2643,15 @@ export default function Purchase() {
                                                                             </div>
                                                                             {searchTerm && filteredProducts.length === 0 && (
                                                                                 <div
-                                                                                    className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2"
+                                                                                    className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2 font-sans"
                                                                                     onClick={() => {
                                                                                         setQuickAddName(searchTerm);
                                                                                         setSearchTerm('');
                                                                                         setShowQuickAddProduct(true);
                                                                                     }}
                                                                                 >
-                                                                                    <Plus size={16} /> Thêm sản phẩm mới: "{searchTerm}"
+                                                                                    <Plus size={16} strokeWidth={3} />
+                                                                                    <span>Thêm sản phẩm mới: "{searchTerm}"</span>
                                                                                 </div>
                                                                             )}
                                                                         </m.div>
@@ -2656,55 +2660,59 @@ export default function Purchase() {
                                                             </Portal>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-2 text-center">
-                                                        <div className="font-bold text-gray-700 dark:text-gray-200 text-xs">{normalizeUOM(workingItem.product?.unit || '-')}</div>
-                                                        {workingItem.product?.secondary_unit && (
-                                                            <div className="text-[10px] text-primary font-black uppercase tracking-tighter">
+                                                    <td className="py-2.5 px-2 text-center">
+                                                        <div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">
+                                                            {workingItem.product ? normalizeUOM(workingItem.product.unit) : "-"}
+                                                        </div>
+                                                        {workingItem.product && workingItem.product.secondary_unit && (
+                                                            <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">
                                                                 1 {normalizeUOM(workingItem.product.secondary_unit)} = {workingItem.product.multiplier} {normalizeUOM(workingItem.product.unit)}
                                                             </div>
                                                         )}
                                                     </td>
-                                                    <td className="py-4 px-2">
-                                                        <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 shadow-none transition-all text-primary dark:text-emerald-400">
-                                                            <input
-                                                                type="number"
-                                                                disabled={!workingItem.product?.secondary_unit}
-                                                                className="w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 disabled:opacity-30"
-                                                                id="working-sec-qty"
-                                                                ref={workingSecQtyRef}
-                                                                value={workingItem.product ? workingItem.secondary_qty : ""}
-                                                                autoComplete="off"
-                                                                onFocus={(e) => e.target.select()}
-                                                                onChange={(e) => {
-                                                                    const v = parseFloat(e.target.value) || 0;
-                                                                    setWorkingItem(prev => {
-                                                                        const mult = parseFloat(prev.product?.multiplier) || 1;
-                                                                        return {
-                                                                            ...prev,
-                                                                            secondary_qty: v,
-                                                                            quantity: v * mult
-                                                                        };
-                                                                    });
-                                                                }}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Tab') {
-                                                                        e.preventDefault();
-                                                                        workingQtyRef.current?.focus();
-                                                                    } else if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                        if (workingItem.product && workingItem.quantity !== 0) {
-                                                                            addToCart(workingItem.product, workingItem.quantity, workingItem.price);
+                                                    <td className="py-2.5 px-2">
+                                                        {workingItem.product && workingItem.product.secondary_unit ? (
+                                                            <div className="flex items-center gap-1 h-10 px-2 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-white/60 dark:focus-within:bg-black/30 focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground">
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal"
+                                                                    value={workingItem.secondary_qty || ""}
+                                                                    id="working-sec-qty"
+                                                                    autoComplete="off"
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => {
+                                                                        const v = parseFloat(e.target.value) || 0;
+                                                                        setWorkingItem(prev => {
+                                                                            const mult = parseFloat(prev.product?.multiplier) || 1;
+                                                                            return {
+                                                                                ...prev,
+                                                                                secondary_qty: v,
+                                                                                quantity: v * mult
+                                                                            };
+                                                                        });
+                                                                    }}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Tab') {
+                                                                            e.preventDefault();
+                                                                            workingQtyRef.current?.focus();
+                                                                        } else if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            if (workingItem.product && workingItem.quantity !== 0) {
+                                                                                addToCart(workingItem.product, workingItem.quantity, workingItem.price);
+                                                                            }
                                                                         }
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <span className="text-[10px] font-black text-gray-400 uppercase pr-2 whitespace-nowrap">{normalizeUOM(workingItem.product?.secondary_unit)}</span>
-                                                        </div>
+                                                                    }}
+                                                                />
+                                                                <span className="text-[10px] font-black font-sans text-gray-400 uppercase pr-1 whitespace-nowrap leading-normal">{normalizeUOM(workingItem.product?.secondary_unit)}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>
+                                                        )}
                                                     </td>
-                                                    <td className="py-4 px-2">
+                                                    <td className="py-2.5 px-2">
                                                         <input
                                                             type="number"
-                                                            className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-emerald-400 shadow-none transition-all placeholder:text-gray-300"
+                                                            className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
                                                             value={workingItem.product ? workingItem.quantity : ""}
                                                             id="working-main-qty"
                                                             ref={workingQtyRef}
@@ -2734,42 +2742,42 @@ export default function Purchase() {
                                                             }}
                                                         />
                                                     </td>
-                                                    <td className="py-4 px-2 text-center">
+                                                    <td className="py-2.5 px-2 text-center">
                                                         <div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">
                                                             {workingItem.product && (
                                                                 <div
-                                                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1
+                                                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1
                                                                                 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50
                                                                                 flex items-stretch whitespace-nowrap z-[9999] 
                                                                                 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100
                                                                                 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"
                                                                 >
-                                                                    <div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
-                                                                        <span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">
+                                                                    <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                                                        <span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">
                                                                             Vốn TB
                                                                         </span>
-                                                                        <span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">
+                                                                        <span className="text-xs font-black font-sans text-amber-700 dark:text-amber-300 tabular-nums leading-normal">
                                                                             {formatNumber(workingItem.product.cost_price)}
-                                                                            <span className="text-[10px] ml-1 opacity-60">đ</span>
+                                                                            <span className="text-[9px] ml-0.5 opacity-60">đ</span>
                                                                         </span>
                                                                     </div>
-                                                                    <div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" />
-                                                                    <div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
-                                                                        <span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">
+                                                                    <div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" />
+                                                                    <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                                                        <span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">
                                                                             Nhập cuối
                                                                         </span>
-                                                                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                                        <span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">
                                                                             {formatNumber(workingItem.product.latest_cost_price || 0)}
-                                                                            <span className="text-[10px] ml-1 opacity-60">đ</span>
+                                                                            <span className="text-[9px] ml-0.5 opacity-60">đ</span>
                                                                         </span>
                                                                     </div>
-                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" />
+                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" />
                                                                 </div>
                                                             )}
                                                             <div className="relative w-full">
                                                                 <input
                                                                     type="text"
-                                                                    className="w-full p-2 text-center bg-transparent border-none focus:ring-0 rounded font-black outline-none text-lg tabular-nums text-primary dark:text-emerald-400"
+                                                                    className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
                                                                     value={workingItem.product ? formatNumber(workingItem.price) : ""}
                                                                     id="working-price"
                                                                     ref={workingPriceRef}
@@ -2794,17 +2802,17 @@ export default function Purchase() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 px-4 text-right font-black text-gray-900 dark:text-white text-lg">
+                                                    <td className="py-2 px-2 text-right font-black font-sans text-slate-900 dark:text-white text-base leading-normal">
                                                         {workingItem.product ? formatNumber(workingItem.price * workingItem.quantity) : ""}
                                                     </td>
-                                                    <td className="py-4 px-2 text-center">
+                                                    <td className="py-2 px-1.5 text-center">
                                                         {workingItem.product && (
                                                             <button
                                                                 onClick={() => setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' })}
-                                                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
                                                                 title="Xóa dòng"
                                                             >
-                                                                <X size={20} />
+                                                                <X size={17} />
                                                             </button>
                                                         )}
                                                     </td>

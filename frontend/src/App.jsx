@@ -404,10 +404,8 @@ const AppLayout = () => {
                 <Route path="/" element={
                   isMobile ? <Navigate to="/mobile-dashboard" /> :
                     (isLiteMode ? <PageWrapper><DashboardLite /></PageWrapper> :
-                      (isAdmin ? <PageWrapper><Dashboard /></PageWrapper> : <Navigate to="/pos" replace />))
+                      (isAdmin ? (localStorage.getItem('pos_default_landing_page') === 'pos' ? <Navigate to="/pos" replace /> : <PageWrapper><Dashboard /></PageWrapper>) : <Navigate to="/pos" replace />))
                 } />
-                                  <Route path="/pos" element={<ProtectedRoute><PageWrapper><POSnew /></PageWrapper></ProtectedRoute>} />
-                  <Route path="/purchase" element={<ProtectedRoute><PageWrapper><Purchase /></PageWrapper></ProtectedRoute>} />
                   <Route path="/barcodes" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><BarcodeGenerator /></PageWrapper></RoleProtectedRoute>} />
                   <Route path="/unauthorized" element={<PageWrapper><Unauthorized /></PageWrapper>} />
                 <Route path="/mobile-dashboard" element={<PageWrapper><MobileDashboard /></PageWrapper>} />
@@ -420,13 +418,13 @@ const AppLayout = () => {
                 <Route path="/mobile-settings" element={<PageWrapper><MobileSettings /></PageWrapper>} />
                 <Route path="/mobile-inventory" element={<PageWrapper><MobileInventory /></PageWrapper>} />
                 <Route path="/pos" element={
-                  isLiteMode ? <PageWrapper><POSLite /></PageWrapper> : <PageWrapper><POSWrapper /></PageWrapper>
+                  <ProtectedRoute>{isLiteMode ? <PageWrapper><POSLite /></PageWrapper> : <PageWrapper><POSWrapper /></PageWrapper>}</ProtectedRoute>
                 } />
                 <Route path="/purchase" element={
-                  isLiteMode ? <PageWrapper><PurchaseLite /></PageWrapper> : <PageWrapper><Purchase /></PageWrapper>
+                  <ProtectedRoute>{isLiteMode ? <PageWrapper><PurchaseLite /></PageWrapper> : <PageWrapper><Purchase /></PageWrapper>}</ProtectedRoute>
                 } />
                 <Route path="/history" element={
-                  isLiteMode ? <PageWrapper><HistoryLite /></PageWrapper> : <PageWrapper><History /></PageWrapper>
+                  <ProtectedRoute>{isLiteMode ? <PageWrapper><HistoryLite /></PageWrapper> : <PageWrapper><History /></PageWrapper>}</ProtectedRoute>
                 } />
 
                 {/* Protected Admin Routes */}

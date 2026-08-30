@@ -7909,11 +7909,20 @@ def get_tts():
     hash_name = hashlib.md5(f"{text}_{edge_voice}_{rate_str}".encode('utf-8')).hexdigest()
     output_path = os.path.join(temp_dir, f"tts_{hash_name}.mp3")
     
+    # Validate existing cache file: must exist and have valid size (> 100 bytes)
+    if os.path.exists(output_path):
+        if os.path.getsize(output_path) < 100:
+            try:
+                os.remove(output_path)
+            except Exception:
+                pass
+
     if not os.path.exists(output_path):
+        part_path = f"{output_path}.{os.getpid()}.{time.time()}.tmp"
         try:
             async def run_edge_tts():
                 communicate = edge_tts.Communicate(text, edge_voice, rate=rate_str)
-                await communicate.save(output_path)
+                await communicate.save(part_path)
             
             try:
                 loop = asyncio.get_event_loop()
@@ -7922,7 +7931,23 @@ def get_tts():
                 asyncio.set_event_loop(loop)
             
             loop.run_until_complete(run_edge_tts())
+            
+            # Verify generated file
+            if os.path.exists(part_path) and os.path.getsize(part_path) >= 100:
+                os.replace(part_path, output_path)
+            else:
+                if os.path.exists(part_path):
+                    try:
+                        os.remove(part_path)
+                    except Exception:
+                        pass
+                return jsonify({"error": "Generated TTS audio file is empty or corrupted"}), 500
         except Exception as e:
+            if os.path.exists(part_path):
+                try:
+                    os.remove(part_path)
+                except Exception:
+                    pass
             return jsonify({"error": str(e)}), 500
             
     return send_file(output_path, mimetype="audio/mpeg")

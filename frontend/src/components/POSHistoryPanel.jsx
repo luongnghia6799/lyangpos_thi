@@ -409,7 +409,6 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                                         onClick={(e) => {
                                                             if (!order.is_voucher) {
                                                                 setEditingOrder(order);
-                                                                if (onViewOrder) onViewOrder(order);
                                                             }
                                                         }}
                                                     >

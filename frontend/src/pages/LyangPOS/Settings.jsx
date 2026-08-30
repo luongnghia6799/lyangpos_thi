@@ -6,7 +6,7 @@ import {
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers
+    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -48,6 +48,8 @@ export default function Settings() {
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,
         feature_tax_calculator_enabled: localStorage.getItem('feature_tax_calculator_enabled') || DEFAULT_SETTINGS.feature_tax_calculator_enabled || 'false',
+        pos_default_landing_page: localStorage.getItem('pos_default_landing_page') || DEFAULT_SETTINGS.pos_default_landing_page || 'dashboard',
+        pos_typing_sound_enabled: localStorage.getItem('pos_typing_sound_enabled') || DEFAULT_SETTINGS.pos_typing_sound_enabled || 'true',
         sidebar_hidden_items: localStorage.getItem('sidebar_hidden_items') || '[]',
         repair_on_startup: 'false',
         ram_cleanup_auto_enabled: 'false',
@@ -1250,36 +1252,6 @@ export default function Settings() {
                                                     <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                                <Bot size={18} />
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot ở Màn Hình POS</div>
-                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Hiện Mascot cậu bé nón rơm tương tác tại POS</div>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                const curVal = localStorage.getItem('ui_show_pos_mascot') !== 'false';
-                                                                const newVal = curVal ? 'false' : 'true';
-                                                                localStorage.setItem('ui_show_pos_mascot', newVal);
-                                                                window.dispatchEvent(new Event('storage'));
-                                                                setToast({ message: newVal === 'true' ? "Đã bật Mascot tại POS" : "Đã tắt Mascot tại POS", type: "info" });
-                                                            }}
-                                                            className={cn(
-                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                                (localStorage.getItem('ui_show_pos_mascot') !== 'false') ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                                (localStorage.getItem('ui_show_pos_mascot') !== 'false') ? "translate-x-[18px]" : "translate-x-0"
-                                                            )} />
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                        <div className="flex items-center gap-3 min-w-0">
-                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
                                                                 <Monitor size={18} />
                                                             </div>
                                                             <div className="min-w-0">
@@ -1424,6 +1396,80 @@ export default function Settings() {
                                                             <div className={cn(
                                                                 "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
                                                                 (settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false')) ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Layout size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Tự động vào Bảng tin (Dashboard)</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Mở trang Bảng tin sau khi đăng nhập thay vì chuyển thẳng vào POS</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={async () => {
+                                                                const isCurrentOn = (settings.pos_default_landing_page !== 'pos' && localStorage.getItem('pos_default_landing_page') !== 'pos');
+                                                                
+                                                                if (!isCurrentOn) {
+                                                                    // User wants to turn ON -> Prompt for admin security password
+                                                                    setPasswordPrompt({
+                                                                        title: "Xác thực bảo mật",
+                                                                        message: "Vui lòng nhập mật khẩu quản trị để cấp quyền tự động vào Bảng tin (Dashboard)",
+                                                                        onConfirm: async (enteredPassword) => {
+                                                                            if (enteredPassword !== '0607@Nghia') {
+                                                                                setPasswordPrompt(null);
+                                                                                setToast({ message: "Mật khẩu không chính xác!", type: "error" });
+                                                                                return;
+                                                                            }
+                                                                            setPasswordPrompt(null);
+                                                                            const newVal = 'dashboard';
+                                                                            updateSetting('pos_default_landing_page', newVal);
+                                                                            localStorage.setItem('pos_default_landing_page', newVal);
+                                                                            window.dispatchEvent(new Event('storage'));
+                                                                            try {
+                                                                                const syncChan = new BroadcastChannel('pos_data_sync');
+                                                                                syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_default_landing_page', value: newVal });
+                                                                                syncChan.close();
+                                                                            } catch (err) {}
+                                                                            try {
+                                                                                await axios.post('/api/settings', { pos_default_landing_page: newVal });
+                                                                            } catch (err) {
+                                                                                console.error('Lỗi khi lưu cài đặt landing page:', err);
+                                                                            }
+                                                                            setToast({ message: "Đã bật tự động vào Bảng tin Dashboard", type: "success" });
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    // Turn OFF
+                                                                    const newVal = 'pos';
+                                                                    updateSetting('pos_default_landing_page', newVal);
+                                                                    localStorage.setItem('pos_default_landing_page', newVal);
+                                                                    window.dispatchEvent(new Event('storage'));
+                                                                    try {
+                                                                        const syncChan = new BroadcastChannel('pos_data_sync');
+                                                                        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_default_landing_page', value: newVal });
+                                                                        syncChan.close();
+                                                                    } catch (err) {}
+                                                                    try {
+                                                                        await axios.post('/api/settings', { pos_default_landing_page: newVal });
+                                                                    } catch (err) {
+                                                                        console.error('Lỗi khi lưu cài đặt landing page:', err);
+                                                                    }
+                                                                    setToast({ message: "Đã chuyển về mặc định vào Bán hàng POS", type: "info" });
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                (settings.pos_default_landing_page !== 'pos' && localStorage.getItem('pos_default_landing_page') !== 'pos') ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                (settings.pos_default_landing_page !== 'pos' && localStorage.getItem('pos_default_landing_page') !== 'pos') ? "translate-x-[18px]" : "translate-x-0"
                                                             )} />
                                                         </button>
                                                     </div>

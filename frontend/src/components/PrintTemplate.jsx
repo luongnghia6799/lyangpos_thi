@@ -2479,63 +2479,41 @@ const PrintTemplate = forwardRef(({
                             </div>
                         );
                     })() : (
-                        <table className="print-layout-table" style={{ width: '100%', border: 'none', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
-                            {s.invoice_repeat_header_on_later_pages === 'true' ? (
-                                <thead>
-                                    <tr>
-                                        <td style={{ border: 'none', padding: 0 }}>
-                                            <div style={headerStyle}>
-                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                    {logoEl}
-                                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                        {shopNameEl}
-                                                        {shopInfoEl}
-                                                    </div>
+                        (() => {
+                            // Single page estimation
+                            const firstPageAvailH = printableH;
+                            const otherPageAvailH = Math.max(200, printableH - otherHeaderH);
+                            const firstPageCap = Math.max(1, Math.floor((firstPageAvailH - firstHeaderH - totalSectionH) / estRowH));
+                            const otherPageCap = Math.max(1, Math.floor(otherPageAvailH / estRowH));
+
+                            if (allDetails.length <= firstPageCap) {
+                                return (
+                                    <>
+                                        <div style={headerStyle}>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                {logoEl}
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                    {shopNameEl}
+                                                    {shopInfoEl}
                                                 </div>
-                                                {titleEl}
                                             </div>
-                                            <div style={infoGridStyle}>
-                                                <div>
-                                                    {customerNameEl}
-                                                    {customerPhoneEl}
-                                                    {customerAddressEl}
-                                                    {voucherNoteEl}
-                                                </div>
-                                                {invoiceMetaEl}
+                                            {titleEl}
+                                        </div>
+
+                                        <div style={infoGridStyle}>
+                                            <div>
+                                                {customerNameEl}
+                                                {customerPhoneEl}
+                                                {customerAddressEl}
+                                                {voucherNoteEl}
                                             </div>
-                                        </td>
-                                    </tr>
-                                </thead>
-                            ) : null}
-                            <tbody>
-                                <tr>
-                                    <td style={{ border: 'none', padding: 0 }}>
-                                        {s.invoice_repeat_header_on_later_pages !== 'true' && (
-                                            <>
-                                                <div style={headerStyle}>
-                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                        {logoEl}
-                                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                            {shopNameEl}
-                                                            {shopInfoEl}
-                                                        </div>
-                                                    </div>
-                                                    {titleEl}
-                                                </div>
-                                                <div style={infoGridStyle}>
-                                                    <div>
-                                                        {customerNameEl}
-                                                        {customerPhoneEl}
-                                                        {customerAddressEl}
-                                                        {voucherNoteEl}
-                                                    </div>
-                                                    {invoiceMetaEl}
-                                                </div>
-                                            </>
-                                        )}
+                                            {invoiceMetaEl}
+                                        </div>
 
                                         {/* Table Area */}
-                                        {tableEl}
+                                        <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                            {renderTable(allDetails, 0, false, 'page-1', false)}
+                                        </div>
 
                                         {/* Summary Section */}
                                         <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
@@ -2558,10 +2536,163 @@ const PrintTemplate = forwardRef(({
                                         <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                             {thankYouEl}
                                         </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                                        {/* Page Number */}
+                                        {renderPageNumber(1, 1)}
+                                    </>
+                                );
+                            }
+
+                            // Multi-page layout chunking with realistic height estimation
+                            const pages = [];
+                            let remaining = [...allDetails];
+
+                            // SumH includes totals summary, notes, signatures, thank you, and page spacing (~260px)
+                            const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
+                            const laterPageWithSummaryCap = Math.max(1, Math.floor((otherPageAvailH - realisticSumH) / estRowH));
+
+                            // Decide page 1 count
+                            let p1Count;
+                            if (allDetails.length <= firstPageCap + laterPageWithSummaryCap) {
+                                p1Count = Math.min(firstPageCap, Math.max(1, allDetails.length - laterPageWithSummaryCap));
+                                if (allDetails.length - p1Count > laterPageWithSummaryCap) {
+                                    p1Count = Math.min(firstPageCap, allDetails.length - laterPageWithSummaryCap);
+                                }
+                            } else {
+                                p1Count = firstPageCap;
+                            }
+
+                            pages.push({
+                                pageIndex: 0,
+                                items: remaining.slice(0, p1Count),
+                                startIndex: 0
+                            });
+                            remaining = remaining.slice(p1Count);
+
+                            // Subsequent pages
+                            while (remaining.length > 0) {
+                                const startIndex = allDetails.length - remaining.length;
+                                let count;
+                                if (remaining.length <= laterPageWithSummaryCap) {
+                                    count = remaining.length;
+                                } else if (remaining.length <= otherPageCap + laterPageWithSummaryCap) {
+                                    count = Math.min(otherPageCap, Math.max(1, remaining.length - laterPageWithSummaryCap));
+                                } else {
+                                    count = Math.min(remaining.length, otherPageCap);
+                                }
+
+                                pages.push({
+                                    pageIndex: pages.length,
+                                    items: remaining.slice(0, count),
+                                    startIndex
+                                });
+                                remaining = remaining.slice(count);
+                            }
+
+                            const totalPages = pages.length;
+
+                            return (
+                                <div className="print-pages-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: isPreview ? '40px' : '0px' }}>
+                                    {pages.map((p, idx) => {
+                                        const isFirstPage = idx === 0;
+                                        const isLastPage = idx === totalPages - 1;
+                                        const pageNum = idx + 1;
+
+                                        return (
+                                            <div
+                                                key={`sheet-${idx}`}
+                                                className="print-page-sheet"
+                                                style={{
+                                                    width: '100%',
+                                                    minHeight: isPreview ? `${pageH_mm}mm` : 'auto',
+                                                    height: isPreview ? `${pageH_mm}mm` : 'auto',
+                                                    boxSizing: 'border-box',
+                                                    position: 'relative',
+                                                    pageBreakAfter: isLastPage ? 'auto' : 'always',
+                                                    breakAfter: isLastPage ? 'auto' : 'page',
+                                                    marginBottom: (!isLastPage && !isPreview) ? 0 : undefined,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    backgroundColor: '#fff',
+                                                    boxShadow: isPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none',
+                                                    borderRadius: isPreview ? '8px' : '0',
+                                                    padding: isPreview ? `${paddingMm}mm` : '0',
+                                                    overflow: 'hidden'
+                                                }}
+                                            >
+                                                {/* Page Header */}
+                                                {isFirstPage ? (
+                                                    <>
+                                                        <div style={headerStyle}>
+                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                                                {logoEl}
+                                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                                    {shopNameEl}
+                                                                    {shopInfoEl}
+                                                                </div>
+                                                            </div>
+                                                            {titleEl}
+                                                        </div>
+
+                                                        <div style={infoGridStyle}>
+                                                            <div>
+                                                                {customerNameEl}
+                                                                {customerPhoneEl}
+                                                                {customerAddressEl}
+                                                                {voucherNoteEl}
+                                                            </div>
+                                                            {invoiceMetaEl}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    s.invoice_repeat_header_on_later_pages === 'true' && (
+                                                        <div style={{ ...headerStyle, paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px dashed #cbd5e1' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{s.invoice_shop_name || 'CỬA HÀNG'}</span>
+                                                                <span style={{ fontSize: '11px', color: '#64748b' }}>Hóa đơn: #{data.display_id || data.id} (tiếp theo)</span>
+                                                            </div>
+                                                            <span style={{ fontSize: '10px', color: '#64748b' }}>
+                                                                {data.date ? formatDate(data.date) : ''}
+                                                            </span>
+                                                        </div>
+                                                    )
+                                                )}
+
+                                                {/* Table for this Page */}
+                                                <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                                    {renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}
+                                                </div>
+
+                                                {/* Last Page Content: Totals, Debt, Notes, Signatures */}
+                                                {isLastPage && (
+                                                    <>
+                                                        <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                    {notesEl}
+                                                                </div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                                                    {summaryEl}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                            {signaturesEl}
+                                                        </div>
+                                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                            {thankYouEl}
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                {/* Page Number Indicator */}
+                                                {renderPageNumber(pageNum, totalPages)}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()
                     )
                 )}
 

@@ -1663,7 +1663,7 @@ const PrintTemplate = forwardRef(({
         </div>
     );
 
-    const summaryEl = !isDelivery && s.invoice_show_total_amount === 'true' && (
+    const summaryEl = !isDelivery && s.invoice_show_total_amount !== 'false' && (
         <div style={{ width: '100%' }}>
             {!isVoucher ? (
                 <>

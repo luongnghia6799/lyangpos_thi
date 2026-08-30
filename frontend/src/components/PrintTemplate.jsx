@@ -2232,14 +2232,14 @@ const PrintTemplate = forwardRef(({
                         </table>
                     )
                 ) : (
-                    (() => {
+                    isPreview ? (() => {
                         const allDetails = data.details || [];
                         const rowPad = parseInt(s.invoice_row_padding || 4);
                         const rowLh = parseFloat(s.invoice_table_line_height || 1.15);
                         const fontSz = parseInt(s.invoice_table_content_size || 12);
                         const estRowH = Math.max(18, fontSz * rowLh + rowPad * 2 + 4);
                         
-                        const printableH = isPreview ? (s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120)) : 1120;
+                        const printableH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
                         const firstHeaderH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
                         const otherHeaderH = s.invoice_repeat_header_on_later_pages === 'true' ? firstHeaderH : 35;
                         const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
@@ -2348,8 +2348,61 @@ const PrintTemplate = forwardRef(({
                             );
                         };
 
-                        return renderStandardPages(isPreview);
-                    })()
+                        return renderStandardPages(true);
+                    })() : (
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                            {/* Standard Header */}
+                            <div style={headerStyle}>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                                    {logoEl}
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                        {shopNameEl}
+                                        {shopInfoEl}
+                                    </div>
+                                </div>
+                                {titleEl}
+                            </div>
+                            <div style={infoGridStyle}>
+                                <div>
+                                    {customerNameEl}
+                                    {customerPhoneEl}
+                                    {customerAddressEl}
+                                    {voucherNoteEl}
+                                </div>
+                                {invoiceMetaEl}
+                            </div>
+
+                            {/* Standard Table (Render all rows) */}
+                            <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                {renderTable(data.details || [], 0, false, 'single', false)}
+                            </div>
+
+                            {/* Summary & Notes Section */}
+                            <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {notesEl}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                        {summaryEl}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Signatures */}
+                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                {signaturesEl}
+                            </div>
+
+                            {/* Thank You */}
+                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                {thankYouEl}
+                            </div>
+
+                            {/* Page Number */}
+                            {pageNumberEl}
+                        </div>
+                    )
                 )}
 
                 {String(s.invoice_show_watermark) === 'true' && (

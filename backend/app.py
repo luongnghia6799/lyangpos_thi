@@ -7886,6 +7886,7 @@ def get_tts():
     text = request.args.get('text', '')
     voice_type = request.args.get('voice', 'edge-vi-female')
     rate = request.args.get('rate', '1.0')
+    pitch = request.args.get('pitch', '0')
     
     if not text:
         return jsonify({"error": "Text parameter is required"}), 400
@@ -7904,9 +7905,18 @@ def get_tts():
         rate_str = f"{'+' if pct >= 0 else ''}{pct}%"
     except:
         rate_str = "+0%"
+
+    try:
+        if isinstance(pitch, str) and (pitch.endswith('Hz') or pitch.endswith('%')):
+            pitch_str = pitch
+        else:
+            pitch_val = int(float(pitch))
+            pitch_str = f"{'+' if pitch_val >= 0 else ''}{pitch_val}Hz"
+    except:
+        pitch_str = "+0Hz"
         
     temp_dir = tempfile.gettempdir()
-    hash_name = hashlib.md5(f"{text}_{edge_voice}_{rate_str}".encode('utf-8')).hexdigest()
+    hash_name = hashlib.md5(f"{text}_{edge_voice}_{rate_str}_{pitch_str}".encode('utf-8')).hexdigest()
     output_path = os.path.join(temp_dir, f"tts_{hash_name}.mp3")
     
     # Validate existing cache file: must exist and have valid size (> 100 bytes)
@@ -7921,7 +7931,7 @@ def get_tts():
         part_path = f"{output_path}.{os.getpid()}.{time.time()}.tmp"
         try:
             async def run_edge_tts():
-                communicate = edge_tts.Communicate(text, edge_voice, rate=rate_str)
+                communicate = edge_tts.Communicate(text, edge_voice, rate=rate_str, pitch=pitch_str)
                 await communicate.save(part_path)
             
             try:

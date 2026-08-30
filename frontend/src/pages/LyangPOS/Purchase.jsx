@@ -207,6 +207,7 @@ export default function Purchase() {
         const t = localStorage.getItem("pos_transparent_cart_table");
         return t === null ? true : t === "true";
     });
+    const [showHotkeysGuide, setShowHotkeysGuide] = useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true");
 
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
@@ -988,6 +989,13 @@ export default function Purchase() {
         fetchSettings();
         fetchBankAccounts();
 
+        const syncChannel = new BroadcastChannel('pos_data_sync');
+        syncChannel.onmessage = (event) => {
+            if (event.data?.type === 'SETTINGS_UPDATED') {
+                fetchSettings();
+            }
+        };
+
         // Load Draft
         if (!location.state?.editOrder) {
             loadDraft();
@@ -1007,6 +1015,10 @@ export default function Purchase() {
             }
         }
         setIsLoaded(true);
+
+        return () => {
+            syncChannel.close();
+        };
     }, [location.search, location.state]);
 
     const handlePreview = () => {
@@ -1603,7 +1615,7 @@ export default function Purchase() {
                                         <div className={cn(
                                             "w-2 h-2 rounded-full shrink-0",
                                             editOrderId 
-                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" 
+                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20" 
                                                 : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
                                         )} />
                                         <div className="flex flex-col justify-center leading-none min-w-0">
@@ -1825,7 +1837,7 @@ export default function Purchase() {
                                                 <div
                                                     data-index={0}
                                                     className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
-                                                    onMouseEnter={() => setActiveIndex(0)}
+                                                    onMouseMove={() => { if (activeIndex !== 0) setActiveIndex(0); }}
                                                     onClick={() => {
                                                         setIsPartnerHovered(false);
                                                         setSelectedPartner(null);
@@ -1845,11 +1857,12 @@ export default function Purchase() {
                                             )}
                                             {filteredPartners.map((p, idx) => {
                                                 const isItemActive = partnerSearch ? activeIndex === idx : activeIndex === idx + 1;
+                                                const targetIndex = partnerSearch ? idx : idx + 1;
                                                 return (
                                                     <div
                                                         key={p.id}
-                                                        data-index={partnerSearch ? idx : idx + 1}
-                                                        onMouseEnter={() => setActiveIndex(partnerSearch ? idx : idx + 1)}
+                                                        data-index={targetIndex}
+                                                        onMouseMove={() => { if (activeIndex !== targetIndex) setActiveIndex(targetIndex); }}
                                                         onClick={() => {
                                                             setIsPartnerHovered(false);
                                                             setSelectedPartner(p);
@@ -2239,101 +2252,111 @@ export default function Purchase() {
                                     >
                                         <div className="flex flex-col items-center justify-center max-w-xl w-full mx-auto pointer-events-auto">
                                             {/* Mascot Header */}
-                                            <div className="flex items-center gap-4 mb-3">
-                                                <m.img
-                                                    src="/assets/images/user_mascot.png"
-                                                    alt="Lyang Mascot"
-                                                    className="w-24 h-24 md:w-28 md:h-28 object-contain drop-shadow-xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none"
-                                                    draggable="false"
-                                                    initial={{ scale: 0.8, rotate: -6 }}
-                                                    animate={{ scale: 1, rotate: 0 }}
-                                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                                />
-                                                <div className="flex flex-col text-left">
-                                                    <span className="text-base sm:text-lg font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight">
-                                                        Đơn Nhập Hàng Chưa Có Sản Phẩm
+                                            <div
+                                                onClick={() => setShowHotkeysGuide(prev => {
+                                                    const next = !prev;
+                                                    try { localStorage.setItem("pos_show_hotkeys_guide", String(next)); } catch (e) {}
+                                                    return next;
+                                                })}
+                                                className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
+                                            >
+                                                <div className="relative shrink-0">
+                                                    <m.img
+                                                        src="/assets/images/user_mascot.png"
+                                                        alt="Lyang Mascot"
+                                                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
+                                                        draggable="false"
+                                                        initial={{ scale: 0.8, rotate: -6 }}
+                                                        animate={{ scale: 1, rotate: 0 }}
+                                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col justify-center">
+                                                    <span className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight flex items-center gap-2">
+                                                        <span>Giỏ Hàng Chưa Có Sản Phẩm</span>
                                                     </span>
-                                                    <span className="text-xs font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-0.5">
-                                                        Tìm kiếm sản phẩm (F2) hoặc quét mã vạch ở ô trên để nhập kho
+                                                    <span className="text-xs sm:text-sm font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-1 whitespace-nowrap">
+                                                        Gõ tên sản phẩm (F2) hoặc quét mã vạch ở ô trên để bắt đầu tạo đơn
                                                     </span>
                                                 </div>
                                             </div>
 
-                                            {/* Fully Transparent Shortcut Grid */}
-                                            <div className="w-full">
-                                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
-                                                    {/* F2: Tìm kiếm */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
-                                                    </m.div>
+                                            {/* Fully Transparent Shortcut Grid (Collapsed by Default, toggled on click) */}
+                                            <AnimatePresence>
+                                                {showHotkeysGuide && (
+                                                    <m.div
+                                                        key="hotkeys-guide-panel"
+                                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                                                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                                                        className="w-full overflow-hidden"
+                                                    >
+                                                        <div className="w-full pt-1">
+                                                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
+                                                                {/* F2: Tìm kiếm */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
+                                                                </m.div>
 
-                                                    {/* F3: Chọn NCC */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn NCC</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
-                                                    </m.div>
+                                                                {/* F3: Chọn NCC */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn NCC</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
+                                                                </m.div>
 
-                                                    {/* F4: Tạo phiếu mới */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo phiếu mới</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
-                                                    </m.div>
+                                                                {/* F4: Tạm đơn */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạm đơn</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
+                                                                </m.div>
 
-                                                    {/* F6: Thêm SP mới */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thêm SP mới</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
-                                                    </m.div>
+                                                                {/* F6: Thêm SP mới */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thêm SP mới</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
+                                                                </m.div>
 
-                                                    {/* F8: Lưu tạm phiếu */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm phiếu</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
-                                                    </m.div>
+                                                                {/* F9: Lưu & In */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu & In</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
+                                                                </m.div>
 
-                                                    {/* F12: Lưu / In phiếu */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In phiếu</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
-                                                    </m.div>
+                                                                {/* Ctrl+S: Lưu đơn */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu đơn</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+S</kbd>
+                                                                </m.div>
 
-                                                    {/* Tab: Chuyển ô */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
-                                                    </m.div>
+                                                                {/* Tab: Chuyển ô */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
+                                                                </m.div>
 
-                                                    {/* Enter: Thêm vào đơn */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào đơn</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
-                                                    </m.div>
+                                                                {/* Enter: Thêm vào đơn */}
+                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào đơn</span>
+                                                                    <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
+                                                                </m.div>
+                                                            </div>
 
-                                                    {/* Ctrl+Z: Hoàn tác */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
-                                                        <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
+                                                            <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
+                                                                    <span>Đóng popup / Hủy</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
+                                                                    <span>Đổi chế độ nhập</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </m.div>
-
-                                                    {/* Ctrl+Arrow: Đổi phiếu */}
-                                                    <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                        <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi phiếu</span>
-                                                        <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
-                                                    </m.div>
-                                                </div>
-
-                                                <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
-                                                        <span>Đóng popup / Hủy</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
-                                                        <span>Đổi chế độ nhập</span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     </m.div>
                                 )}
@@ -2368,7 +2391,7 @@ export default function Purchase() {
                                                         <div className="flex items-center justify-between w-full gap-2">
                                                             <span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm nhập hàng</span>
                                                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400 animate-pulse" />
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />
                                                                 {totalItems} món
                                                             </span>
                                                         </div>
@@ -2470,16 +2493,14 @@ export default function Purchase() {
                                                                             e.preventDefault();
                                                                             if (searchTerm && filteredProducts[activeIndex]) {
                                                                                 const p = filteredProducts[activeIndex];
-                                                                                const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
-                                                                                setWorkingItem({
-                                                                                    product: p,
-                                                                                    quantity: currentQty,
-                                                                                    price: p.latest_cost_price || p.cost_price,
-                                                                                    secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                    name: p.name
-                                                                                });
-                                                                                setSearchTerm(p.name);
-                                                                                addToCart(p, 1, p.latest_cost_price || p.cost_price);
+                                                                                const pPrice = p.latest_cost_price || p.cost_price || 0;
+                                                                                addToCart(p, 1, pPrice);
+                                                                                setSearchTerm("");
+                                                                                setWorkingItem({ product: null, quantity: 0, price: 0, secondary_qty: 0, name: "" });
+                                                                                setTimeout(() => {
+                                                                                    searchInputRef.current?.focus();
+                                                                                    searchInputRef.current?.select?.();
+                                                                                }, 50);
                                                                             }
                                                                         } else if (e.key === 'Tab') {
                                                                             if (workingItem.product) {
@@ -2536,7 +2557,7 @@ export default function Purchase() {
                                                                                 {filteredProducts.map((p, idx) => (
                                                                                     <div
                                                                                         key={p.id}
-                                                                                        onMouseEnter={() => setActiveIndex(idx)}
+                                                                                        onMouseMove={() => { if (activeIndex !== idx) setActiveIndex(idx); }}
                                                                                         onClick={() => {
                                                                                             const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
                                                                                             setWorkingItem({
@@ -2678,6 +2699,7 @@ export default function Purchase() {
                                                                     className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal"
                                                                     value={workingItem.secondary_qty || ""}
                                                                     id="working-sec-qty"
+                                                                    ref={workingSecQtyRef}
                                                                     autoComplete="off"
                                                                     onFocus={(e) => e.target.select()}
                                                                     onChange={(e) => {
@@ -2694,7 +2716,14 @@ export default function Purchase() {
                                                                     onKeyDown={(e) => {
                                                                         if (e.key === 'Tab') {
                                                                             e.preventDefault();
-                                                                            workingQtyRef.current?.focus();
+                                                                            e.stopPropagation();
+                                                                            if (e.shiftKey) {
+                                                                                searchInputRef.current?.focus();
+                                                                                searchInputRef.current?.select?.();
+                                                                            } else {
+                                                                                workingQtyRef.current?.focus();
+                                                                                workingQtyRef.current?.select?.();
+                                                                            }
                                                                         } else if (e.key === 'Enter') {
                                                                             e.preventDefault();
                                                                             if (workingItem.product && workingItem.quantity !== 0) {
@@ -2732,7 +2761,19 @@ export default function Purchase() {
                                                             onKeyDown={(e) => {
                                                                 if (e.key === 'Tab') {
                                                                     e.preventDefault();
-                                                                    workingPriceRef.current?.focus();
+                                                                    e.stopPropagation();
+                                                                    if (e.shiftKey) {
+                                                                        if (workingItem.product?.secondary_unit) {
+                                                                            workingSecQtyRef.current?.focus();
+                                                                            workingSecQtyRef.current?.select?.();
+                                                                        } else {
+                                                                            searchInputRef.current?.focus();
+                                                                            searchInputRef.current?.select?.();
+                                                                        }
+                                                                    } else {
+                                                                        workingPriceRef.current?.focus();
+                                                                        workingPriceRef.current?.select?.();
+                                                                    }
                                                                 } else if (e.key === 'Enter') {
                                                                     e.preventDefault();
                                                                     if (workingItem.product && workingItem.quantity !== 0) {
@@ -2746,11 +2787,11 @@ export default function Purchase() {
                                                         <div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">
                                                             {workingItem.product && (
                                                                 <div
-                                                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1
+                                                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1
                                                                                 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50
                                                                                 flex items-stretch whitespace-nowrap z-[9999] 
                                                                                 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100
-                                                                                transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"
+                                                                                transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"
                                                                 >
                                                                     <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
                                                                         <span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">
@@ -2771,7 +2812,7 @@ export default function Purchase() {
                                                                             <span className="text-[9px] ml-0.5 opacity-60">đ</span>
                                                                         </span>
                                                                     </div>
-                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" />
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#fbf9f4]/95 dark:border-b-slate-900/95 drop-shadow-xs" />
                                                                 </div>
                                                             )}
                                                             <div className="relative w-full">
@@ -2793,9 +2834,16 @@ export default function Purchase() {
                                                                             if (workingItem.product && workingItem.quantity !== 0) {
                                                                                 addToCart(workingItem.product, workingItem.quantity, workingItem.price);
                                                                             }
-                                                                        } else if (e.key === 'Tab' && !e.shiftKey) {
+                                                                        } else if (e.key === 'Tab') {
                                                                             e.preventDefault();
-                                                                            searchInputRef.current?.focus();
+                                                                            e.stopPropagation();
+                                                                            if (e.shiftKey) {
+                                                                                workingQtyRef.current?.focus();
+                                                                                workingQtyRef.current?.select?.();
+                                                                            } else {
+                                                                                searchInputRef.current?.focus();
+                                                                                searchInputRef.current?.select?.();
+                                                                            }
                                                                         }
                                                                     }}
                                                                 />
@@ -2836,8 +2884,8 @@ export default function Purchase() {
                                                                 className={cn(
                                                                     "relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0",
                                                                     rowSearchIdx === idx
-                                                                        ? "z-[2000] bg-white/5 dark:bg-slate-800/20"
-                                                                        : "z-[50] hover:z-[1000] bg-transparent hover:bg-white/5 dark:hover:bg-slate-800/5 focus-within:z-[1000]"
+                                                                        ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
+                                                                        : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-white/5 dark:hover:bg-slate-800/5"
                                                                 )}
                                                                 onDoubleClick={() => {
                                                                     const p = products.find(prod => prod.id === item.product_id);
@@ -3135,7 +3183,7 @@ export default function Purchase() {
                                                                                     return (p.name || "").toLowerCase().includes(s) ||
                                                                                         (p.code || "").toLowerCase().includes(s) ||
                                                                                         (p.active_ingredient || "").toLowerCase().includes(s);
-                                                                                })
+                                                                                        })
                                                                                     .sort((a, b) => {
                                                                                         const s = rowSearchTerm.toLowerCase();
                                                                                         const aName = (a.name || "").toLowerCase();
@@ -3149,7 +3197,7 @@ export default function Purchase() {
                                                                                     .slice(0, 50).map((p, pIdx) => (
                                                                                         <div
                                                                                             key={p.id}
-                                                                                            onMouseEnter={() => setRowActiveIndex(pIdx)}
+                                                                                            onMouseMove={() => { if (rowActiveIndex !== pIdx) setRowActiveIndex(pIdx); }}
                                                                                             onClick={() => {
                                                                                                 let newCart = [...cart];
                                                                                                 const currentQty = newCart[idx].quantity;
@@ -3353,8 +3401,8 @@ export default function Purchase() {
                                                                         <RotateCcw size={10} strokeWidth={3} />
                                                                     </button>
                                                                 </td>
-                                                                <td className="py-2 px-2 text-right text-slate-900 dark:text-white font-black text-lg">
-                                                                    <div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">
+                                                                <td className="py-2 px-2 text-right text-slate-900 dark:text-white font-black text-lg relative hover:z-[4000] focus-within:z-[4000]">
+                                                                    <div className="flex flex-col items-center gap-1 group/price relative z-[10] group-hover/price:z-[4000] group-focus-within/price:z-[4000]">
                                                                         {products.find(p => p.id === item.product_id) && (
                                                                             <div
                                                                                 className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1
@@ -3861,7 +3909,7 @@ export default function Purchase() {
                         {summaryLayoutMode === 'bottom' && (
                             <div 
                                 style={{ height: `${bottomSummaryHeight}px`, minHeight: '96px', maxHeight: '320px' }}
-                                className="mt-1 bg-transparent border-0 rounded-[1.8rem] p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between overflow-visible select-none"
+                                className="mt-1 bg-transparent border-0 rounded-2xl p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between overflow-visible select-none"
                             >
                                 {/* Top Drag Handle for Resizing */}
                                 <div

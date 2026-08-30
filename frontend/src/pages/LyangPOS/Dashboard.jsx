@@ -72,12 +72,16 @@ import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
 import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
 import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';
 import presetMarketIllustration from '../../assets/wallpapers/preset_market_illustration.jpg';
+import presetMascotFarm from '../../assets/wallpapers/preset_mascot_farm.jpg';
+import presetMascotLatte from '../../assets/wallpapers/preset_mascot_latte.jpg';
 
 const WALLPAPER_PRESETS = [
     { id: 1, name: "Signature Lyang", path: preset1Signature, desc: "Tối giản ấm cúng" },
     { id: 2, name: "Cafe Latte", path: preset2Latte, desc: "Cà phê & Trà" },
     { id: 3, name: "Nông Trại Xanh (Vector)", path: presetFarmIllustration, desc: "Đồi xanh & Xe táo" },
-    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" }
+    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" },
+    { id: 5, name: "Bé Mascot Nông Trại", path: presetMascotFarm, desc: "Đồi chè & Táo đỏ" },
+    { id: 6, name: "Bé Mascot Đồng Quê", path: presetMascotLatte, desc: "Bình yên & Dễ đọc chữ" }
 ];
 
 ChartJS.register(

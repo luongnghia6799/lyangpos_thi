@@ -214,6 +214,16 @@ export default function History() {
             setDuplicates([]);
             setShowOnlyDuplicates(false);
         }
+
+        const syncChannel = new BroadcastChannel('pos_data_sync');
+        syncChannel.onmessage = (event) => {
+            if (event.data?.type === 'SETTINGS_UPDATED') {
+                fetchSettings();
+            }
+        };
+        return () => {
+            syncChannel.close();
+        };
     }, [activeTab]);
 
     useEffect(() => {

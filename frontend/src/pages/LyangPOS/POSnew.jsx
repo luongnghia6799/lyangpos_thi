@@ -71,10 +71,11 @@ const Nl = QuickEditModal;
 import logo from "@/assets/logo.png";
 const kl = logo;
 const _l = () => null;
-const Ts = fn => typeof fn === "function" ? fn() : fn;
 const Ls = (v, N) => {
     let C = M.defaults.baseURL || "http://localhost:3579";
-    return C.includes("localhost") && typeof window < "u" && window.location && window.location.hostname && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.includes("tauri") && (C = C.replace("localhost", window.location.hostname)), `${C.replace(/\/+$/, "")}/api/tts?text=${encodeURIComponent(v)}&voice=${N}`;
+    const rate = localStorage.getItem("pos_speech_rate") || "1.4";
+    const pitch = localStorage.getItem("pos_speech_pitch") || "0";
+    return C.includes("localhost") && typeof window < "u" && window.location && window.location.hostname && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.includes("tauri") && (C = C.replace("localhost", window.location.hostname)), `${C.replace(/\/+$/, "")}/api/tts?text=${encodeURIComponent(v)}&voice=${N}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
   },
   qn = (v, N) => {
     if (!v || v.length === 0) return;
@@ -1091,6 +1092,13 @@ function a0({
       const a = parseFloat(t.target.value);
       wi(a), localStorage.setItem("pos_speech_rate", a.toString()), setTimeout(() => Ss(T), 100);
     },
+    [speechPitch, setSpeechPitch] = i.useState(() => parseInt(localStorage.getItem("pos_speech_pitch") || "0")),
+    handlePitchChange = t => {
+      const val = parseInt(t.target.value);
+      setSpeechPitch(val);
+      localStorage.setItem("pos_speech_pitch", val.toString());
+      setTimeout(() => Ss(T), 100);
+    },
     [Lr, ba] = i.useState(!1),
     [ar, Ct] = i.useState(!1),
     [ga, Vs] = i.useState(() => localStorage.getItem("pos_keep_order_after_save") === "true"),
@@ -1102,6 +1110,14 @@ function a0({
     [soundThemeTyping, setSoundThemeTyping] = i.useState(() => localStorage.getItem("pos_sound_theme_typing") || "mechanical"),
     [soundThemeError, setSoundThemeError] = i.useState(() => localStorage.getItem("pos_sound_theme_error") || "buzz_low"),
     [showHotkeysGuide, setShowHotkeysGuide] = i.useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true"),
+    [showMascotCustomizer, setShowMascotCustomizer] = i.useState(false),
+    [mascotWatermarkVisible, setMascotWatermarkVisible] = i.useState(() => localStorage.getItem("pos_mascot_watermark_visible") !== "false"),
+    [mascotWatermarkPos, setMascotWatermarkPos] = i.useState(() => localStorage.getItem("pos_mascot_watermark_pos") || "bottom-right"),
+    [mascotWatermarkScale, setMascotWatermarkScale] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_scale") || "100")),
+    [mascotWatermarkOpacity, setMascotWatermarkOpacity] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_opacity") || "15")),
+    [mascotWatermarkRotate, setMascotWatermarkRotate] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_rotate") || "-6")),
+    [mascotWatermarkOffsetX, setMascotWatermarkOffsetX] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10")),
+    [mascotWatermarkOffsetY, setMascotWatermarkOffsetY] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10")),
     $r = i.useRef(null);
   i.useEffect(() => {
     const t = a => {
@@ -2361,7 +2377,17 @@ function a0({
         [a.key]: a.newValue
       }));
     };
-    return window.addEventListener("storage", t), () => window.removeEventListener("storage", t);
+    const syncChannel = new BroadcastChannel('pos_data_sync');
+    syncChannel.onmessage = (event) => {
+      if (event.data?.type === 'SETTINGS_UPDATED') {
+        _n();
+      }
+    };
+    window.addEventListener("storage", t);
+    return () => {
+      window.removeEventListener("storage", t);
+      syncChannel.close();
+    };
   }, []), i.useEffect(() => {
     va && setTimeout(() => {
       const t = document.getElementById("first-held-card");
@@ -2821,13 +2847,14 @@ function a0({
             O = Math.abs(u),
             U = w ? `Trả hàng ${O}` : O;
           const shouldReadQty = er;
-          const alias = t.alias && t.alias.trim() ? t.alias.trim() : t.name;
+          const hasAlias = Boolean(t.alias && t.alias.trim());
+          const alias = hasAlias ? t.alias.trim() : "";
           
-          if (b && shouldReadQty) {
+          if (b && hasAlias && shouldReadQty) {
             S === "qty_first" ? (ht(U), window.cartSpeechTimeout = setTimeout(() => {
               ht(alias);
             }, 1500), rr.current[g] = t.id) : rr.current[g] === t.id ? ht(U) : (ht(`${alias}, ${U}`), rr.current[g] = t.id);
-          } else if (b) {
+          } else if (b && hasAlias) {
             rr.current[g] !== t.id && (ht(alias), rr.current[g] = t.id);
           } else if (shouldReadQty) {
             ht(U), rr.current[g] = t.id;
@@ -3344,6 +3371,8 @@ function a0({
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button><button onClick={() => {
                         Ct(!1), fs(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
+                        Ct(!1), setShowMascotCustomizer(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform text-base leading-none">🎨</div><span className="uppercase tracking-tight">Tùy biến Mascot in chìm</span></button><button onClick={() => {
                         Ct(!1), ba(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button><button onClick={() => {
                         const t = !ga;
@@ -3403,7 +3432,7 @@ function a0({
                     opacity: 0,
                     x: -20,
                     scale: 0.8
-                  }} className="hidden xl:flex items-center h-9 relative overflow-hidden bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 rounded-2xl px-3 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 group/revenue box-border"><div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/revenue:scale-110 group-hover/revenue:rotate-6"><Comp_u_d size={26} strokeWidth={2.5} /></div><div className="flex flex-col justify-center leading-none relative z-10"><p className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] tabular-nums tracking-tight leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-2 shrink-0"><div className="flex items-center gap-2 ml-auto"><div className="flex items-center gap-1 shrink-0 h-[26px]"><div className="max-w-[120px] overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-1 shrink-0">{fe.map((t, a) => {
+                  }} className="flex items-center h-9 relative overflow-hidden bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 rounded-2xl px-3 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 group/revenue box-border"><div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/revenue:scale-110 group-hover/revenue:rotate-6"><Comp_u_d size={26} strokeWidth={2.5} /></div><div className="flex flex-col justify-center leading-none relative z-10"><p className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] tabular-nums tracking-tight leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-2 shrink-0"><div className="flex items-center gap-2 ml-auto"><div className="flex items-center gap-1 shrink-0 h-[26px]"><div className="max-w-[120px] overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-1 shrink-0">{fe.map((t, a) => {
                     const r = t.id === g,
                       s = t.id === ne;
                     return <div key={t.id} className="group/tab relative shrink-0"><button onClick={n => {
@@ -3695,7 +3724,31 @@ function a0({
                   </Ws>
                 </div>
               </x.div>
-            )}</P><div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}</P>{mascotWatermarkVisible && (
+              <div 
+                className={c(
+                  "absolute pointer-events-none select-none z-0 overflow-hidden flex transition-all duration-200",
+                  mascotWatermarkPos === "bottom-right" ? "right-0 bottom-0 items-end justify-end" :
+                  mascotWatermarkPos === "bottom-left" ? "left-0 bottom-0 items-end justify-start" :
+                  mascotWatermarkPos === "top-right" ? "right-0 top-0 items-start justify-end" :
+                  mascotWatermarkPos === "top-left" ? "left-0 top-0 items-start justify-start" :
+                  "inset-0 items-center justify-center"
+                )}
+                style={{ opacity: (mascotWatermarkOpacity || 15) / 100 }}
+              >
+                <img
+                  src="/assets/images/user_mascot.png"
+                  alt="Lyang Mascot"
+                  style={{
+                    width: `${Math.round(360 * ((mascotWatermarkScale || 100) / 100))}px`,
+                    height: `${Math.round(360 * ((mascotWatermarkScale || 100) / 100))}px`,
+                    transform: `translate(${mascotWatermarkOffsetX || 0}px, ${mascotWatermarkOffsetY || 0}px) rotate(${mascotWatermarkRotate || 0}deg)`,
+                  }}
+                  className="object-contain pointer-events-none select-none filter grayscale contrast-[300%] brightness-[90%] sepia-[0.35] hue-rotate-[30deg] dark:invert dark:grayscale dark:contrast-[250%] dark:brightness-[130%] mix-blend-multiply dark:mix-blend-screen transition-transform duration-100"
+                  draggable="false"
+                />
+              </div>
+            )}<div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -3725,22 +3778,52 @@ function a0({
                                     G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
                                   }
                                 }
-                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" title="Bấm để uncheck toàn bộ / soạn lại">Soạn</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm</span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20"><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400 animate-pulse" />{ll} món</span></div><div onClick={t => {
-                                    t.stopPropagation();
-                                    const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
-                                    Na(r => ({
-                                      ...r,
-                                      ui_enable_smart_sorting: a
-                                    })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
-                                      type: "UI_SETTING_UPDATED",
-                                      key: "ui_enable_smart_sorting",
-                                      value: a
-                                    });
-                                  }} className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#8b6f47]/5 dark:bg-white/5 hover:bg-[#8b6f47]/10 dark:hover:bg-white/10 border border-[#8b6f47]/20 dark:border-white/10 cursor-pointer transition-all select-none" title="Gom nhóm thông minh tự động (Smart Sorting)"><span className="text-[8.5px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">GOM NHÓM</span><div className={c("relative w-5.5 h-3 rounded-full transition-colors duration-300 p-0.5", J.ui_enable_smart_sorting === "true" ? "bg-primary" : "bg-black/20 dark:bg-white/20")}><x.div layout={!0} transition={{
-                                        type: "spring",
-                                        stiffness: 500,
-                                        damping: 30
-                                      }} className={c("w-2 h-2 rounded-full bg-white shadow-xs", J.ui_enable_smart_sorting === "true" ? "ml-auto" : "mr-auto")} /></div></div></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn giá</th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row" onDoubleClick={() => {
+                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" title="Bấm để uncheck toàn bộ / soạn lại">Soạn</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm</span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20"><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />{ll} món</span></div><x.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={t => {
+                                      t.stopPropagation();
+                                      const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
+                                      Na(r => ({
+                                        ...r,
+                                        ui_enable_smart_sorting: a
+                                      })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
+                                        type: "UI_SETTING_UPDATED",
+                                        key: "ui_enable_smart_sorting",
+                                        value: a
+                                      });
+                                    }}
+                                    className={c(
+                                      "relative overflow-hidden flex items-center gap-2 px-3 py-1 rounded-full cursor-pointer transition-all duration-300 select-none shadow-xs border backdrop-blur-md group/gom-nhom",
+                                      J.ui_enable_smart_sorting === "true"
+                                        ? "bg-[#2d5016]/12 hover:bg-[#2d5016]/20 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 border-[#2d5016]/40 dark:border-emerald-400/40 text-[#2d5016] dark:text-emerald-300 shadow-[0_0_12px_rgba(45,80,22,0.12)] dark:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                                        : "bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.12] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
+                                    )}
+                                    title="Gom nhóm thông minh tự động (Smart Sorting)"
+                                  >
+                                    <div className="absolute -right-1 -bottom-1.5 text-current opacity-[0.13] dark:opacity-[0.18] pointer-events-none -rotate-12 transition-transform duration-300 group-hover/gom-nhom:scale-125 select-none">
+                                      <Es size={28} strokeWidth={2} />
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase tracking-wider leading-none relative z-10 pt-0.5">GOM NHÓM</span>
+                                    <div
+                                      className={c(
+                                        "relative z-10 w-6 h-3.5 rounded-full transition-colors duration-300 p-0.5 flex items-center shadow-inner",
+                                        J.ui_enable_smart_sorting === "true"
+                                          ? "bg-[#2d5016] dark:bg-emerald-500 justify-end"
+                                          : "bg-[#8b6f47]/25 dark:bg-white/20 justify-start"
+                                      )}
+                                    >
+                                      <x.div
+                                        layout={!0}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 600,
+                                          damping: 35
+                                        }}
+                                        className="w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"
+                                      />
+                                    </div>
+                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn giá</th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row" onDoubleClick={() => {
                             m.product && (Vt(m.product), vt(!0));
                           }}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
@@ -3897,7 +3980,7 @@ function a0({
                                   left: productSearchCoords.left,
                                   width: Math.min(productSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (productSearchCoords.left || 0) - 16 : 700),
                                   maxHeight: Math.min(480, typeof window !== "undefined" ? window.innerHeight - (productSearchCoords.top || 0) - 16 : 480)
-                                }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div className="max-h-[480px] overflow-y-auto custom-scrollbar" ref={hs}>{wt.map((t, a) => <div key={t.id} onMouseEnter={() => Ft(a)} onMouseDown={r => {
+                                }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div className="max-h-[480px] overflow-y-auto custom-scrollbar" ref={hs}>{wt.map((t, a) => <div key={t.id} onMouseMove={() => { if (De !== a) Ft(a); }} onMouseDown={r => {
                                       r.preventDefault();
                                       const s = m.quantity && m.quantity !== 0 ? m.quantity : 1;
                                       He({
@@ -3926,7 +4009,7 @@ function a0({
                                               color: a === De ? Mt.accent : Mt.main
                                             }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
                                       dn(Z), ur(!0);
-                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</P></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-white/60 dark:focus-within:bg-black/30 focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty || ""} id="working-sec-qty" autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</P></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-white/60 dark:focus-within:bg-black/30 focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty || ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -3937,7 +4020,16 @@ function a0({
                                       };
                                     });
                                   }} onKeyDown={t => {
-                                    t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), Pt.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                    if (t.key === "Tab") {
+                                      t.preventDefault(), t.stopPropagation();
+                                      if (t.shiftKey) {
+                                        se.current?.focus(), se.current?.select?.();
+                                      } else {
+                                        Pt.current?.focus(), Pt.current?.select?.();
+                                      }
+                                    } else if (t.key === "Enter") {
+                                      t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price);
+                                    }
                                   }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
@@ -3949,14 +4041,31 @@ function a0({
                                       };
                                     });
                                   }} onKeyDown={t => {
-                                    t.key === "Tab" ? (t.preventDefault(), t.stopPropagation(), blockTabPrice ? t.target.select?.() : ms.current?.focus()) : t.key === "Enter" && (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price));
+                                    if (t.key === "Tab") {
+                                      t.preventDefault(), t.stopPropagation();
+                                      if (t.shiftKey) {
+                                        if (m.product?.secondary_unit) {
+                                          Pa.current?.focus(), Pa.current?.select?.();
+                                        } else {
+                                          se.current?.focus(), se.current?.select?.();
+                                        }
+                                      } else {
+                                        if (blockTabPrice) {
+                                          t.target.select?.();
+                                        } else {
+                                          ms.current?.focus(), ms.current?.select?.();
+                                        }
+                                      }
+                                    } else if (t.key === "Enter") {
+                                      t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price);
+                                    }
                                   }} /><button tabIndex={-1} className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center bg-white/60 dark:bg-black/40 text-[#8b6f47] dark:text-[#d4a574] rounded-full border border-white/50 dark:border-white/10 hover:bg-white active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100 shadow-xs" onClick={() => {
                                     He(t => ({
                                       ...t,
                                       quantity: t.quantity * -1,
                                       secondary_qty: t.secondary_qty * -1
                                     })), Pt.current?.focus();
-                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#fbf9f4]/95 dark:border-b-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
                                     He({
                                       ...m,
@@ -4034,7 +4143,7 @@ function a0({
                               stiffness: 300,
                               damping: 25,
                               delay: a * 0.02
-                            }} id={`cart-row-${a}`} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[2000] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[1000] bg-transparent focus-within:z-[1000]")} onDoubleClick={() => {
+                            }} id={`cart-row-${a}`} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent")} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {
@@ -4231,7 +4340,7 @@ function a0({
                                           return l && !d ? -1 : !l && d ? 1 : r._lowCode === n && s._lowCode !== n ? -1 : r._lowCode !== n && s._lowCode === n ? 1 : r._lowName.localeCompare(s._lowName, "vi", {
                                             sensitivity: "base"
                                           });
-                                        }).slice(0, 50).map((r, s) => <div key={r.id} onMouseEnter={() => Ca(s)} onClick={() => {
+                                        }).slice(0, 50).map((r, s) => <div key={r.id} onMouseMove={() => { if (Ja !== s) Ca(s); }} onClick={() => {
                                           let n = [...y];
                                           const l = n.findIndex(u => u.cartId === t.cartId);
                                           if (l === -1) return;
@@ -4292,7 +4401,7 @@ function a0({
                                       const s = a - 1;
                                       s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : Pt.current?.focus();
                                     }
-                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
+                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right relative hover:z-[4000] focus-within:z-[4000]"><div className="flex flex-col items-center gap-1 group/price relative z-[10] group-hover/price:z-[4000] group-focus-within/price:z-[4000]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
                                       const s = parseFloat(r.target.value.replace(/,/g, "")) || 0;
                                       _r(a, "price", s);
                                     }} onKeyDown={r => {
@@ -5554,6 +5663,50 @@ function a0({
                         </div>
                       </div>
 
+                      {/* Pitch Slider (Tông giọng: Trầm - Bổng / Cao - Thấp) */}
+                      <div className="space-y-2 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-4 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex justify-between items-center text-xs font-black">
+                          <span className="uppercase tracking-wider text-slate-700 dark:text-slate-300">Tông giọng (Cao - Thấp / Trầm - Bổng)</span>
+                          <span className="px-2 py-0.5 rounded-lg bg-[#8b6f47]/15 dark:bg-emerald-500/15 text-[#8b6f47] dark:text-emerald-300 font-mono font-black text-xs">
+                            {speechPitch === 0 ? "0Hz (Chuẩn tự nhiên)" : speechPitch > 0 ? `+${speechPitch}Hz (Bổng/Trẻ trung)` : `${speechPitch}Hz (Trầm ấm)`}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-30"
+                          max="30"
+                          step="5"
+                          value={speechPitch}
+                          onChange={handlePitchChange}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                        <div className="grid grid-cols-5 gap-1 pt-1">
+                          {[
+                            { val: -20, label: "Trầm ấm (-20)" },
+                            { val: -10, label: "Hơi trầm (-10)" },
+                            { val: 0, label: "Chuẩn (0)" },
+                            { val: 10, label: "Hơi bổng (+10)" },
+                            { val: 20, label: "Trong trẻo (+20)" },
+                          ].map(item => (
+                            <button
+                              key={item.val}
+                              type="button"
+                              onClick={() => {
+                                setSpeechPitch(item.val);
+                                localStorage.setItem("pos_speech_pitch", item.val.toString());
+                                setTimeout(() => Ss(T), 100);
+                              }}
+                              className={c(
+                                "px-1.5 py-1 rounded-lg text-[9.5px] font-black transition-all cursor-pointer text-center truncate",
+                                speechPitch === item.val ? "bg-[#8b6f47] dark:bg-emerald-600 text-white shadow-xs" : "bg-white dark:bg-[#06140e] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-[#8b6f47]/20 dark:border-white/5"
+                              )}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Content options */}
                       <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Tùy chọn đọc nội dung</label>
@@ -5567,7 +5720,10 @@ function a0({
                             className={c("flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left cursor-pointer", Za ? "bg-[#8b6f47]/10 dark:bg-emerald-500/10 border-[#8b6f47]/40 dark:border-emerald-500/40 text-[#694e2b] dark:text-emerald-300 font-black shadow-xs" : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 opacity-60 text-slate-500")}
                           >
                             <input type="checkbox" checked={Za} readOnly={!0} className="w-4 h-4 accent-[#8b6f47] dark:accent-emerald-600 rounded" />
-                            <span>Đọc tên sản phẩm</span>
+                            <div className="flex flex-col">
+                              <span>Đọc tên sản phẩm</span>
+                              <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400 leading-tight">(Chỉ đọc khi có bí danh / alias)</span>
+                            </div>
                           </button>
                           <button
                             type="button"
@@ -5625,7 +5781,7 @@ function a0({
                         </div>
                       </div>
                     </div>
-                  ) : (
+                  ) : dc === "templates" ? (
                     /* Tab 3: Mẫu câu thông báo */
                     <div className="space-y-3.5 overflow-y-auto max-h-[52vh] pr-1.5 custom-scrollbar">
                       {/* Thứ tự đọc khi quét */}
@@ -5781,7 +5937,7 @@ function a0({
                         </div>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Modal Footer */}
                   <div className="flex items-center gap-3 pt-3 border-t border-[#8b6f47]/20 dark:border-white/10">
@@ -5852,7 +6008,239 @@ function a0({
               Ur(s), setTimeout(() => window.print(), 300);
             }} onDeleteOrder={t => {
               Sn(t);
-            }} /></Ee><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><Fn><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
+            }} /></Ee><P>{showMascotCustomizer && (
+              <Fn>
+                <x.div
+                  drag={!0}
+                  dragMomentum={!1}
+                  initial={{ opacity: 0, x: 40, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 40, scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                  className="fixed right-5 bottom-5 z-[9999] w-[350px] bg-[#fcfbf9]/95 dark:bg-[#071510]/95 backdrop-blur-2xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-emerald-500/30 shadow-[0_25px_70px_rgba(0,0,0,0.4)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.7)] p-4 text-foreground flex flex-col gap-3 font-sans ring-1 ring-black/5 dark:ring-white/10 select-none cursor-default"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Header & Drag Handle */}
+                  <div className="flex items-center justify-between pb-2 border-b border-[#8b6f47]/15 dark:border-white/10 cursor-move active:cursor-grabbing">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#8b6f47]/15 dark:bg-emerald-500/20 text-[#8b6f47] dark:text-emerald-400 flex items-center justify-center text-base shrink-0 shadow-inner">
+                        🎨
+                      </div>
+                      <div>
+                        <h4 className="font-black text-xs text-slate-800 dark:text-white uppercase tracking-tight leading-none mb-0.5 flex items-center gap-1.5">
+                          <span>Tùy Biến Mascot Chìm</span>
+                          <span className="text-[9px] font-bold text-slate-400 font-mono">(Kéo thả di chuyển)</span>
+                        </h4>
+                        <p className="text-[10px] font-bold text-[#8b6f47]/80 dark:text-emerald-400/80">Live preview ngay trên giỏ hàng</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowMascotCustomizer(false)}
+                      className="w-7 h-7 flex items-center justify-center hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Xn size={16} strokeWidth={2.5} />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 overflow-y-auto max-h-[65vh] pr-1 custom-scrollbar">
+                    {/* Bật / Tắt */}
+                    <div className="p-2.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20 flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-800 dark:text-white">Hiện Mascot Khắc Chìm</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !mascotWatermarkVisible;
+                          setMascotWatermarkVisible(next);
+                          localStorage.setItem("pos_mascot_watermark_visible", String(next));
+                        }}
+                        className={c(
+                          "w-11 h-6 rounded-full transition-colors p-0.5 flex items-center shadow-inner cursor-pointer",
+                          mascotWatermarkVisible ? "bg-[#2d5016] dark:bg-emerald-600 justify-end" : "bg-slate-300 dark:bg-slate-700 justify-start"
+                        )}
+                      >
+                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                      </button>
+                    </div>
+
+                    {/* Vị trí góc neo */}
+                    <div className="space-y-1.5 p-2.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center justify-between">
+                        <span>Góc neo</span>
+                        <span className="text-[9.5px] text-slate-500 font-mono font-bold">{mascotWatermarkPos}</span>
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5 text-xs font-bold">
+                        {[
+                          { id: "bottom-right", label: "Dưới Phải" },
+                          { id: "bottom-left", label: "Dưới Trái" },
+                          { id: "center", label: "Chính Giữa" },
+                          { id: "top-right", label: "Trên Phải" },
+                          { id: "top-left", label: "Trên Trái" },
+                        ].map(item => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setMascotWatermarkPos(item.id);
+                              localStorage.setItem("pos_mascot_watermark_pos", item.id);
+                            }}
+                            className={c(
+                              "py-1.5 px-2 rounded-lg border text-center transition-all cursor-pointer text-[10px] font-black",
+                              mascotWatermarkPos === item.id
+                                ? "bg-[#8b6f47] dark:bg-emerald-600 text-white shadow-xs border-[#8b6f47] dark:border-emerald-500"
+                                : "bg-white dark:bg-[#06140e] border-[#8b6f47]/15 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-[#8b6f47]/40"
+                            )}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Kích thước & Độ mờ */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Scale */}
+                      <div className="space-y-1 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-2.5 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex justify-between items-center text-[10.5px] font-black">
+                          <span className="text-slate-700 dark:text-slate-300">Cỡ ({mascotWatermarkScale}%)</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="40"
+                          max="200"
+                          step="5"
+                          value={mascotWatermarkScale}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            setMascotWatermarkScale(val);
+                            localStorage.setItem("pos_mascot_watermark_scale", String(val));
+                          }}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                      </div>
+
+                      {/* Opacity */}
+                      <div className="space-y-1 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-2.5 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex justify-between items-center text-[10.5px] font-black">
+                          <span className="text-slate-700 dark:text-slate-300">Độ đậm ({mascotWatermarkOpacity}%)</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="5"
+                          max="60"
+                          step="1"
+                          value={mascotWatermarkOpacity}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            setMascotWatermarkOpacity(val);
+                            localStorage.setItem("pos_mascot_watermark_opacity", String(val));
+                          }}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tinh chỉnh tọa độ X / Y (Offset) & Góc xoay */}
+                    <div className="space-y-2 p-2.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-emerald-400 uppercase">Dịch tọa độ & Góc xoay</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMascotWatermarkOffsetX(10);
+                            setMascotWatermarkOffsetY(10);
+                            setMascotWatermarkRotate(-6);
+                            setMascotWatermarkScale(100);
+                            setMascotWatermarkOpacity(15);
+                            setMascotWatermarkPos("bottom-right");
+                            localStorage.setItem("pos_mascot_watermark_offset_x", "10");
+                            localStorage.setItem("pos_mascot_watermark_offset_y", "10");
+                            localStorage.setItem("pos_mascot_watermark_rotate", "-6");
+                            localStorage.setItem("pos_mascot_watermark_scale", "100");
+                            localStorage.setItem("pos_mascot_watermark_opacity", "15");
+                            localStorage.setItem("pos_mascot_watermark_pos", "bottom-right");
+                          }}
+                          className="text-[9.5px] font-black text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                        >
+                          Mặc định
+                        </button>
+                      </div>
+
+                      {/* Trục X */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-black text-slate-600 dark:text-slate-300">
+                          <span>Ngang (X):</span>
+                          <span className="font-mono text-[#8b6f47] dark:text-emerald-400">{mascotWatermarkOffsetX > 0 ? `+${mascotWatermarkOffsetX}` : mascotWatermarkOffsetX}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-120"
+                          max="120"
+                          step="2"
+                          value={mascotWatermarkOffsetX}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            setMascotWatermarkOffsetX(val);
+                            localStorage.setItem("pos_mascot_watermark_offset_x", String(val));
+                          }}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                      </div>
+
+                      {/* Trục Y */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-black text-slate-600 dark:text-slate-300">
+                          <span>Dọc (Y):</span>
+                          <span className="font-mono text-[#8b6f47] dark:text-emerald-400">{mascotWatermarkOffsetY > 0 ? `+${mascotWatermarkOffsetY}` : mascotWatermarkOffsetY}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-120"
+                          max="120"
+                          step="2"
+                          value={mascotWatermarkOffsetY}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            setMascotWatermarkOffsetY(val);
+                            localStorage.setItem("pos_mascot_watermark_offset_y", String(val));
+                          }}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                      </div>
+
+                      {/* Góc xoay */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-black text-slate-600 dark:text-slate-300">
+                          <span>Góc xoay:</span>
+                          <span className="font-mono text-[#8b6f47] dark:text-emerald-400">{mascotWatermarkRotate}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-45"
+                          max="45"
+                          step="1"
+                          value={mascotWatermarkRotate}
+                          onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            setMascotWatermarkRotate(val);
+                            localStorage.setItem("pos_mascot_watermark_rotate", String(val));
+                          }}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nút đóng hoàn tất */}
+                  <button
+                    type="button"
+                    onClick={() => setShowMascotCustomizer(false)}
+                    className="w-full py-2 bg-[#2d5016] dark:bg-emerald-600 hover:bg-[#234011] dark:hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition-all cursor-pointer text-center"
+                  >
+                    Xong / Đóng bảng
+                  </button>
+                </x.div>
+              </Fn>
+            )}</P><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><Fn><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
               const a = (T || []).find(r => r.id === t.id) || t,
                 r = t.last_price !== void 0 ? t.last_price : R[a.id] !== void 0 ? R[a.id] : Te === "Wholesale" && a.bulk_price || a.sale_price || 0;
               He({
@@ -5874,6 +6262,6 @@ function a0({
               });
             }} onDeleteOrder={t => {
               Sn(t);
-            }} /></Fn></div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><Mn data={fa || ya} settings={J} type={Gi || "Sale"} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
+            }} /></Fn></div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} isPreview={false} /></div>}</></Comp_fd>;
 }
 export { a0 as default };

@@ -825,6 +825,7 @@ export const numberToViText = (numIn) => {
 export const precacheCommonTTS = (products = []) => {
   try {
     const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
     if (selectedVoiceName !== "google" && !selectedVoiceName.startsWith("edge")) {
       return;
@@ -850,15 +851,15 @@ export const precacheCommonTTS = (products = []) => {
         .filter(p => p.alias && p.alias.trim());
       
       activeWithAlias.forEach(p => {
-        const aliasText = p.alias.trim();
-        textsToPrecache.push(aliasText);
+        const alias = p.alias.trim();
+        textsToPrecache.push(alias);
         // Quantities 1 to 10
         for (let q = 1; q <= 10; q++) {
-          textsToPrecache.push(`${aliasText}, ${q}`);
+          textsToPrecache.push(`${q} ${alias}`);
         }
         // Round tens from 20 to 50
         for (let q = 20; q <= 50; q += 10) {
-          textsToPrecache.push(`${aliasText}, ${q}`);
+          textsToPrecache.push(`${q} ${alias}`);
         }
       });
     }
@@ -877,6 +878,7 @@ export const precacheCommonTTS = (products = []) => {
     let index = 0;
     let completedCount = 0;
     const totalCount = textsToPrecache.length;
+    if (totalCount === 0) return;
     const maxConcurrency = 3;
 
     dispatchProgress(0, totalCount, true);
@@ -890,7 +892,7 @@ export const precacheCommonTTS = (products = []) => {
       }
       
       const text = textsToPrecache[index++];
-      const cacheKey = `${voiceParam}_${rate}_${text}`;
+      const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
       
       if (ttsAudioCache[cacheKey]) {
         completedCount++;
@@ -899,7 +901,7 @@ export const precacheCommonTTS = (products = []) => {
         return;
       }
       
-      const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}`;
+      const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
       try {
         await loadAndCacheAudio(audioUrl, cacheKey, 'low');
       } catch (err) {
@@ -933,6 +935,7 @@ export const checkMissingTTSCache = (products = []) => {
 export const precacheAmounts = (totalAmount, partnerName = "") => {
   try {
     const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
     if (selectedVoiceName !== "google" && !selectedVoiceName.startsWith("edge")) {
       return;
@@ -958,6 +961,8 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
     const partnerDisplay = isRealPartner ? cleanPartner : "";
 
     const textsToCache = [];
+    const finalAmount = Math.round(Number(totalAmount) || 0);
+    if (finalAmount <= 0) return;
 
     // A. Total Amount Text
     const disablePartnerTemplate = localStorage.getItem("pos_tts_disable_partner_template") === "true";
@@ -966,31 +971,31 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
       ? (localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng")
       : (localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng");
     const totalViText = totalTemplate
-      .replace("{amount}", numberToViText(totalAmount))
+      .replace("{amount}", numberToViText(finalAmount))
       .replace(/{partner}/gi, finalPartnerDisplay || "quý khách")
       .replace(/{customer}/gi, finalPartnerDisplay || "quý khách");
     textsToCache.push(totalViText);
 
     // B. F7 Transfer Amount Text
-    const step1 = totalAmount / 1.05;
+    const step1 = finalAmount / 1.05;
     const step2 = Math.floor(step1 / 100) * 100;
-    const finalAmount = step2 * 1.05;
+    const finalAmountTransfer = step2 * 1.05;
 
-    const disablePartnerTransfer = localStorage.getItem("pos_tts_disable_partner_transfer") === "true";
+    const disablePartnerTransfer = localStorage.getItem("pos_tts_disable_partner_transfer_template") === "true";
     const finalPartnerDisplayTransfer = disablePartnerTransfer ? "" : partnerDisplay;
     const transferTemplate = finalPartnerDisplayTransfer
       ? (localStorage.getItem("pos_tts_transfer_partner_template") || "số tiền cần chuyển khoản của {partner} là {amount} đồng")
       : (localStorage.getItem("pos_tts_transfer_template") || "số tiền cần chuyển khoản là {amount} đồng");
     const transferViText = transferTemplate
-      .replace("{amount}", numberToViText(finalAmount))
+      .replace("{amount}", numberToViText(finalAmountTransfer))
       .replace(/{partner}/gi, finalPartnerDisplayTransfer || "quý khách")
       .replace(/{customer}/gi, finalPartnerDisplayTransfer || "quý khách");
     textsToCache.push(transferViText);
 
     textsToCache.forEach(text => {
-      const cacheKey = `${voiceParam}_${rate}_${text}`;
+      const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
       if (!ttsAudioCache[cacheKey]) {
-        const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}`;
+        const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
         loadAndCacheAudio(audioUrl, cacheKey, 'high');
       }
     });
@@ -1056,6 +1061,7 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
     lastSpokenTime = now;
 
     const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
 
     const baseUrl = getDynamicBaseUrl();
@@ -1064,8 +1070,8 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
       voiceParam = selectedVoiceName;
     }
     
-    const cacheKey = `${voiceParam}_${rate}_${viText}`;
-    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(viText)}&voice=${voiceParam}`;
+    const cacheKey = `${voiceParam}_${rate}_${pitch}_${viText}`;
+    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(viText)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
 
     const playWithTraditionalAudio = async () => {
       try {

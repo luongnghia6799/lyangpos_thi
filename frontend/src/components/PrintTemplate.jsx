@@ -800,31 +800,26 @@ const PrintTemplate = forwardRef(({
                     #print-template {
                         width: ${isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`} !important;
                         max-width: 100% !important;
-                        overflow-x: hidden !important;
+                        overflow: visible !important;
                         position: relative !important;
                         padding-top: ${printPaddingTop > 0 ? `${printPaddingTop}mm` : '0'} !important;
                     }
-                    .print-layout-table,
-                    .print-layout-table > thead, .print-layout-table > thead > tr, .print-layout-table > thead > tr > td, .print-layout-table > thead > tr > th,
-                    .print-layout-table > tbody, .print-layout-table > tbody > tr, .print-layout-table > tbody > tr > td, .print-layout-table > tbody > tr > th {
-                        border: none !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        background: transparent !important;
-                    }
-                    .print-layout-table > thead > tr > td {
-                        padding-top: 0 !important;
-                    }
-                    .print-layout-table tr,
-                    .invoice-items-table tr {
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
+                    .print-content-flow {
+                        width: 100% !important;
+                        overflow: visible !important;
+                        display: block !important;
                     }
                     .invoice-items-table {
                         width: 100% !important;
                         border-collapse: ${isHeaderBadge ? 'separate' : 'collapse'} !important;
                         border-spacing: 0 !important;
                         ${(s.invoice_table_border === 'true' && !isHeaderBadge) ? `border: ${borderValue} !important;` : 'border: none !important;'}
+                        page-break-inside: auto !important;
+                        break-inside: auto !important;
+                    }
+                    .invoice-items-table tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     .invoice-items-table th {
                         border-top: ${isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : 'none')} !important;
@@ -856,6 +851,19 @@ const PrintTemplate = forwardRef(({
                         border-right: ${s.invoice_table_border === 'true' ? borderValue : 'none'} !important;
                         padding: ${Math.max(3, parseInt(s.invoice_row_padding || 4))}px 8px !important;
                         background-color: #fafafa !important;
+                    }
+                    .print-pages-container {
+                        width: 100% !important;
+                        display: block !important;
+                    }
+                    .print-page-sheet {
+                        width: 100% !important;
+                        display: block !important;
+                        box-sizing: border-box !important;
+                    }
+                    .print-section-avoid-break {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                 }
             `}
@@ -1620,7 +1628,7 @@ const PrintTemplate = forwardRef(({
             colorKey: "invoice_color_table_body",
             tab: "table"
         },
-        <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+        <div style={{ position: 'relative', width: '100%', overflow: 'visible', pageBreakInside: 'auto', breakInside: 'auto' }}>
             {isTwoColumns ? (
                 <>
                     <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%' }}>
@@ -1814,7 +1822,7 @@ const PrintTemplate = forwardRef(({
     );
 
     const renderPageNumber = (currentPage = 1, totalPages = 1) => {
-        if (!isPreview || s.invoice_show_page_number !== 'true') return null;
+        if (s.invoice_show_page_number !== 'true') return null;
         const format = s.invoice_page_number_format;
         const text = format === 'page_only'
             ? `Trang ${currentPage}`
@@ -1834,10 +1842,11 @@ const PrintTemplate = forwardRef(({
                     paddingTop: '6px',
                     marginTop: '8px',
                     pageBreakInside: 'avoid',
+                    breakInside: 'avoid',
                     display: 'block'
                 }}
             >
-                <span className={isPreview ? "" : "no-print"}>
+                <span>
                     {text}
                 </span>
             </div>
@@ -1850,7 +1859,7 @@ const PrintTemplate = forwardRef(({
         <>
             {pageStyle}
             {customFontFaceStyle}
-            <div ref={ref} id="print-template" className={isPreview ? "preview-mode" : "only-print"} style={isPreview && (!isThermal && (data.details || []).length > (s.paper_size === 'A5' ? 12 : (s.paper_size === 'A6' ? 6 : 22))) ? { width: '100%', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' } : containerStyle}>
+            <div ref={ref} id="print-template" className={isPreview ? "preview-mode" : "only-print"} style={(!isThermal && (data.details || []).length > (s.paper_size === 'A5' ? 12 : (s.paper_size === 'A6' ? 6 : 22))) ? { width: '100%', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' } : containerStyle}>
                 {/* Visual Margin Guides for Preview */}
                 {isPreview && (
                     <>
@@ -2223,7 +2232,7 @@ const PrintTemplate = forwardRef(({
                         </table>
                     )
                 ) : (
-                    isPreview ? (() => {
+                    (() => {
                         const allDetails = data.details || [];
                         const isPaged = !isThermal;
 
@@ -2278,7 +2287,7 @@ const PrintTemplate = forwardRef(({
                                     {tableEl}
 
                                     {/* Summary Section */}
-                                    <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                    <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {notesEl}
@@ -2290,10 +2299,14 @@ const PrintTemplate = forwardRef(({
                                     </div>
 
                                     {/* Signatures */}
-                                    {signaturesEl}
+                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                        {signaturesEl}
+                                    </div>
 
                                     {/* Thank You Message */}
-                                    {thankYouEl}
+                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                        {thankYouEl}
+                                    </div>
 
                                     {/* Page Number */}
                                     {renderPageNumber(1, 1)}
@@ -2301,12 +2314,25 @@ const PrintTemplate = forwardRef(({
                             );
                         }
 
-                        // Multi-page layout chunking
+                        // Multi-page layout chunking with realistic height estimation
                         const pages = [];
                         let remaining = [...allDetails];
 
-                        // Page 1 chunk
-                        const p1Count = Math.min(remaining.length, firstPageCap);
+                        // SumH includes totals summary, notes, signatures, thank you, and page spacing (~260px)
+                        const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
+                        const laterPageWithSummaryCap = Math.max(1, Math.floor((otherPageAvailH - realisticSumH) / estRowH));
+
+                        // Decide page 1 count
+                        let p1Count;
+                        if (allDetails.length <= firstPageCap + laterPageWithSummaryCap) {
+                            p1Count = Math.min(firstPageCap, Math.max(1, allDetails.length - laterPageWithSummaryCap));
+                            if (allDetails.length - p1Count > laterPageWithSummaryCap) {
+                                p1Count = Math.min(firstPageCap, allDetails.length - laterPageWithSummaryCap);
+                            }
+                        } else {
+                            p1Count = firstPageCap;
+                        }
+
                         pages.push({
                             pageIndex: 0,
                             items: remaining.slice(0, p1Count),
@@ -2317,7 +2343,15 @@ const PrintTemplate = forwardRef(({
                         // Subsequent pages
                         while (remaining.length > 0) {
                             const startIndex = allDetails.length - remaining.length;
-                            const count = Math.min(remaining.length, otherPageCap);
+                            let count;
+                            if (remaining.length <= laterPageWithSummaryCap) {
+                                count = remaining.length;
+                            } else if (remaining.length <= otherPageCap + laterPageWithSummaryCap) {
+                                count = Math.min(otherPageCap, Math.max(1, remaining.length - laterPageWithSummaryCap));
+                            } else {
+                                count = Math.min(remaining.length, otherPageCap);
+                            }
+
                             pages.push({
                                 pageIndex: pages.length,
                                 items: remaining.slice(0, count),
@@ -2326,23 +2360,10 @@ const PrintTemplate = forwardRef(({
                             remaining = remaining.slice(count);
                         }
 
-                        // If last page cannot fit the summary section, create an overflow summary page
-                        const lastPage = pages[pages.length - 1];
-                        const lastPageItemsCount = lastPage.items.length;
-                        const maxItemsOnLastPageWithSummary = Math.max(0, Math.floor((otherPageAvailH - sumH) / estRowH));
-
-                        if (lastPageItemsCount > maxItemsOnLastPageWithSummary) {
-                            pages.push({
-                                pageIndex: pages.length,
-                                items: [],
-                                startIndex: allDetails.length
-                            });
-                        }
-
                         const totalPages = pages.length;
 
                         return (
-                            <div className="flex flex-col items-center gap-10 w-full">
+                            <div className="print-pages-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: isPreview ? '40px' : '0px' }}>
                                 {pages.map((p, idx) => {
                                     const isFirstPage = idx === 0;
                                     const isLastPage = idx === totalPages - 1;
@@ -2351,13 +2372,16 @@ const PrintTemplate = forwardRef(({
                                     return (
                                         <div
                                             key={idx}
+                                            className="print-page-sheet"
                                             style={{
                                                 ...containerStyle,
                                                 minHeight: height,
                                                 height: 'auto',
-                                                marginBottom: idx < totalPages - 1 ? '10px' : '0',
-                                                boxShadow: '0 20px 45px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
-                                                position: 'relative'
+                                                marginBottom: isPreview && idx < totalPages - 1 ? '10px' : '0',
+                                                boxShadow: isPreview ? '0 20px 45px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)' : 'none',
+                                                position: 'relative',
+                                                pageBreakAfter: !isLastPage ? 'always' : 'auto',
+                                                breakAfter: !isLastPage ? 'page' : 'auto'
                                             }}
                                         >
                                             {/* Header */}
@@ -2428,7 +2452,7 @@ const PrintTemplate = forwardRef(({
                                             {/* Last Page Content: Totals, Debt, Notes, Signatures */}
                                             {isLastPage && (
                                                 <>
-                                                    <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
+                                                    <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                                         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                                 {notesEl}
@@ -2438,9 +2462,12 @@ const PrintTemplate = forwardRef(({
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    {signaturesEl}
-                                                    {thankYouEl}
+                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                        {signaturesEl}
+                                                    </div>
+                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                        {thankYouEl}
+                                                    </div>
                                                 </>
                                             )}
 
@@ -2451,87 +2478,7 @@ const PrintTemplate = forwardRef(({
                                 })}
                             </div>
                         );
-                    })() : (
-                        <table className="print-layout-table" style={{ width: '100%', border: 'none', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
-                            {s.invoice_repeat_header_on_later_pages === 'true' ? (
-                                <thead>
-                                    <tr>
-                                        <td style={{ border: 'none', padding: 0 }}>
-                                            <div style={headerStyle}>
-                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                    {logoEl}
-                                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                        {shopNameEl}
-                                                        {shopInfoEl}
-                                                    </div>
-                                                </div>
-                                                {titleEl}
-                                            </div>
-                                            <div style={infoGridStyle}>
-                                                <div>
-                                                    {customerNameEl}
-                                                    {customerPhoneEl}
-                                                    {customerAddressEl}
-                                                    {voucherNoteEl}
-                                                </div>
-                                                {invoiceMetaEl}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </thead>
-                            ) : null}
-                            <tbody>
-                                <tr>
-                                    <td style={{ border: 'none', padding: 0 }}>
-                                        {s.invoice_repeat_header_on_later_pages !== 'true' && (
-                                            <>
-                                                <div style={headerStyle}>
-                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                        {logoEl}
-                                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                            {shopNameEl}
-                                                            {shopInfoEl}
-                                                        </div>
-                                                    </div>
-                                                    {titleEl}
-                                                </div>
-                                                <div style={infoGridStyle}>
-                                                    <div>
-                                                        {customerNameEl}
-                                                        {customerPhoneEl}
-                                                        {customerAddressEl}
-                                                        {voucherNoteEl}
-                                                    </div>
-                                                    {invoiceMetaEl}
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* Table Area */}
-                                        {tableEl}
-
-                                        {/* Summary Section */}
-                                        <div style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, display: 'flex', flexDirection: 'column', gap: '15px', pageBreakInside: 'avoid' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '20px' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    {notesEl}
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                                    {summaryEl}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Signatures */}
-                                        {signaturesEl}
-
-                                        {/* Thank You Message */}
-                                        {thankYouEl}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    )
+                    })()
                 )}
 
                 {String(s.invoice_show_watermark) === 'true' && (

@@ -2193,6 +2193,14 @@ function a0({
           }
           const l = {
               ...n.data,
+              total_amount: n.data?.total_amount ?? n.data?.total ?? $,
+              details: (n.data?.details && n.data.details.length > 0) ? n.data.details : r.map(o => ({
+                product_id: o.product_id,
+                product_name: o.product_name,
+                quantity: o.quantity,
+                price: o.price,
+                unit: o.unit || "Cái"
+              })),
               old_debt: n.data?.old_debt !== void 0 && n.data?.old_debt !== null ? n.data.old_debt : p && p.debt_balance || 0,
               partner_id: p?.id || n.data.partner_id,
               partner_name: p?.name || n.data.partner_name,
@@ -2230,15 +2238,18 @@ function a0({
               console.error("Failed to save custom prices:", u);
             }
           }
-          if (pn(a || "Sale"), E.invalidateQueries(["shippingSummary"]), t) Is(), setTimeout(() => {
-            window.print(), setTimeout(() => {
-              ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
-              const o = new BroadcastChannel("pos_data_sync");
-              o.postMessage({
-                type: "ORDER_SAVED"
-              }), o.close();
-            }, 1e3);
-          }, 1e3);else {
+          if (pn(a || "Sale"), E.invalidateQueries(["shippingSummary"]), t) {
+            setTimeout(() => {
+              window.print();
+              setTimeout(() => {
+                ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
+                const o = new BroadcastChannel("pos_data_sync");
+                o.postMessage({
+                  type: "ORDER_SAVED"
+                }), o.close();
+              }, 1e3);
+            }, 300);
+          } else {
             ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
             const o = new BroadcastChannel("pos_data_sync");
             o.postMessage({

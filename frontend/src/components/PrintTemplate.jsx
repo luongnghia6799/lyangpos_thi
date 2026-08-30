@@ -450,6 +450,18 @@ const PrintTemplate = forwardRef(({
     // Merge settings with defaults safely
     const s = { ...DEFAULT_SETTINGS, ...settings };
 
+    // Calculate safe total amount if data.total_amount is undefined
+    const computedTotalFromDetails = (data.details || []).reduce((acc, item) => {
+        const itemTotal = item.total !== undefined ? Number(item.total) : (Number(item.quantity || 0) * Number(item.price || 0));
+        return acc + (isNaN(itemTotal) ? 0 : itemTotal);
+    }, 0);
+    const safeTotalAmount = data.total_amount !== undefined && data.total_amount !== null
+        ? Number(data.total_amount)
+        : (data.total !== undefined && data.total !== null ? Number(data.total) : computedTotalFromDetails);
+    const safeOldDebt = Number(data.old_debt || (data.partner && data.partner.debt_balance) || 0);
+    const safeAmountPaid = Number(data.amount_paid || data.paid || 0);
+    const safeCashGiven = Number(data.cash_given || 0);
+
     const wrap = (label, key, options = {}, child) => {
         return (
             <EditableWrapper
@@ -1673,7 +1685,7 @@ const PrintTemplate = forwardRef(({
                         { sizeKey: "invoice_total_line_size", colorKey: "invoice_color_total_value", tab: "table" },
                         <div style={{ ...summaryRowStyle, marginTop: `${s.invoice_total_line_margin_top || 0}px`, marginBottom: `${s.invoice_total_line_margin_bottom || 10}px` }}>
                             <div style={mainTotalLabelStyle}>Tổng cộng:</div>
-                            <div style={mainTotalValueStyle}>{formatNumber(data.total_amount)}</div>
+                            <div style={mainTotalValueStyle}>{formatNumber(safeTotalAmount)}</div>
                         </div>
                     )}
 
@@ -1692,44 +1704,44 @@ const PrintTemplate = forwardRef(({
                                     <div style={{ ...summaryRowStyle, marginTop: '5px' }}>
                                         <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size || 16}px`, fontWeight: '900' }}>DƯ NỢ CUỐI KỲ:</div>
                                         <div style={{ ...summaryValueStyle, fontSize: `${s.invoice_total_balance_size || 16}px`, fontWeight: '900' }}>
-                                            {formatNumber(data.current_balance || data.total_amount || 0)}
+                                            {formatNumber(data.current_balance || safeTotalAmount || 0)}
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <>
-                                    {((showOldDebt ?? s.invoice_show_old_debt === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (data.old_debt || 0) !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
+                                    {((showOldDebt ?? s.invoice_show_old_debt === 'true')) && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && safeOldDebt !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Nợ cũ:</div>
-                                            <div style={summaryValueStyle}>{formatNumber(data.old_debt || 0)}</div>
+                                            <div style={summaryValueStyle}>{formatNumber(safeOldDebt)}</div>
                                         </div>
                                     )}
-                                    {((showCashGiven ?? s.invoice_show_cash_given === 'true')) && data.cash_given > 0 && (
+                                    {((showCashGiven ?? s.invoice_show_cash_given === 'true')) && safeCashGiven > 0 && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Khách đưa:</div>
-                                            <div style={summaryValueStyle}>{formatNumber(data.cash_given)}</div>
+                                            <div style={summaryValueStyle}>{formatNumber(safeCashGiven)}</div>
                                         </div>
                                     )}
-                                    {((showChange ?? s.invoice_show_change === 'true')) && data.cash_given > (data.total_amount || 0) && (
+                                    {((showChange ?? s.invoice_show_change === 'true')) && safeCashGiven > safeTotalAmount && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Tiền thối:</div>
-                                            <div style={summaryValueStyle}>{formatNumber(data.cash_given - (data.total_amount || 0))}</div>
+                                            <div style={summaryValueStyle}>{formatNumber(safeCashGiven - safeTotalAmount)}</div>
                                         </div>
                                     )}
                                     {((showPayment ?? s.invoice_show_paid === 'true')) && (
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Thanh toán:</div>
-                                            <div style={summaryValueStyle}>{formatNumber(data.amount_paid || 0)}</div>
+                                            <div style={summaryValueStyle}>{formatNumber(safeAmountPaid)}</div>
                                         </div>
                                     )}
                                     {(() => {
                                         const balance = type === 'Sale'
-                                            ? (data.total_amount + (data.old_debt || 0)) - (data.amount_paid || 0)
-                                            : (data.old_debt || 0) - (data.total_amount - (data.amount_paid || 0));
+                                            ? (safeTotalAmount + safeOldDebt) - safeAmountPaid
+                                            : safeOldDebt - (safeTotalAmount - safeAmountPaid);
 
                                         // Show "Remaining" if balance is non-zero or explicitly requested, even if old debt was zero
-                                        const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || ((data.old_debt || 0) !== 0);
-                                        if (((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || (data.old_debt || 0) !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
+                                        const isDebtOrPartial = ((type === 'Sale' || type === 'Purchase') && data.payment_method === 'Debt') || (balance !== 0) || (safeOldDebt !== 0);
+                                        if (((showRemaining ?? s.invoice_show_balance === 'true')) && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && (balance !== 0 || isDebtOrPartial) && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true')) {
                                             return wrap(
                                                 "Còn lại / Dư nợ",
                                                 "invoice_total_balance_size",
@@ -1752,7 +1764,7 @@ const PrintTemplate = forwardRef(({
             ) : (
                 <div style={{ borderTop: '1px solid #000', paddingTop: '8px' }}>
                     <div style={{ ...summaryLabelStyle, fontSize: '18px', fontWeight: 'bold' }}>
-                        Số tiền {type === 'Receipt' ? 'thu' : 'chi'}: {formatNumber(data.amount)}
+                        Số tiền {type === 'Receipt' ? 'thu' : 'chi'}: {formatNumber(data.amount || safeTotalAmount)}
                     </div>
                 </div>
             )}

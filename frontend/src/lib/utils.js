@@ -650,6 +650,11 @@ let audioCtx = null;
 const getAudioContext = () => {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'none';
+      }
+    } catch {}
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -673,16 +678,21 @@ const playAudioBuffer = (audioBuffer, rate) => {
   }
 };
 
-const CACHE_NAME = 'lyang-tts-audio-cache-v1';
+const getCacheName = (voiceParam = '') => {
+  const isMale = voiceParam.includes('male') || (typeof localStorage !== 'undefined' && (localStorage.getItem('pos_selected_voice') === 'edge-vi-male' || localStorage.getItem('pos_tts_mode') === 'male'));
+  return isMale ? 'lyang-tts-audio-cache-male-v2' : 'lyang-tts-audio-cache-female-v2';
+};
 
 const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
   try {
+    const currentCacheName = getCacheName(cacheKey);
+
     // For low-priority background precaching, write directly to disk cache
     // and skip memory-heavy decoding to prevent RAM ballooning when AudioContext resumes
     if (priority === 'low') {
       if (typeof caches !== 'undefined') {
         try {
-          const cache = await caches.open(CACHE_NAME);
+          const cache = await caches.open(currentCacheName);
           const cachedResponse = await cache.match(audioUrl);
           if (cachedResponse) {
             return null;
@@ -712,7 +722,7 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
       // 1. Try to read from browser's Cache API first
       if (typeof caches !== 'undefined') {
         try {
-          const cache = await caches.open(CACHE_NAME);
+          const cache = await caches.open(currentCacheName);
           cachedResponse = await cache.match(audioUrl);
           if (cachedResponse) {
             const buf = await cachedResponse.arrayBuffer();
@@ -737,7 +747,7 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
         // Save to browser cache for future page loads only if valid
         if (typeof caches !== 'undefined' && arrayBuffer && arrayBuffer.byteLength >= 100) {
           try {
-            const cache = await caches.open(CACHE_NAME);
+            const cache = await caches.open(currentCacheName);
             const responseObj = new Response(arrayBuffer, {
               headers: { 'Content-Type': 'audio/mpeg' }
             });
@@ -768,7 +778,8 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
 };
 
 const getDynamicBaseUrl = () => {
-  let baseUrl = axios.defaults.baseURL || 'http://localhost:3579';
+  const defaultPort = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '3580' : '3579';
+  let baseUrl = axios.defaults.baseURL || `http://localhost:${defaultPort}`;
   if (baseUrl.includes('localhost') && typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('tauri')) {
     baseUrl = baseUrl.replace('localhost', window.location.hostname);
   }
@@ -831,10 +842,11 @@ export const precacheCommonTTS = (products = []) => {
       return;
     }
     const baseUrl = getDynamicBaseUrl();
-    let voiceParam = 'google';
-    if (selectedVoiceName === 'edge-vi-female' || selectedVoiceName === 'edge-vi-male') {
-      voiceParam = selectedVoiceName;
-    }
+    
+    // Voices to precache: put currently selected voice FIRST so it is immediately ready
+    const activeVoice = (selectedVoiceName === 'edge-vi-male' || localStorage.getItem("pos_tts_mode") === "male") ? 'edge-vi-male' : 'edge-vi-female';
+    const secondaryVoice = activeVoice === 'edge-vi-female' ? 'edge-vi-male' : 'edge-vi-female';
+    const voicesToCache = [activeVoice, secondaryVoice];
     
     // 1. Basic numbers 1-1000 and thank you text
     const textsToPrecache = [];
@@ -842,27 +854,42 @@ export const precacheCommonTTS = (products = []) => {
       textsToPrecache.push(numberToViText(i));
     }
     
-    const thankYouText = localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách";
-    textsToPrecache.push(thankYouText);
+    // Common system phrases for POS & Packing
+    const commonPhrases = [
+      localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách",
+      "Cảm ơn quý khách",
+      "Đã xóa",
+      "Đã soạn",
+      "Trả hàng",
+      "số tiền của quý khách là",
+      "số tiền cần chuyển khoản là"
+    ];
+    commonPhrases.forEach(phrase => {
+      if (phrase && !textsToPrecache.includes(phrase)) {
+        textsToPrecache.push(phrase);
+      }
+    });
 
-    // 2. Pre-cache alias + quantities (1 to 10, and round tens like 20, 30, 40, 50) for products with alias, and the raw alias itself
+    // 2. Pre-cache raw alias for active products (individual product names)
     if (products && Array.isArray(products)) {
       const activeWithAlias = products
         .filter(p => p.alias && p.alias.trim());
       
       activeWithAlias.forEach(p => {
         const alias = p.alias.trim();
-        textsToPrecache.push(alias);
-        // Quantities 1 to 10
-        for (let q = 1; q <= 10; q++) {
-          textsToPrecache.push(`${q} ${alias}`);
-        }
-        // Round tens from 20 to 50
-        for (let q = 20; q <= 50; q += 10) {
-          textsToPrecache.push(`${q} ${alias}`);
+        if (!textsToPrecache.includes(alias)) {
+          textsToPrecache.push(alias);
         }
       });
     }
+
+    // Build combination list: active voice items first, then secondary voice items
+    const queueItems = [];
+    voicesToCache.forEach(voiceParam => {
+      textsToPrecache.forEach(text => {
+        queueItems.push({ voiceParam, text });
+      });
+    });
 
     // Helper to dispatch progress events
     const dispatchProgress = (completed, total, active) => {
@@ -877,7 +904,7 @@ export const precacheCommonTTS = (products = []) => {
     // 3. Queue audio requests with concurrency limit to avoid clogging browser/WebView2 connections
     let index = 0;
     let completedCount = 0;
-    const totalCount = textsToPrecache.length;
+    const totalCount = queueItems.length;
     if (totalCount === 0) return;
     const maxConcurrency = 3;
 
@@ -891,7 +918,8 @@ export const precacheCommonTTS = (products = []) => {
         return;
       }
       
-      const text = textsToPrecache[index++];
+      const item = queueItems[index++];
+      const { voiceParam, text } = item;
       const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
       
       if (ttsAudioCache[cacheKey]) {
@@ -1078,8 +1106,18 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
         const resBlob = await axios.get(audioUrl, { responseType: 'blob' });
         const blobUrl = URL.createObjectURL(resBlob.data);
         const audio = new Audio(blobUrl);
+        try {
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'none';
+          }
+        } catch {}
         audio.playbackRate = rate;
-        audio.onended = () => URL.revokeObjectURL(blobUrl);
+        audio.onended = () => {
+          try {
+            if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+          } catch {}
+          URL.revokeObjectURL(blobUrl);
+        };
         audio.play().catch(err => {
           console.error("Local backend TTS play failed...", err);
           URL.revokeObjectURL(blobUrl);

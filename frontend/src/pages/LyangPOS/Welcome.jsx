@@ -312,11 +312,12 @@ export default function Welcome() {
     const resolveApiUrl = (val) => {
         if (!val) return '';
         let clean = val.trim();
+        const defaultPort = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '3580' : '3579';
         if (/^https?:\/\//i.test(clean)) return clean;
-        if (clean.toLowerCase() === 'localhost') return 'http://localhost:3579';
+        if (clean.toLowerCase() === 'localhost') return `http://localhost:${defaultPort}`;
         const hasLetters = /[a-zA-Z]/.test(clean);
         if (hasLetters) return `https://${clean}`;
-        return `http://${clean}:3579`;
+        return `http://${clean}:${defaultPort}`;
     };
 
     const handleTestConnection = async () => {

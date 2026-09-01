@@ -1146,7 +1146,7 @@ export default function Purchase() {
                     setPendingPartnerId(null);
                     setPartnerSearch('');
                 }
-            } else if (selectedPartner) {
+            } else if (selectedPartner && !editOrderId) {
                 // Sync selectedPartner with fresh data
                 const fresh = partners.find(p => p.id === selectedPartner.id);
                 if (fresh && fresh.debt_balance !== selectedPartner.debt_balance) {
@@ -1399,7 +1399,9 @@ export default function Purchase() {
 
                 loadOrder(order);
                 const partner = partners.find(p => p.id === order.partner_id);
-                setSelectedPartner(partner || null);
+                const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
+                const resolvedOldDebt = hasStoredOldDebt ? Number(order.old_debt) : Number(partner?.debt_balance || 0);
+                setSelectedPartner(partner ? { ...partner, debt_balance: resolvedOldDebt } : (order.partner || null));
                 setHistoryStep(nextStep);
                 playPopSound();
             } else {
@@ -5552,10 +5554,12 @@ export default function Purchase() {
                     }}
                     onPrintOrder={(order) => {
                         const partner = partners.find(p => p.id === order.partner_id);
+                        const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
+                        const resolvedOldDebt = hasStoredOldDebt ? Number(order.old_debt) : (partner ? (partner.debt_balance || 0) : 0);
                         const enriched = {
                             ...order,
-                            old_debt: (order.old_debt !== undefined && order.old_debt !== null) ? order.old_debt : (partner ? (partner.debt_balance || 0) : 0),
-                            partner: partner || order.partner || null
+                            old_debt: resolvedOldDebt,
+                            partner: partner ? { ...partner, debt_balance: resolvedOldDebt } : (order.partner || null)
                         };
                         setLastOrder(enriched);
                         setTimeout(() => window.print(), 300);

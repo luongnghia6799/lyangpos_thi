@@ -13,16 +13,18 @@ import CustomCursor from './components/CustomCursor';
 import { checkIsAdmin } from './lib/auth';
 import axios from 'axios';
 
+const DEFAULT_PORT = import.meta.env.DEV ? '3580' : '3579';
+
 const resolveApiUrl = (val) => {
     if (!val) return '';
     let clean = val.trim();
     if (/^https?:\/\//i.test(clean)) return clean;
-    if (clean.toLowerCase() === 'localhost') return 'http://localhost:3579';
+    if (clean.toLowerCase() === 'localhost') return `http://localhost:${DEFAULT_PORT}`;
     const hasLetters = /[a-zA-Z]/.test(clean);
     if (hasLetters) {
         return `https://${clean}`;
     }
-    return `http://${clean}:3579`;
+    return `http://${clean}:${DEFAULT_PORT}`;
 };
 
 const savedIp = localStorage.getItem('server_ip');
@@ -35,9 +37,9 @@ if (savedIp) {
            window.location.hostname !== 'localhost' && 
            window.location.hostname !== '127.0.0.1' && 
            window.location.hostname !== 'tauri.localhost') {
-    axios.defaults.baseURL = `${window.location.protocol}//${window.location.hostname}:3579`;
+    axios.defaults.baseURL = `${window.location.protocol}//${window.location.hostname}:${DEFAULT_PORT}`;
 } else {
-    axios.defaults.baseURL = 'http://localhost:3579';
+    axios.defaults.baseURL = `http://localhost:${DEFAULT_PORT}`;
 }
 
 // Don dep bo nho dem bi loi neu co
@@ -350,12 +352,12 @@ const AppLayout = () => {
             // Try localhost fallback if custom server IP failed
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 2000);
-            const res = await fetch('http://localhost:3579/api/ping', { signal: controller.signal });
+            const res = await fetch(`http://localhost:${DEFAULT_PORT}/api/ping`, { signal: controller.signal });
             clearTimeout(timer);
             if (res.ok) {
-              console.log('[Connection Auto-Recovery] Switched back to localhost:3579');
+              console.log(`[Connection Auto-Recovery] Switched back to localhost:${DEFAULT_PORT}`);
               localStorage.removeItem('server_ip');
-              axios.defaults.baseURL = 'http://localhost:3579';
+              axios.defaults.baseURL = `http://localhost:${DEFAULT_PORT}`;
             }
           } catch (e) {
             // Both failed
@@ -465,9 +467,11 @@ const AppLayout = () => {
 const Heartbeat = () => {
   useEffect(() => {
     const sendHeartbeat = () => {
-      axios.post('/api/heartbeat').catch(() => { });
+      if (!document.hidden) {
+        axios.post('/api/heartbeat').catch(() => { });
+      }
     };
-    const interval = setInterval(sendHeartbeat, 5000);
+    const interval = setInterval(sendHeartbeat, 15000);
     sendHeartbeat();
     return () => clearInterval(interval);
   }, []);

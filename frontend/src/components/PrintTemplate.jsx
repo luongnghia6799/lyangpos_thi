@@ -458,7 +458,9 @@ const PrintTemplate = forwardRef(({
     const safeTotalAmount = data.total_amount !== undefined && data.total_amount !== null
         ? Number(data.total_amount)
         : (data.total !== undefined && data.total !== null ? Number(data.total) : computedTotalFromDetails);
-    const safeOldDebt = Number(data.old_debt || (data.partner && data.partner.debt_balance) || 0);
+    const safeOldDebt = (data.old_debt !== undefined && data.old_debt !== null)
+        ? Number(data.old_debt)
+        : Number((data.partner && data.partner.debt_balance) || 0);
     const safeAmountPaid = Number(data.amount_paid || data.paid || 0);
     const safeCashGiven = Number(data.cash_given || 0);
 
@@ -585,9 +587,10 @@ const PrintTemplate = forwardRef(({
             return normalized;
         }
         const savedIp = localStorage.getItem('server_ip');
-        let base = 'http://localhost:3579';
+        const defaultPort = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '3580' : '3579';
+        let base = `http://localhost:${defaultPort}`;
         if (savedIp && savedIp !== 'undefined' && savedIp !== 'null' && savedIp.trim() !== '') {
-            base = `http://${savedIp.trim()}:3579`;
+            base = `http://${savedIp.trim()}:${defaultPort}`;
         } else if (!window.__TAURI_INTERNALS__) {
             base = window.location.origin;
         }
@@ -808,6 +811,10 @@ const PrintTemplate = forwardRef(({
                         height: auto !important;
                         min-height: 0 !important;
                         overflow: visible !important;
+                    }
+                    #print-template,
+                    #print-template * {
+                        font-family: ${fontFamily} !important;
                     }
                     #print-template {
                         width: ${isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`} !important;

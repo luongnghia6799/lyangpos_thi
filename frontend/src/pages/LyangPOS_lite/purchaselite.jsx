@@ -325,7 +325,9 @@ const PurchaseLite = () => {
     setPaymentMethod(loadedMethod === "Debt" ? "Pending" : loadedMethod);
     if (order.partner_id) {
       const p = partners.find(partner => partner.id === order.partner_id);
-      setSelectedPartner(p || null);
+      const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
+      const resolvedOldDebt = hasStoredOldDebt ? Number(order.old_debt) : Number(p?.debt_balance || 0);
+      setSelectedPartner(p ? { ...p, debt_balance: resolvedOldDebt } : (order.partner || null));
     } else {
       setSelectedPartner(null);
     }
@@ -2041,7 +2043,15 @@ const PurchaseLite = () => {
                             e.stopPropagation();
                             try {
                               const printRes = await axios.get(`/api/orders/${order.id}`);
-                              setPrintData(printRes.data);
+                              const orderData = printRes.data || order;
+                              const hasStoredOldDebt = orderData.old_debt !== undefined && orderData.old_debt !== null;
+                              const p = partners.find(pt => pt.id === orderData.partner_id);
+                              const resolvedOldDebt = hasStoredOldDebt ? Number(orderData.old_debt) : Number(p?.debt_balance || 0);
+                              setPrintData({
+                                ...orderData,
+                                old_debt: resolvedOldDebt,
+                                partner: p ? { ...p, debt_balance: resolvedOldDebt } : (orderData.partner || null)
+                              });
                               setTimeout(() => {
                                 window.print();
                                 setTimeout(() => setPrintData(null), 1000);

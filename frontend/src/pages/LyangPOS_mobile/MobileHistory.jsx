@@ -78,7 +78,14 @@ export default function MobileHistory() {
     if (!selectedOrder) return;
     try {
       const res = await axios.get(`/api/orders/${selectedOrder.id}`);
-      setPrintData(res.data);
+      const orderData = res.data || selectedOrder;
+      const hasStoredOldDebt = orderData.old_debt !== undefined && orderData.old_debt !== null;
+      const resolvedOldDebt = hasStoredOldDebt ? Number(orderData.old_debt) : Number(orderData.partner?.debt_balance || 0);
+      setPrintData({
+        ...orderData,
+        old_debt: resolvedOldDebt,
+        partner: orderData.partner ? { ...orderData.partner, debt_balance: resolvedOldDebt } : null
+      });
       setTimeout(() => {
         setTimeout(() => window.print(), 500);
         setTimeout(() => setPrintData(null), 1000);

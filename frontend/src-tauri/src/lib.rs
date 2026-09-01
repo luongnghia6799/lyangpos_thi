@@ -139,7 +139,15 @@ pub fn run() {
       let app_handle = app.handle();
       match app_handle.shell().sidecar("lyang-backend") {
         Ok(sidecar) => {
+          #[cfg(debug_assertions)]
+          let sidecar = sidecar
+            .args(["--tauri", "--port", "3580", "--db", "easypos_dev.db"])
+            .env("LYANG_PORT", "3580")
+            .env("LYANG_DB", "easypos_dev.db");
+
+          #[cfg(not(debug_assertions))]
           let sidecar = sidecar.args(["--tauri"]);
+          
           match sidecar.spawn() {
             Ok((mut rx, child)) => {
               // Store the child handle to clean up on exit

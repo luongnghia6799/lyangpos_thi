@@ -373,7 +373,12 @@ function Pd({
                 _ = _.slice(me, qe + 1);
               }
             }
-            const g = _.filter(f => Le === "all" ? !0 : Le === "cash" ? f.payment_method !== "Debt" : Le === "debt" ? f.payment_method === "Debt" : !0);
+            const g = _.filter(f => {
+              if (Le === "all") return true;
+              if (Le === "cash") return !f.is_voucher && f.payment_method !== "Debt";
+              if (Le === "debt") return f.payment_method === "Debt" || (f.is_voucher && f.type === "DebtIncrease");
+              return true;
+            });
             return <div className="relative pl-7 space-y-2 pt-4"><div className="absolute left-[13px] top-4 bottom-4 w-px bg-white/10" />{g.map((f, ne) => <div key={f.id || ne} className="relative"><div className={c("absolute left-[-22px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-slate-950 z-10", f.type === "Purchase" ? "bg-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.9)]" : f.type === "DebtIncrease" ? "bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.9)]" : f.type === "Receipt" ? "bg-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.9)]" : f.type === "Payment" ? "bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.9)]" : "bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.9)]")} /><div className={c("p-3 rounded-2xl border transition-all group flex flex-col cursor-pointer relative overflow-hidden backdrop-blur-sm", f.type === "Purchase" ? "bg-gradient-to-br from-indigo-950/60 via-slate-900/70 to-indigo-950/40 border-indigo-500/40 hover:border-indigo-400 hover:from-indigo-950/80 shadow-[0_4px_25px_rgba(99,102,241,0.12)]" : f.type === "DebtIncrease" ? "bg-gradient-to-br from-amber-950/50 via-slate-900/70 to-amber-950/30 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_25px_rgba(245,158,11,0.12)]" : f.type === "Receipt" ? "bg-gradient-to-br from-teal-950/50 via-slate-900/70 to-teal-950/30 border-teal-500/40 hover:border-teal-400 shadow-[0_4px_25px_rgba(20,184,166,0.12)]" : f.type === "Payment" ? "bg-gradient-to-br from-rose-950/50 via-slate-900/70 to-rose-950/30 border-rose-500/40 hover:border-rose-400 shadow-[0_4px_25px_rgba(244,63,94,0.12)]" : "bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-emerald-950/20 border-emerald-500/35 hover:border-emerald-400 shadow-[0_4px_25px_rgba(16,185,129,0.08)]")} onClick={me => {
                   !f.is_voucher && xe && xe(f);
                 }}><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5 flex-1 min-w-0"><div className={c("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner border", f.type === "Purchase" ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30" : f.type === "DebtIncrease" ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : f.type === "Receipt" ? "bg-teal-500/20 text-teal-300 border-teal-500/30" : f.type === "Payment" ? "bg-rose-500/20 text-rose-300 border-rose-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")}>{f.type === "Purchase" ? <Comp_ui size={14} strokeWidth={2.5} /> : f.type === "DebtIncrease" ? <Hs size={14} strokeWidth={2.5} /> : f.is_voucher ? <Ks size={14} strokeWidth={2.5} /> : Xe ? <$s size={14} strokeWidth={2.5} /> : <On size={14} strokeWidth={2.5} />}</div><div className="min-w-0"><div className={c("text-[12px] font-black uppercase tracking-wide leading-none mb-1 truncate pr-2 flex items-center gap-1", f.type === "Purchase" ? "text-indigo-200 font-extrabold" : f.type === "DebtIncrease" ? "text-amber-200 font-extrabold" : f.type === "Receipt" ? "text-teal-200 font-extrabold" : f.type === "Payment" ? "text-rose-200 font-extrabold" : "text-emerald-100 font-extrabold")}>{f.type === "Receipt" && <Va size={12} className="shrink-0" />}{Xe ? f.is_voucher ? f.type === "DebtIncrease" ? "Ghi nợ" : f.type === "Receipt" ? `Thu tiền #${f.id.split("_")[1]}` : `Chi tiền #${f.id.split("_")[1]}` : f.display_id ? `#${f.display_id}` : `#${f.id}` : "********"}</div><div className="flex items-center gap-2"><span className="text-[9px] font-black text-white/40 tabular-nums uppercase">{Xe ? f.time : "--:--"}</span>{f.type === "Purchase" ? <div className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border bg-indigo-500/25 text-indigo-200 border-indigo-400/40">NHẬP</div> : !f.is_voucher && <div className="text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider border bg-emerald-500/25 text-emerald-200 border-emerald-400/40">BÁN</div>}<div className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-tight border", f.payment_method === "Debt" ? "bg-amber-500/20 text-amber-300 border-amber-500/30" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30")}>{f.payment_method === "Debt" ? "NỢ" : "T.MẶT"}</div></div></div></div><div className="flex items-center gap-2 pl-2 shrink-0"><div className={c("text-[15px] font-black tracking-tighter tabular-nums text-right leading-none drop-shadow-md", f.type === "Purchase" ? "text-indigo-300" : f.type === "DebtIncrease" ? "text-amber-300" : f.type === "Receipt" ? "text-teal-300" : f.type === "Payment" ? "text-rose-300" : "text-emerald-300")}>{z(f.total_amount || f.total)}</div><div className="flex flex-col gap-1 transition-all duration-200 opacity-0 scale-90 translate-x-1 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 w-0 group-hover:w-auto overflow-hidden"><button onClick={me => {
@@ -1076,7 +1081,17 @@ function a0({
       }
     },
     Ar = t => {
-      bi(t), localStorage.setItem("pos_tts_mode", t), tr(), t === "female" ? (Fs("edge-vi-female"), localStorage.setItem("pos_selected_voice", "edge-vi-female")) : t === "male" && (Fs("edge-vi-male"), localStorage.setItem("pos_selected_voice", "edge-vi-male"));
+      bi(t);
+      localStorage.setItem("pos_tts_mode", t);
+      tr();
+      if (t === "female") {
+        Fs("edge-vi-female");
+        localStorage.setItem("pos_selected_voice", "edge-vi-female");
+      } else if (t === "male") {
+        Fs("edge-vi-male");
+        localStorage.setItem("pos_selected_voice", "edge-vi-male");
+      }
+      setTimeout(() => Ss(T), 50);
     },
     [ki, Fs] = i.useState(() => {
       const t = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
@@ -1663,13 +1678,14 @@ function a0({
   }, [g, fe, q]), i.useEffect(() => {
     const t = async () => {
       try {
+        if (typeof document !== "undefined" && document.hidden) return;
         const s = localStorage.getItem("pos_terminal_id"),
           l = ((await Vn.get("/api/pos/terminals")).data.terminals || []).filter(d => d.terminal_id !== s);
         qa(l);
       } catch {}
     };
     t();
-    const a = setInterval(t, 2e3),
+    const a = setInterval(t, 5e3),
       r = () => {
         Ma(s => !s);
       };
@@ -2518,6 +2534,7 @@ function a0({
         }
       } else if (s === (J.kb_search || "F2").toUpperCase()) {
         a.preventDefault();
+        a.stopPropagation();
         const o = document.activeElement;
         if (o && o.id && o.id.startsWith("row-name-")) {
           const u = parseInt(o.id.replace("row-name-", "")),
@@ -2527,19 +2544,55 @@ function a0({
             b && (Vt(b), vt(!0));
           }
         } else se.current?.focus(), se.current?.select?.();
-      } else if (s === (J.kb_save || "F12").toUpperCase()) a.preventDefault(), Re(!1);else if (s === (J.kb_pay || "F9").toUpperCase()) a.preventDefault(), Re(!0);else if (s === (J.kb_new || "F4").toUpperCase()) a.preventDefault(), Wt();else if (s === (J.kb_hold || "F8").toUpperCase()) a.preventDefault(), wr();else if (s === (J.kb_custom || "F6").toUpperCase()) a.preventDefault(), La(!0), $a({
-        name: "",
-        price: ""
-      }), setTimeout(() => {
-        ys.current?.focus();
-      }, 100);else if (s === (J.kb_speech || "F10").toUpperCase()) a.preventDefault(), a.stopPropagation(), ft !== "off" && xa && (tr(), console.log("F10 calling speakNumber with:", $), ht($, !0, p?.name));else if (a.key === "Insert") a.preventDefault(), a.stopPropagation(), m && m.product && He(o => ({
-        ...o,
-        quantity: o.quantity * -1,
-        secondary_qty: o.secondary_qty * -1
-      }));else if (s === "F7") a.preventDefault(), console.log("F7 keydown triggered. State:", {
-        bLength: y.length
-      }), y.length > 0 && ts(!0);else if (a.ctrlKey && a.key === "ArrowUp") {
+      } else if (s === (J.kb_save || "F12").toUpperCase()) {
         a.preventDefault();
+        a.stopPropagation();
+        Re(!1);
+      } else if (s === (J.kb_pay || "F9").toUpperCase()) {
+        a.preventDefault();
+        a.stopPropagation();
+        Re(!0);
+      } else if (s === (J.kb_new || "F4").toUpperCase()) {
+        a.preventDefault();
+        a.stopPropagation();
+        Wt();
+      } else if (s === (J.kb_hold || "F8").toUpperCase()) {
+        a.preventDefault();
+        a.stopPropagation();
+        wr();
+      } else if (s === (J.kb_custom || "F6").toUpperCase()) {
+        a.preventDefault();
+        a.stopPropagation();
+        La(!0);
+        $a({
+          name: "",
+          price: ""
+        });
+        setTimeout(() => {
+          ys.current?.focus();
+        }, 100);
+      } else if (s === (J.kb_speech || "F10").toUpperCase()) {
+        a.preventDefault();
+        a.stopPropagation();
+        ft !== "off" && xa && (tr(), console.log("F10 calling speakNumber with:", $), ht($, !0, p?.name));
+      } else if (a.key === "Insert") {
+        a.preventDefault();
+        a.stopPropagation();
+        m && m.product && He(o => ({
+          ...o,
+          quantity: o.quantity * -1,
+          secondary_qty: o.secondary_qty * -1
+        }));
+      } else if (s === "F7") {
+        a.preventDefault();
+        a.stopPropagation();
+        console.log("F7 keydown triggered. State:", {
+          bLength: y.length
+        });
+        y.length > 0 && ts(!0);
+      } else if (a.ctrlKey && a.key === "ArrowUp") {
+        a.preventDefault();
+        a.stopPropagation();
         const o = [...fe];
         q && o.push({
           id: "remote_inspect"
@@ -2551,6 +2604,7 @@ function a0({
         }
       } else if (a.ctrlKey && a.key === "ArrowDown") {
         a.preventDefault();
+        a.stopPropagation();
         const o = [...fe];
         q && o.push({
           id: "remote_inspect"
@@ -2560,7 +2614,15 @@ function a0({
           const h = o[u + 1];
           h.id === "remote_inspect" ? f("remote_inspect") : es(h.id);
         }
-      } else a.ctrlKey && a.key === "ArrowLeft" ? (a.preventDefault(), na("prev")) : a.ctrlKey && a.key === "ArrowRight" && (a.preventDefault(), na("next"));
+      } else if (a.ctrlKey && a.key === "ArrowLeft") {
+        a.preventDefault();
+        a.stopPropagation();
+        na("prev");
+      } else if (a.ctrlKey && a.key === "ArrowRight") {
+        a.preventDefault();
+        a.stopPropagation();
+        na("next");
+      }
       const n = a.key.length === 1,
         l = !a.ctrlKey && !a.altKey && !a.metaKey,
         d = a.target.tagName !== "INPUT" && a.target.tagName !== "TEXTAREA";

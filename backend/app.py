@@ -27,6 +27,11 @@ def _safe_register(func, *args, **kwargs):
         raise
 atexit.register = _safe_register
 
+import warnings
+from sqlalchemy.exc import LegacyAPIWarning, SAWarning
+warnings.filterwarnings('ignore', category=LegacyAPIWarning)
+warnings.filterwarnings('ignore', category=SAWarning)
+
 from flask import Flask, request, jsonify, send_file, send_from_directory, redirect, Response
 from flask_cors import CORS
 from models import db, Category, Product, Partner, Order, OrderDetail, CashVoucher, CustomerPrice, AppSetting, ComboItem, PrintTemplate, User, BankAccount, BankTransaction, Event, EventLog, InventoryAudit, InventoryAuditDetail, StockBatch, InventoryConversion, AccountingTemplate, AccountingMapping, RemoteScanQueue
@@ -143,9 +148,10 @@ def set_sqlite_custom_func(dbapi_connection, connection_record):
              dbapi_connection.create_function("remove_accents", 1, remove_accents)
              dbapi_connection.create_function("normalize_date", 1, normalize_date_sqlite)
              # Tune memory & auto-cleanup unused freelist pages in SQLite
-             cursor.execute("PRAGMA cache_size = -2000")
+             cursor.execute("PRAGMA cache_size = -1000") # Limit page cache to ~1MB
              cursor.execute("PRAGMA auto_vacuum = INCREMENTAL")
-             cursor.execute("PRAGMA wal_autocheckpoint = 200")
+             cursor.execute("PRAGMA wal_autocheckpoint = 100")
+             cursor.execute("PRAGMA mmap_size = 0") # Avoid large virtual memory maps
     except Exception:
         # If it fails (e.g. Postgres connection object doesn't have create_function), just ignore
         pass
@@ -243,6 +249,30 @@ def after_request_cors(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET, PUT, POST, DELETE, OPTIONS'
     return response
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    # Free SQLAlchemy session memory & clear uncommitted object tracking after each request
+    db.session.remove()
+
+import gc
+_REQUEST_COUNTER = 0
+
+@app.after_request
+def periodic_memory_cleanup(response):
+    global _REQUEST_COUNTER
+    _REQUEST_COUNTER += 1
+    # Periodically run garbage collection and working set trim every 100 requests
+    if _REQUEST_COUNTER >= 100:
+        _REQUEST_COUNTER = 0
+        gc.collect()
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                ctypes.windll.psapi.EmptyWorkingSet(ctypes.windll.kernel32.GetCurrentProcess())
+            except Exception:
+                pass
+    return response
+
 @app.before_request
 def handle_options_preflight():
     if request.method == 'OPTIONS':
@@ -261,8 +291,21 @@ try:
 except Exception:
     pass
 
-# Port Configuration
-CURRENT_PORT = 3579
+# Port & Database CLI Argument / Env Parsing
+def _get_cli_arg(flag, default=None):
+    if flag in sys.argv:
+        try:
+            idx = sys.argv.index(flag)
+            if idx + 1 < len(sys.argv):
+                return sys.argv[idx + 1]
+        except Exception:
+            pass
+    return default
+
+cli_port = _get_cli_arg('--port')
+cli_db = _get_cli_arg('--db')
+
+CURRENT_PORT = int(cli_port or os.environ.get('LYANG_PORT') or os.environ.get('PORT') or 3579)
 
 # Logging setup (disabled file logging app_debug.log)
 import logging
@@ -270,7 +313,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 
 
 # Database Configuration - Strictly Local SQLite with Smart Seed Auto-Preservation
-db_file_path = get_storage_path(os.path.join("instance", "easypos.db"))
+DB_FILENAME = cli_db or os.environ.get('LYANG_DB', 'easypos.db')
+db_file_path = get_storage_path(os.path.join("instance", DB_FILENAME))
 
 # Check if target db_file_path is missing or empty (0 bytes)
 if not os.path.exists(db_file_path) or os.path.getsize(db_file_path) == 0:
@@ -4771,7 +4815,9 @@ def update_order(id):
                     old_partner.debt_balance -= v.amount
             db.session.delete(v)
 
-        if old_partner:
+        if order.old_debt is not None:
+            old_debt = order.old_debt
+        elif old_partner:
             old_debt = old_partner.debt_balance
         
         old_bank_ts = BankTransaction.query.filter_by(order_id=order.id).all()
@@ -7915,17 +7961,43 @@ def get_tts():
     except:
         pitch_str = "+0Hz"
         
-    temp_dir = tempfile.gettempdir()
-    hash_name = hashlib.md5(f"{text}_{edge_voice}_{rate_str}_{pitch_str}".encode('utf-8')).hexdigest()
-    output_path = os.path.join(temp_dir, f"tts_{hash_name}.mp3")
+    tts_dir = get_storage_path("tts_cache")
+    os.makedirs(tts_dir, exist_ok=True)
     
-    # Validate existing cache file: must exist and have valid size (> 100 bytes)
-    if os.path.exists(output_path):
-        if os.path.getsize(output_path) < 100:
-            try:
-                os.remove(output_path)
-            except Exception:
-                pass
+    # Generate an exact, 100% human-readable file name based directly on the spoken text + voice (nu / nam)
+    # e.g., "mot_nu.mp3", "mot_nam.mp3", "1_cai_nu.mp3", "cam_on_quy_khach_nu.mp3"
+    clean_text = remove_accents(text).strip()
+    safe_slug = re.sub(r'[^a-zA-Z0-9]+', '_', clean_text).strip('_').lower()
+    if not safe_slug:
+        safe_slug = "am_thanh"
+    if len(safe_slug) > 50:
+        safe_slug = safe_slug[:50].rstrip('_')
+        
+    voice_suffix = "nam" if "male" in str(voice_type).lower() and "female" not in str(voice_type).lower() else "nu"
+    human_readable_name = f"{safe_slug}_{voice_suffix}.mp3"
+    
+    # 1. Primary readable path
+    output_path = os.path.join(tts_dir, human_readable_name)
+    hash_primary = hashlib.md5(f"{text}_{edge_voice}_{rate_str}_{pitch_str}".encode('utf-8')).hexdigest()
+    
+    # 2. Strictly match candidate cache files for the CURRENT voice
+    # Only files that end with the correct gender suffix (_nam.mp3 or _nu.mp3) are allowed.
+    candidate_filenames = [
+        human_readable_name,                                  # e.g., "mot_nam.mp3" or "mot_nu.mp3"
+        f"{safe_slug}_{voice_suffix}.mp3",                   # backup slug with exact suffix
+        f"{safe_slug}_{voice_type}.mp3",                     # slug with full voice type
+        f"tts_{hash_primary}_{voice_suffix}.mp3"            # hash with suffix
+    ]
+    
+    found_cache = None
+    for cand in candidate_filenames:
+        p = os.path.join(tts_dir, cand)
+        if os.path.exists(p) and os.path.getsize(p) >= 100:
+            found_cache = p
+            break
+
+    if found_cache:
+        output_path = found_cache
 
     if not os.path.exists(output_path):
         part_path = f"{output_path}.{os.getpid()}.{time.time()}.tmp"
@@ -8404,8 +8476,7 @@ if __name__ == "__main__":
     if IS_TAURI:
         app.logger.info("Running in Tauri mode. Splash screen and browser opening are disabled.")
         try:
-            while True:
-                time.sleep(1)
+            flask_thread.join()
         except KeyboardInterrupt:
             pass
     elif not os.environ.get('NO_GUI') and not os.environ.get('HEADLESS'):
@@ -8414,15 +8485,13 @@ if __name__ == "__main__":
             splash.run()
         except Exception as e:
             print(f"Could not start Splash Screen: {e}")
-            # Keep main thread alive if splash fails or is skipped
             try:
-                while True: time.sleep(1)
+                flask_thread.join()
             except KeyboardInterrupt:
                 pass
     else:
-        # Headless mode: Keep main thread alive
         try:
-            while True: time.sleep(1)
+            flask_thread.join()
         except KeyboardInterrupt:
             pass
 

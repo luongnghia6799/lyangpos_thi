@@ -959,7 +959,12 @@ export default function Layout({ children }) {
         }
 
         broadcastState();
-        const interval = setInterval(broadcastState, 2500);
+        // Poll every 5 seconds, only when tab is visible
+        const interval = setInterval(() => {
+            if (!document.hidden) {
+                broadcastState();
+            }
+        }, 5000);
 
         window.addEventListener('pos_cart_updated', handleCartUpdate);
         window.addEventListener('storage', broadcastState);

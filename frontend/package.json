@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "dev:tauri": "tauri dev",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:dev": "tauri dev",
     "tauri:build": "tauri build && node rename_installer.js",
     "build:no-accounting": "vite build --mode no-accounting",
     "tauri:build:no-accounting": "vite build --mode no-accounting && tauri build && node rename_installer_no_accounting.js"

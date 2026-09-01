@@ -93,18 +93,20 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
             const newOrders = ordersRes.data.items || ordersRes.data || [];
             const vouchers = vouchersRes.data || [];
 
-            const mappedVouchers = vouchers.map(v => ({
-                id: `v_${v.id}`,
-                is_voucher: true,
-                display_id: v.type === 'DebtIncrease' ? `GN-${v.id}` : (v.type === 'Receipt' ? `PT-${v.id}` : `PC-${v.id}`),
-                date: v.date,
-                time: formatDate(v.date, 'HH:mm'),
-                total_amount: v.amount,
-                payment_method: v.type === 'DebtIncrease' ? 'Debt' : (v.type === 'Receipt' ? 'PT' : 'PC'),
-                type: v.type,
-                note: v.note,
-                details: []
-            }));
+            const mappedVouchers = vouchers
+                .filter(v => v.source !== 'auto')
+                .map(v => ({
+                    id: `v_${v.id}`,
+                    is_voucher: true,
+                    display_id: v.type === 'DebtIncrease' ? `GN-${v.id}` : (v.type === 'Receipt' ? `PT-${v.id}` : `PC-${v.id}`),
+                    date: v.date,
+                    time: formatDate(v.date, 'HH:mm'),
+                    total_amount: v.amount,
+                    payment_method: v.type === 'DebtIncrease' ? 'Debt' : (v.type === 'Receipt' ? 'PT' : 'PC'),
+                    type: v.type,
+                    note: v.note,
+                    details: []
+                }));
 
             setOrders(prev => {
                 const combined = pageToFetch === 1
@@ -379,8 +381,8 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
 
                                     const filteredOrders = displayOrders.filter(o => {
                                         if (filterType === 'all') return true;
-                                        if (filterType === 'cash') return o.payment_method !== 'Debt';
-                                        if (filterType === 'debt') return o.payment_method === 'Debt';
+                                        if (filterType === 'cash') return !o.is_voucher && o.payment_method !== 'Debt';
+                                        if (filterType === 'debt') return o.payment_method === 'Debt' || (o.is_voucher && o.type === 'DebtIncrease');
                                         return true;
                                     });
 

@@ -24,11 +24,13 @@ const MODULES = [
 ];
 
 const PAPER_SIZES = [
-    { id: 'A4', label: 'A4 (210mm)' },
-    { id: 'A5', label: 'A5 (148mm)' },
-    { id: 'A6', label: 'A6 (105mm)' },
+    { id: 'A4', label: 'A4 (210 x 297 mm)' },
+    { id: 'A5', label: 'A5 (148 x 210 mm)' },
+    { id: 'A6', label: 'A6 (105 x 148 mm)' },
+    { id: 'C5', label: 'Phong bì C5 (162 x 229 mm)' },
     { id: 'K80', label: 'In nhiệt 80mm' },
-    { id: 'K58', label: 'In nhiệt 58mm' }
+    { id: 'K58', label: 'In nhiệt 58mm' },
+    { id: 'CUSTOM', label: 'Tùy chỉnh (User Defined)' }
 ];
 
 function ColorPicker({ label, value, onChange }) {
@@ -61,6 +63,8 @@ function ColorPicker({ label, value, onChange }) {
 
 const DEFAULT_INVOICE_CONFIG = {
     ...(DEFAULT_SETTINGS || {}),
+    invoice_custom_width: '210',
+    invoice_custom_height: '297',
     invoice_line_spacing: '1.4',
     invoice_column_spacing: '10',
     invoice_orientation: 'portrait', // portrait, landscape
@@ -1169,6 +1173,37 @@ const InvoiceDesigner = () => {
                                             </button>
                                         ))}
                                     </div>
+                                    {settings.paper_size === 'CUSTOM' && (
+                                        <div className="mt-4 p-3 bg-[#d4a574]/5 dark:bg-slate-800/20 rounded-xl border border-border/80 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-[#8b6f47] dark:text-emerald-50 uppercase tracking-tight">Kích thước tùy chỉnh</span>
+                                                <span className="text-[10px] text-slate-400 italic">Đơn vị: mm</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <DesignerInput
+                                                    label="Chiều rộng (mm)"
+                                                    value={settings.invoice_custom_width || '210'}
+                                                    onChange={(v) => updateSetting('invoice_custom_width', v)}
+                                                    type="number"
+                                                    min="30"
+                                                    max="500"
+                                                    placeholder="210"
+                                                />
+                                                <DesignerInput
+                                                    label="Chiều cao (mm)"
+                                                    value={settings.invoice_custom_height || '297'}
+                                                    onChange={(v) => updateSetting('invoice_custom_height', v)}
+                                                    type="number"
+                                                    min="0"
+                                                    max="1000"
+                                                    placeholder="0 hoặc để trống = Cuộn tự động"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 italic leading-relaxed">
+                                                * Mẹo: Chiều cao để 0 hoặc trống nếu dùng giấy in nhiệt cuộn (tự co giãn theo nội dung).
+                                            </p>
+                                        </div>
+                                    )}
                                 </DesignerSection>
 
                                 <DesignerSection title="Định dạng">

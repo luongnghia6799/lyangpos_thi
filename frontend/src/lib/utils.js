@@ -646,6 +646,37 @@ export const playTypingSound = (profileOverride) => {
 // Simple in-memory cache for audio buffers to achieve 0ms TTS delay via Web Audio API
 const ttsAudioCache = {};
 let audioCtx = null;
+const activeBufferSources = new Set();
+let activeTraditionalAudio = null;
+
+export const stopAllTTS = () => {
+  try {
+    currentSequenceId++;
+    activeBufferSources.forEach(src => {
+      try {
+        src.stop(0);
+        src.disconnect();
+      } catch {}
+    });
+    activeBufferSources.clear();
+
+    if (activeTraditionalAudio) {
+      try {
+        activeTraditionalAudio.pause();
+        activeTraditionalAudio.currentTime = 0;
+      } catch {}
+      activeTraditionalAudio = null;
+    }
+
+    if (typeof window !== 'undefined' && window.currentTtsSequence) {
+      try { window.currentTtsSequence.audio1?.pause(); } catch {}
+      try { window.currentTtsSequence.audio2?.pause(); } catch {}
+      window.currentTtsSequence = null;
+    }
+  } catch (e) {
+    console.error("stopAllTTS error:", e);
+  }
+};
 
 const getAudioContext = () => {
   if (!audioCtx) {
@@ -670,6 +701,10 @@ const playAudioBuffer = (audioBuffer, rate) => {
     source.buffer = audioBuffer;
     source.playbackRate.value = rate;
     source.connect(ctx.destination);
+    activeBufferSources.add(source);
+    source.onended = () => {
+      activeBufferSources.delete(source);
+    };
     source.start(0);
     return source;
   } catch (e) {
@@ -763,7 +798,8 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
       }
 
       const ctx = getAudioContext();
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+      const rawAudioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+      const audioBuffer = trimAudioBuffer(ctx, rawAudioBuffer);
       ttsAudioCache[cacheKey] = audioBuffer;
       return audioBuffer;
     })();
@@ -774,6 +810,55 @@ const loadAndCacheAudio = async (audioUrl, cacheKey, priority = 'auto') => {
     console.error("loadAndCacheAudio failed", e);
     delete ttsAudioCache[cacheKey];
     return null;
+  }
+};
+
+/**
+ * Trim leading and trailing silence from AudioBuffer (Edge-TTS adds ~150-300ms silence padding)
+ */
+const trimAudioBuffer = (ctx, buffer) => {
+  try {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const length = buffer.length;
+    const threshold = 0.005; // -46dB silence threshold
+
+    let start = 0;
+    let end = length - 1;
+
+    // Find first non-silent sample across channels
+    outerStart: for (let i = 0; i < length; i++) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        if (Math.abs(buffer.getChannelData(ch)[i]) > threshold) {
+          start = Math.max(0, i - Math.floor(sampleRate * 0.01)); // keep 10ms margin
+          break outerStart;
+        }
+      }
+    }
+
+    // Find last non-silent sample across channels
+    outerEnd: for (let i = length - 1; i >= 0; i--) {
+      for (let ch = 0; ch < numChannels; ch++) {
+        if (Math.abs(buffer.getChannelData(ch)[i]) > threshold) {
+          end = Math.min(length - 1, i + Math.floor(sampleRate * 0.01)); // keep 10ms margin
+          break outerEnd;
+        }
+      }
+    }
+
+    const trimmedLength = end - start + 1;
+    if (trimmedLength <= 0 || (start === 0 && end === length - 1)) {
+      return buffer;
+    }
+
+    const trimmedBuffer = ctx.createBuffer(numChannels, trimmedLength, sampleRate);
+    for (let ch = 0; ch < numChannels; ch++) {
+      const channelData = buffer.getChannelData(ch).subarray(start, end + 1);
+      trimmedBuffer.copyToChannel(channelData, ch);
+    }
+    return trimmedBuffer;
+  } catch (err) {
+    return buffer;
   }
 };
 
@@ -860,6 +945,8 @@ export const precacheCommonTTS = (products = []) => {
       "Cảm ơn quý khách",
       "Đã xóa",
       "Đã soạn",
+      "Soạn hàng",
+      "Đã soạn xong",
       "Trả hàng",
       "số tiền của quý khách là",
       "số tiền cần chuyển khoản là"
@@ -870,15 +957,18 @@ export const precacheCommonTTS = (products = []) => {
       }
     });
 
-    // 2. Pre-cache raw alias for active products (individual product names)
+    // 2. Pre-cache raw alias and unique units for active products
     if (products && Array.isArray(products)) {
-      const activeWithAlias = products
-        .filter(p => p.alias && p.alias.trim());
-      
-      activeWithAlias.forEach(p => {
-        const alias = p.alias.trim();
-        if (!textsToPrecache.includes(alias)) {
-          textsToPrecache.push(alias);
+      products.forEach(p => {
+        if (p.alias && p.alias.trim()) {
+          const alias = p.alias.trim();
+          if (!textsToPrecache.includes(alias)) {
+            textsToPrecache.push(alias);
+          }
+        }
+        const unit = (p.unit || p.product_unit || "").trim();
+        if (unit && !textsToPrecache.includes(unit)) {
+          textsToPrecache.push(unit);
         }
       });
     }
@@ -1106,6 +1196,7 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
         const resBlob = await axios.get(audioUrl, { responseType: 'blob' });
         const blobUrl = URL.createObjectURL(resBlob.data);
         const audio = new Audio(blobUrl);
+        activeTraditionalAudio = audio;
         try {
           if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = 'none';
@@ -1113,12 +1204,14 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
         } catch {}
         audio.playbackRate = rate;
         audio.onended = () => {
+          if (activeTraditionalAudio === audio) activeTraditionalAudio = null;
           try {
             if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
           } catch {}
           URL.revokeObjectURL(blobUrl);
         };
         audio.play().catch(err => {
+          if (activeTraditionalAudio === audio) activeTraditionalAudio = null;
           console.error("Local backend TTS play failed...", err);
           URL.revokeObjectURL(blobUrl);
         });
@@ -1130,27 +1223,27 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
     const cached = ttsAudioCache[cacheKey];
     if (cached) {
       if (cached instanceof Promise) {
-        cached.then(buffer => {
+        return cached.then(buffer => {
           if (buffer) {
-            playAudioBuffer(buffer, rate);
+            return playAudioBuffer(buffer, rate);
           } else {
-            playWithTraditionalAudio();
+            return playWithTraditionalAudio();
           }
         }).catch(() => {
-          playWithTraditionalAudio();
+          return playWithTraditionalAudio();
         });
       } else {
-        playAudioBuffer(cached, rate);
+        return playAudioBuffer(cached, rate);
       }
     } else {
-      loadAndCacheAudio(audioUrl, cacheKey, 'high').then(buffer => {
+      return loadAndCacheAudio(audioUrl, cacheKey, 'high').then(buffer => {
         if (buffer) {
-          playAudioBuffer(buffer, rate);
+          return playAudioBuffer(buffer, rate);
         } else {
-          playWithTraditionalAudio();
+          return playWithTraditionalAudio();
         }
       }).catch(() => {
-        playWithTraditionalAudio();
+        return playWithTraditionalAudio();
       });
     }
 
@@ -1158,3 +1251,161 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
     console.error("Speech synthesis failed", e);
   }
 };
+
+/**
+ * Play a sequence of phrases sequentially (e.g. [product_alias, quantity])
+ * ensuring each item hits precache independently and plays one after another with 0 latency.
+ */
+let currentSequenceId = 0;
+
+export const speakAudioSequence = async (items = []) => {
+  if (localStorage.getItem('pos_tts_mode') === 'off') return;
+  if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
+  if (localStorage.getItem('pos_notifications_muted') === 'true') return;
+
+  const validItems = items.filter(it => it !== null && it !== undefined && it !== "");
+  if (validItems.length === 0) return;
+
+  const seqId = ++currentSequenceId;
+  const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+  const pitch = localStorage.getItem("pos_speech_pitch") || "0";
+  const selectedVoiceName = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
+  const baseUrl = getDynamicBaseUrl();
+  let voiceParam = 'google';
+  if (selectedVoiceName === 'edge-vi-female' || selectedVoiceName === 'edge-vi-male') {
+    voiceParam = selectedVoiceName;
+  }
+
+  // Pre-resolve all texts and buffers in parallel with gap metadata
+  const parsedItems = validItems.map((item, idx) => {
+    let text = "";
+    let customGap = undefined;
+    let isNumeric = false;
+
+    if (typeof item === "object" && item !== null && "text" in item) {
+      text = typeof item.text === "number" || !isNaN(Number(item.text)) ? numberToViText(item.text) : item.text.toString().trim();
+      customGap = item.gap;
+      isNumeric = typeof item.text === "number" || !isNaN(Number(item.text));
+    } else if (typeof item === "number" || !isNaN(Number(item))) {
+      text = numberToViText(item);
+      isNumeric = true;
+    } else {
+      text = item.toString().trim();
+    }
+    return { text, customGap, isNumeric };
+  }).filter(it => Boolean(it.text));
+
+  if (parsedItems.length === 0) return;
+
+  const buffers = await Promise.all(parsedItems.map(async item => {
+    const { text, customGap, isNumeric } = item;
+    const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
+    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
+
+    let buffer = ttsAudioCache[cacheKey];
+    if (buffer instanceof Promise) {
+      buffer = await buffer.catch(() => null);
+    }
+    if (!buffer) {
+      buffer = await loadAndCacheAudio(audioUrl, cacheKey, 'high').catch(() => null);
+    }
+    return { text, customGap, isNumeric, buffer, audioUrl };
+  }));
+
+  if (seqId !== currentSequenceId) return;
+
+  // Check if all items are successfully decoded as AudioBuffers for continuous Web Audio scheduling
+  const allBuffered = buffers.every(b => b.buffer);
+
+  const rawGap = parseFloat(localStorage.getItem("pos_speech_gap") || "150");
+  const defaultGapSeconds = (isNaN(rawGap) ? 150 : Math.max(0, rawGap)) / 1000;
+
+  if (allBuffered) {
+    const ctx = getAudioContext();
+    let startTime = ctx.currentTime + 0.01;
+
+    return new Promise((resolve) => {
+      let completedCount = 0;
+      for (let i = 0; i < buffers.length; i++) {
+        if (seqId !== currentSequenceId) {
+          resolve();
+          return;
+        }
+        const { buffer, customGap, isNumeric } = buffers[i];
+        const nextItem = buffers[i + 1];
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.value = rate;
+        source.connect(ctx.destination);
+        activeBufferSources.add(source);
+        source.onended = () => {
+          activeBufferSources.delete(source);
+          completedCount++;
+          if (completedCount >= buffers.length) {
+            resolve();
+          }
+        };
+        source.start(startTime);
+
+        // Gap calculation: If current item is a number and next item is a unit/noun, make transition tight (20ms)
+        let stepGap = defaultGapSeconds;
+        if (customGap !== undefined) {
+          stepGap = customGap;
+        } else if (isNumeric && nextItem && !nextItem.isNumeric) {
+          // Tight transition between quantity and unit (20ms instead of 150ms)
+          stepGap = 0.02;
+        }
+
+        const duration = buffer.duration / rate;
+        startTime += duration + stepGap;
+      }
+    });
+  } else {
+    // Fallback: sequential playback
+    for (const { text, buffer, audioUrl } of buffers) {
+      if (seqId !== currentSequenceId) break;
+
+      if (buffer) {
+        await new Promise((resolve) => {
+          try {
+            const ctx = getAudioContext();
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.playbackRate.value = rate;
+            source.connect(ctx.destination);
+            activeBufferSources.add(source);
+            source.onended = () => {
+              activeBufferSources.delete(source);
+              resolve();
+            };
+            source.start(0);
+          } catch (err) {
+            resolve();
+          }
+        });
+      } else {
+        await new Promise((resolve) => {
+          try {
+            const audio = new Audio(audioUrl);
+            activeTraditionalAudio = audio;
+            audio.playbackRate = rate;
+            audio.onended = () => {
+              if (activeTraditionalAudio === audio) activeTraditionalAudio = null;
+              resolve();
+            };
+            audio.onerror = () => {
+              if (activeTraditionalAudio === audio) activeTraditionalAudio = null;
+              resolve();
+            };
+            audio.play().catch(() => resolve());
+          } catch (e) {
+            resolve();
+          }
+        });
+      }
+    }
+  }
+};
+
+

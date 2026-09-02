@@ -26,7 +26,7 @@ const $l = DialogPrimitive.Close;
 const Hl = DialogPrimitive.Title;
 const Kl = DialogPrimitive.Description;
 import { motion as x, useMotionValue as In, useSpring as Dn, MotionConfig as ro, AnimatePresence as Ws } from "framer-motion";
-import { ReceiptText as ReceiptTextIcon, FileText as FileTextIcon, Copy as Pn, Trash2 as so, User as Qn, X as Xn, Phone as Jn, MapPin as Yn, Plus as Zn, ChevronRight as no, FileText as ei, Pause as io, ChevronLeft as lo, Users as oo, History as ti, Menu as co, Bot as En, Eye as po, Tv as qr, Volume2 as la, ShoppingCart as uo, Bell as mo, PanelRight as xo, PanelBottom as ho, TrendingUp as bo, Satellite as go, Coins as Rs, Zap as fo, Search as yo, PackageX as vo, TriangleAlert as As, Package as ko, RefreshCcw as wo, RotateCcw as jo, TrendingDown as _o, CircleAlert as No, Droplets as Co, Check as Os, Sparkles as Es, Activity as So, Sprout as To, Wallet as zo, Truck as Io, Banknote as Do, CreditCard as Po, ArrowLeftRight as Eo, ArrowRight as qo, ShoppingBag as Mo, Save as Wo, Printer as Ro, Clock as Ao, LoaderCircle as ai, Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon } from "lucide-react";
+import { ReceiptText as ReceiptTextIcon, FileText as FileTextIcon, Copy as Pn, Trash2 as so, User as Qn, X as Xn, Phone as Jn, MapPin as Yn, Plus as Zn, ChevronRight as no, FileText as ei, Pause as io, ChevronLeft as lo, Users as oo, History as ti, Menu as co, Bot as En, Eye as po, Tv as qr, Volume2 as la, ShoppingCart as uo, Bell as mo, PanelRight as xo, PanelBottom as ho, TrendingUp as bo, Satellite as go, Coins as Rs, Zap as fo, Search as yo, PackageX as vo, TriangleAlert as As, Package as ko, RefreshCcw as wo, RotateCcw as jo, TrendingDown as _o, CircleAlert as No, Droplets as Co, Check as Os, Sparkles as Es, Activity as So, Sprout as To, Wallet as zo, Truck as Io, Banknote as Do, CreditCard as Po, ArrowLeftRight as Eo, ArrowRight as qo, ShoppingBag as Mo, Save as Wo, Printer as Ro, Clock as Ao, LoaderCircle as ai, Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette } from "lucide-react";
 import { DEFAULT_SETTINGS as Gl } from "@/lib/settings";
 const TvMonitorIcon = qr;
 const SatelliteIcon = go;
@@ -55,7 +55,7 @@ const zn = CustomSelect;
 import MarqueeText from "@/components/MarqueeText";
 const Ps = MarqueeText;
 import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } from "@/queries/useProductData";
-import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, playAddToCartSound } from "@/lib/utils";
+import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, speakAudioSequence, stopAllTTS, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, playAddToCartSound } from "@/lib/utils";
 import Portal from "@/components/Portal";
 const Fn = Portal;
 import POSHistoryPanel from "@/components/POSHistoryPanel";
@@ -77,63 +77,53 @@ const Ls = (v, N) => {
     const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     return C.includes("localhost") && typeof window < "u" && window.location && window.location.hostname && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.includes("tauri") && (C = C.replace("localhost", window.location.hostname)), `${C.replace(/\/+$/, "")}/api/tts?text=${encodeURIComponent(v)}&voice=${N}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
   },
-  qn = (v, N) => {
+  qn = async (v, N) => {
     if (!v || v.length === 0) return;
-    const C = localStorage.getItem("pos_selected_voice") || "edge-vi-female",
-      X = ["Soạn hàng"];
-    v.forEach(B => {
-      const ue = B.quantity || 0,
-        je = B.product_unit || B.unit || "",
-        Ie = N.find(Le => Le.id === B.product_id),
-        dt = Ie && Ie.alias && Ie.alias.trim() ? Ie.alias.trim() : B.product_name;
-      X.push(`${ue} ${je} ${dt}`);
-    });
-    X.push("Đã soạn xong");
     window.currentPackingQueue && window.currentPackingQueue.stop();
-    let xe = 0,
-      W = null,
-      pe = null,
-      we = !1;
-    const Oe = B => {
-        if (B) {
-          try {
-            B.pause(), B.src = "", B.load();
-          } catch {}
-          B.onended = null, B.onerror = null;
-        }
-      },
-      Qe = B => {
-        if (B >= X.length || we) return null;
-        const ue = Ls(X[B], C),
-          je = new Audio(ue);
-        return je.preload = "auto", je;
-      },
-      te = () => {
-        if (we) return;
-        if (W && (Oe(W), W = null), xe >= X.length) {
-          at();
-          return;
-        }
-        if (pe ? (W = pe, pe = null) : W = Qe(xe), !W) {
-          at();
-          return;
-        }
-        pe = Qe(xe + 1), W.onended = () => {
-          xe++, te();
-        }, W.onerror = () => {
-          xe++, te();
-        };
-        const B = W.play();
-        B !== void 0 && B.catch(ue => {
-          console.error("Queue play failed:", ue), xe++, te();
-        });
-      },
-      at = () => {
-        we = !0, Oe(W), Oe(pe), W = null, pe = null, window.currentPackingQueue = null;
-      };
+    
+    let isStopped = false;
     window.currentPackingQueue = {
-      stop: at
-    }, te();
+      stop: () => {
+        isStopped = true;
+        stopAllTTS();
+        window.currentPackingQueue = null;
+      }
+    };
+
+    const S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
+    const itemGap = parseFloat(localStorage.getItem("pos_speech_gap") || "150");
+
+    await speakAudioSequence(["Soạn hàng"]);
+    if (isStopped) return;
+    await new Promise(res => setTimeout(res, Math.max(100, itemGap)));
+
+    for (let i = 0; i < v.length; i++) {
+      if (isStopped) break;
+      const B = v[i];
+      const ue = B.quantity || 0;
+      const Ie = N.find(Le => Le.id === B.product_id) || B;
+      const dt = (Ie && Ie.alias && Ie.alias.trim()) || (B.alias && B.alias.trim()) || B.product_name;
+
+      const tokens = [];
+      if (S === "qty_first") {
+        if (ue) tokens.push(ue);
+        if (dt) tokens.push(dt);
+      } else {
+        if (dt) tokens.push(dt);
+        if (ue) tokens.push(ue);
+      }
+
+      await speakAudioSequence(tokens);
+      if (isStopped) break;
+      await new Promise(res => setTimeout(res, Math.max(150, itemGap * 1.5)));
+    }
+
+    if (!isStopped) {
+      await speakAudioSequence(["Đã soạn xong"]);
+    }
+    if (window.currentPackingQueue && window.currentPackingQueue.stop) {
+      window.currentPackingQueue = null;
+    }
   },
   Zo = Ql,
   Tr = Gl,
@@ -1071,14 +1061,7 @@ function a0({
     [xa, yi] = i.useState(() => localStorage.getItem("pos_tts_read_total") !== "false"),
     [ha, vi] = i.useState(() => localStorage.getItem("pos_tts_read_thanks") !== "false"),
     tr = () => {
-      if (window.currentTtsSequence) {
-        try {
-          window.currentTtsSequence.audio1.pause();
-        } catch {}
-        try {
-          window.currentTtsSequence.audio2.pause();
-        } catch {}
-      }
+      stopAllTTS();
     },
     Ar = t => {
       bi(t);
@@ -1113,6 +1096,12 @@ function a0({
       setSpeechPitch(val);
       localStorage.setItem("pos_speech_pitch", val.toString());
       setTimeout(() => Ss(T), 100);
+    },
+    [speechGap, setSpeechGap] = i.useState(() => parseInt(localStorage.getItem("pos_speech_gap") || "150")),
+    handleGapChange = t => {
+      const val = parseInt(t.target.value);
+      setSpeechGap(val);
+      localStorage.setItem("pos_speech_gap", val.toString());
     },
     [Lr, ba] = i.useState(!1),
     [ar, Ct] = i.useState(!1),
@@ -2187,23 +2176,12 @@ function a0({
           let n;
           if (Q ? n = await M.put(`/api/orders/${Q}`, s) : n = await M.post("/api/orders", s), ft !== "off" && ha) try {
             tr();
-            const o = localStorage.getItem("pos_selected_voice") || (ft === "male" ? "edge-vi-male" : "edge-vi-female"),
-              u = o === "edge-vi-male" ? "edge-vi-male" : o === "edge-vi-female" ? "edge-vi-female" : "google",
-              h = localStorage.getItem("pos_tts_disable_partner_thankyou") === "true",
+            const h = localStorage.getItem("pos_tts_disable_partner_thankyou") === "true",
               b = (p?.name || "").trim(),
               S = b && b.toLowerCase() !== "khách lẻ" && b.toLowerCase() !== "khách vãng lai" && b.toLowerCase() !== "ncc vãng lai",
               w = h || !S ? "" : b,
-              U = (w ? localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner}" : localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách").replace(/{partner}/gi, w || "quý khách").replace(/{customer}/gi, w || "quý khách"),
-              L = `${U}_${u}`;
-            let ce;
-            if (window.preloadedTtsAudios && window.preloadedTtsAudios[L]) ce = window.preloadedTtsAudios[L], ce.currentTime = 0;else {
-              const Rt = Ls(U, u);
-              ce = new Audio(Rt), ce.load();
-            }
-            window.currentTtsSequence = {
-              audio1: ce,
-              audio2: null
-            }, ce.play().catch(Rt => console.error("Error playing Thank You TTS:", Rt));
+              U = (w ? localStorage.getItem("pos_tts_thankyou_partner_template") || "Cảm ơn {partner}" : localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách").replace(/{partner}/gi, w || "quý khách").replace(/{customer}/gi, w || "quý khách");
+            ht(U);
           } catch (o) {
             console.error("Lỗi đọc cảm ơn:", o);
           }
@@ -2255,7 +2233,12 @@ function a0({
             }
           }
           if (pn(a || "Sale"), E.invalidateQueries(["shippingSummary"]), t) {
-            setTimeout(() => {
+            const printFn = async () => {
+              try {
+                if (document.fonts && document.fonts.ready) {
+                  await document.fonts.ready;
+                }
+              } catch (e) {}
               window.print();
               setTimeout(() => {
                 ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
@@ -2264,7 +2247,8 @@ function a0({
                   type: "ORDER_SAVED"
                 }), o.close();
               }, 1e3);
-            }, 300);
+            };
+            setTimeout(printFn, 200);
           } else {
             ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
             const o = new BroadcastChannel("pos_data_sync");
@@ -2284,6 +2268,8 @@ function a0({
     };
   const [historyPartner, setHistoryPartner] = i.useState(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = i.useState(false);
+  const [availableTemplates, setAvailableTemplates] = i.useState([]);
+  const [currentTemplateId, setCurrentTemplateId] = i.useState(null);
   const [showTaxCalculator, setShowTaxCalculator] = i.useState(() => localStorage.getItem("feature_tax_calculator_enabled") === "true");
   i.useEffect(() => {
     const handleTaxToggle = () => {
@@ -2378,16 +2364,23 @@ function a0({
           ...r,
           ...a.data
         }), t.data && t.data.length > 0) {
+          setAvailableTemplates(t.data);
           const l = t.data.find(d => d.is_default) || t.data[0];
-          if (l) try {
-            const d = JSON.parse(l.config);
-            r = {
-              ...r,
-              ...d
-            };
-          } catch (d) {
-            console.error(d);
+          if (l) {
+            setCurrentTemplateId(l.id);
+            try {
+              const d = typeof l.config === "string" ? JSON.parse(l.config) : l.config;
+              r = {
+                ...r,
+                ...d
+              };
+            } catch (d) {
+              console.error(d);
+            }
           }
+        } else {
+          setAvailableTemplates([]);
+          setCurrentTemplateId(null);
         }
         const s = localStorage.getItem("ui_show_doraemon");
         s !== null && (r.ui_show_doraemon = s);
@@ -2395,6 +2388,27 @@ function a0({
         r.ui_enable_smart_sorting = n !== null ? n : Tr.ui_enable_smart_sorting, Na(r);
       } catch (t) {
         console.error(t);
+      }
+    },
+    handleSelectDefaultTemplate = async (templateId) => {
+      try {
+        await M.put(`/api/print-templates/${templateId}`, { is_default: true, is_active: true });
+        G({
+          message: "Đã chọn làm mẫu in mặc định!",
+          type: "success"
+        });
+        await _n();
+        try {
+          const channel = new BroadcastChannel("pos_data_sync");
+          channel.postMessage({ type: "SETTINGS_UPDATED" });
+          channel.close();
+        } catch (e) {}
+      } catch (err) {
+        console.error("Error setting default template:", err);
+        G({
+          message: "Lỗi khi đổi mẫu in mặc định",
+          type: "error"
+        });
       }
     };
   i.useEffect(() => {
@@ -2920,17 +2934,22 @@ function a0({
             O = Math.abs(u),
             U = w ? `Trả hàng ${O}` : O;
           const shouldReadQty = er;
-          const hasAlias = Boolean(t.alias && t.alias.trim());
-          const alias = hasAlias ? t.alias.trim() : "";
+          const fullProduct = T.find(p => p.id === t.id) || t;
+          const rawAlias = (fullProduct.alias && fullProduct.alias.trim()) || (t.alias && t.alias.trim()) || "";
+          const hasAlias = Boolean(rawAlias);
+          const alias = rawAlias;
           
           if (b && hasAlias && shouldReadQty) {
-            S === "qty_first" ? (ht(U), window.cartSpeechTimeout = setTimeout(() => {
-              ht(alias);
-            }, 1500), rr.current[g] = t.id) : rr.current[g] === t.id ? ht(U) : (ht(`${alias}, ${U}`), rr.current[g] = t.id);
+            S === "qty_first" 
+              ? speakAudioSequence([U, alias]) 
+              : speakAudioSequence([alias, U]);
+            rr.current[g] = t.id;
           } else if (b && hasAlias) {
-            rr.current[g] !== t.id && (ht(alias), rr.current[g] = t.id);
+            speakAudioSequence([alias]);
+            rr.current[g] = t.id;
           } else if (shouldReadQty) {
-            ht(U), rr.current[g] = t.id;
+            ht(U);
+            rr.current[g] = t.id;
           }
         }
       }
@@ -2953,10 +2972,29 @@ function a0({
           ...s,
           isPacked: nextPacked
         } : s));
-        if (nextPacked) {
-          const r = T.find(n => n.id === a.product_id),
-            s = r && r.alias && r.alias.trim() ? r.alias.trim() : a.product_name;
-          ht(`${s}, ${a.quantity}`);
+        if (nextPacked && ft !== "off") {
+          const r = T.find(n => n.id === a.product_id) || a,
+            rawAlias = (r.alias && r.alias.trim()) || (a.alias && a.alias.trim()) || "",
+            alias = rawAlias || a.product_name,
+            qty = a.quantity,
+            b = Za && localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
+            S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first",
+            shouldReadQty = er;
+
+          const tokens = [];
+          if (b && alias && shouldReadQty) {
+            S === "qty_first" ? tokens.push(qty, alias) : tokens.push(alias, qty);
+          } else if (b && alias) {
+            tokens.push(alias);
+          } else if (shouldReadQty) {
+            tokens.push(qty);
+          } else {
+            tokens.push(alias, qty);
+          }
+
+          if (tokens.length > 0) {
+            speakAudioSequence(tokens);
+          }
         }
       }
     },
@@ -3406,7 +3444,7 @@ function a0({
                       scale: 0.95
                     }} transition={{
                       duration: 0.15
-                    }} className="absolute right-0 top-full mt-2 w-64 dropdown-premium bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"><button onClick={() => {
+                    }} className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none" style={{ maxHeight: '50vh', overflowY: 'auto' }}><button onClick={() => {
                         Ct(!1), X(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform shrink-0"><En size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight text-left">AI SCAN</span></button><button onClick={() => {
                         Ct(!1);
@@ -3441,11 +3479,45 @@ function a0({
                             }))
                           };
                         $i(a), Sa(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button><button onClick={() => {
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button>
+                      
+                      {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
+                      <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <Ro size={13} className="text-primary dark:text-emerald-400 shrink-0" strokeWidth={2.5} /> Mẫu in mặc định:
+                          </span>
+                          <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            {availableTemplates.length} mẫu
+                          </span>
+                        </div>
+                        {availableTemplates.length > 0 ? (
+                          <div className="relative">
+                            <select
+                              value={currentTemplateId || availableTemplates.find(t => t.is_default)?.id || availableTemplates[0]?.id || ''}
+                              onChange={(e) => {
+                                const tplId = parseInt(e.target.value);
+                                if (tplId) handleSelectDefaultTemplate(tplId);
+                              }}
+                              className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none cursor-pointer focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-xs"
+                            >
+                              {availableTemplates.map((tpl) => (
+                                <option key={tpl.id} value={tpl.id} className="dark:bg-slate-900">
+                                  {tpl.name || `Mẫu #${tpl.id}`} {tpl.is_default ? "★ (Mặc định)" : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] italic text-slate-400 py-1">Chưa có mẫu in nào trong thiết kế</div>
+                        )}
+                      </div>
+
+                      <button onClick={() => {
                         Ct(!1), fs(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
                         Ct(!1), setShowMascotCustomizer(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform text-base leading-none">🎨</div><span className="uppercase tracking-tight">Tùy biến Mascot in chìm</span></button><button onClick={() => {
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Palette size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Tùy biến Mascot in chìm</span></button><button onClick={() => {
                         Ct(!1), ba(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button><button onClick={() => {
                         const t = !ga;
@@ -4221,9 +4293,15 @@ function a0({
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {
                                 r.stopPropagation();
-                                const s = T.find(l => l.id === t.product_id),
-                                  n = s && s.alias && s.alias.trim() ? s.alias.trim() : t.product_name;
-                                ht(`${n}, ${t.quantity}`);
+                                const s = T.find(l => l.id === t.product_id) || t,
+                                  rawAlias = (s.alias && s.alias.trim()) || (t.alias && t.alias.trim()) || "",
+                                  alias = rawAlias || t.product_name,
+                                  qty = t.quantity,
+                                  S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
+
+                                S === "qty_first" 
+                                  ? speakAudioSequence([qty, alias]) 
+                                  : speakAudioSequence([alias, qty]);
                               }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95 transition-all duration-200">{a + 1}</div></td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), xl(a);
                                 }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative"><div className="relative group/search-row" onDoubleClick={r => {
@@ -5780,6 +5858,50 @@ function a0({
                         </div>
                       </div>
 
+                      {/* Speech Gap Slider (Khoảng nghỉ giữa Tên món & Số lượng) */}
+                      <div className="space-y-2 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-4 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+                        <div className="flex justify-between items-center text-xs font-black">
+                          <span className="uppercase tracking-wider text-slate-700 dark:text-slate-300">Khoảng nghỉ giữa Tên món & Số lượng</span>
+                          <span className="px-2 py-0.5 rounded-lg bg-[#8b6f47]/15 dark:bg-emerald-500/15 text-[#8b6f47] dark:text-emerald-300 font-mono font-black text-xs">
+                            {speechGap}ms {speechGap === 150 ? "(Tự nhiên)" : speechGap === 0 ? "(Liền mạch 0ms)" : ""}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="500"
+                          step="25"
+                          value={speechGap}
+                          onChange={handleGapChange}
+                          className="w-full accent-[#8b6f47] dark:accent-emerald-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                        />
+                        <div className="grid grid-cols-6 gap-1 pt-1">
+                          {[
+                            { val: 0, label: "0ms" },
+                            { val: 50, label: "50ms" },
+                            { val: 100, label: "100ms" },
+                            { val: 150, label: "150ms" },
+                            { val: 200, label: "200ms" },
+                            { val: 300, label: "300ms" },
+                          ].map(item => (
+                            <button
+                              key={item.val}
+                              type="button"
+                              onClick={() => {
+                                setSpeechGap(item.val);
+                                localStorage.setItem("pos_speech_gap", item.val.toString());
+                              }}
+                              className={c(
+                                "px-1.5 py-1 rounded-lg text-[9.5px] font-black transition-all cursor-pointer text-center truncate",
+                                speechGap === item.val ? "bg-[#8b6f47] dark:bg-emerald-600 text-white shadow-xs" : "bg-white dark:bg-[#06140e] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-[#8b6f47]/20 dark:border-white/5"
+                              )}
+                            >
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Content options */}
                       <div className="space-y-2">
                         <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">Tùy chọn đọc nội dung</label>
@@ -6021,10 +6143,8 @@ function a0({
                           samplePartner = "anh Nam",
                           sampleTotal = (pc || "số tiền của quý khách là {amount} đồng").replace("{amount}", sampleAmount).replace(/{partner}/gi, samplePartner),
                           sampleThanks = (hc || "Xin cảm ơn quý khách!").replace(/{partner}/gi, samplePartner),
-                          sampleText = dc === "templates" ? `${sampleTotal}. ${sampleThanks}` : "Đã thêm 2 chai nước khoáng, tổng tiền năm mươi nghìn đồng. Xin cảm ơn quý khách!",
-                          a = Ls(sampleText, ki || (ft === "male" ? "edge-vi-male" : "edge-vi-female")),
-                          r = new Audio(a);
-                        r.playbackRate = Or || 1.4, r.play().catch(s => console.error("Test voice play failed:", s));
+                          sampleText = dc === "templates" ? `${sampleTotal}. ${sampleThanks}` : "Đã thêm 2 chai nước khoáng, tổng tiền năm mươi nghìn đồng. Xin cảm ơn quý khách!";
+                        ht(sampleText);
                       }}
                       className="flex-1 py-3 px-4 bg-[#f4efe6] hover:bg-[#eae3d5] dark:bg-[#0a1f16] dark:hover:bg-[#0e291e] border border-[#8b6f47]/20 dark:border-emerald-500/20 rounded-2xl font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-emerald-300 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                     >
@@ -6078,7 +6198,15 @@ function a0({
                   old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
                   partner: r || t.partner || null
                 };
-              Ur(s), setTimeout(() => window.print(), 300);
+              Ur(s);
+              setTimeout(async () => {
+                try {
+                  if (document.fonts && document.fonts.ready) {
+                    await document.fonts.ready;
+                  }
+                } catch (e) {}
+                window.print();
+              }, 200);
             }} onDeleteOrder={t => {
               Sn(t);
             }} /></Ee><P>{showMascotCustomizer && (

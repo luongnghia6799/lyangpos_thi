@@ -601,16 +601,35 @@ const PrintTemplate = forwardRef(({
         ? `'${s.invoice_custom_font_name.split('.')[0]}', sans-serif`
         : (s.invoice_font_family || 'Inter, "Be Vietnam Pro", sans-serif');
 
+    // Preload custom font explicitly into document.fonts cache so print dialog always sees it
+    useEffect(() => {
+        if (s.invoice_custom_font_name && typeof document !== 'undefined' && document.fonts && typeof FontFace !== 'undefined') {
+            try {
+                const fontName = s.invoice_custom_font_name.split('.')[0];
+                const format = s.invoice_custom_font_name.toLowerCase().endsWith('.ttf') ? 'truetype' : 'opentype';
+                const fontUrl = getResolvedUrl(`/uploads/fonts/${s.invoice_custom_font_name}`);
+                const f = new FontFace(fontName, `url('${fontUrl}')`, { display: 'block' });
+                f.load().then(loadedFace => {
+                    document.fonts.add(loadedFace);
+                }).catch(err => {
+                    console.warn(`PrintTemplate: Failed to load font ${fontName}`, err);
+                });
+            } catch (e) {
+                // ignore font load error
+            }
+        }
+    }, [s.invoice_custom_font_name]);
+
     // Dynamic @font-face for the custom font
     const customFontFaceStyle = s.invoice_custom_font_name ? (
         <style>
             {`
                 @font-face {
                     font-family: '${s.invoice_custom_font_name.split('.')[0]}';
-                    src: url('${getResolvedUrl(`/uploads/fonts/${s.invoice_custom_font_name}`)}') format('truetype');
+                    src: url('${getResolvedUrl(`/uploads/fonts/${s.invoice_custom_font_name}`)}') format('${s.invoice_custom_font_name.toLowerCase().endsWith('.ttf') ? 'truetype' : 'opentype'}');
                     font-weight: normal;
                     font-style: normal;
-                    font-display: swap;
+                    font-display: block;
                 }
             `}
         </style>
@@ -626,10 +645,17 @@ const PrintTemplate = forwardRef(({
 
         if (size === 'A5') { width = '148mm'; height = '210mm'; }
         else if (size === 'A6') { width = '105mm'; height = '148mm'; }
+        else if (size === 'C5') { width = '162mm'; height = '229mm'; }
         else if (size === 'K80') { width = '80mm'; height = 'auto'; }
         else if (size === 'K58') { width = '58mm'; height = 'auto'; }
+        else if (size === 'CUSTOM') {
+            const customW = parseFloat(s.invoice_custom_width) || 210;
+            const customH = parseFloat(s.invoice_custom_height);
+            width = `${customW}mm`;
+            height = (customH && customH > 0) ? `${customH}mm` : 'auto';
+        }
 
-        if (orientation === 'landscape' && !size.startsWith('K')) {
+        if (orientation === 'landscape' && !size.startsWith('K') && height !== 'auto') {
             const temp = width;
             width = height;
             height = temp;
@@ -640,7 +666,7 @@ const PrintTemplate = forwardRef(({
 
     const { width, height } = getDimensions();
 
-    const isThermal = s.paper_size === 'K80' || s.paper_size === 'K58';
+    const isThermal = s.paper_size === 'K80' || s.paper_size === 'K58' || (s.paper_size === 'CUSTOM' && (!s.invoice_custom_height || parseFloat(s.invoice_custom_height) <= 0));
 
     const useDefaultMargins = s.invoice_use_default_margins === 'true' || s.invoice_use_default_margins === true;
     const mt = useDefaultMargins ? 0 : parseFloat(s.invoice_margin_top || 0);
@@ -785,11 +811,8 @@ const PrintTemplate = forwardRef(({
                         position: absolute !important;
                     }
                     @page {
-                        size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : s.paper_size || 'A4')} ${s.invoice_orientation || 'portrait'} !important;
-                        ${useDefaultMargins 
-                            ? (s.invoice_show_page_number === 'true' ? 'margin: 0mm 5mm 15mm 5mm !important;' : 'margin: 0mm 5mm !important;') 
-                            : `margin: ${mt}mm ${mr}mm ${s.invoice_show_page_number === 'true' ? Math.max(mb, 15) : mb}mm ${ml}mm !important;`
-                        }
+                        size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : (s.paper_size === 'CUSTOM' ? `${width} ${height}` : `${s.paper_size || 'A4'} ${s.invoice_orientation || 'portrait'}`))} !important;
+                        margin: 0 !important;
                         ${s.invoice_show_page_number === 'true' ? `
                         @bottom-${s.invoice_page_number_position === 'bottom-left' ? 'left' : (s.invoice_page_number_position === 'bottom-center' ? 'center' : 'right')} {
                             content: ${s.invoice_page_number_format === 'page_only' ? '"Trang " counter(page)' : '"Trang " counter(page) " / " counter(pages)'} !important;
@@ -817,11 +840,13 @@ const PrintTemplate = forwardRef(({
                         font-family: ${fontFamily} !important;
                     }
                     #print-template {
-                        width: ${isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`} !important;
+                        width: ${width} !important;
                         max-width: 100% !important;
                         overflow: visible !important;
                         position: relative !important;
-                        padding-top: ${printPaddingTop > 0 ? `${printPaddingTop}mm` : '0'} !important;
+                        padding: ${(mt + printPaddingTop)}mm ${mr}mm ${mb}mm ${ml}mm !important;
+                        box-sizing: border-box !important;
+                        margin: 0 auto !important;
                     }
                     .print-content-flow {
                         width: 100% !important;
@@ -899,7 +924,7 @@ const PrintTemplate = forwardRef(({
         gap: '15px',
         borderBottom: '1px solid #eee',
         paddingBottom: '10px',
-        paddingTop: isPreview ? '4px' : '0px',
+        paddingTop: '6px',
         pageBreakInside: 'avoid',
         breakInside: 'avoid',
         overflow: 'visible'
@@ -1103,10 +1128,15 @@ const PrintTemplate = forwardRef(({
     const getBlockWidth = (baseWidth = '100%') => {
         const size = s.paper_size || 'A4';
         if (size === 'A4') return '750px';
+        if (size === 'C5') return '580px';
         if (size === 'A5') return '520px';
         if (size === 'A6') return '360px';
         if (size === 'K80') return '280px';
         if (size === 'K58') return '200px';
+        if (size === 'CUSTOM') {
+            const customW = parseFloat(s.invoice_custom_width) || 210;
+            return `${Math.round(customW * 3.78)}px`;
+        }
         return baseWidth;
     };
 

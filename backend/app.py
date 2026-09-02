@@ -7299,15 +7299,22 @@ def export_product_movement():
 def download_backup():
     try:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        db_path = get_storage_path(os.path.join("instance", "easypos.db"))
+        db_path = get_storage_path(os.path.join("instance", DB_FILENAME))
         
         if not os.path.exists(db_path):
              # Fallback to root if not in instance
-             db_path = get_storage_path("easypos.db")
+             db_path = get_storage_path(DB_FILENAME)
         
         if not os.path.exists(db_path):
             return jsonify({'error': 'Local Database file not found'}), 404
         
+        # Flush WAL journal into main DB before backing up
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("PRAGMA wal_checkpoint(TRUNCATE);"))
+        except Exception as ck_err:
+            app.logger.warning(f"WAL Checkpoint before backup warning: {ck_err}")
+
         return send_file(
             db_path,
             as_attachment=True,
@@ -7328,15 +7335,38 @@ def restore_backup():
     
     try:
         # SQLite Restore Logic
-        db_path = get_storage_path(os.path.join("instance", "easypos.db"))
-        db.session.remove()
-        db.engine.dispose()
-        file.save(db_path)
-        run_migrations()
+        db_path = get_storage_path(os.path.join("instance", DB_FILENAME))
         
-        return jsonify({'message': 'Dữ liệu đã được khôi phục thành công! Hãy khởi động lại ứng dụng.'})
+        # 1. Close active connections and dispose engine so Windows releases file locks
+        try:
+            db.session.remove()
+            db.engine.dispose()
+        except Exception:
+            pass
+
+        # 2. Save uploaded content
+        file.save(db_path)
+
+        # 3. Clean up stale WAL / SHM files from previous database
+        for ext in ['-wal', '-shm', '-journal']:
+            aux_file = db_path + ext
+            if os.path.exists(aux_file):
+                try:
+                    os.remove(aux_file)
+                except Exception as e:
+                    app.logger.warning(f"Could not remove {aux_file}: {e}")
+
+        # 4. Reconnect and apply migrations / stock batches schema
+        with app.app_context():
+            ensure_schema(db.engine)
+            initialize_stock_batches(db.engine)
+        
+        return jsonify({'message': 'Dữ liệu đã được khôi phục thành công! Hệ thống sẽ tự làm mới.'})
     except Exception as e:
-        db.session.rollback()
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
         app.logger.error(f"Error restoring backup: {e}")
         return jsonify({'error': str(e)}), 500
 

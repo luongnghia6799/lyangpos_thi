@@ -11,6 +11,8 @@ export const DEFAULT_SETTINGS = {
     invoice_show_thank_you: 'true',
     invoice_thank_you_message: 'Cảm ơn Quý Khách & Hẹn Gặp Lại!',
     paper_size: 'A4',
+    invoice_custom_width: '210',
+    invoice_custom_height: '297',
     invoice_header_color: '#2D5A27',
     invoice_show_logo: 'true',
     invoice_logo_url: '',

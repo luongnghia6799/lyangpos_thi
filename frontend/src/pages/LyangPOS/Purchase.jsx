@@ -207,6 +207,8 @@ export default function Purchase() {
         const t = localStorage.getItem("pos_transparent_cart_table");
         return t === null ? true : t === "true";
     });
+    const [availableTemplates, setAvailableTemplates] = useState([]);
+    const [currentTemplateId, setCurrentTemplateId] = useState(null);
     const [showHotkeysGuide, setShowHotkeysGuide] = useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true");
 
     // Price Raise Warning States
@@ -898,15 +900,20 @@ export default function Purchase() {
                 combinedSettings = { ...combinedSettings, ...settingsRes.data };
             }
             if (templatesRes.data && templatesRes.data.length > 0) {
+                setAvailableTemplates(templatesRes.data);
                 const defaultTemplate = templatesRes.data.find(t => t.is_default) || templatesRes.data[0];
                 if (defaultTemplate) {
+                    setCurrentTemplateId(defaultTemplate.id);
                     try {
-                        const config = JSON.parse(defaultTemplate.config);
+                        const config = typeof defaultTemplate.config === 'string' ? JSON.parse(defaultTemplate.config) : defaultTemplate.config;
                         combinedSettings = { ...combinedSettings, ...config };
                     } catch (e) {
                         console.error("Error parsing template config", e);
                     }
                 }
+            } else {
+                setAvailableTemplates([]);
+                setCurrentTemplateId(null);
             }
             const localDoraemon = localStorage.getItem('ui_show_doraemon');
             if (localDoraemon !== null) combinedSettings.ui_show_doraemon = localDoraemon;
@@ -918,6 +925,22 @@ export default function Purchase() {
             }
         } catch (err) {
             console.error('Lỗi khi tải cài đặt:', err);
+        }
+    };
+
+    const handleSelectDefaultTemplate = async (templateId) => {
+        try {
+            await axios.put(`/api/print-templates/${templateId}`, { is_default: true, is_active: true });
+            setToast({ message: "Đã chọn làm mẫu in mặc định!", type: "success" });
+            await fetchSettings();
+            try {
+                const channel = new BroadcastChannel("pos_data_sync");
+                channel.postMessage({ type: "SETTINGS_UPDATED" });
+                channel.close();
+            } catch (e) {}
+        } catch (err) {
+            console.error("Error setting default template:", err);
+            setToast({ message: "Lỗi khi đổi mẫu in mặc định", type: "error" });
         }
     };
 
@@ -1333,7 +1356,12 @@ export default function Purchase() {
             playSuccessSound();
 
             if (shouldPrint) {
-                setTimeout(() => {
+                setTimeout(async () => {
+                    try {
+                        if (document.fonts && document.fonts.ready) {
+                            await document.fonts.ready;
+                        }
+                    } catch (e) {}
                     window.print();
                     setTimeout(() => {
                         if (!keepOrderAfterSave) {
@@ -1341,7 +1369,7 @@ export default function Purchase() {
                             localStorage.removeItem('purchase_draft');
                         }
                     }, 1000);
-                }, 1000);
+                }, 300);
             } else {
                 if (!keepOrderAfterSave) {
                     resetForm(false);
@@ -2032,7 +2060,8 @@ export default function Purchase() {
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute right-0 top-full mt-2 w-60 bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
+                                        className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
+                                        style={{ maxHeight: '50vh', overflowY: 'auto' }}
                                     >
                                         {/* Preview Invoice */}
                                         <button
@@ -2060,6 +2089,38 @@ export default function Purchase() {
                                             <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
                                             <span>Xem trước in hóa đơn</span>
                                         </button>
+
+                                        {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
+                                        <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                    <Printer size={13} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" strokeWidth={2.5} /> Mẫu in mặc định:
+                                                </span>
+                                                <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                    {availableTemplates.length} mẫu
+                                                </span>
+                                            </div>
+                                            {availableTemplates.length > 0 ? (
+                                                <div className="relative">
+                                                    <select
+                                                        value={currentTemplateId || availableTemplates.find(t => t.is_default)?.id || availableTemplates[0]?.id || ''}
+                                                        onChange={(e) => {
+                                                            const tplId = parseInt(e.target.value);
+                                                            if (tplId) handleSelectDefaultTemplate(tplId);
+                                                        }}
+                                                        className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none cursor-pointer focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-xs"
+                                                    >
+                                                        {availableTemplates.map((tpl) => (
+                                                            <option key={tpl.id} value={tpl.id} className="dark:bg-slate-900">
+                                                                {tpl.name || `Mẫu #${tpl.id}`} {tpl.is_default ? "★ (Mặc định)" : ""}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            ) : (
+                                                <div className="text-[10px] italic text-slate-400 py-1">Chưa có mẫu in nào trong thiết kế</div>
+                                            )}
+                                        </div>
 
                                         {/* AI Invoice Scanner */}
                                         <button

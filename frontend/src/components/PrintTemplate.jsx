@@ -1,6 +1,7 @@
 import React, { forwardRef, useState, useRef, useEffect } from 'react';
 import { formatNumber, formatDate, normalizeUOM } from '../lib/utils';
 import { DEFAULT_SETTINGS } from '../lib/settings';
+import { loadGoogleFont } from '../lib/googleFonts';
 
 const EditableWrapper = ({
     label,
@@ -442,13 +443,57 @@ const PrintTemplate = forwardRef(({
     const [activeKey, setActiveKey] = useState(null);
     const [watermarkHovered, setWatermarkHovered] = useState(false);
 
+    // Merge settings with defaults safely
+    const s = { ...DEFAULT_SETTINGS, ...(settings || {}) };
+
+    // Helper to resolve relative assets (logos, fonts) to full backend URLs in Tauri
+    const getResolvedUrl = (url) => {
+        if (!url || url === 'undefined' || url === 'null') return '';
+        const normalized = url.replace(/\\/g, '/').trim();
+        if (normalized.startsWith('http') || normalized.startsWith('data:')) {
+            return normalized;
+        }
+        const savedIp = localStorage.getItem('server_ip');
+        const defaultPort = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '3580' : '3579';
+        let base = `http://localhost:${defaultPort}`;
+        if (savedIp && savedIp !== 'undefined' && savedIp !== 'null' && savedIp.trim() !== '') {
+            base = `http://${savedIp.trim()}:${defaultPort}`;
+        } else if (!window.__TAURI_INTERNALS__) {
+            base = window.location.origin;
+        }
+        return `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
+    };
+
+    const fontFamily = s.invoice_custom_font_name
+        ? `'${s.invoice_custom_font_name.split('.')[0]}', sans-serif`
+        : (s.invoice_font_family || 'Inter, "Be Vietnam Pro", sans-serif');
+
+    // Preload custom font explicitly into document.fonts cache so print dialog always sees it
+    useEffect(() => {
+        if (s.invoice_custom_font_name && typeof document !== 'undefined' && document.fonts && typeof FontFace !== 'undefined') {
+            try {
+                const fontName = s.invoice_custom_font_name.split('.')[0];
+                const format = s.invoice_custom_font_name.toLowerCase().endsWith('.ttf') ? 'truetype' : 'opentype';
+                const fontUrl = getResolvedUrl(`/uploads/fonts/${s.invoice_custom_font_name}`);
+                const f = new FontFace(fontName, `url('${fontUrl}')`, { display: 'block' });
+                f.load().then(loadedFace => {
+                    document.fonts.add(loadedFace);
+                }).catch(err => {
+                    console.warn(`PrintTemplate: Failed to load font ${fontName}`, err);
+                });
+            } catch (e) {
+                // ignore font load error
+            }
+        } else if (s.invoice_font_family) {
+            loadGoogleFont(s.invoice_font_family);
+        }
+    }, [s.invoice_custom_font_name, s.invoice_font_family]);
+
     if (!data) return null;
     const isVoucher = type === 'Receipt' || type === 'Payment';
+    const isLedger = type === 'PartnerLedger';
     const isDelivery = type === 'Delivery' || type === 'StockOut';
-    if (!isVoucher && (!data.details || data.details.length === 0)) return null;
-
-    // Merge settings with defaults safely
-    const s = { ...DEFAULT_SETTINGS, ...settings };
+    if (!isVoucher && !isLedger && (!data.details || data.details.length === 0)) return null;
 
     // Calculate safe total amount if data.total_amount is undefined
     const computedTotalFromDetails = (data.details || []).reduce((acc, item) => {
@@ -579,47 +624,6 @@ const PrintTemplate = forwardRef(({
 
     const useBadge = s.invoice_shop_name_badge === 'true';
 
-    // Helper to resolve relative assets (logos, fonts) to full backend URLs in Tauri
-    const getResolvedUrl = (url) => {
-        if (!url || url === 'undefined' || url === 'null') return '';
-        const normalized = url.replace(/\\/g, '/').trim();
-        if (normalized.startsWith('http') || normalized.startsWith('data:')) {
-            return normalized;
-        }
-        const savedIp = localStorage.getItem('server_ip');
-        const defaultPort = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) ? '3580' : '3579';
-        let base = `http://localhost:${defaultPort}`;
-        if (savedIp && savedIp !== 'undefined' && savedIp !== 'null' && savedIp.trim() !== '') {
-            base = `http://${savedIp.trim()}:${defaultPort}`;
-        } else if (!window.__TAURI_INTERNALS__) {
-            base = window.location.origin;
-        }
-        return `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
-    };
-
-    const fontFamily = s.invoice_custom_font_name
-        ? `'${s.invoice_custom_font_name.split('.')[0]}', sans-serif`
-        : (s.invoice_font_family || 'Inter, "Be Vietnam Pro", sans-serif');
-
-    // Preload custom font explicitly into document.fonts cache so print dialog always sees it
-    useEffect(() => {
-        if (s.invoice_custom_font_name && typeof document !== 'undefined' && document.fonts && typeof FontFace !== 'undefined') {
-            try {
-                const fontName = s.invoice_custom_font_name.split('.')[0];
-                const format = s.invoice_custom_font_name.toLowerCase().endsWith('.ttf') ? 'truetype' : 'opentype';
-                const fontUrl = getResolvedUrl(`/uploads/fonts/${s.invoice_custom_font_name}`);
-                const f = new FontFace(fontName, `url('${fontUrl}')`, { display: 'block' });
-                f.load().then(loadedFace => {
-                    document.fonts.add(loadedFace);
-                }).catch(err => {
-                    console.warn(`PrintTemplate: Failed to load font ${fontName}`, err);
-                });
-            } catch (e) {
-                // ignore font load error
-            }
-        }
-    }, [s.invoice_custom_font_name]);
-
     // Dynamic @font-face for the custom font
     const customFontFaceStyle = s.invoice_custom_font_name ? (
         <style>
@@ -747,7 +751,9 @@ const PrintTemplate = forwardRef(({
         fontSize: `${s.invoice_table_content_size || s.invoice_font_size}px`,
         lineHeight: s.invoice_line_spacing || '1.4',
         color: '#000',
-        padding: isPreview ? `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm` : (printPaddingTop > 0 ? `${printPaddingTop}mm 0 0 0` : '0'),
+        padding: isPreview 
+            ? `${mt + printPaddingTop + (isThermal ? 0 : 4)}mm ${mr}mm ${mb}mm ${ml}mm` 
+            : `${mt + printPaddingTop + (isThermal ? 0 : 4)}mm ${mr}mm ${mb}mm ${ml}mm`,
         maxWidth: 'none',
         width: isPreview ? width : (isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`),
         minHeight: isPreview ? height : (watermarkBottom > 0 ? `${watermarkBottom}px` : '0'),
@@ -788,6 +794,20 @@ const PrintTemplate = forwardRef(({
         ? `0.5px solid ${s.invoice_table_header_badge_border || '#86efac'}`
         : headerBorderValue;
 
+    // Dynamic style for both preview and print
+    const fontScopeStyle = (
+        <style>
+            {`
+                #print-template,
+                #print-template *,
+                .preview-mode,
+                .preview-mode * {
+                    font-family: ${fontFamily} !important;
+                }
+            `}
+        </style>
+    );
+
     // Dynamic @page style
     const pageStyle = !isPreview ? (
         <style>
@@ -812,7 +832,7 @@ const PrintTemplate = forwardRef(({
                     }
                     @page {
                         size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : (s.paper_size === 'CUSTOM' ? `${width} ${height}` : `${s.paper_size || 'A4'} ${s.invoice_orientation || 'portrait'}`))} !important;
-                        margin: 0 !important;
+                        margin: ${isThermal ? '0' : (useDefaultMargins ? '0' : `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm`)} !important;
                         ${s.invoice_show_page_number === 'true' ? `
                         @bottom-${s.invoice_page_number_position === 'bottom-left' ? 'left' : (s.invoice_page_number_position === 'bottom-center' ? 'center' : 'right')} {
                             content: ${s.invoice_page_number_format === 'page_only' ? '"Trang " counter(page)' : '"Trang " counter(page) " / " counter(pages)'} !important;
@@ -840,11 +860,11 @@ const PrintTemplate = forwardRef(({
                         font-family: ${fontFamily} !important;
                     }
                     #print-template {
-                        width: ${width} !important;
+                        width: ${isThermal ? width : '100%'} !important;
                         max-width: 100% !important;
                         overflow: visible !important;
                         position: relative !important;
-                        padding: ${(mt + printPaddingTop)}mm ${mr}mm ${mb}mm ${ml}mm !important;
+                        padding: ${isThermal ? `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm` : (useDefaultMargins ? '4mm 0' : '0')} !important;
                         box-sizing: border-box !important;
                         margin: 0 auto !important;
                     }
@@ -1729,7 +1749,7 @@ const PrintTemplate = forwardRef(({
                     {(type === 'Sale' || type === 'Purchase' || type === 'Report' || type === 'PartnerLedger') && (
                         <>
                             {type === 'PartnerLedger' ? (
-                                <div style={{ marginTop: '15px', borderTop: '1px solid #000', paddingTop: '10px' }}>
+                                <div style={{ marginTop: '10px', paddingTop: '5px' }}>
                                     <div style={summaryRowStyle}>
                                         <div style={summaryLabelStyle}>Tổng phát sinh (+):</div>
                                         <div style={summaryValueStyle}>{formatNumber((data.details || []).reduce((sum, item) => sum + (item.increase || 0), 0))}</div>
@@ -1801,9 +1821,48 @@ const PrintTemplate = forwardRef(({
                 </>
             ) : (
                 <div style={{ borderTop: '1px solid #000', paddingTop: '8px' }}>
-                    <div style={{ ...summaryLabelStyle, fontSize: '18px', fontWeight: 'bold' }}>
-                        Số tiền {type === 'Receipt' ? 'thu' : 'chi'}: {formatNumber(data.amount || safeTotalAmount)}
+                    <div style={{ ...summaryRowStyle, marginBottom: '6px' }}>
+                        <div style={mainTotalLabelStyle}>
+                            {type === 'Receipt' ? 'Số tiền thu:' : 'Số tiền chi:'}
+                        </div>
+                        <div style={mainTotalValueStyle}>
+                            {formatNumber(data.amount !== undefined && data.amount !== null ? data.amount : safeTotalAmount)}
+                        </div>
                     </div>
+                    {((showOldDebt !== undefined ? !!showOldDebt : s.invoice_show_old_debt === 'true') && (data.old_debt !== undefined && data.old_debt !== null && Number(data.old_debt) !== 0)) && (
+                        <div style={summaryRowStyle}>
+                            <div style={summaryLabelStyle}>Nợ cũ:</div>
+                            <div style={summaryValueStyle}>{formatNumber(data.old_debt)}</div>
+                        </div>
+                    )}
+                    {((showPayment !== undefined ? !!showPayment : s.invoice_show_paid === 'true') && (data.amount_paid || data.paid) && Number(data.amount_paid || data.paid) !== Number(data.amount || safeTotalAmount)) && (
+                        <div style={summaryRowStyle}>
+                            <div style={summaryLabelStyle}>Đã thanh toán:</div>
+                            <div style={summaryValueStyle}>{formatNumber(data.amount_paid || data.paid)}</div>
+                        </div>
+                    )}
+                    {(() => {
+                        const newDebt = data.new_debt !== undefined && data.new_debt !== null 
+                            ? Number(data.new_debt)
+                            : (data.old_debt !== undefined && data.old_debt !== null 
+                                ? (type === 'Receipt' ? Number(data.old_debt) - Number(data.amount || safeTotalAmount || 0) : Number(data.old_debt) + Number(data.amount || safeTotalAmount || 0))
+                                : null);
+                        
+                        const shouldShowRemaining = showRemaining !== undefined ? !!showRemaining : s.invoice_show_balance === 'true';
+                        if (shouldShowRemaining && newDebt !== null && (data.partner_id || data.partner_name || data.old_debt !== undefined)) {
+                            return (
+                                <div style={{ ...summaryRowStyle, marginTop: '5px', borderTop: '1px double #000', paddingTop: '5px' }}>
+                                    <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size || 14}px`, fontWeight: '900' }}>
+                                        Dư nợ cuối:
+                                    </div>
+                                    <div style={{ ...summaryValueStyle, fontSize: `${s.invoice_total_balance_size || 14}px`, fontWeight: '900' }}>
+                                        {formatNumber(newDebt)}
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                 </div>
             )}
         </div>
@@ -1907,6 +1966,7 @@ const PrintTemplate = forwardRef(({
 
     return (
         <>
+            {fontScopeStyle}
             {pageStyle}
             {customFontFaceStyle}
             <div ref={ref} id="print-template" className={isPreview ? "preview-mode" : "only-print"} style={(!isThermal && (data.details || []).length > (s.paper_size === 'A5' ? 12 : (s.paper_size === 'A6' ? 6 : 22))) ? { width: '100%', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center' } : containerStyle}>

@@ -215,6 +215,7 @@ const StockConversion = lazy(() => import('./pages/LyangPOS/StockConversion'));
 const Unauthorized = lazy(() => import('./pages/LyangPOS/Unauthorized'));
 const RoleManager = lazy(() => import('./pages/LyangPOS/RoleManager'));
 const Gaming = lazy(() => import('./pages/LyangPOS/Gaming'));
+const TypingPractice = lazy(() => import('./pages/LyangPOS/TypingPractice'));
 const AccountingInventory = lazy(() => import('./pages/LyangPOS/AccountingInventory'));
 const POSWrapper = lazy(() => import('./pages/LyangPOS/POSWrapper'));
 const POSLite = lazy(() => import('./pages/LyangPOS_lite/poslite'));
@@ -454,6 +455,7 @@ const AppLayout = () => {
                 <Route path="/inventory/conversion" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><StockConversion /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/roles" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><RoleManager /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/gaming" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><Gaming /></PageWrapper></RoleProtectedRoute>} />
+                <Route path="/typing" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><TypingPractice /></PageWrapper></RoleProtectedRoute>} />
               </Routes>
             </AnimatePresence>
             )}

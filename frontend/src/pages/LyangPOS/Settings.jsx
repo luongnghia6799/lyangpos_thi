@@ -6,7 +6,7 @@ import {
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2
+    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -14,6 +14,8 @@ import ConfirmModal from '../../components/ConfirmModal';
 import PasswordConfirmModal from '../../components/PasswordConfirmModal';
 import CategoryManager from '../../components/CategoryManager';
 import SidebarManager from '../../components/SidebarManager';
+import GoogleFontPickerModal from '../../components/GoogleFontPickerModal';
+import { applyGlobalAppFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
@@ -54,11 +56,13 @@ export default function Settings() {
         feature_tax_calculator_enabled: localStorage.getItem('feature_tax_calculator_enabled') || DEFAULT_SETTINGS.feature_tax_calculator_enabled || 'false',
         pos_default_landing_page: localStorage.getItem('pos_default_landing_page') || DEFAULT_SETTINGS.pos_default_landing_page || 'dashboard',
         pos_typing_sound_enabled: localStorage.getItem('pos_typing_sound_enabled') || DEFAULT_SETTINGS.pos_typing_sound_enabled || 'true',
+        app_font_family: localStorage.getItem('app_font_family') || DEFAULT_SETTINGS.app_font_family || 'Be Vietnam Pro',
         sidebar_hidden_items: localStorage.getItem('sidebar_hidden_items') || '[]',
         repair_on_startup: 'false',
         ram_cleanup_auto_enabled: 'false',
         ram_cleanup_interval_minutes: '10',
     });
+    const [showAppFontModal, setShowAppFontModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [dbStats, setDbStats] = useState(null);
@@ -376,6 +380,14 @@ export default function Settings() {
                     localStorage.setItem('feature_accounting_enabled', 'true');
                 }
 
+                const localAppFont = localStorage.getItem('app_font_family');
+                if (localAppFont !== null) {
+                    combined.app_font_family = localAppFont;
+                } else if (combined.app_font_family) {
+                    localStorage.setItem('app_font_family', combined.app_font_family);
+                    applyGlobalAppFont(combined.app_font_family);
+                }
+
                 setSettings(prev => ({
                     ...prev,
                     ...combined
@@ -394,6 +406,11 @@ export default function Settings() {
         setLoading(true);
         setMessage('');
         try {
+            if (settings.app_font_family) {
+                localStorage.setItem('app_font_family', settings.app_font_family);
+                applyGlobalAppFont(settings.app_font_family);
+                window.dispatchEvent(new CustomEvent('app_font_changed', { detail: { font: settings.app_font_family } }));
+            }
             await axios.post('/api/settings', settings);
             setToast({ message: 'Đã lưu cấu hình thành công!', type: 'success' });
         } catch (err) {
@@ -1515,6 +1532,56 @@ export default function Settings() {
                                                     </div>
                                                 </div>
 
+                                                {/* Global App Font Settings Card - Perfectly consistent with System & Mascot */}
+                                                <div className="p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 space-y-3 text-left">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Type size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none flex items-center gap-1.5">
+                                                                    <span>Font chữ toàn hệ thống App</span>
+                                                                    <span className="text-[8px] font-black px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 rounded">150+ FONTS</span>
+                                                                </div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">
+                                                                    Áp dụng font chữ Google Fonts cho toàn bộ giao diện POS & App
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowAppFontModal(true)}
+                                                            className="px-3.5 py-2 bg-[#2d5016] dark:bg-emerald-600 text-white rounded-xl font-black text-[9.5px] uppercase tracking-wider shadow-sm hover:brightness-110 active:scale-95 transition-all shrink-0"
+                                                        >
+                                                            Kho font Tiếng Việt 🔍
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between pt-2 border-t border-emerald-900/5 dark:border-slate-700/50">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Đang áp dụng:</span>
+                                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-400 px-2 py-0.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-md">
+                                                                {settings.app_font_family || 'Be Vietnam Pro'}
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const defaultFont = 'Be Vietnam Pro';
+                                                                updateSetting('app_font_family', defaultFont);
+                                                                localStorage.setItem('app_font_family', defaultFont);
+                                                                applyGlobalAppFont(defaultFont);
+                                                                window.dispatchEvent(new CustomEvent('app_font_changed', { detail: { font: defaultFont } }));
+                                                                setToast({ message: 'Đã đặt lại font mặc định: Be Vietnam Pro', type: 'info' });
+                                                            }}
+                                                            className="text-[9px] font-bold text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 uppercase tracking-wider underline transition-colors"
+                                                        >
+                                                            Đặt lại mặc định
+                                                        </button>
+                                                    </div>
+                                                </div>
+
                                                 {/* Brands Directory Settings */}
                                                 <div className="p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/5 dark:border-slate-700/80 space-y-3 text-left">
                                                     <div className="flex items-center gap-2.5">
@@ -1757,6 +1824,21 @@ export default function Settings() {
                     message={passwordPrompt.message}
                     onConfirm={passwordPrompt.onConfirm}
                     onCancel={() => setPasswordPrompt(null)}
+                />
+            )}
+
+            {showAppFontModal && (
+                <GoogleFontPickerModal
+                    isOpen={showAppFontModal}
+                    onClose={() => setShowAppFontModal(false)}
+                    currentFont={settings.app_font_family}
+                    onSelectFont={(selectedFont) => {
+                        updateSetting('app_font_family', selectedFont);
+                        localStorage.setItem('app_font_family', selectedFont);
+                        applyGlobalAppFont(selectedFont);
+                        window.dispatchEvent(new CustomEvent('app_font_changed', { detail: { font: selectedFont } }));
+                        setToast({ message: `Đã áp dụng font ${selectedFont} cho toàn bộ app!`, type: 'success' });
+                    }}
                 />
             )}
             </div>

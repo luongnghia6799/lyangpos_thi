@@ -145,6 +145,7 @@ export const DEFAULT_SETTINGS = {
     invoice_hide_old_debt_on_cash: 'false',
     invoice_show_cash_given: 'true',
     ui_enable_smart_sorting: 'false',
+    app_font_family: 'Be Vietnam Pro', // Global UI font
     pos_default_landing_page: 'dashboard', // 'dashboard', 'pos'
     pos_typing_sound_enabled: 'true',
     pos_sound_theme_success: 'chime', // 'chime', 'cash_register', 'digital_pos', 'mario', 'subtle_wood'

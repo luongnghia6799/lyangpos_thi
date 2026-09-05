@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Gamepad2, Timer, RefreshCw, AlertTriangle, ArrowLeft, Lightbulb, Trash2, CheckCircle2, Play, Undo, Pause, Trophy, Volume2, VolumeX, RotateCw } from 'lucide-react';
+import { Gamepad2, Timer, RefreshCw, AlertTriangle, ArrowLeft, Lightbulb, Trash2, CheckCircle2, Play, Undo, Pause, Trophy, Volume2, VolumeX, RotateCw, Keyboard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
 
 // Web Audio API Synthesizer for premium retro feel
@@ -2857,6 +2858,7 @@ const getAudioCtx = () => {
 }
 
 export default function Gaming() {
+  const navigate = useNavigate();
   const [currentGame, setCurrentGame] = useState('sudoku'); // sudoku, tetris, bbtan
   const [gameState, setGameState] = useState('menu'); // menu, playing, won, lost
   const [difficulty, setDifficulty] = useState('hard'); // hard, very-hard
@@ -3355,6 +3357,17 @@ export default function Gaming() {
               }`}
             >
               BBTAN
+            </button>
+            <button
+              onClick={() => {
+                triggerSound('click');
+                navigate('/typing');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase rounded-xl transition-all text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/30"
+              title="Chuyển sang trang Luyện gõ phím"
+            >
+              <Keyboard size={12} />
+              Luyện Gõ Phím
             </button>
           </div>
 

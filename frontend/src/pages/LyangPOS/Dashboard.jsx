@@ -132,124 +132,7 @@ const getInitials = (name) => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// Premium Stat Card with Theme Gradient & Modern Styling
-const StatCard = memo(({ title, value, icon: Icon, gradient, trend, subtitle, details, delay = 0 }) => {
-    const shouldReduceMotion = useReducedMotion();
-    return (
-        <m.div
-            layout="position"
-            variants={itemVariants}
-            whileHover={shouldReduceMotion ? {} : { y: -4, scale: 1.01, transition: { duration: 0.25 } }}
-            className="relative overflow-hidden bg-transparent p-6 rounded-3xl border border-[#8b6f47]/20 dark:border-white/10 backdrop-blur-md shadow-none group h-full transition-all duration-300"
-        >
-            {/* Background Glow */}
-            <div className={`absolute -top-16 -right-16 w-52 h-52 bg-gradient-to-br ${gradient} opacity-10 dark:opacity-20 rounded-full blur-3xl group-hover:opacity-20 group-hover:scale-110 transition-all duration-500`} />
-            
-            <div className="relative z-10 flex flex-col h-full justify-between">
-                <div>
-                    <div className="flex items-center justify-between mb-4">
-                        <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${gradient} text-white shadow-xs group-hover:scale-105 transition-transform duration-300`}>
-                            <Icon size={22} strokeWidth={2.2} />
-                        </div>
-                        {trend !== undefined && (
-                            <m.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className={cn(
-                                    "px-2.5 py-1 rounded-full flex items-center gap-1 text-[10px] font-black tracking-tight",
-                                    trend >= 0 
-                                        ? "bg-[#2d5016]/10 text-[#2d5016] border border-[#2d5016]/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" 
-                                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                                )}
-                            >
-                                {trend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                {Math.abs(trend)}%
-                            </m.div>
-                        )}
-                    </div>
 
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
-                            {title}
-                        </p>
-                        <h3 className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight transition-colors min-h-[40px] flex items-center overflow-hidden">
-                            <AnimatePresence mode="wait">
-                                <m.span
-                                    key={value}
-                                    initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-                                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                                    exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-                                    transition={{ duration: 0.2 }}
-                                    className="inline-block"
-                                >
-                                    {value}
-                                </m.span>
-                            </AnimatePresence>
-                        </h3>
-                    </div>
-                </div>
- 
-                <div className="mt-4 pt-3.5 border-t border-[#8b6f47]/15 dark:border-white/5">
-                    {/* Breakdown Details */}
-                    {details && details.length > 0 ? (
-                        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                            {details.map((detail, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 opacity-90 hover:opacity-100 transition-opacity">
-                                    {detail.icon && <detail.icon size={11} className="text-[#2d5016] dark:text-emerald-400" />}
-                                    <span className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">{detail.label}:</span>
-                                    <span className="text-[11px] font-black text-[#2d5016] dark:text-[#e8dfd5] overflow-hidden inline-flex h-4 items-center">
-                                        <AnimatePresence mode="wait">
-                                            <m.span
-                                                key={detail.value}
-                                                initial={{ opacity: 0, y: 4, filter: "blur(1px)" }}
-                                                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                                                exit={{ opacity: 0, y: -4, filter: "blur(1px)" }}
-                                                transition={{ duration: 0.15 }}
-                                            >
-                                                {typeof detail.value === 'string' ? detail.value : formatCurrency(detail.value)}
-                                            </m.span>
-                                        </AnimatePresence>
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : subtitle ? (
-                        <div className="text-[11px] font-bold text-[#8b6f47]/80 dark:text-[#d4a574]/80 flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${gradient}`} />
-                            {subtitle}
-                        </div>
-                    ) : null}
-                </div>
-            </div>
-        </m.div>
-    );
-});
-
-// Mini Stat Card
-const MiniStatCard = memo(({ icon: Icon, label, value, color = "emerald", onClick }) => (
-    <m.div
-        layout
-        variants={itemVariants}
-        whileHover={{ y: -3, scale: 1.01 }}
-        onClick={onClick}
-        className={cn(
-            "flex items-center gap-4 p-4 bg-transparent border border-[#8b6f47]/20 dark:border-white/10 rounded-2xl shadow-none backdrop-blur-md transition-all",
-            onClick && "cursor-pointer hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40"
-        )}
-    >
-        <div className="p-3 rounded-xl bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 border border-[#2d5016]/20 dark:border-emerald-500/30 shadow-none shrink-0">
-            <Icon size={18} strokeWidth={2.2} />
-        </div>
-        <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.15em] mb-0.5 truncate">
-                {label}
-            </p>
-            <p className="text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] leading-tight truncate">
-                {value}
-            </p>
-        </div>
-    </m.div>
-));
 
 const getAvatarSrc = (url) => {
     if (!url || url === 'undefined' || url === 'null') return '';
@@ -1003,71 +886,87 @@ export default function Dashboard() {
                     </div>
                 </m.div>
 
-                {/* 2. Top Right Box: Filters & Info - Span 6 */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-6 flex flex-col justify-between gap-4">
-                    {/* Top Row: Weather & Clock */}
-                    <div className="flex gap-4 h-full">
-                        <ClockWidget />
-
-                        {/* Weather */}
-                        <div 
-                            onClick={handleSyncGPS} 
-                            className="flex-1 flex flex-col justify-center bg-transparent border border-[#8b6f47]/20 dark:border-white/10 rounded-3xl shadow-none p-5 backdrop-blur-md cursor-pointer hover:border-[#2d5016]/40 transition-all group relative overflow-hidden"
-                            title="Click để đồng bộ vị trí GPS"
-                        >
-                            <div className="absolute -left-4 -bottom-4 opacity-[0.03] dark:opacity-[0.05] group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 pointer-events-none text-[#2d5016] dark:text-emerald-400">
-                                <weather.icon size={100} />
+                {/* 2. Top Right Box: Filters & Info - Integrated Panorama Widgets */}
+                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-6 flex flex-col justify-between gap-3.5">
+                    {/* Top Row: Integrated Clock & Weather Strip */}
+                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                        {/* Clock Widget with Watermark */}
+                        <div className="relative p-5 flex flex-col justify-center overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                            <div className="absolute -right-3 -bottom-3 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+                                <Clock size={90} strokeWidth={1.8} />
                             </div>
-                            <div className="flex justify-between items-center mb-1 relative z-10">
-                                <div className="p-2 rounded-2xl bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 border border-[#2d5016]/20 dark:border-emerald-500/30 group-hover:scale-110 transition-transform">
-                                    <weather.icon size={26} strokeWidth={2.2} />
+                            <div className="relative z-10 flex flex-col">
+                                <div className="text-4xl lg:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums leading-none mb-2">
+                                    {new Date().toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSyncGPS();
-                                        }}
-                                        disabled={isWeatherLoading}
-                                        className="text-[9px] font-black text-[#2d5016] dark:text-emerald-400 bg-[#2d5016]/10 border border-[#2d5016]/20 hover:bg-[#2d5016] hover:text-white active:scale-95 px-2.5 py-1.5 rounded-full flex items-center gap-1 transition-all relative z-20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                        title="Định vị vị trí hiện tại"
-                                    >
-                                        {isWeatherLoading ? (
-                                            <Loader2 size={10} className="animate-spin" />
-                                        ) : (
-                                            <MapPin size={10} />
-                                        )}
-                                        {isWeatherLoading ? 'ĐANG LẤY VỊ TRÍ...' : 'ĐỊNH VỊ'}
-                                    </button>
-                                    <span className="text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight">
-                                        {weather.temp}°
+                                <div className="flex items-center gap-2 text-[#8b6f47] dark:text-[#d4a574] font-black text-[9.5px] uppercase tracking-wider">
+                                    <Calendar size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
+                                    <span className="truncate">
+                                        {new Date().toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                        <span className="mx-1.5 opacity-40">•</span>
+                                        <span className="text-[#2d5016] dark:text-emerald-400">
+                                            ÂL {Lunar.fromDate(new Date()).getDay()}/{Lunar.fromDate(new Date()).getMonth()}
+                                        </span>
                                     </span>
                                 </div>
                             </div>
-                            <div className="text-[9px] sm:text-[10px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-wider mt-1 relative z-10 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                        </div>
+
+                        {/* Weather Widget with Watermark */}
+                        <div 
+                            onClick={handleSyncGPS} 
+                            className="relative p-5 flex flex-col justify-center overflow-hidden group cursor-pointer hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors"
+                            title="Click để đồng bộ vị trí GPS"
+                        >
+                            <div className="absolute -right-3 -bottom-3 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+                                <weather.icon size={90} strokeWidth={1.8} />
+                            </div>
+                            <div className="relative z-10 flex items-center justify-between mb-1.5">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSyncGPS();
+                                    }}
+                                    disabled={isWeatherLoading}
+                                    className="text-[9px] font-black text-[#2d5016] dark:text-emerald-400 bg-[#2d5016]/10 border border-[#2d5016]/20 hover:bg-[#2d5016] hover:text-white active:scale-95 px-2.5 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                                    title="Định vị vị trí hiện tại"
+                                >
+                                    {isWeatherLoading ? (
+                                        <Loader2 size={9} className="animate-spin" />
+                                    ) : (
+                                        <MapPin size={9} />
+                                    )}
+                                    {isWeatherLoading ? 'ĐANG ĐỊNH VỊ...' : 'ĐỊNH VỊ'}
+                                </button>
+                                <span className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none">
+                                    {weather.temp}°
+                                </span>
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-wider relative z-10 flex items-center gap-2">
                                 <span 
                                     onClick={handleEditLocation} 
-                                    className="hover:text-[#2d5016] dark:hover:text-emerald-300 cursor-pointer flex items-center gap-1 group/city bg-[#2d5016]/5 hover:bg-[#2d5016]/10 px-2 py-0.5 rounded-md transition-all inline-flex max-w-full"
+                                    className="hover:text-[#2d5016] dark:hover:text-emerald-300 cursor-pointer flex items-center gap-1 group/city bg-[#2d5016]/5 hover:bg-[#2d5016]/10 px-1.5 py-0.5 rounded transition-all truncate max-w-[130px]"
                                     title="Click để nhập địa điểm thủ công"
                                 >
                                     <span className="truncate">{weather.city}</span>
-                                    <Edit size={10} className="opacity-60 group-hover/city:opacity-100 transition-opacity shrink-0" />
+                                    <Edit size={9} className="opacity-60 group-hover/city:opacity-100 transition-opacity shrink-0" />
                                 </span>
-                                <span className="hidden sm:inline opacity-40">•</span>
-                                <span className="text-[#2d5016] dark:text-emerald-400">{weather.desc}</span>
+                                <span className="opacity-40">•</span>
+                                <span className="text-[#2d5016] dark:text-emerald-400 truncate">{weather.desc}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Filter & IP Row */}
-                    <div className="bg-transparent border border-[#8b6f47]/20 dark:border-white/10 px-5 py-4 rounded-3xl shadow-none backdrop-blur-md flex flex-wrap lg:flex-nowrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 rounded-xl border border-[#2d5016]/20">
-                                <Calendar size={18} />
-                            </div>
-                            <div className="flex flex-wrap gap-2">
+                    {/* Filter & IP Row - Seamless Integrated Strip */}
+                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl px-5 py-3 rounded-[1.8rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] flex flex-wrap lg:flex-nowrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider flex items-center gap-1 shrink-0">
+                                <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
+                                Lọc:
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
                                 <CustomSelect
-                                    className="min-w-[80px]"
+                                    className="min-w-[75px]"
                                     value={filters.day}
                                     onChange={(e) => handleFilterChange({ target: { name: 'day', value: e.target.value } })}
                                     options={[
@@ -1079,7 +978,7 @@ export default function Dashboard() {
                                     ]}
                                 />
                                 <CustomSelect
-                                    className="min-w-[90px]"
+                                    className="min-w-[85px]"
                                     value={filters.month}
                                     onChange={(e) => handleFilterChange({ target: { name: 'month', value: e.target.value } })}
                                     options={[
@@ -1091,7 +990,7 @@ export default function Dashboard() {
                                     ]}
                                 />
                                 <CustomSelect
-                                    className="min-w-[80px]"
+                                    className="min-w-[78px]"
                                     value={filters.year}
                                     onChange={(e) => handleFilterChange({ target: { name: 'year', value: e.target.value } })}
                                     options={[
@@ -1102,180 +1001,412 @@ export default function Dashboard() {
                             </div>
                         </div>
                         {remoteInfo && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-[#2d5016]/10 rounded-xl text-[10px] font-black text-[#2d5016] dark:text-emerald-400 border border-[#2d5016]/20">
-                                <Activity size={14} />
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-xl text-[9.5px] font-black text-[#2d5016] dark:text-emerald-400 border border-[#2d5016]/20 shrink-0">
+                                <Activity size={12} />
                                 {remoteInfo.ip}:{remoteInfo.port}
                             </div>
                         )}
                     </div>
                 </m.div>
 
-                {/* 3. Main Stats - Full Width */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    <StatCard title="Doanh thu" value={hideStats ? "********" : formatCurrency(stats.revenue)} icon={Wheat} gradient="from-[#2d5016] to-[#1e3a10]" trend={stats.revenue_trend} details={[ { label: 'Tiền mặt', value: hideStats ? "********" : (stats.cash_revenue || 0), icon: Wallet }, { label: 'Công nợ', value: hideStats ? "********" : (stats.debt_revenue || 0), icon: Users } ]} />
-                    <StatCard title="Lợi nhuận" value={hideStats ? "********" : formatCurrency(stats.profit)} icon={Coins} gradient="from-[#8b6f47] to-[#5c4728]" trend={stats.profit_trend} subtitle="Sau khi trừ vốn nhập" />
-                    <StatCard title="Tổng nợ thu" value={hideStats ? "********" : formatCurrency(Math.abs(stats.customer_debt))} icon={Users} gradient="from-[#3d6e1e] to-[#2d5016]" subtitle="Khách hàng còn nợ" />
-                    <StatCard title="Tổng nợ trả" value={hideStats ? "********" : formatCurrency(Math.abs(stats.supplier_debt))} icon={Truck} gradient="from-rose-600 to-rose-800" subtitle="Nợ nhà cung cấp" />
-                </m.div>
-
-                {/* 4. Quick Metrics - Full Width */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    <MiniStatCard icon={Package} label="Sắp hết hạn" value={stats.expiry?.near || 0} onClick={() => navigate('/products?filter=near_expiry')} />
-                    <MiniStatCard icon={AlertCircle} label="Đã quá hạn" value={stats.expiry?.expired || 0} onClick={() => navigate('/products?filter=expired')} />
-                    <MiniStatCard icon={ShoppingBag} label="Cần nhập ngay" value={stats.low_stock || 0} onClick={() => navigate('/products?filter=warning')} />
-                    <MiniStatCard icon={Target} label="Tỷ suất LN" value={stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'} />
-                </m.div>
-
-                {/* 5. Charts - Bar Span 8, Pie Span 4 */}
-                <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-8 bg-transparent p-6 lg:p-8 rounded-3xl border border-[#8b6f47]/20 dark:border-white/10 shadow-none backdrop-blur-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#2d5016]/5 rounded-full blur-3xl -mr-32 -mt-32" />
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 relative z-10 gap-4">
-                        <div>
-                            <h3 className="text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-3">
-                                <BarChart3 size={24} className="text-[#2d5016] dark:text-emerald-400" />
-                                Hiệu suất 7 ngày qua
-                            </h3>
-                            <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-1 uppercase">Hiệu suất Doanh thu & Lợi nhuận</p>
-                        </div>
-                        <div className="flex gap-3">
-                             <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2d5016]/10 rounded-full border border-[#2d5016]/20 text-[9px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
-                                <div className="w-2 h-2 rounded-full bg-[#2d5016] dark:bg-emerald-400 shadow-none" /> Doanh thu
-                             </div>
-                             <div className="flex items-center gap-2 px-3 py-1.5 bg-[#8b6f47]/15 rounded-full border border-[#8b6f47]/25 text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                <div className="w-2 h-2 rounded-full bg-[#8b6f47] dark:bg-[#d4a574] shadow-none" /> Lợi nhuận
-                             </div>
-                        </div>
-                    </div>
-                    
-                    <div className="h-[300px] relative z-10">
-                        <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
-                    </div>
-                </m.div>
-
-                <m.div layout variants={itemVariants} className="md:col-span-12 xl:col-span-4 bg-transparent p-6 lg:p-8 rounded-3xl border border-[#8b6f47]/20 dark:border-white/10 shadow-none backdrop-blur-md relative overflow-hidden flex flex-col">
-                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#2d5016]/5 rounded-full blur-3xl -ml-24 -mb-24" />
-                    <div className="flex items-center justify-between mb-8 relative z-10">
-                        <div>
-                            <h3 className="text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-3">
-                                <PieChart size={24} className="text-[#2d5016] dark:text-emerald-400" />
-                                Cân bằng nợ
-                            </h3>
-                            <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-1 uppercase">Tỷ lệ Phải Thu / Phải Trả</p>
-                        </div>
-                    </div>
-                    <div className="flex-1 min-h-[250px] flex items-center justify-center relative z-10">
-                        <Doughnut options={doughnutOptions} data={debtChartData} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                             <div className="p-4 rounded-full bg-transparent backdrop-blur-md border-transparent shadow-none flex flex-col items-center justify-center w-28 h-28 transform transition-transform hover:scale-105">
-                                <span className="text-[8px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-[0.2em] mb-1">Tỷ lệ nợ</span>
-                                <span className="text-2xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none">
-                                    {Math.round((Math.abs(stats.customer_debt) / (Math.max(1, Math.abs(stats.customer_debt) + Math.abs(stats.supplier_debt)))) * 100)}%
-                                </span>
-                                <span className="text-[8px] font-black uppercase tracking-widest text-[#2d5016] dark:text-emerald-400 mt-1">Phải thu</span>
-                             </div>
-                        </div>
-                    </div>
-                </m.div>
-
-                {/* 6. Debt Lists - Span 6 each */}
-                <m.div layout variants={itemVariants} className="md:col-span-12 lg:col-span-6 bg-transparent p-6 lg:p-8 rounded-3xl shadow-none border border-[#8b6f47]/20 dark:border-white/10 backdrop-blur-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#2d5016]/5 rounded-full blur-2xl" />
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 border border-[#2d5016]/20 dark:border-emerald-500/30 rounded-2xl">
-                                <Users size={20} />
+                {/* 3. Main Stats - Modern Integrated Panorama Strip Layout with Watermark Icons */}
+                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12">
+                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)]">
+                        {/* 4 Primary Key Indicators Row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                            
+                            {/* 1. Doanh thu */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                {/* Large Watermark Icon Inset in Card Background */}
+                                <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.09] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                                    <Wheat size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
+                                            Doanh thu
+                                        </span>
+                                        {stats.revenue_trend !== undefined && (
+                                            <span className={cn(
+                                                "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight",
+                                                stats.revenue_trend >= 0 
+                                                    ? "bg-[#2d5016]/10 text-[#2d5016] border border-[#2d5016]/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" 
+                                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                            )}>
+                                                {stats.revenue_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                                {Math.abs(stats.revenue_trend)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-rev" : "visible-rev"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(stats.revenue)}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]">
+                                        <span className="flex items-center gap-1">
+                                            <Wallet size={11} className="text-[#2d5016] dark:text-emerald-400" />
+                                            Tiền mặt: <strong className="text-[#2d5016] dark:text-[#e8dfd5] font-black">{hideStats ? "••••••" : formatCurrency(stats.cash_revenue || 0)}</strong>
+                                        </span>
+                                        <span className="opacity-40">•</span>
+                                        <span className="flex items-center gap-1">
+                                            <Users size={11} className="text-[#8b6f47] dark:text-[#d4a574]" />
+                                            Công nợ: <strong className="text-[#2d5016] dark:text-[#e8dfd5] font-black">{hideStats ? "••••••" : formatCurrency(stats.debt_revenue || 0)}</strong>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
-                                    Khách hàng nợ
+
+                            {/* 2. Lợi nhuận */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                <div className="absolute -right-4 -bottom-4 text-[#8b6f47]/[0.09] dark:text-[#d4a574]/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                                    <Coins size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
+                                            Lợi nhuận
+                                        </span>
+                                        {stats.profit_trend !== undefined && (
+                                            <span className={cn(
+                                                "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight",
+                                                stats.profit_trend >= 0 
+                                                    ? "bg-[#2d5016]/10 text-[#2d5016] border border-[#2d5016]/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" 
+                                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                            )}>
+                                                {stats.profit_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                                {Math.abs(stats.profit_trend)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-prof" : "visible-prof"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(stats.profit)}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" />
+                                        <span>Sau khi trừ vốn nhập</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. Tổng nợ thu */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.09] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                                    <Users size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
+                                            Tổng nợ thu
+                                        </span>
+                                    </div>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-debt" : "visible-debt"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.customer_debt))}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400" />
+                                        <span>Khách hàng còn nợ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 4. Tổng nợ trả */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                <div className="absolute -right-4 -bottom-4 text-rose-500/[0.08] dark:text-rose-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                                    <Truck size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
+                                            Tổng nợ trả
+                                        </span>
+                                    </div>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-supp" : "visible-supp"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.supplier_debt))}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-rose-600/80 dark:text-rose-400/80">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                        <span>Nợ nhà cung cấp</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* Secondary Indicators Strip with Watermark Details */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.04] dark:bg-white/[0.02] divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                            
+                            <div 
+                                onClick={() => navigate('/products?filter=near_expiry')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-[#8b6f47]/10 dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-[#8b6f47]/[0.08] dark:text-white/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <Package size={54} strokeWidth={1.5} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Sắp hết hạn</p>
+                                    <p className="text-xl font-black text-[#2d5016] dark:text-[#e8dfd5] leading-tight">{stats.expiry?.near || 0}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                onClick={() => navigate('/products?filter=expired')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-[#8b6f47]/10 dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-rose-500/[0.08] dark:text-rose-400/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <AlertCircle size={54} strokeWidth={1.5} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Đã quá hạn</p>
+                                    <p className="text-xl font-black text-rose-600 dark:text-rose-400 leading-tight">{stats.expiry?.expired || 0}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                onClick={() => navigate('/products?filter=warning')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-[#8b6f47]/10 dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-[#8b6f47]/[0.08] dark:text-white/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <ShoppingBag size={54} strokeWidth={1.5} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Cần nhập ngay</p>
+                                    <p className="text-xl font-black text-[#2d5016] dark:text-[#e8dfd5] leading-tight">{stats.low_stock || 0}</p>
+                                </div>
+                            </div>
+
+                            <div className="relative px-6 py-4 flex items-center justify-between group overflow-hidden">
+                                <div className="absolute -right-2 -bottom-2 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <Target size={54} strokeWidth={1.5} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Tỷ suất LN</p>
+                                    <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+                                        {stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'}
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </m.div>
+
+                {/* 5. Charts - Seamless Panorama Strip with Watermark Backgrounds */}
+                <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
+                    <div className="grid grid-cols-1 xl:grid-cols-12 overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y xl:divide-y-0 xl:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                        
+                        {/* 5.1 Bar Chart Span 8 */}
+                        <div className="xl:col-span-8 p-6 lg:p-8 relative overflow-hidden group">
+                            {/* Watermark Icon */}
+                            <div className="absolute -right-6 -bottom-6 text-[#2d5016]/[0.06] dark:text-emerald-400/[0.05] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                                <BarChart3 size={200} strokeWidth={1.5} />
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
+                                <div>
+                                    <h3 className="text-base lg:text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-2.5">
+                                        Hiệu suất 7 ngày qua
+                                    </h3>
+                                    <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
+                                        Doanh thu & Lợi nhuận
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-full border border-[#2d5016]/20 text-[9px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400" /> Doanh thu
+                                     </div>
+                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-[#8b6f47]/15 rounded-full border border-[#8b6f47]/25 text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" /> Lợi nhuận
+                                     </div>
+                                </div>
+                            </div>
+                            
+                            <div className="h-[290px] relative z-10">
+                                <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
+                            </div>
+                        </div>
+
+                        {/* 5.2 Debt Doughnut Chart Span 4 */}
+                        <div className="xl:col-span-4 p-6 lg:p-8 relative overflow-hidden flex flex-col justify-between group">
+                            {/* Watermark Icon */}
+                            <div className="absolute -right-6 -bottom-6 text-[#8b6f47]/[0.06] dark:text-[#d4a574]/[0.05] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                                <PieChart size={180} strokeWidth={1.5} />
+                            </div>
+
+                            <div className="mb-4 relative z-10">
+                                <h3 className="text-base lg:text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
+                                    Cân bằng nợ
                                 </h3>
-                                <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-1">Top 10 nợ cao nhất</p>
+                                <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
+                                    Tỷ lệ Phải Thu / Phải Trả
+                                </p>
+                            </div>
+
+                            <div className="flex-1 min-h-[220px] flex items-center justify-center relative z-10">
+                                <Doughnut options={doughnutOptions} data={debtChartData} />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                     <div className="flex flex-col items-center justify-center">
+                                        <span className="text-[8px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-[0.2em]">Tỷ lệ nợ</span>
+                                        <span className="text-2xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none my-0.5">
+                                            {Math.round((Math.abs(stats.customer_debt) / (Math.max(1, Math.abs(stats.customer_debt) + Math.abs(stats.supplier_debt)))) * 100)}%
+                                        </span>
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-[#2d5016] dark:text-emerald-400">Phải thu</span>
+                                     </div>
+                                </div>
                             </div>
                         </div>
-                        <Link to="/partners" className="px-4 py-2 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 border border-[#2d5016]/20 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-[#2d5016] hover:text-white transition-colors shrink-0">
-                            Chi tiết
-                        </Link>
-                    </div>
-                    <div className="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
-                        {stats.customer_debt_list?.length > 0 ? (
-                            stats.customer_debt_list.slice(0, 10).map((p, idx) => (
-                                <m.div
-                                    key={p.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.04 }}
-                                    whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
-                                    className="flex items-center justify-between p-3.5 bg-transparent rounded-2xl border border-[#8b6f47]/15 dark:border-white/10 hover:border-[#2d5016]/40 transition-all shadow-none group"
-                                >
-                                    <div className="flex items-center gap-4 min-w-0">
-                                        <div className="w-10 h-10 rounded-xl bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 font-black text-xs border border-[#2d5016]/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                            {getInitials(p.name)}
-                                        </div>
-                                        <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <span className="font-black text-[#2d5016] dark:text-emerald-400 text-sm tracking-tight">{formatDebt(p.balance)}</span>
-                                        <span className="text-[10px] font-black w-6 h-6 flex items-center justify-center bg-[#8b6f47]/10 text-[#8b6f47] dark:bg-white/10 dark:text-[#d4a574] rounded-lg">#{idx + 1}</span>
-                                    </div>
-                                </m.div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-16 opacity-50">
-                                <Users size={40} className="text-[#2d5016] mb-4 opacity-50" />
-                                <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Không có công nợ</p>
-                            </div>
-                        )}
+
                     </div>
                 </m.div>
 
-                <m.div layout variants={itemVariants} className="md:col-span-12 lg:col-span-6 bg-transparent p-6 lg:p-8 rounded-3xl shadow-none border border-[#8b6f47]/20 dark:border-white/10 backdrop-blur-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl" />
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 border border-rose-500/20 rounded-2xl">
-                                <Truck size={20} />
+                {/* 6. Debt Lists - Seamless Panorama Dual Panel with Watermark Icons */}
+                <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y lg:divide-y-0 lg:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                        
+                        {/* 6.1 Khách hàng nợ */}
+                        <div className="p-6 lg:p-8 relative overflow-hidden group">
+                            {/* Watermark Icon */}
+                            <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.06] dark:text-emerald-400/[0.05] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                                <Users size={180} strokeWidth={1.5} />
                             </div>
-                            <div>
-                                <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
-                                    Nợ nhà cung cấp
-                                </h3>
-                                <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-1">Cần thanh toán</p>
+
+                            <div className="flex items-center justify-between gap-4 mb-5 relative z-10">
+                                <div>
+                                    <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
+                                        Khách hàng nợ
+                                    </h3>
+                                    <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-0.5">Top 10 nợ cao nhất</p>
+                                </div>
+                                <Link to="/partners" className="px-3.5 py-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 border border-[#2d5016]/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-[#2d5016] hover:text-white transition-colors shrink-0">
+                                    Chi tiết ➔
+                                </Link>
+                            </div>
+
+                            <div className="space-y-2.5 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
+                                {stats.customer_debt_list?.length > 0 ? (
+                                    stats.customer_debt_list.slice(0, 10).map((p, idx) => (
+                                        <m.div
+                                            key={p.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.03 }}
+                                            whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                            className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/[0.03] rounded-2xl border border-[#8b6f47]/15 dark:border-white/10 hover:border-[#2d5016]/40 transition-all shadow-none group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 font-black text-xs border border-[#2d5016]/20 flex items-center justify-center shrink-0">
+                                                    {getInitials(p.name)}
+                                                </div>
+                                                <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="font-black text-[#2d5016] dark:text-emerald-400 text-sm tracking-tight">{formatDebt(p.balance)}</span>
+                                                <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center bg-[#8b6f47]/10 text-[#8b6f47] dark:bg-white/10 dark:text-[#d4a574] rounded-md">#{idx + 1}</span>
+                                            </div>
+                                        </m.div>
+                                    ))
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 opacity-50">
+                                        <Users size={36} className="text-[#2d5016] mb-2 opacity-50" />
+                                        <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Không có công nợ</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <Link to="/partners" className="px-4 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition-colors shrink-0">
-                            Chi tiết
-                        </Link>
-                    </div>
-                    <div className="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
-                        {stats.supplier_debt_list?.length > 0 ? (
-                            stats.supplier_debt_list.slice(0, 10).map((p, idx) => (
-                                <m.div
-                                    key={p.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.04 }}
-                                    whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
-                                    className="flex items-center justify-between p-3.5 bg-transparent rounded-2xl border border-[#8b6f47]/15 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-none group"
-                                >
-                                    <div className="flex items-center gap-4 min-w-0">
-                                        <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 font-black text-xs border border-rose-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                            {getInitials(p.name)}
-                                        </div>
-                                        <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <span className="font-black text-rose-600 dark:text-rose-400 text-sm tracking-tight">{formatDebt(p.balance)}</span>
-                                        <span className="text-[10px] font-black w-6 h-6 flex items-center justify-center bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg">#{idx + 1}</span>
-                                    </div>
-                                </m.div>
-                            ))
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-16 opacity-50">
-                                <Truck size={40} className="text-rose-500 mb-4 opacity-50" />
-                                <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Chưa có nợ</p>
+
+                        {/* 6.2 Nợ nhà cung cấp */}
+                        <div className="p-6 lg:p-8 relative overflow-hidden group">
+                            {/* Watermark Icon */}
+                            <div className="absolute -right-4 -bottom-4 text-rose-500/[0.06] dark:text-rose-400/[0.05] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                                <Truck size={180} strokeWidth={1.5} />
                             </div>
-                        )}
+
+                            <div className="flex items-center justify-between gap-4 mb-5 relative z-10">
+                                <div>
+                                    <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
+                                        Nợ nhà cung cấp
+                                    </h3>
+                                    <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-0.5">Cần thanh toán</p>
+                                </div>
+                                <Link to="/partners" className="px-3.5 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition-colors shrink-0">
+                                    Chi tiết ➔
+                                </Link>
+                            </div>
+
+                            <div className="space-y-2.5 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
+                                {stats.supplier_debt_list?.length > 0 ? (
+                                    stats.supplier_debt_list.slice(0, 10).map((p, idx) => (
+                                        <m.div
+                                            key={p.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.03 }}
+                                            whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                            className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/[0.03] rounded-2xl border border-[#8b6f47]/15 dark:border-white/10 hover:border-rose-500/40 transition-all shadow-none group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 font-black text-xs border border-rose-500/20 flex items-center justify-center shrink-0">
+                                                    {getInitials(p.name)}
+                                                </div>
+                                                <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="font-black text-rose-600 dark:text-rose-400 text-sm tracking-tight">{formatDebt(p.balance)}</span>
+                                                <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md">#{idx + 1}</span>
+                                            </div>
+                                        </m.div>
+                                    ))
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 opacity-50">
+                                        <Truck size={36} className="text-rose-500 mb-2 opacity-50" />
+                                        <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Chưa có nợ</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                     </div>
                 </m.div>
             </div>

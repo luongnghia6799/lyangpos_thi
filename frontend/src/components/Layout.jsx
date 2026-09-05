@@ -46,7 +46,10 @@ import {
     ArrowRight,
     FileText,
     Tv,
-    Scale
+    Scale,
+    Keyboard,
+    Sparkles,
+    Wrench
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
 
@@ -283,35 +286,58 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                     <Portal>
                         <m.div
                             ref={flyoutRef}
-                            initial={{ opacity: 0, x: 15, scale: 0.95 }}
+                            initial={{ opacity: 0, x: 12, scale: 0.96 }}
                             animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 10, scale: 0.98 }}
+                            exit={{ opacity: 0, x: 8, scale: 0.98 }}
+                            transition={{ type: "spring", stiffness: 350, damping: 28 }}
                             style={{
                                 position: 'fixed',
                                 ...getFlyoutPosition(),
-                                maxHeight: 'calc(100vh - 20px)'
+                                maxHeight: 'calc(100vh - 32px)'
                             }}
-                            className="w-80 pl-6 z-[2000] pointer-events-auto"
+                            className="w-72 pl-4 z-[2000] pointer-events-auto"
                             data-flyout="true"
                         >
-                            <div className="bg-transparent backdrop-blur-3xl rounded-[2rem] shadow-2xl shadow-emerald-900/10 border-2 border-emerald-500/20 p-4 overflow-hidden ring-1 ring-white/5 flex flex-col max-h-[85vh]">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
-
-                                <div className="relative z-10 mb-3 px-5 py-2.5 border-b border-emerald-500/10 dark:border-white/5 bg-emerald-500/5 dark:bg-white/5 rounded-2xl flex items-center justify-between shrink-0">
+                            <div 
+                                style={isLite ? {
+                                    backgroundColor: liteTheme.surface,
+                                    borderColor: liteTheme.border,
+                                    color: liteTheme.text
+                                } : {}}
+                                className={cn(
+                                    "backdrop-blur-2xl rounded-3xl p-3 overflow-hidden shadow-2xl flex flex-col max-h-[70vh] border transition-colors",
+                                    isLite 
+                                        ? "" 
+                                        : "bg-[#fbf8f2]/95 dark:bg-[#12110f]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/20"
+                                )}
+                            >
+                                {/* Header */}
+                                <div className={cn(
+                                    "relative z-10 mb-2 px-3.5 py-2.5 rounded-2xl flex items-center justify-between shrink-0 border",
+                                    isLite
+                                        ? "bg-black/5 dark:bg-white/5 border-transparent"
+                                        : "bg-[#2d5016]/5 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
+                                )}>
                                     <div>
-                                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-800/60 dark:text-emerald-400/80 leading-none">Danh mục</h3>
-                                        <p className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-widest mt-2">{item.label}</p>
+                                        <h3 className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
+                                            Danh mục
+                                        </h3>
+                                        <p className="text-[14px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
+                                            {item.label}
+                                        </p>
                                     </div>
                                     <m.button
                                         whileTap={{ scale: 0.9 }}
+                                        whileHover={{ scale: 1.1 }}
                                         onClick={() => setIsFlyoutOpen(false)}
-                                        className="p-1.5 rounded-full hover:bg-emerald-500/10 text-slate-400 hover:text-slate-800 dark:hover:text-white"
+                                        className="p-1 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors"
                                     >
-                                        <X size={14} />
+                                        <X size={15} />
                                     </m.button>
                                 </div>
 
-                                <div className="relative z-10 flex flex-col gap-1 overflow-y-auto no-scrollbar flex-1 pr-1">
+                                {/* Menu Item List with scroll */}
+                                <div className="relative z-10 flex flex-col gap-0.5 overflow-y-auto no-scrollbar flex-1 pr-0.5">
                                     {item.children.map(child => (
                                         <NavItemMemo
                                             key={child.path}
@@ -546,8 +572,10 @@ export default function Layout({ children }) {
             { label: "Phân quyền", path: "/roles" },
             { label: "Thiết kế hóa đơn", path: "/invoice-designer" },
             { label: "Chăm sóc & Quà tặng", path: "/customer-care" },
-            { label: "Máy tính", path: "/calculator" },
+            { label: "Luyện gõ phím", path: "/typing" },
             { label: "Giải trí", path: "/gaming" },
+            { label: "In Mã Vạch", path: "/barcodes" },
+            { label: "Máy tính", path: "/calculator" },
         ];
         
         const active = items.find(item => {
@@ -589,8 +617,10 @@ export default function Layout({ children }) {
             { path: "/roles", icon: ShieldCheck },
             { path: "/invoice-designer", icon: LayoutTemplate },
             { path: "/customer-care", icon: Package },
-            { path: "/calculator", icon: Calculator },
+            { path: "/typing", icon: Keyboard },
             { path: "/gaming", icon: Gamepad2 },
+            { path: "/barcodes", icon: QrCode },
+            { path: "/calculator", icon: Calculator },
         ];
 
         const active = items.find(item => {
@@ -1083,6 +1113,21 @@ export default function Layout({ children }) {
                 ]
             },
             {
+                label: "Quản lý",
+                icon: SettingsIcon,
+                roles: ['admin', 'accountant', 'user'],
+                children: [
+                    { icon: Package, label: "Danh mục", path: "/products", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Users, label: "Đối tác", path: "/partners", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Users, label: "Hồ sơ đối tác", path: "/partner-profile", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Coins, label: "Quỹ tiền", path: "/vouchers", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Landmark, label: "Tài khoản", path: "/banking", roles: ['admin', 'accountant', 'user'] },
+                    { icon: ShieldCheck, label: "Phân quyền", path: "/roles", roles: ['admin', 'accountant', 'user'] },
+                    { icon: LayoutTemplate, label: "Thiết kế hóa đơn", path: "/invoice-designer", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Package, label: "Chăm sóc & Quà tặng", path: "/customer-care", roles: ['admin', 'accountant', 'user'] },
+                ]
+            },
+            {
                 label: "Báo cáo",
                 icon: FileText,
                 roles: ['admin'],
@@ -1100,23 +1145,16 @@ export default function Layout({ children }) {
                 ]
             },
             {
-                label: "Quản lý",
-                icon: SettingsIcon,
+                label: "Tiện ích & Giải trí",
+                icon: Wrench,
                 roles: ['admin', 'accountant', 'user'],
                 children: [
-                    { icon: Package, label: "Danh mục", path: "/products", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Users, label: "Đối tác", path: "/partners", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Users, label: "Hồ sơ đối tác", path: "/partner-profile", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Coins, label: "Quỹ tiền", path: "/vouchers", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Landmark, label: "Tài khoản", path: "/banking", roles: ['admin', 'accountant', 'user'] },
-                    { icon: ShieldCheck, label: "Phân quyền", path: "/roles", roles: ['admin', 'accountant', 'user'] },
-                    { icon: LayoutTemplate, label: "Thiết kế hóa đơn", path: "/invoice-designer", roles: ['admin', 'accountant', 'user'] },
-                    { icon: Package, label: "Chăm sóc & Quà tặng", path: "/customer-care", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Keyboard, label: "Luyện gõ phím", path: "/typing", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Gamepad2, label: "Giải trí", path: "/gaming", roles: ['admin', 'accountant', 'user'] },
+                    { icon: QrCode, label: "In Mã Vạch", path: "/barcodes", roles: ['admin', 'accountant', 'user'] },
+                    { icon: Calculator, label: "Máy tính", path: "/calculator", roles: ['admin', 'accountant', 'user'] },
                 ]
             },
-            { icon: Calculator, label: "Máy tính", path: "/calculator", roles: ['admin', 'accountant', 'user'] },
-            { icon: Gamepad2, label: "Giải trí", path: "/gaming", roles: ['admin', 'accountant', 'user'] },
-            { icon: QrCode, label: "In Mã Vạch", path: "/barcodes", roles: ['admin', 'accountant', 'user'] },
         ];
 
         // Deep filter items based on user role and hidden paths

@@ -14,6 +14,8 @@ import Toast from '../../components/Toast';
 import { m, AnimatePresence } from 'framer-motion';
 import PrintTemplate from '../../components/PrintTemplate';
 import ConfirmModal from '../../components/ConfirmModal';
+import GoogleFontPickerModal from '../../components/GoogleFontPickerModal';
+import { loadGoogleFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 
 const MODULES = [
@@ -247,6 +249,17 @@ const InvoiceDesigner = () => {
     const [activeTab, setActiveTab] = useState('components'); // content, layout, fonts, table
     const [fonts, setFonts] = useState([]);
     const [zoomScale, setZoomScale] = useState(100);
+    const [showGoogleFontModal, setShowGoogleFontModal] = useState(false);
+
+    const handleGoogleFontSelect = (fontName) => {
+        const formatted = `'${fontName}', sans-serif`;
+        // Immediately load the Google font into document
+        loadGoogleFont(fontName);
+        // Clear custom upload font if user chooses google font
+        updateSetting('invoice_custom_font_name', '');
+        updateSetting('invoice_font_family', formatted);
+        setToast({ message: `Đã áp dụng Google Font: "${fontName}"`, type: 'success' });
+    };
 
     // Generate @font-face for all custom fonts
     const customFontsStyle = (
@@ -1272,26 +1285,67 @@ const InvoiceDesigner = () => {
 
                         {activeTab === 'fonts' && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                                <DesignerSection title="Font mặc định">
-                                    <select
-                                        className="w-full bg-transparent border border-border rounded-xl px-4 py-3 text-sm dark:text-white outline-none focus:border-[#4a7c59]"
-                                        value={settings.invoice_font_family}
-                                        onChange={(e) => updateSetting('invoice_font_family', e.target.value)}
+                                <DesignerSection title="Font chữ mẫu in">
+                                    {/* Nút mở kho Google Fonts đồng bộ theme */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowGoogleFontModal(true)}
+                                        className="w-full flex items-center justify-between p-3 bg-[#d4a574]/10 dark:bg-slate-800/20 hover:bg-[#d4a574]/15 dark:hover:bg-slate-800/30 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-slate-800 dark:text-slate-200 font-bold transition-all shadow-none group"
                                     >
-                                        <option value="'Be Vietnam Pro', sans-serif">Be Vietnam Pro (Google Font)</option>
-                                        <option value="Inter, sans-serif">Inter (Mặc định)</option>
-                                        <option value="'Roboto', sans-serif">Roboto</option>
-                                        <option value="'Courier New', Courier, monospace">Courier New (Máy in kim)</option>
-                                        <option value="Arial, sans-serif">Arial</option>
-                                        <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                                        {Array.isArray(fonts) && fonts.map(font => (
-                                            <option key={font} value={`'${font.split('.')[0]}', sans-serif`}>{font}</option>
-                                        ))}
-                                    </select>
-                                    <div className="mt-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white flex items-center justify-center shadow-none group-hover:scale-105 transition-transform">
+                                                <Type size={16} strokeWidth={2.5} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#d4a574] flex items-center gap-1.5">
+                                                    Kho Google Fonts Tiếng Việt
+                                                    <span className="text-[9px] font-black px-1.5 py-0.2 bg-[#8b6f47]/15 dark:bg-[#d4a574]/15 text-[#2d5016] dark:text-[#d4a574] rounded-md">60+ fonts</span>
+                                                </p>
+                                                <p className="text-[10px] text-[#8b6f47] dark:text-slate-400 font-medium">
+                                                    Đang dùng: <span className="font-black text-[#2d5016] dark:text-[#4ade80] font-mono">{settings.invoice_custom_font_name ? `File: ${settings.invoice_custom_font_name}` : (settings.invoice_font_family || 'Mặc định')}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white group-hover:brightness-110 transition-all shadow-none flex items-center gap-1">
+                                            Duyệt kho font 🔍
+                                        </span>
+                                    </button>
+
+                                    {/* Dropdown danh sách nhanh */}
+                                    <div className="mt-3">
+                                        <label className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574]/60 uppercase tracking-widest ml-1 block mb-1.5">
+                                            Hoặc chọn nhanh từ danh sách:
+                                        </label>
+                                        <select
+                                            className="w-full bg-transparent dark:bg-slate-900 border border-border rounded-xl px-4 py-2.5 text-xs font-black dark:text-white outline-none focus:border-[#4a7c59]"
+                                            value={settings.invoice_font_family}
+                                            onChange={(e) => {
+                                                updateSetting('invoice_custom_font_name', '');
+                                                updateSetting('invoice_font_family', e.target.value);
+                                            }}
+                                        >
+                                            <option value="'Be Vietnam Pro', sans-serif">Be Vietnam Pro (Google Font)</option>
+                                            <option value="Inter, sans-serif">Inter (Mặc định)</option>
+                                            <option value="'Roboto', sans-serif">Roboto (Google Font)</option>
+                                            <option value="'Montserrat', sans-serif">Montserrat (Google Font)</option>
+                                            <option value="'Open Sans', sans-serif">Open Sans (Google Font)</option>
+                                            <option value="'Playfair Display', serif">Playfair Display (Google Font - Có chân)</option>
+                                            <option value="'Nunito', sans-serif">Nunito (Google Font)</option>
+                                            <option value="'Quicksand', sans-serif">Quicksand (Google Font)</option>
+                                            <option value="'Dancing Script', cursive">Dancing Script (Google Font - Viết tay)</option>
+                                            <option value="'Courier New', Courier, monospace">Courier New (Máy in kim)</option>
+                                            <option value="Arial, sans-serif">Arial (Chuẩn hệ thống)</option>
+                                            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                            {Array.isArray(fonts) && fonts.map(font => (
+                                                <option key={font} value={`'${font.split('.')[0]}', sans-serif`}>📁 File tải lên: {font}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="mt-3">
                                         <input type="file" id="font-upload" className="hidden" accept=".ttf,.otf" onChange={handleFontUpload} />
-                                        <label htmlFor="font-upload" className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 hover:text-primary hover:border-primary transition-all cursor-pointer text-xs font-bold">
-                                            <Upload size={16} /> Tải font tùy chỉnh (.ttf, .otf)
+                                        <label htmlFor="font-upload" className="flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-[#8b6f47]/25 dark:border-slate-700 rounded-xl text-[#8b6f47] dark:text-slate-400 hover:text-[#2d5016] hover:border-[#2d5016] transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider">
+                                            <Upload size={14} /> Tải file font từ máy tính (.ttf, .otf)
                                         </label>
                                     </div>
                                 </DesignerSection>
@@ -1990,6 +2044,13 @@ const InvoiceDesigner = () => {
                     type={confirm.type}
                 />
             )}
+
+            <GoogleFontPickerModal
+                isOpen={showGoogleFontModal}
+                onClose={() => setShowGoogleFontModal(false)}
+                currentFont={settings.invoice_font_family}
+                onSelectFont={handleGoogleFontSelect}
+            />
         </div>
     );
 }

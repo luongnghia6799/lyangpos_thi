@@ -1,47 +1,47 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { m, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
-import { cn } from '../lib/utils';
+    import React, { useState, useRef, useEffect } from 'react';
+    import { createPortal } from 'react-dom';
+    import { m, AnimatePresence } from 'framer-motion';
+    import { ChevronDown } from 'lucide-react';
+    import { cn } from '../lib/utils';
 
-export default function CustomSelect({
-    value,
-    onChange,
-    options = [],
-    className,
-    dropdownClassName,
-    placeholder = "Chọn...",
-    disabled = false
-}) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [dropUp, setDropUp] = useState(false);
-    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
-    const containerRef = useRef(null);
-    
-    const selectedOption = options.find(opt => opt.value === value) || options.find(opt => String(opt.value) === String(value));
+    export default function CustomSelect({
+        value,
+        onChange,
+        options = [],
+        className,
+        dropdownClassName,
+        placeholder = "Chọn...",
+        disabled = false
+    }) {
+        const [isOpen, setIsOpen] = useState(false);
+        const [dropUp, setDropUp] = useState(false);
+        const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, bottom: 0 });
+        const containerRef = useRef(null);
+        
+        const selectedOption = options.find(opt => opt.value === value) || options.find(opt => String(opt.value) === String(value));
 
-    // Update coordinates when opened
-    useEffect(() => {
-        if (isOpen && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const shouldDropUp = spaceBelow < 240 && rect.top > 240;
-            setDropUp(shouldDropUp);
-            setCoords({
-                top: rect.bottom,
-                bottom: window.innerHeight - rect.top,
-                left: rect.left,
-                width: rect.width
-            });
-        }
-    }, [isOpen]);
+        // Update coordinates when opened
+        useEffect(() => {
+            if (isOpen && containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const shouldDropUp = spaceBelow < 240 && rect.top > 240;
+                setDropUp(shouldDropUp);
+                setCoords({
+                    top: rect.bottom,
+                    bottom: window.innerHeight - rect.top,
+                    left: rect.left,
+                    width: rect.width
+                });
+            }
+        }, [isOpen]);
 
-    // Handle scroll/resize to close dropdown so it doesn't float away
-    useEffect(() => {
-        if (!isOpen) return;
-        const handleScrollOrResize = (e) => {
-            // If the scroll target is inside the dropdown list itself, do not close it.
-            if (e && e.target && e.target.closest && e.target.closest('.custom-select-dropdown')) {
+        // Handle scroll/resize to close dropdown so it doesn't float away
+        useEffect(() => {
+            if (!isOpen) return;
+            const handleScrollOrResize = (e) => {
+                // If the scroll target is inside the dropdown list itself, do not close it.
+                if (e && e.target && e.target.closest && e.target.closest('.custom-select-dropdown')) {
                 return;
             }
             setIsOpen(false);
@@ -94,7 +94,10 @@ export default function CustomSelect({
                     disabled && "opacity-50 cursor-not-allowed"
                 )}
             >
-                <span className="truncate">
+                <span 
+                    className="truncate font-preview-sample"
+                    style={selectedOption?.fontFamily ? { fontFamily: selectedOption.fontFamily } : undefined}
+                >
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <ChevronDown 
@@ -133,8 +136,9 @@ export default function CustomSelect({
                                         key={option.value}
                                         type="button"
                                         onClick={() => handleSelect(option.value)}
+                                        style={option.fontFamily ? { fontFamily: option.fontFamily } : undefined}
                                         className={cn(
-                                            "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-700 dark:text-slate-200 hover:bg-[#2d5016]/10 hover:text-[#2d5016] dark:hover:bg-white/[0.08] dark:hover:text-emerald-400 cursor-pointer",
+                                            "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all text-slate-700 dark:text-slate-200 hover:bg-[#2d5016]/10 hover:text-[#2d5016] dark:hover:bg-white/[0.08] dark:hover:text-emerald-400 cursor-pointer font-preview-sample",
                                             isSelected && "bg-[#2d5016]/15 text-[#2d5016] dark:bg-emerald-950/60 dark:text-emerald-400 font-black"
                                         )}
                                     >

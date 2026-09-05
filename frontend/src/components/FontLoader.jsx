@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { loadGoogleFont, applyGlobalAppFont } from '../lib/googleFonts';
 
 export default function FontLoader() {
     const [fonts, setFonts] = useState([]);
@@ -21,18 +22,65 @@ export default function FontLoader() {
         return `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
     };
 
+    // 1. Initial application of saved app font
     useEffect(() => {
-        const fetchFonts = async () => {
+        const savedAppFont = localStorage.getItem('app_font_family') || 'Be Vietnam Pro';
+        applyGlobalAppFont(savedAppFont);
+
+        const handleFontChangeEvent = (e) => {
+            const fontName = e?.detail?.font || localStorage.getItem('app_font_family') || 'Be Vietnam Pro';
+            applyGlobalAppFont(fontName);
+        };
+
+        window.addEventListener('app_font_changed', handleFontChangeEvent);
+        window.addEventListener('storage', handleFontChangeEvent);
+
+        return () => {
+            window.removeEventListener('app_font_changed', handleFontChangeEvent);
+            window.removeEventListener('storage', handleFontChangeEvent);
+        };
+    }, []);
+
+    // 2. Fetch server settings, fonts & templates
+    useEffect(() => {
+        const fetchFontsAndTemplates = async () => {
             try {
-                const res = await axios.get('/api/fonts');
-                setFonts(res.data);
+                const [fontsRes, templatesRes, settingsRes] = await Promise.all([
+                    axios.get('/api/fonts').catch(() => ({ data: [] })),
+                    axios.get('/api/print-templates').catch(() => ({ data: [] })),
+                    axios.get('/api/settings').catch(() => ({ data: {} }))
+                ]);
+                
+                setFonts(fontsRes.data || []);
+                
+                // If server has app_font_family configured and local storage is empty, use it
+                if (settingsRes.data && settingsRes.data.app_font_family) {
+                    const localFont = localStorage.getItem('app_font_family');
+                    if (!localFont) {
+                        localStorage.setItem('app_font_family', settingsRes.data.app_font_family);
+                        applyGlobalAppFont(settingsRes.data.app_font_family);
+                    }
+                }
+
+                // Preload any Google Fonts set on print templates
+                if (templatesRes.data && Array.isArray(templatesRes.data)) {
+                    templatesRes.data.forEach(tpl => {
+                        try {
+                            const cfg = typeof tpl.config === 'string' ? JSON.parse(tpl.config) : tpl.config;
+                            if (cfg?.invoice_font_family) {
+                                loadGoogleFont(cfg.invoice_font_family);
+                            }
+                        } catch (e) {}
+                    });
+                }
             } catch (err) {
                 console.error("Error fetching fonts for loader", err);
             }
         };
-        fetchFonts();
+        fetchFontsAndTemplates();
     }, []);
 
+    // 3. Inject custom uploaded fonts
     useEffect(() => {
         if (fonts.length > 0) {
             const styleId = 'custom-fonts-style';

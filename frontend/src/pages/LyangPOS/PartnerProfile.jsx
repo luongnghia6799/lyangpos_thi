@@ -445,26 +445,6 @@ export default function PartnerProfile() {
 
     return (
         <div className="w-full bg-transparent font-sans print:bg-white print:text-black">
-            <style>
-                {`
-                @media print {
-                    body * { -webkit-print-color-adjust: exact; }
-                    .no-print { display: none !important; }
-                    .print-only { display: block !important; }
-                    @page { margin: 15mm; }
-                    body { background: white !important; }
-                    .custom-scrollbar { overflow: visible !important; height: auto !important; }
-                    .print-area { width: 100% !important; margin: 0 !important; padding: 20px !important; }
-                    table { border-collapse: collapse !important; width: 100%; margin-top: 20px; }
-                    th, td { border: 1px solid #d4a574 !important; padding: 6px 8px; font-size: 10px; text-align: left; }
-                    th { background-color: #2d5016/10 !important; text-transform: uppercase; font-weight: 800; color: #2d5016 !important; }
-                    .print-row-main { background-color: #fcfbfa !important; font-weight: bold; }
-                    .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2d5016; padding-bottom: 20px; }
-                    .print-footer { margin-top: 40px; display: grid; grid-template-cols: repeat(3, 1fr); text-align: center; font-size: 11px; }
-                }
-                .print-only { display: none; }
-                `}
-            </style>
 
             {/* Main Content Wrapper */}
             <m.div

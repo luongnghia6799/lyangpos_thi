@@ -23,7 +23,8 @@ import {
     Sparkles,
     Store,
     Zap,
-    Scale
+    Scale,
+    Keyboard
 } from 'lucide-react';
 
 export const DEFAULT_NAV_SECTIONS = [
@@ -49,6 +50,22 @@ export const DEFAULT_NAV_SECTIONS = [
         ]
     },
     {
+        id: 'management',
+        label: 'Quản lý',
+        icon: SettingsIcon,
+        roles: ['admin', 'accountant', 'user'],
+        items: [
+            { id: 'products', path: '/products', label: 'Danh mục hàng', icon: Package, roles: ['admin', 'accountant', 'user'], desc: 'Quản lý sản phẩm, giá bán, tồn kho, mã vạch' },
+            { id: 'partners', path: '/partners', label: 'Đối tác', icon: Users, roles: ['admin', 'accountant', 'user'], desc: 'Khách hàng, nhà cung cấp & công nợ' },
+            { id: 'partner_profile', path: '/partner-profile', label: 'Hồ sơ đối tác', icon: Users, roles: ['admin', 'accountant', 'user'], desc: 'Chi tiết lịch sử mua hàng, công nợ từng đối tác' },
+            { id: 'vouchers', path: '/vouchers', label: 'Quỹ tiền', icon: Coins, roles: ['admin', 'accountant', 'user'], desc: 'Sổ quỹ thu - chi, tạm ứng & quản lý ví tiền' },
+            { id: 'banking', path: '/banking', label: 'Tài khoản ngân hàng', icon: Landmark, roles: ['admin', 'accountant', 'user'], desc: 'Quản lý số tài khoản và quét mã VietQR' },
+            { id: 'roles', path: '/roles', label: 'Phân quyền', icon: ShieldCheck, roles: ['admin', 'accountant', 'user'], desc: 'Thiết lập quyền hạn nhân viên & tài khoản' },
+            { id: 'invoice_designer', path: '/invoice-designer', label: 'Thiết kế hóa đơn', icon: LayoutTemplate, roles: ['admin', 'accountant', 'user'], desc: 'Tùy chỉnh mẫu in hóa đơn khổ A4, K80' },
+            { id: 'customer_care', path: '/customer-care', label: 'Chăm sóc & Quà tặng', icon: Package, roles: ['admin', 'accountant', 'user'], desc: 'Chương trình quà tặng, khuyến mãi & tích điểm' },
+        ]
+    },
+    {
         id: 'reports',
         label: 'Báo cáo',
         icon: FileText,
@@ -69,26 +86,11 @@ export const DEFAULT_NAV_SECTIONS = [
         ]
     },
     {
-        id: 'management',
-        label: 'Quản lý',
-        icon: SettingsIcon,
-        roles: ['admin', 'accountant', 'user'],
-        items: [
-            { id: 'products', path: '/products', label: 'Danh mục hàng', icon: Package, roles: ['admin', 'accountant', 'user'], desc: 'Quản lý sản phẩm, giá bán, tồn kho, mã vạch' },
-            { id: 'partners', path: '/partners', label: 'Đối tác', icon: Users, roles: ['admin', 'accountant', 'user'], desc: 'Khách hàng, nhà cung cấp & công nợ' },
-            { id: 'partner_profile', path: '/partner-profile', label: 'Hồ sơ đối tác', icon: Users, roles: ['admin', 'accountant', 'user'], desc: 'Chi tiết lịch sử mua hàng, công nợ từng đối tác' },
-            { id: 'vouchers', path: '/vouchers', label: 'Quỹ tiền', icon: Coins, roles: ['admin', 'accountant', 'user'], desc: 'Sổ quỹ thu - chi, tạm ứng & quản lý ví tiền' },
-            { id: 'banking', path: '/banking', label: 'Tài khoản ngân hàng', icon: Landmark, roles: ['admin', 'accountant', 'user'], desc: 'Quản lý số tài khoản và quét mã VietQR' },
-            { id: 'roles', path: '/roles', label: 'Phân quyền', icon: ShieldCheck, roles: ['admin', 'accountant', 'user'], desc: 'Thiết lập quyền hạn nhân viên & tài khoản' },
-            { id: 'invoice_designer', path: '/invoice-designer', label: 'Thiết kế hóa đơn', icon: LayoutTemplate, roles: ['admin', 'accountant', 'user'], desc: 'Tùy chỉnh mẫu in hóa đơn khổ A4, K80' },
-            { id: 'customer_care', path: '/customer-care', label: 'Chăm sóc & Quà tặng', icon: Package, roles: ['admin', 'accountant', 'user'], desc: 'Chương trình quà tặng, khuyến mãi & tích điểm' },
-        ]
-    },
-    {
         id: 'utilities',
         label: 'Tiện ích & Mở rộng',
         items: [
             { id: 'calculator', path: '/calculator', label: 'Máy tính', icon: Calculator, roles: ['admin', 'accountant', 'user'], desc: 'Bảng tính công thức phân bón & cộng nhẩm' },
+            { id: 'typing', path: '/typing', label: 'Luyện gõ phím', icon: Keyboard, roles: ['admin', 'accountant', 'user'], desc: 'Luyện gõ tiếng Việt, từ vựng POS & giải trí' },
             { id: 'gaming', path: '/gaming', label: 'Giải trí', icon: Gamepad2, roles: ['admin', 'accountant', 'user'], desc: 'Trò chơi mini giải tỏa căng thẳng' },
             { id: 'barcodes', path: '/barcodes', label: 'In Mã Vạch', icon: QrCode, roles: ['admin', 'accountant', 'user'], desc: 'Thiết kế & in tem mã vạch sản phẩm' },
         ]

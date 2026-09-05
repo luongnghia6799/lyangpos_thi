@@ -36,6 +36,7 @@ export default function CashVoucher() {
         partner_id: '',
         amount: 0,
         note: '',
+        date: new Date().toISOString().slice(0, 10),
         type: 'Receipt', // Default to 'Receipt' (Phiếu Thu)
         payment_method: 'Cash', // 'Cash' or 'Bank'
         account_id: '' // For bank transaction
@@ -232,7 +233,8 @@ export default function CashVoucher() {
                     partner_id: formData.partner_id || null,
                     amount: formData.amount,
                     note: formData.note,
-                    type: formData.type
+                    type: formData.type,
+                    date: formData.date || undefined
                 });
                 createdData = res.data;
                 fetchVouchers();
@@ -242,6 +244,7 @@ export default function CashVoucher() {
                     amount: formData.amount,
                     type: isRec ? 'Deposit' : 'Withdrawal',
                     note: formData.note,
+                    date: formData.date || undefined,
                     partner_id: formData.partner_id ? parseInt(formData.partner_id) : null
                 });
                 createdData = res.data;
@@ -289,6 +292,7 @@ export default function CashVoucher() {
             partner_id: '',
             amount: 0,
             note: '',
+            date: new Date().toISOString().slice(0, 10),
             account_id: bankAccounts.length > 0 ? String(bankAccounts[0].id) : ''
         }));
         setPartnerSearch('');
@@ -644,38 +648,53 @@ export default function CashVoucher() {
                                     </div>
 
                                     <div className="space-y-4 relative z-10">
-                                        {/* Transaction Type Segmented Toggle */}
-                                        <div className="space-y-1.5">
-                                            <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5">
-                                                Loại giao dịch
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-2.5 p-1 bg-white/70 dark:bg-slate-900/70 rounded-2xl border border-border/80 shadow-xs">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, type: 'Receipt' }))}
-                                                    className={cn(
-                                                        "py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer",
-                                                        isReceipt
-                                                            ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm scale-[1.01]"
-                                                            : "text-muted-foreground hover:bg-emerald-50/50 dark:hover:bg-slate-800/50 hover:text-foreground"
-                                                    )}
-                                                >
-                                                    <ArrowDownLeft size={16} className={isReceipt ? "text-emerald-300" : "text-emerald-600"} />
-                                                    <span>Thu Tiền (Phiếu Thu)</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({ ...prev, type: 'Payment' }))}
-                                                    className={cn(
-                                                        "py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer",
-                                                        !isReceipt
-                                                            ? "bg-gradient-to-r from-rose-700 to-rose-600 text-white shadow-sm scale-[1.01]"
-                                                            : "text-muted-foreground hover:bg-rose-50/50 dark:hover:bg-slate-800/50 hover:text-foreground"
-                                                    )}
-                                                >
-                                                    <ArrowUpRight size={16} className={!isReceipt ? "text-rose-300" : "text-rose-600"} />
-                                                    <span>Chi Tiền (Phiếu Chi)</span>
-                                                </button>
+                                        {/* Transaction Type & Date Row */}
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                            <div className="md:col-span-8 space-y-1.5">
+                                                <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5">
+                                                    Loại giao dịch
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2 p-1 bg-white/70 dark:bg-slate-900/70 rounded-2xl border border-border/80 shadow-xs">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, type: 'Receipt' }))}
+                                                        className={cn(
+                                                            "py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer",
+                                                            isReceipt
+                                                                ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm scale-[1.01]"
+                                                                : "text-muted-foreground hover:bg-emerald-50/50 dark:hover:bg-slate-800/50 hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        <ArrowDownLeft size={16} className={isReceipt ? "text-emerald-300" : "text-emerald-600"} />
+                                                        <span>Thu Tiền</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, type: 'Payment' }))}
+                                                        className={cn(
+                                                            "py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer",
+                                                            !isReceipt
+                                                                ? "bg-gradient-to-r from-rose-700 to-rose-600 text-white shadow-sm scale-[1.01]"
+                                                                : "text-muted-foreground hover:bg-rose-50/50 dark:hover:bg-slate-800/50 hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        <ArrowUpRight size={16} className={!isReceipt ? "text-rose-300" : "text-rose-600"} />
+                                                        <span>Chi Tiền</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-4 space-y-1.5">
+                                                <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5 flex items-center gap-1">
+                                                    <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
+                                                    Ngày giao dịch
+                                                </label>
+                                                <div className="h-[46px] flex items-center">
+                                                    <CustomDatePicker
+                                                        value={formData.date || new Date().toISOString().slice(0, 10)}
+                                                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                                        className="py-2.5 px-3 text-xs"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
 

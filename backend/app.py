@@ -4189,11 +4189,24 @@ def create_order():
     # Expected: { partner_id, type: 'Sale'|'Purchase', payment_method: 'Cash'|'Debt', details: [{product_id, quantity, price}] }
     
     try:
-        # Custom Order ID Generation (N.DD/MM/YY)
+        # Custom Order Date or VN local now
         local_now = get_vn_time()
-        today_str = local_now.strftime('%d/%m/%y')
-        start_of_day = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_of_day = local_now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        order_date = local_now
+        custom_date_str = data.get('date')
+        if custom_date_str:
+            try:
+                if 'T' in str(custom_date_str):
+                    order_date = datetime.fromisoformat(str(custom_date_str).replace('Z', '+00:00')).replace(tzinfo=None)
+                else:
+                    d_obj = datetime.strptime(str(custom_date_str), '%Y-%m-%d')
+                    order_date = order_date.replace(year=d_obj.year, month=d_obj.month, day=d_obj.day)
+            except Exception as ex:
+                print(f"Error parsing order date: {ex}")
+                order_date = local_now
+
+        today_str = order_date.strftime('%d/%m/%y')
+        start_of_day = order_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = order_date.replace(hour=23, minute=59, second=59, microsecond=999999)
         order_type = data.get('type', 'Sale')
         count_today = Order.query.filter(Order.date >= start_of_day, Order.date <= end_of_day)\
                                  .filter(Order.type == order_type)\
@@ -4203,7 +4216,7 @@ def create_order():
         
         is_consignment_order = bool(data.get('is_consignment', False))
         new_order = Order(
-            date=local_now,
+            date=order_date,
             partner_id=data.get('partner_id'),
             type=data['type'],
             payment_method=data['payment_method'],
@@ -4326,7 +4339,8 @@ def create_order():
                                     product_id=child.id,
                                     original_quantity=child_incoming,
                                     current_quantity=child_curr,
-                                    cost_price=child_cost
+                                    cost_price=child_cost,
+                                    created_at=order_date
                                 )
                                 db.session.add(new_batch)
                                 created_batches.append(new_batch)
@@ -4338,7 +4352,8 @@ def create_order():
                             product_id=prod.id,
                             original_quantity=item_qty,
                             current_quantity=curr_qty,
-                            cost_price=item_price
+                            cost_price=item_price,
+                            created_at=order_date
                         )
                         db.session.add(new_batch)
                         created_batches.append(new_batch)
@@ -4393,7 +4408,8 @@ def create_order():
                                 note=v_note,
                                 type=v_type,
                                 source='settlement',
-                                order_id=new_order.id
+                                order_id=new_order.id,
+                                date=order_date
                             )
                             db.session.add(v)
                     else:
@@ -4417,7 +4433,8 @@ def create_order():
                                 note=v_note,
                                 type=v_type,
                                 source='settlement',
-                                order_id=new_order.id
+                                order_id=new_order.id,
+                                date=order_date
                             )
                             db.session.add(v)
                 # Manual vouchers in Fund tab are now the ONLY way to reduce debt.
@@ -4443,7 +4460,8 @@ def create_order():
                 note=v_note,
                 type=v_type,
                 source='auto',
-                order_id=new_order.id
+                order_id=new_order.id,
+                date=order_date
             )
             db.session.add(v)
             new_order.amount_paid = total
@@ -4472,7 +4490,8 @@ def create_order():
                     type=t_type,
                     note=f"Thanh toán đơn {display_id}",
                     partner_id=data.get('partner_id'),
-                    order_id=new_order.id
+                    order_id=new_order.id,
+                    date=order_date
                 )
                 
                 if t_type == 'Deposit':
@@ -4835,6 +4854,27 @@ def update_order(id):
         order.details.clear()
         db.session.flush()
         
+        # Handle custom date update
+        if 'date' in data and data['date']:
+            try:
+                date_str = str(data['date'])
+                if 'T' in date_str:
+                    order.date = datetime.fromisoformat(date_str.replace('Z', '+00:00')).replace(tzinfo=None)
+                else:
+                    d_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                    if order.date:
+                        order.date = order.date.replace(year=d_obj.year, month=d_obj.month, day=d_obj.day)
+                    else:
+                        order.date = d_obj
+            except Exception as e:
+                print(f"Error parsing date in update_order: {e}")
+
+        # Update date on linked batches for purchase orders
+        if order.type == 'Purchase' and order.date:
+            batches = StockBatch.query.filter_by(purchase_order_id=order.id).all()
+            for b in batches:
+                b.created_at = order.date
+
         order.partner_id = data.get('partner_id')
         order.payment_method = data['payment_method']
         order.note = data.get('note')
@@ -4960,7 +5000,7 @@ def update_order(id):
                         if v_type == 'Receipt': partner.debt_balance -= upfront
                         else: partner.debt_balance += upfront
                         
-                        v = CashVoucher(partner_id=partner.id, amount=upfront, note=v_note, type=v_type, source='settlement', order_id=order.id)
+                        v = CashVoucher(partner_id=partner.id, amount=upfront, note=v_note, type=v_type, source='settlement', order_id=order.id, date=order.date)
                         db.session.add(v)
         
         if data.get('payment_method') == 'Transfer' and data.get('bank_account_id'):
@@ -4972,7 +5012,7 @@ def update_order(id):
                 if data['type'] == 'Sale' and total < 0: t_type = 'Withdrawal'
                 elif data['type'] == 'Purchase' and total < 0: t_type = 'Deposit'
                 
-                bt = BankTransaction(account_id=acc_id, amount=abs(upfront), type=t_type, note=f"Cập nhật đơn {order.display_id}", partner_id=data.get('partner_id'), order_id=order.id)
+                bt = BankTransaction(account_id=acc_id, amount=abs(upfront), type=t_type, note=f"Cập nhật đơn {order.display_id}", partner_id=data.get('partner_id'), order_id=order.id, date=order.date)
                 if t_type == 'Deposit': bank_acc.balance += abs(upfront)
                 else: bank_acc.balance -= abs(upfront)
                 db.session.add(bt)
@@ -4999,7 +5039,8 @@ def update_order(id):
                 note=v_note,
                 type=v_type,
                 source='auto',
-                order_id=order.id
+                order_id=order.id,
+                date=order.date
             )
             db.session.add(v)
             order.amount_paid = total
@@ -5077,17 +5118,32 @@ def create_bank_transaction():
     note = data.get('note', '')
     partner_id = data.get('partner_id')
     order_id = data.get('order_id')
+    custom_date_str = data.get('date')
     
     acc = BankAccount.query.get_or_404(account_id)
     partner = Partner.query.get(partner_id) if partner_id else None
     
+    tx_date = None
+    if custom_date_str:
+        try:
+            from datetime import datetime
+            if 'T' in custom_date_str:
+                tx_date = datetime.fromisoformat(custom_date_str.replace('Z', '+00:00')).replace(tzinfo=None)
+            else:
+                tx_date = datetime.strptime(custom_date_str, '%Y-%m-%d')
+                if custom_date_str == datetime.now().strftime('%Y-%m-%d'):
+                    tx_date = get_vn_time()
+        except Exception:
+            pass
+
     transaction = BankTransaction(
         account_id=account_id,
         amount=amount,
         type=t_type,
         note=note,
         partner_id=partner_id,
-        order_id=order_id
+        order_id=order_id,
+        date=tx_date if tx_date else get_vn_time()
     )
     
     if t_type == 'Deposit':

@@ -6,8 +6,10 @@ import { formatNumber, formatDate, cn, removeAccents } from '../lib/utils';
 import ProductEditModal from './ProductEditModal';
 import Toast from './Toast';
 import Portal from './Portal';
+import CustomDatePicker from './CustomDatePicker';
 
 export default function OrderEditPopup({ order, partner, onClose, onSave }) {
+    const [orderDate, setOrderDate] = useState(order?.date ? order.date.slice(0, 10) : new Date().toISOString().slice(0, 10));
     const [cart, setCart] = useState((order?.details || []).map(d => ({
         ...d,
         product_id: d.product_id,
@@ -158,6 +160,7 @@ export default function OrderEditPopup({ order, partner, onClose, onSave }) {
                 type: openingType,
                 payment_method: 'Debt',
                 total_amount: openingAmount,
+                date: orderDate,
                 note: finalNote,
                 amount_paid: 0,
                 details: []
@@ -165,6 +168,7 @@ export default function OrderEditPopup({ order, partner, onClose, onSave }) {
                 partner_id: order.partner_id,
                 type: order.type,
                 payment_method: paymentMethod,
+                date: orderDate,
                 details: cart.map(d => ({
                     product_id: d.product_id,
                     quantity: d.quantity,
@@ -296,12 +300,25 @@ export default function OrderEditPopup({ order, partner, onClose, onSave }) {
                                 </p>
                             </div>
                         </div>
-                        <button 
-                            onClick={onClose} 
-                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
-                        >
-                            <X size={18} strokeWidth={2.5} />
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-white/10">
+                                <Clock size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Ngày:</span>
+                                <div className="w-36">
+                                    <CustomDatePicker
+                                        value={orderDate}
+                                        onChange={(e) => setOrderDate(e.target.value)}
+                                        className="py-1 px-2 text-xs"
+                                    />
+                                </div>
+                            </div>
+                            <button 
+                                onClick={onClose} 
+                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-rose-500/10 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
+                            >
+                                <X size={18} strokeWidth={2.5} />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex-1 overflow-hidden flex flex-col lg:flex-row bg-transparent">

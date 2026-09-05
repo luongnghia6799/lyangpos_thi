@@ -58,6 +58,7 @@ import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } 
 import { cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, speakNumber as ht, speakAudioSequence, stopAllTTS, precacheAmounts as yl, precacheCommonTTS as Ss, normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, playAddToCartSound } from "@/lib/utils";
 import Portal from "@/components/Portal";
 const Fn = Portal;
+import CustomDatePicker from "@/components/CustomDatePicker";
 import POSHistoryPanel from "@/components/POSHistoryPanel";
 import PartnerHistoryModal from "@/components/PartnerHistoryModal";
 import ProductEditModal from "@/components/ProductEditModal";
@@ -1175,6 +1176,8 @@ function a0({
     [Be, Zs] = i.useState(!1),
     [Q, Gt] = i.useState(null),
     [le, Br] = i.useState(null),
+    [customOrderDate, setCustomOrderDate] = i.useState(""),
+    [isOrderDatePickerOpen, setIsOrderDatePickerOpen] = i.useState(!1),
     [Fr, nr] = i.useState(null),
     [Ce, Vr] = i.useState(0);
   i.useEffect(() => {
@@ -2126,7 +2129,7 @@ function a0({
         name: ""
       });
       const a = Te === "Wholesale" ? "Debt" : "Cash";
-      ge(a), a === "Cash" && re(0), Gt(null), Br(null), Ur(null), Vr(0), qt(null), ra(""), sa(""), ie.current && (ie.current[g] = null), Ds(), setTimeout(() => se.current?.focus(), 100);
+      ge(a), a === "Cash" && re(0), Gt(null), Br(null), setCustomOrderDate(""), Ur(null), Vr(0), qt(null), ra(""), sa(""), ie.current && (ie.current[g] = null), Ds(), setTimeout(() => se.current?.focus(), 100);
     },
     Re = async (t = !0, a = "Sale") => {
       let r = [...y];
@@ -2171,6 +2174,7 @@ function a0({
             shipping_status: tt,
             shipping_address: vr,
             shipping_phone: kr,
+            date: customOrderDate || (le?.date ? le.date : undefined),
             created_by: JSON.parse(sessionStorage.getItem("user") || "{}").name || JSON.parse(sessionStorage.getItem("user") || "{}").username || "Unknown"
           };
           let n;
@@ -2333,7 +2337,7 @@ function a0({
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
         };
-      })), $e(orderObj.note || ""), re(orderObj.amount_paid || 0), Ye(orderObj.cash_given || 0), ge(orderObj.payment_method || "Cash"), qt(orderObj.shipping_status || null), ra(orderObj.shipping_address || ""), sa(orderObj.shipping_phone || ""), orderObj.partner_id ? nr(orderObj.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
+      })), $e(orderObj.note || ""), re(orderObj.amount_paid || 0), Ye(orderObj.cash_given || 0), ge(orderObj.payment_method || "Cash"), qt(orderObj.shipping_status || null), ra(orderObj.shipping_address || ""), sa(orderObj.shipping_phone || ""), setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : ""), orderObj.partner_id ? nr(orderObj.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
     },
     na = async t => {
       let a;
@@ -3289,7 +3293,60 @@ function a0({
                     opacity: 0
                   }} transition={{
                     duration: 0.2
-                  }} className="flex items-center"><div className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0"><div className={c("w-2 h-2 rounded-full shrink-0", Q ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")} /><div className="flex flex-col justify-center leading-none min-w-0"><span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums">#{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}</span>{le?.date ? <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">{new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - {new Date(le.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}</span> : <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">{Q ? "ĐANG SỬA" : "TẠO MỚI"}</span>}</div></div></x.div></P></div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
+                  }} className="flex items-center"><button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 cursor-pointer text-left">{(() => {
+                    const originalDateStr = le?.date ? le.date.slice(0, 10) : '';
+                    let isDateModified = false;
+                    if (customOrderDate) {
+                      if (!le) {
+                        isDateModified = true;
+                      } else if (customOrderDate !== originalDateStr) {
+                        isDateModified = true;
+                      }
+                    }
+                    if (!isDateModified && le?.date && le?.display_id) {
+                      const idParts = le.display_id.split('.');
+                      if (idParts.length >= 2) {
+                        const dateInId = idParts.slice(1).join('.');
+                        const dateSlash = dateInId.split('/');
+                        if (dateSlash.length === 3) {
+                          const d = parseInt(dateSlash[0], 10);
+                          const m = parseInt(dateSlash[1], 10);
+                          const y = parseInt(dateSlash[2], 10);
+                          const oDate = new Date(le.date);
+                          const orderD = oDate.getDate();
+                          const orderM = oDate.getMonth() + 1;
+                          const orderY = oDate.getFullYear() % 100;
+                          if (orderD !== d || orderM !== m || orderY !== y) {
+                            isDateModified = true;
+                          }
+                        }
+                      }
+                    }
+                    return (
+                      <>
+                        <div className={c("w-2 h-2 rounded-full shrink-0", isDateModified ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")} />
+                        <div className="flex flex-col justify-center leading-none min-w-0">
+                          <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1">#{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}</span>
+                          {(() => {
+                            if (isDateModified) {
+                              const timeStr = le?.date ? new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                              const activeDate = customOrderDate || originalDateStr;
+                              let dateStr = activeDate;
+                              if (activeDate) {
+                                const p = activeDate.split('-');
+                                dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
+                              }
+                              return <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase">{timeStr} - {dateStr} (ĐÃ SỬA)</span>;
+                            }
+                            if (le?.date) {
+                              return <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">{new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - {new Date(le.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}</span>;
+                            }
+                            return <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">{Q ? "ĐANG SỬA" : "TẠO MỚI"}</span>;
+                          })()}
+                        </div>
+                      </>
+                    );
+                  })()}</button><Ws>{isOrderDatePickerOpen && (<Fn><div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" onClick={() => setIsOrderDatePickerOpen(false)}><x.div initial={{ opacity: 0, scale: 0.9, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ type: "spring", damping: 25, stiffness: 400 }} className="bg-white dark:bg-slate-900 border-2 border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4" onClick={t => t.stopPropagation()}><div className="flex items-center justify-between pb-3 border-b border-border"><div className="flex items-center gap-2"><Ao size={16} className="text-[#2d5016] dark:text-[#4ade80]" /><span className="text-xs font-black uppercase tracking-wider text-[#2d5016] dark:text-white">Chọn ngày hóa đơn</span></div><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"><Xn size={16} /></button></div><div className="space-y-2"><label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ngày giao dịch:</label><CustomDatePicker value={customOrderDate || (le?.date ? le.date.slice(0, 10) : new Date().toISOString().slice(0, 10))} onChange={t => { setCustomOrderDate(t.target.value); }} /></div><div className="flex items-center justify-between pt-2"><button type="button" onClick={() => { setCustomOrderDate(""); setIsOrderDatePickerOpen(false); }} className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">Đặt lại hôm nay</button><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="px-4 py-1.5 rounded-xl text-xs font-black bg-[#2d5016] text-white hover:bg-[#3d6820] transition-colors shadow-xs cursor-pointer">Xác nhận</button></div></x.div></div></Fn>)}</Ws></x.div></P></div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
                       rotate: -8
                     }} animate={{

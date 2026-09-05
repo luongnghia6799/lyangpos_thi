@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence, MotionConfig } from 'framer-motion';
-import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell } from 'lucide-react';
 import HeavyClock from '../../components/HeavyClock';
 import { formatCurrency, formatNumber, formatDebt, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound, playTypingSound } from '../../lib/utils';
@@ -22,6 +22,7 @@ import PartnerHistoryModal from '../../components/PartnerHistoryModal';
 import MarqueeText from '../../components/MarqueeText';
 import PartnerInfoHoverCard from '../../components/PartnerInfoHoverCard';
 import CustomSelect from '../../components/CustomSelect';
+import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
 import LyangLogo from '../../assets/logo.png';
 
@@ -169,6 +170,8 @@ export default function Purchase() {
     const [loading, setLoading] = useState(false);
     const [editOrderId, setEditOrderId] = useState(null);
     const [editingOriginalOrder, setEditingOriginalOrder] = useState(null);
+    const [customOrderDate, setCustomOrderDate] = useState(''); // 'YYYY-MM-DD' or ISO string
+    const [isOrderDatePickerOpen, setIsOrderDatePickerOpen] = useState(false);
     const [pendingPartnerId, setPendingPartnerId] = useState(null);
     const [historyStep, setHistoryStep] = useState(0); // 0 = new invoice, 1 = last, 2 = 2nd last...
     const [historyLoading, setHistoryLoading] = useState(false);
@@ -991,6 +994,7 @@ export default function Purchase() {
         setPaymentMethod(order.payment_method);
         setIsConsignment(order.is_consignment || false);
         setPendingPartnerId(order.partner_id);
+        setCustomOrderDate(order.date ? order.date.slice(0, 10) : '');
         setPartnerSearch('');
         setSearchTerm('');
         setIsPartnerDropdownOpen(false);
@@ -1303,6 +1307,7 @@ export default function Purchase() {
                 amount_paid: amountPaid,
                 bank_account_id: paymentMethod === 'Transfer' ? selectedBankAccountId : null,
                 is_consignment: isConsignment,
+                date: customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date : undefined),
                 created_by: JSON.parse(sessionStorage.getItem('user') || '{}').name || JSON.parse(sessionStorage.getItem('user') || '{}').username || 'Admin'
             };
             let res;
@@ -1400,6 +1405,7 @@ export default function Purchase() {
         setIsConsignment(false);
         setEditOrderId(null);
         setEditingOriginalOrder(null);
+        setCustomOrderDate('');
         setLastOrder(null);
         setHistoryStep(0);
         playPopSound();
@@ -1639,36 +1645,172 @@ export default function Purchase() {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className="flex items-center"
+                                    className="flex items-center relative"
                                 >
-                                    <div className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0">
-                                        <div className={cn(
-                                            "w-2 h-2 rounded-full shrink-0",
-                                            editOrderId 
-                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20" 
-                                                : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
-                                        )} />
-                                        <div className="flex flex-col justify-center leading-none min-w-0">
-                                            <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums">
-                                                #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
-                                            </span>
-                                            {editingOriginalOrder?.date ? (
-                                                <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
-                                                    {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit"
-                                                    })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
-                                                        day: "2-digit",
-                                                        month: "2-digit"
-                                                    })}
-                                                </span>
-                                            ) : (
-                                                <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
-                                                    {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsOrderDatePickerOpen(prev => !prev)}
+                                        title="Bấm để chỉnh sửa / chọn ngày đơn hàng"
+                                        className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.04] dark:hover:bg-white/[0.1] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 cursor-pointer text-left"
+                                    >
+                                        {(() => {
+                                            const originalDateStr = editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : '';
+                                            let isDateModified = false;
+                                            if (customOrderDate) {
+                                                if (!editingOriginalOrder) {
+                                                    isDateModified = true;
+                                                } else if (customOrderDate !== originalDateStr) {
+                                                    isDateModified = true;
+                                                }
+                                            }
+                                            if (!isDateModified && editingOriginalOrder?.date && editingOriginalOrder?.display_id) {
+                                                const idParts = editingOriginalOrder.display_id.split('.');
+                                                if (idParts.length >= 2) {
+                                                    const dateInId = idParts.slice(1).join('.');
+                                                    const dateSlash = dateInId.split('/');
+                                                    if (dateSlash.length === 3) {
+                                                        const d = parseInt(dateSlash[0], 10);
+                                                        const m = parseInt(dateSlash[1], 10);
+                                                        const y = parseInt(dateSlash[2], 10);
+                                                        const oDate = new Date(editingOriginalOrder.date);
+                                                        const orderD = oDate.getDate();
+                                                        const orderM = oDate.getMonth() + 1;
+                                                        const orderY = oDate.getFullYear() % 100;
+                                                        if (orderD !== d || orderM !== m || orderY !== y) {
+                                                            isDateModified = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            return (
+                                                <>
+                                                    <div className={cn(
+                                                        "w-2 h-2 rounded-full shrink-0",
+                                                        isDateModified 
+                                                            ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20" 
+                                                            : editOrderId 
+                                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" 
+                                                                : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
+                                                    )} />
+                                                    <div className="flex flex-col justify-center leading-none min-w-0">
+                                                        <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1">
+                                                            #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
+                                                        </span>
+                                                        {(() => {
+                                                            if (isDateModified) {
+                                                                const timeStr = editingOriginalOrder?.date ? new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                                                                const activeDate = customOrderDate || originalDateStr;
+                                                                let dateStr = activeDate;
+                                                                if (activeDate) {
+                                                                    const p = activeDate.split('-');
+                                                                    dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
+                                                                }
+                                                                return (
+                                                                    <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase flex items-center gap-1">
+                                                                        {timeStr} - {dateStr} (ĐÃ SỬA)
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (editingOriginalOrder?.date) {
+                                                                return (
+                                                                    <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
+                                                                        {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
+                                                                            hour: "2-digit",
+                                                                            minute: "2-digit"
+                                                                        })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
+                                                                            day: "2-digit",
+                                                                            month: "2-digit"
+                                                                        })}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
+                                                                    {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </button>
+
+                                    {/* Date Picker Popover */}
+                                    <AnimatePresence>
+                                        {isOrderDatePickerOpen && (
+                                            <Portal>
+                                                <div 
+                                                    className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                                                    onClick={() => setIsOrderDatePickerOpen(false)}
+                                                >
+                                                    <m.div 
+                                                        initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                        transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                                                        className="bg-white/95 dark:bg-slate-900/95 border-2 border-[#2d5016]/20 dark:border-emerald-500/30 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5 backdrop-blur-xl"
+                                                        onClick={e => e.stopPropagation()}
+                                                    >
+                                                        <div className="flex items-center justify-between pb-3.5 border-b border-border/70">
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="w-8 h-8 rounded-xl bg-[#2d5016]/10 dark:bg-emerald-500/10 text-[#2d5016] dark:text-[#4ade80] flex items-center justify-center">
+                                                                    <Calendar size={18} strokeWidth={2.5} />
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="text-sm font-black uppercase tracking-wider text-[#2d5016] dark:text-white">
+                                                                        Chọn ngày hóa đơn
+                                                                    </h3>
+                                                                    <p className="text-[10px] font-bold text-muted-foreground">Đổi ngày tạo hoặc cập nhật hóa đơn</p>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsOrderDatePickerOpen(false)}
+                                                                className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                                            >
+                                                                <X size={16} strokeWidth={2.5} />
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider">
+                                                                Ngày giao dịch:
+                                                            </label>
+                                                            <div className="relative">
+                                                                <CustomDatePicker
+                                                                    value={customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
+                                                                    onChange={(e) => {
+                                                                        setCustomOrderDate(e.target.value);
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between pt-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setCustomOrderDate('');
+                                                                    setIsOrderDatePickerOpen(false);
+                                                                }}
+                                                                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                            >
+                                                                Đặt lại hôm nay
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsOrderDatePickerOpen(false)}
+                                                                className="px-5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer"
+                                                            >
+                                                                Xác nhận
+                                                            </button>
+                                                        </div>
+                                                    </m.div>
+                                                </div>
+                                            </Portal>
+                                        )}
+                                    </AnimatePresence>
                                 </m.div>
                             </AnimatePresence>
                         </div>

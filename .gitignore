@@ -1,0 +1,50 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Rust & Cargo
+/target/
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Tauri build artifacts
+src-tauri/target/
+**/src-tauri/target/
+**/src-tauri/binaries/*-x86_64-pc-windows-msvc.exe
+!**/src-tauri/binaries/.gitkeep
+
+# Database & Cache & Uploads
+*.db
+*.sqlite
+*.sqlite3
+easypos.db
+uploads/
+**/uploads/
+tts_cache/
+**/tts_cache/
+backups/
+**/backups/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

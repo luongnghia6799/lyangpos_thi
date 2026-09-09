@@ -45,7 +45,7 @@
         "installerHooks": "installer-hooks.nsh"
       }
     },
-    "macos": {
+    "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
       "dmg": {

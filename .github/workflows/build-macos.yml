@@ -96,13 +96,14 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
           files: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/LyangPOS_macOS_Universal.dmg
-          tag_name: ${{ github.ref_name || 'v0.1.0' }}
-          name: LyangPOS macOS Universal (${{ github.ref_name || 'v0.1.0' }})
+          tag_name: ${{ github.ref_name != 'main' && startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v0.1.0-macos' }}
+          name: LyangPOS macOS Universal (${{ github.ref_name != 'main' && startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v0.1.0-macos' }})
           body: |
             ### 🚀 LyangPOS - Bản cài đặt macOS Universal (.dmg)
             
-            - **Hỗ trợ toàn diện**: Chạy mượt mà trên cả máy Mac dùng chip **Apple Silicon (M1, M2, M3, M4)** và máy Mac dùng chip **Intel (x86_64)**.
-            - **Tích hợp sẵn**: Backend Rust Axum siêu nhẹ + SQLite + POS Engine.
+            - **Phiên bản riêng dành cho macOS**: Không ảnh hưởng/ghi đè bản cài đặt Windows (`LyangPOS_byLyang.exe`).
+            - **Hỗ trợ toàn diện**: Chạy mượt mà trên cả chip **Apple Silicon (M1, M2, M3, M4)** và chip **Intel (x86_64)**.
+            - **Tích hợp sẵn**: Backend Rust Axum + SQLite + POS Engine.
             
             #### 📥 Hướng dẫn cài đặt trên macOS:
             1. Tải file `LyangPOS_macOS_Universal.dmg`.

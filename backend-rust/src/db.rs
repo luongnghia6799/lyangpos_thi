@@ -183,10 +183,32 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
     ).execute(pool).await?;
 
     sqlx::query(
+        "CREATE TABLE IF NOT EXISTS app_setting (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key VARCHAR(100) UNIQUE NOT NULL,
+            setting_value TEXT
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
         "CREATE TABLE IF NOT EXISTS setting (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             key VARCHAR(100) UNIQUE NOT NULL,
             value TEXT NOT NULL
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS stock_batch (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            purchase_order_id INTEGER,
+            original_quantity FLOAT NOT NULL,
+            current_quantity FLOAT NOT NULL,
+            cost_price FLOAT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            batch_code VARCHAR(100),
+            remaining_quantity FLOAT DEFAULT 0
         )"
     ).execute(pool).await?;
 
@@ -196,9 +218,34 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
             name VARCHAR(100) NOT NULL,
             module VARCHAR(50) DEFAULT 'Sale',
             paper_size VARCHAR(20) DEFAULT 'K80',
-            content TEXT NOT NULL,
+            content TEXT DEFAULT '',
+            config TEXT DEFAULT '{}',
+            content_config TEXT DEFAULT '{}',
             is_default BOOLEAN DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS accounting_template (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(100) NOT NULL,
+            file_path VARCHAR(500),
+            start_row INTEGER DEFAULT 1,
+            is_active BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS accounting_mapping (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            template_id INTEGER NOT NULL,
+            column_letter VARCHAR(10),
+            source_type VARCHAR(50),
+            source_value VARCHAR(100),
+            header_name VARCHAR(100),
+            FOREIGN KEY (template_id) REFERENCES accounting_template(id) ON DELETE CASCADE
         )"
     ).execute(pool).await?;
 

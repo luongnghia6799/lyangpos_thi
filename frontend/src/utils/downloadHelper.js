@@ -51,7 +51,12 @@ export async function saveOrOpenFile(data, filename, isBase64 = false) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    let mimeType = 'application/octet-stream';
+    if (filename.endsWith('.png')) mimeType = 'image/png';
+    else if (filename.endsWith('.jpg') || filename.endsWith('.jpeg')) mimeType = 'image/jpeg';
+    else if (filename.endsWith('.pdf')) mimeType = 'application/pdf';
+    else if (filename.endsWith('.xlsx')) mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    blob = new Blob([byteArray], { type: mimeType });
   }
   
   const url = window.URL.createObjectURL(blob);

@@ -57,7 +57,7 @@
   --color-neutral-700: #404040;
 }
 
-*:not(#print-template):not(#print-template *):not(.font-preview-sample):not(.font-preview-sample *):not(.typing-practice-root):not(.typing-practice-root *):not(.typing-custom-font):not(.typing-custom-font *):not(.type-letter):not([id^="type-word-"]) {
+*:not(#print-template):not(#print-template *):not(.po-slip-container):not(.po-slip-container *):not(.font-preview-sample):not(.font-preview-sample *):not(.typing-practice-root):not(.typing-practice-root *):not(.typing-custom-font):not(.typing-custom-font *):not(.type-letter):not([id^="type-word-"]) {
   font-family: var(--app-global-font);
 }
 

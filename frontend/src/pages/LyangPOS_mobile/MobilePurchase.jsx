@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Minus, Package, X, Menu, ChevronRight, User, ShoppingCart, Trash2, ChevronDown } from 'lucide-react';
+import { Search, Plus, Minus, Package, X, Menu, ChevronRight, User, ShoppingCart, Trash2, ChevronDown, FileDown } from 'lucide-react';
 import { formatNumber, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import MobileMenu from '../../components/MobileMenu';
 import MobilePartnerSelector from '../../components/MobilePartnerSelector';
 import ConfirmModal from '../../components/ConfirmModal';
 import Portal from '../../components/Portal';
+import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
 
 export default function MobilePurchase() {
     const triggerHaptic = (style = 'medium') => {
@@ -46,6 +47,15 @@ export default function MobilePurchase() {
         const saved = localStorage.getItem('mobile_purchase_partner');
         return saved ? JSON.parse(saved) : null;
     });
+
+    const [isPOExportModalOpen, setIsPOExportModalOpen] = useState(false);
+    const [settings, setSettings] = useState(null);
+
+    useEffect(() => {
+        axios.get('/api/settings').then(res => {
+            if (res.data) setSettings(res.data);
+        }).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (paymentMethod === 'Bank') {
@@ -462,9 +472,24 @@ export default function MobilePurchase() {
 
                             {/* Checkout Final Action */}
                             <div className={cn(
-                                "p-5 pt-2 transition-all shrink-0",
+                                "p-5 pt-2 space-y-2 transition-all shrink-0",
                                 isCartExpanded ? "bg-transparent border-t border-gray-100 dark:border-slate-800" : "hidden"
                             )}>
+                                <button
+                                    onClick={() => {
+                                        if (cart.length === 0) {
+                                            setToast({ message: "Giỏ hàng đang trống!", type: "error" });
+                                            setTimeout(() => setToast(null), 1500);
+                                            return;
+                                        }
+                                        setIsPOExportModalOpen(true);
+                                    }}
+                                    className="w-full bg-slate-800 hover:bg-slate-900 text-emerald-400 py-3 rounded-2xl font-black uppercase text-xs tracking-wider border border-emerald-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                    <FileDown size={16} />
+                                    <span>Xuất phiếu đặt NCC (Ảnh/PDF)</span>
+                                </button>
+
                                 <button
                                     onClick={handleCheckout}
                                     className="w-full bg-[#4a7c59] text-white py-4 rounded-3xl font-black uppercase tracking-[0.2em] shadow-xl shadow-[#4a7c59]/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
@@ -615,6 +640,16 @@ export default function MobilePurchase() {
                     </Portal>
                 )}
             </AnimatePresence>
+
+            {/* Supplier PO Export Modal (Name/Qty/Spec only, no save) */}
+            <PurchaseOrderExportModal
+                isOpen={isPOExportModalOpen}
+                onClose={() => setIsPOExportModalOpen(false)}
+                cart={cart}
+                partner={selectedPartner}
+                note="Mobile Purchase Order"
+                settings={settings}
+            />
             </div>
         </div>
     );

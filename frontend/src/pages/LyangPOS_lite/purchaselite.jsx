@@ -22,6 +22,7 @@ import {
   CreditCard,
   Wallet,
   Truck,
+  FileDown,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import LiteClock from "../../components/LiteClock";
@@ -38,6 +39,7 @@ import ProductEditModal from "../../components/ProductEditModal";
 import PartnerEditModal from "../../components/PartnerEditModal";
 import QuickDebtModal from "../../components/QuickDebtModal";
 import QuickVoucherModal from "../../components/QuickVoucherModal";
+import PurchaseOrderExportModal from "../../components/PurchaseOrderExportModal";
 import logo from "../../assets/logo.png";
 
 const PurchaseLite = () => {
@@ -112,6 +114,7 @@ const PurchaseLite = () => {
   const [contextMenu, setContextMenu] = useState(null);
   const [isQuickDebtOpen, setIsQuickDebtOpen] = useState(false);
   const [isQuickVoucherOpen, setIsQuickVoucherOpen] = useState(false);
+  const [isPOExportModalOpen, setIsPOExportModalOpen] = useState(false);
   const [showThemePopover, setShowThemePopover] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotePopover, setShowNotePopover] = useState(false);
@@ -1818,6 +1821,22 @@ const PurchaseLite = () => {
                   <Pause size={12} />
                 </button>
 
+                {/* Export Purchase Order (Image / PDF for Supplier) */}
+                <button
+                  onClick={() => {
+                    if (cart.length === 0) {
+                      showToast("GIỎ HÀNG ĐANG TRỐNG!", "error");
+                      return;
+                    }
+                    setIsPOExportModalOpen(true);
+                  }}
+                  disabled={cart.length === 0}
+                  className={cn("pos-lite-control-btn flex items-center justify-center", cart.length === 0 ? "opacity-35 cursor-not-allowed" : "hover:text-emerald-500 hover:border-emerald-500")}
+                  title="Xuất phiếu đặt hàng gửi NCC (Ảnh/PDF)"
+                >
+                  <FileDown size={12} />
+                </button>
+
                 {/* History Drawer */}
                 <button 
                   onClick={() => {
@@ -1940,19 +1959,38 @@ const PurchaseLite = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="grid grid-cols-3 gap-2 mb-2">
               <button 
                 onClick={handleNewOrder}
                 className="pos-lite-btn-aux pos-lite-btn-new py-2 text-[10px] uppercase font-bold"
               >
-                Hủy / Đơn Mới (F4)
+                Hủy / Mới (F4)
               </button>
               <button 
                 onClick={handleHold}
                 disabled={cart.length === 0}
                 className="pos-lite-btn-aux pos-lite-btn-hold py-2 text-[10px] uppercase font-bold"
               >
-                Treo Đơn Nhập
+                Treo Đơn
+              </button>
+              <button 
+                onClick={() => {
+                  if (cart.length === 0) {
+                    showToast("GIỎ HÀNG ĐANG TRỐNG!", "error");
+                    return;
+                  }
+                  setIsPOExportModalOpen(true);
+                }}
+                disabled={cart.length === 0}
+                className={cn(
+                  "py-2 text-[10px] uppercase font-black rounded border flex items-center justify-center gap-1 transition-all",
+                  cart.length === 0 
+                    ? "opacity-40 cursor-not-allowed bg-[var(--lite-surface)] border-[var(--lite-border)] text-[var(--lite-text)]" 
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-sm"
+                )}
+                title="Xuất phiếu đặt hàng gửi NCC (Ảnh/PDF - Không lưu hóa đơn)"
+              >
+                <FileDown size={11} /> Đặt Hàng
               </button>
             </div>
 
@@ -2196,6 +2234,23 @@ const PurchaseLite = () => {
         isOpen={isPartnerModalOpen}
         onClose={() => setIsPartnerModalOpen(false)}
         onSave={handlePartnerSaved}
+      />
+
+      {/* Supplier Purchase Order Export Modal (Name/Qty/Spec only, no save) */}
+      <PurchaseOrderExportModal
+        isOpen={isPOExportModalOpen}
+        onClose={() => setIsPOExportModalOpen(false)}
+        cart={cart.map(item => ({
+          product_name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          secondary_unit: item.secondary_unit,
+          multiplier: item.multiplier,
+          price: item.price
+        }))}
+        partner={selectedPartner}
+        note={note}
+        settings={settings}
       />
     </div>
   );

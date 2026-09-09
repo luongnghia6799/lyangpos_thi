@@ -1,0 +1,114 @@
+name: Build macOS Universal App (DMG)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            backend-rust -> backend-rust/target
+            frontend/src-tauri -> frontend/src-tauri/target
+
+      - name: Build Backend Rust (Apple Silicon - aarch64)
+        run: |
+          cd backend-rust
+          cargo build --release --target aarch64-apple-darwin --bin backend-rust
+
+      - name: Build Backend Rust (Intel - x86_64)
+        run: |
+          cd backend-rust
+          cargo build --release --target x86_64-apple-darwin --bin backend-rust
+
+      - name: Prepare Tauri Sidecar Binaries (Universal & Individual)
+        run: |
+          mkdir -p frontend/src-tauri/bin
+          
+          # Copy architecture-specific binaries for Tauri sidecar resolution
+          cp backend-rust/target/aarch64-apple-darwin/release/backend-rust frontend/src-tauri/bin/lyang-backend-aarch64-apple-darwin
+          cp backend-rust/target/x86_64-apple-darwin/release/backend-rust frontend/src-tauri/bin/lyang-backend-x86_64-apple-darwin
+          
+          # Create universal binary for lyang-backend-universal-apple-darwin
+          lipo -create -output frontend/src-tauri/bin/lyang-backend-universal-apple-darwin \
+            backend-rust/target/aarch64-apple-darwin/release/backend-rust \
+            backend-rust/target/x86_64-apple-darwin/release/backend-rust
+          
+          chmod +x frontend/src-tauri/bin/lyang-backend-*
+          ls -la frontend/src-tauri/bin/
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Build macOS Universal App & DMG
+        run: |
+          cd frontend
+          npx tauri build --target universal-apple-darwin
+
+      - name: Prepare Release Artifacts
+        id: prepare_artifacts
+        run: |
+          cd frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg
+          
+          # Find generated .dmg file
+          DMG_FILE=$(ls *.dmg | head -n 1)
+          echo "Found DMG: $DMG_FILE"
+          
+          # Rename to friendly standardized release name
+          cp "$DMG_FILE" "LyangPOS_macOS_Universal.dmg"
+          echo "dmg_path=frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/LyangPOS_macOS_Universal.dmg" >> $GITHUB_OUTPUT
+
+      - name: Upload DMG to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LyangPOS_macOS_Universal
+          path: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/LyangPOS_macOS_Universal.dmg
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/LyangPOS_macOS_Universal.dmg
+          tag_name: ${{ github.ref_name || 'v0.1.0' }}
+          name: LyangPOS macOS Universal (${{ github.ref_name || 'v0.1.0' }})
+          body: |
+            ### 🚀 LyangPOS - Bản cài đặt macOS Universal (.dmg)
+            
+            - **Hỗ trợ toàn diện**: Chạy mượt mà trên cả máy Mac dùng chip **Apple Silicon (M1, M2, M3, M4)** và máy Mac dùng chip **Intel (x86_64)**.
+            - **Tích hợp sẵn**: Backend Rust Axum siêu nhẹ + SQLite + POS Engine.
+            
+            #### 📥 Hướng dẫn cài đặt trên macOS:
+            1. Tải file `LyangPOS_macOS_Universal.dmg`.
+            2. Nhấp đúp mở file `.dmg` và kéo biểu tượng **LyangPOS** vào thư mục **Applications**.
+            3. Mở ứng dụng từ Launchpad hoặc Applications.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

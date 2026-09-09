@@ -278,10 +278,10 @@ pub async fn save_and_open_tauri(Json(data): Json<serde_json::Value>) -> impl In
     let base64_data = data.get("base64_data").and_then(|v| v.as_str()).unwrap_or("");
 
     if let Ok(bytes) = BASE64_STANDARD.decode(base64_data) {
-        let downloads_dir = match std::env::var("USERPROFILE") {
-            Ok(p) => std::path::PathBuf::from(p).join("Downloads"),
-            Err(_) => std::path::PathBuf::from("."),
-        };
+        let downloads_dir = std::env::var("USERPROFILE")
+            .or_else(|_| std::env::var("HOME"))
+            .map(|p| std::path::PathBuf::from(p).join("Downloads"))
+            .unwrap_or_else(|_| std::path::PathBuf::from("."));
         let file_path = downloads_dir.join(filename);
         let _ = tokio::fs::write(&file_path, bytes).await;
         let _ = open::that(&file_path);

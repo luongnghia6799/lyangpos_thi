@@ -36,12 +36,14 @@ impl AppConfig {
 
         let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
-        // Helper to get base application directory (where the .exe is running)
+        // Helper to get base application directory (where the binary is running)
         let get_base_dir = || -> PathBuf {
             if let Ok(mut exe_path) = std::env::current_exe() {
-                exe_path.pop(); // remove binary name -> this is D:\LyangPOS in production!
-                // Only if running directly inside target/debug or target/release during cargo run:
-                if exe_path.ends_with("target\\release") || exe_path.ends_with("target\\debug") {
+                exe_path.pop(); // remove binary name
+                // Check if running directly inside target/release or target/debug during development
+                let path_str = exe_path.to_string_lossy();
+                if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
+                    || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {
                     exe_path.pop(); // pop release/debug
                     exe_path.pop(); // pop target
                     exe_path.pop(); // pop backend-rust

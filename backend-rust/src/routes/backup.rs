@@ -15,8 +15,10 @@ use crate::error::AppError;
 
 fn get_base_dir() -> PathBuf {
     if let Ok(mut exe_path) = std::env::current_exe() {
-        exe_path.pop(); // remove binary name -> D:\LyangPOS
-        if exe_path.ends_with("target\\release") || exe_path.ends_with("target\\debug") {
+        exe_path.pop(); // remove binary name
+        let path_str = exe_path.to_string_lossy();
+        if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
+            || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {
             exe_path.pop(); // pop release/debug
             exe_path.pop(); // pop target
             exe_path.pop(); // pop backend-rust

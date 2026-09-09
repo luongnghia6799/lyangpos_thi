@@ -698,14 +698,62 @@ pub async fn get_partner_ledger(
 
     let filter_type = params.filter_type.as_deref().unwrap_or("all");
 
-    // 1. Fetch Orders
+    // 1. Fetch Orders with details
     let orders = sqlx::query(
-        "SELECT id, display_id, date, type, payment_method, CAST(total_amount AS REAL) as total_amount \
+        "SELECT id, display_id, date, type, payment_method, CAST(total_amount AS REAL) as total_amount, \
+         created_by, CAST(amount_paid AS REAL) as amount_paid, CAST(old_debt AS REAL) as old_debt, \
+         note, status, shipping_status, shipping_address, shipping_phone \
          FROM \"order\" WHERE partner_id = ? ORDER BY date ASC"
     )
     .bind(id)
     .fetch_all(&pool)
     .await?;
+
+    // Pre-fetch all order details and products for orders of this partner
+    let order_ids: Vec<i64> = orders.iter().map(|o| o.get::<i64, _>("id")).collect();
+    let mut order_details_map: HashMap<i64, Vec<serde_json::Value>> = HashMap::new();
+
+    if !order_ids.is_empty() {
+        let placeholders = order_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let sql = format!(
+            "SELECT od.order_id, od.product_id, od.product_name_override, \
+             CAST(od.quantity AS REAL) as quantity, \
+             CAST(od.price AS REAL) as price, \
+             p.name as product_name, p.unit \
+             FROM order_detail od \
+             LEFT JOIN product p ON od.product_id = p.id \
+             WHERE od.order_id IN ({})",
+            placeholders
+        );
+
+        let mut q = sqlx::query(&sql);
+        for oid in &order_ids {
+            q = q.bind(oid);
+        }
+
+        if let Ok(rows) = q.fetch_all(&pool).await {
+            for row in rows {
+                let oid: i64 = row.get("order_id");
+                let qty: f64 = row.get::<Option<f64>, _>("quantity").unwrap_or(0.0);
+                let price: f64 = row.get::<Option<f64>, _>("price").unwrap_or(0.0);
+                let p_name: Option<String> = row.get("product_name");
+                let p_override: Option<String> = row.get("product_name_override");
+                let name = p_override.or(p_name).unwrap_or_else(|| "Sản phẩm".into());
+                let unit: Option<String> = row.get("unit");
+
+                let item_json = json!({
+                    "product_name": name,
+                    "quantity": qty,
+                    "unit": unit.unwrap_or_else(|| "cái".into()),
+                    "unit_price": price,
+                    "total_price": qty * price,
+                    "specification": serde_json::Value::Null
+                });
+
+                order_details_map.entry(oid).or_default().push(item_json);
+            }
+        }
+    }
 
     // 2. Fetch Vouchers
     let vouchers = sqlx::query(
@@ -738,6 +786,9 @@ pub async fn get_partner_ledger(
         total_amount: f64,
         is_debt: bool,
         sub_type: String,
+        details: Vec<serde_json::Value>,
+        user_name: String,
+        raw_obj: serde_json::Value,
     }
 
     let mut timeline: Vec<TimelineItem> = Vec::new();
@@ -751,7 +802,12 @@ pub async fn get_partner_ledger(
         let date: Option<NaiveDateTime> = o.get("date");
         let o_type: String = o.get("type");
         let pm: Option<String> = o.get("payment_method");
-        let total: f64 = o.get("total_amount");
+        let total: f64 = o.get::<Option<f64>, _>("total_amount").unwrap_or(0.0);
+        let created_by: Option<String> = o.get("created_by");
+        let amount_paid: f64 = o.get::<Option<f64>, _>("amount_paid").unwrap_or(0.0);
+        let old_debt: f64 = o.get::<Option<f64>, _>("old_debt").unwrap_or(0.0);
+        let note: Option<String> = o.get("note");
+        let status: Option<String> = o.get("status");
 
         let is_debt = pm.as_deref() == Some("Debt");
         order_debt_map.insert(o_id, is_debt);
@@ -767,6 +823,22 @@ pub async fn get_partner_ledger(
                 format!("Nhập hàng - #{}", display_id.as_deref().unwrap_or(&o_id.to_string()))
             };
 
+            let details = order_details_map.remove(&o_id).unwrap_or_default();
+            let raw_obj = json!({
+                "id": o_id,
+                "display_id": display_id.clone().unwrap_or_else(|| format!("ORD-{}", o_id)),
+                "date": d.to_string(),
+                "type": o_type,
+                "payment_method": pm.clone().unwrap_or_else(|| "Cash".into()),
+                "total_amount": total,
+                "amount_paid": amount_paid,
+                "old_debt": old_debt,
+                "note": note,
+                "status": status,
+                "created_by": created_by.clone().unwrap_or_else(|| "Hệ thống".into()),
+                "details": details
+            });
+
             timeline.push(TimelineItem {
                 id: o_id,
                 date: d,
@@ -777,6 +849,9 @@ pub async fn get_partner_ledger(
                 total_amount: total,
                 is_debt,
                 sub_type: o_type,
+                details,
+                user_name: created_by.unwrap_or_else(|| "Hệ thống".into()),
+                raw_obj,
             });
         }
     }
@@ -786,15 +861,25 @@ pub async fn get_partner_ledger(
         let date: Option<NaiveDateTime> = v.get("date");
         let v_type: String = v.get("type");
         let note: Option<String> = v.get("note");
-        let amount: f64 = v.get("amount");
+        let amount: f64 = v.get::<Option<f64>, _>("amount").unwrap_or(0.0);
+        let created_by = "Hệ thống".to_string();
 
         if let Some(d) = date {
-            let desc = note.unwrap_or_else(|| {
+            let desc = note.clone().unwrap_or_else(|| {
                 if v_type == "Receipt" {
                     "Phiếu thu".into()
                 } else {
                     "Phiếu chi".into()
                 }
+            });
+
+            let raw_obj = json!({
+                "id": v_id,
+                "date": d.to_string(),
+                "type": v_type,
+                "amount": amount,
+                "note": note,
+                "created_by": created_by
             });
 
             timeline.push(TimelineItem {
@@ -807,6 +892,9 @@ pub async fn get_partner_ledger(
                 total_amount: amount,
                 is_debt: true,
                 sub_type: v_type,
+                details: Vec::new(),
+                user_name: "Hệ thống".into(),
+                raw_obj,
             });
         }
     }
@@ -816,9 +904,10 @@ pub async fn get_partner_ledger(
         let date: Option<NaiveDateTime> = b.get("date");
         let b_type: String = b.get("type");
         let note: Option<String> = b.get("note");
-        let amount: f64 = b.get("amount");
+        let amount: f64 = b.get::<Option<f64>, _>("amount").unwrap_or(0.0);
         let order_id: Option<i64> = b.get("order_id");
         let bank_name: Option<String> = b.get("bank_name");
+        let created_by = "Hệ thống".to_string();
 
         let mut is_debt = true;
         if let Some(oid) = order_id {
@@ -830,8 +919,17 @@ pub async fn get_partner_ledger(
         }
 
         if let Some(d) = date {
-            let desc = note.unwrap_or_else(|| {
+            let desc = note.clone().unwrap_or_else(|| {
                 format!("Chuyển khoản - {}", bank_name.unwrap_or_else(|| "Ngân hàng".into()))
+            });
+
+            let raw_obj = json!({
+                "id": b_id,
+                "date": d.to_string(),
+                "type": b_type,
+                "amount": amount,
+                "note": note,
+                "created_by": created_by
             });
 
             timeline.push(TimelineItem {
@@ -844,6 +942,9 @@ pub async fn get_partner_ledger(
                 total_amount: amount,
                 is_debt,
                 sub_type: b_type,
+                details: Vec::new(),
+                user_name: "Hệ thống".into(),
+                raw_obj,
             });
         }
     }
@@ -917,7 +1018,8 @@ pub async fn get_partner_ledger(
                 "decrease": 0.0,
                 "running_balance": opening_balance,
                 "details": [],
-                "user_name": "Hệ thống"
+                "user_name": "Hệ thống",
+                "obj": null
             }));
         }
 
@@ -939,8 +1041,9 @@ pub async fn get_partner_ledger(
             "increase": inc,
             "decrease": dec,
             "running_balance": balance,
-            "details": [],
-            "user_name": "Hệ thống"
+            "details": item.details,
+            "user_name": item.user_name,
+            "obj": item.raw_obj
         }));
     }
 

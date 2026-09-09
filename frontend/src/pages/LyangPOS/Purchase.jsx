@@ -25,6 +25,7 @@ import PartnerInfoHoverCard from '../../components/PartnerInfoHoverCard';
 import CustomSelect from '../../components/CustomSelect';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
+import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
 import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
@@ -182,6 +183,7 @@ export default function Purchase() {
     const [showQuickAddProduct, setShowQuickAddProduct] = useState(false);
     const [quickAddName, setQuickAddName] = useState('');
     const [showPreview, setShowPreview] = useState(false);
+    const [isPOExportModalOpen, setIsPOExportModalOpen] = useState(false);
     const [previewData, setPreviewData] = useState(null);
     const [zoomScale, setZoomScale] = useState(1);
     const [printOptions, setPrintOptions] = useState({
@@ -2181,6 +2183,26 @@ export default function Purchase() {
                             <History size={16} strokeWidth={2.5} />
                         </m.button>
 
+                        {/* 6.5 Nút ĐẶT HÀNG trên Header ở chế độ Bottom Bar */}
+                        {summaryLayoutMode === 'bottom' && (
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                disabled={cart.length === 0}
+                                onClick={() => setIsPOExportModalOpen(true)}
+                                className={cn(
+                                    "relative h-9 px-3 flex items-center gap-1.5 rounded-full transition-all duration-200 border shadow-xs shrink-0 cursor-pointer select-none text-xs font-black uppercase tracking-wider",
+                                    cart.length === 0
+                                        ? "opacity-40 cursor-not-allowed bg-[#8b6f47]/[0.08] text-[#8b6f47] dark:bg-white/[0.05] dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/10"
+                                        : "bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white border-amber-400/50 shadow-md shadow-amber-600/25"
+                                )}
+                                title="Xuất phiếu đặt hàng gửi NCC (Ảnh / PDF không lưu đơn)"
+                            >
+                                <FileText size={15} strokeWidth={2.5} />
+                                <span>ĐẶT HÀNG</span>
+                            </m.button>
+                        )}
+
                         {/* 7. Hamburger Action Menu (Thao tác) */}
                         <div className="relative" ref={actionMenuRef}>
                             <m.button
@@ -2232,6 +2254,22 @@ export default function Purchase() {
                                         >
                                             <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
                                             <span>Xem trước in hóa đơn</span>
+                                        </button>
+
+                                        {/* Export Purchase Order Slip (Image / PDF) without saving */}
+                                        <button
+                                            disabled={cart.length === 0}
+                                            onClick={() => {
+                                                setIsActionMenuOpen(false);
+                                                setIsPOExportModalOpen(true);
+                                            }}
+                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-xl transition-all disabled:opacity-40 disabled:pointer-events-none"
+                                        >
+                                            <FileText size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <div className="flex flex-col text-left">
+                                                <span className="font-black">Xuất phiếu đặt hàng NCC</span>
+                                                <span className="text-[9px] font-bold text-slate-400">Xuất Ảnh / PDF (không lưu đơn)</span>
+                                            </div>
                                         </button>
 
                                         {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
@@ -4835,20 +4873,31 @@ export default function Purchase() {
                                                             <span>LƯU</span>
                                                         </button>
                                                     </div>
-                                                    <button
-                                                        disabled={cart.length === 0 || loading}
-                                                        onClick={() => handleSave(true)}
-                                                        className="w-full bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-2xl font-black uppercase tracking-widest gap-2.5 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
-                                                    >
-                                                        {loading ? (
-                                                            <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                                        ) : (
-                                                            <>
-                                                                <Printer size={24} strokeWidth={2.5} />
-                                                                <span>IN</span>
-                                                            </>
-                                                        )}
-                                                    </button>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            disabled={cart.length === 0}
+                                                            onClick={() => setIsPOExportModalOpen(true)}
+                                                            className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-base font-black uppercase tracking-wider gap-2 shadow-lg shadow-amber-600/20 border-2 border-amber-400/40 transition-all disabled:opacity-40 cursor-pointer"
+                                                            title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
+                                                        >
+                                                            <FileText size={20} strokeWidth={2.5} />
+                                                            <span>ĐẶT HÀNG</span>
+                                                        </button>
+                                                        <button
+                                                            disabled={cart.length === 0 || loading}
+                                                            onClick={() => handleSave(true)}
+                                                            className="flex-1 bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-xl font-black uppercase tracking-widest gap-2 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
+                                                        >
+                                                            {loading ? (
+                                                                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                                            ) : (
+                                                                <>
+                                                                    <Printer size={22} strokeWidth={2.5} />
+                                                                    <span>IN</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </m.div>
@@ -5796,6 +5845,16 @@ export default function Purchase() {
                     onClose={handleDismissPriceRaise}
                     onSuccess={handlePriceRaiseSuccess}
                     queryClient={queryClient}
+                />
+
+                {/* Purchase Order Supplier Export Modal (No save, only name/qty/spec) */}
+                <PurchaseOrderExportModal
+                    isOpen={isPOExportModalOpen}
+                    onClose={() => setIsPOExportModalOpen(false)}
+                    cart={cart}
+                    partner={selectedPartner}
+                    note={note}
+                    settings={settings}
                 />
 
                 {/* Toast Notification */}

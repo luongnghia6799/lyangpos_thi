@@ -7,7 +7,8 @@ import {
     RefreshCw, Download, ShoppingCart, History, Package,
     ChevronDown, Receipt, CheckCircle2, TrendingUp,
     Printer, Mail, Share2, Info, User, Plus, Edit2,
-    Activity, Sprout, Wheat, Droplets, ArrowLeft, ExternalLink
+    Activity, Sprout, Wheat, Droplets, ArrowLeft, ExternalLink,
+    FileText
 } from 'lucide-react';
 import { cn, formatNumber, formatDebt, formatDate } from '../../lib/utils';
 import LoadingOverlay from '../../components/LoadingOverlay';
@@ -15,6 +16,7 @@ import Toast from '../../components/Toast';
 import PrintTemplate from '../../components/PrintTemplate';
 import OrderEditPopup from '../../components/OrderEditPopup';
 import CustomDatePicker from '../../components/CustomDatePicker';
+import CustomSelect from '../../components/CustomSelect';
 
 const translateType = (type) => {
     if (!type) return '';
@@ -107,22 +109,22 @@ export default function PartnerProfile() {
 
     // Filter state
     const [filterType, setFilterType] = useState('all'); // all, debt, cash
+    const [filterScope, setFilterScope] = useState('all'); // all, latest_payment, payment_range, debt_cycle, custom_date, month, quarter, year
     const [selectedCycleId, setSelectedCycleId] = useState('all');
-    const [rangeMode, setRangeMode] = useState('all'); // all, latest, custom
 
-    const [dateType, setDateType] = useState('all'); // all, year, month, quarter, custom
     const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
-    const [filterMonth, setFilterMonth] = useState('');
-    const [filterQuarter, setFilterQuarter] = useState('');
+    const [filterMonth, setFilterMonth] = useState((new Date().getMonth() + 1).toString());
+    const [filterQuarter, setFilterQuarter] = useState(Math.ceil((new Date().getMonth() + 1) / 3).toString());
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
+    const [startPaymentKey, setStartPaymentKey] = useState('');
+    const [endPaymentKey, setEndPaymentKey] = useState('');
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedPartner?.id, filterType, selectedCycleId, rangeMode, dateType, filterYear, filterMonth, filterQuarter, startDate, endDate]);
+    }, [selectedPartner?.id, filterType, selectedCycleId, filterScope, filterYear, filterMonth, filterQuarter, startDate, endDate, startPaymentKey, endPaymentKey]);
 
-    const [startReceiptId, setStartReceiptId] = useState('');
-    const [endReceiptId, setEndReceiptId] = useState('');
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [toast, setToast] = useState(null);
     const [showSearchResults, setShowSearchResults] = useState(false);
@@ -246,16 +248,14 @@ export default function PartnerProfile() {
     };
 
     const getBackendDateParams = () => {
-        if (dateType === 'all') return { start_date: '', end_date: '' };
-        
         let start = '';
         let end = '';
         const year = filterYear || new Date().getFullYear().toString();
-        
-        if (dateType === 'year') {
+
+        if (filterScope === 'year') {
             start = `${year}-01-01T00:00:00`;
             end = `${year}-12-31T23:59:59`;
-        } else if (dateType === 'month') {
+        } else if (filterScope === 'month') {
             if (filterMonth) {
                 const m = parseInt(filterMonth);
                 const lastDay = new Date(parseInt(year), m, 0).getDate();
@@ -266,7 +266,7 @@ export default function PartnerProfile() {
                 start = `${year}-01-01T00:00:00`;
                 end = `${year}-12-31T23:59:59`;
             }
-        } else if (dateType === 'quarter') {
+        } else if (filterScope === 'quarter') {
             if (filterQuarter === '1') {
                 start = `${year}-01-01T00:00:00`;
                 end = `${year}-03-31T23:59:59`;
@@ -283,11 +283,11 @@ export default function PartnerProfile() {
                 start = `${year}-01-01T00:00:00`;
                 end = `${year}-12-31T23:59:59`;
             }
-        } else if (dateType === 'custom') {
+        } else if (filterScope === 'custom_date') {
             if (startDate) start = `${startDate}T00:00:00`;
             if (endDate) end = `${endDate}T23:59:59`;
         }
-        
+
         return { start_date: start, end_date: end };
     };
 
@@ -299,7 +299,7 @@ export default function PartnerProfile() {
                 window.history.replaceState(null, '', `#/partner-profile/${selectedPartner.id}`);
             }
         }
-    }, [selectedPartner, filterType, dateType, filterYear, filterMonth, filterQuarter, startDate, endDate]);
+    }, [selectedPartner, filterType, filterScope, filterYear, filterMonth, filterQuarter, startDate, endDate]);
 
     const fetchPartnerDetails = async () => {
         if (!selectedPartner) return;
@@ -308,16 +308,18 @@ export default function PartnerProfile() {
             const { start_date, end_date } = getBackendDateParams();
             const params = { 
                 filter_type: filterType,
-                start_date,
-                end_date
             };
+            if (start_date) params.start_date = start_date;
+            if (end_date) params.end_date = end_date;
+
             const res = await axios.get(`/api/partners/${selectedPartner.id}/ledger`, { params });
-            setLedger(res.data.ledger);
+            setLedger(res.data.ledger || []);
             setStats(prev => ({
                 ...prev,
                 current_balance: res.data.current_balance
             }));
         } catch (err) {
+            console.error('Lỗi tải chi tiết giao dịch:', err);
             setToast({ message: 'Lỗi tải chi tiết giao dịch', type: 'error' });
         } finally {
             setLoadingDetails(false);
@@ -393,31 +395,59 @@ export default function PartnerProfile() {
         }
     };
 
-    const receiptVouchers = ledger.filter(o => o.type === 'Voucher' && o.obj && o.obj.type === 'Receipt');
+    const paymentRecords = React.useMemo(() => {
+        return ledger.filter(o => o.type === 'Voucher' || o.type === 'Bank' || (o.decrease && o.decrease > 0));
+    }, [ledger]);
 
     useEffect(() => {
-        if (rangeMode === 'custom' && receiptVouchers.length >= 2) {
-            if (!startReceiptId) setStartReceiptId(receiptVouchers[0].id.toString());
-            if (!endReceiptId) setEndReceiptId(receiptVouchers[1].id.toString());
-        } else if (rangeMode === 'custom' && receiptVouchers.length === 1) {
-            if (!startReceiptId) setStartReceiptId(receiptVouchers[0].id.toString());
-            if (!endReceiptId) setEndReceiptId(receiptVouchers[0].id.toString());
+        if (filterScope === 'payment_range' && paymentRecords.length > 0) {
+            const getKey = (p) => `${p.type}_${p.id}_${p.date}`;
+            if (!startPaymentKey || !paymentRecords.some(p => getKey(p) === startPaymentKey)) {
+                const older = paymentRecords.length > 1 ? paymentRecords[paymentRecords.length - 1] : paymentRecords[0];
+                setStartPaymentKey(getKey(older));
+            }
+            if (!endPaymentKey || (endPaymentKey !== 'now' && !paymentRecords.some(p => getKey(p) === endPaymentKey))) {
+                const newer = paymentRecords[0];
+                setEndPaymentKey(getKey(newer));
+            }
         }
-    }, [rangeMode, receiptVouchers, startReceiptId, endReceiptId]);
+    }, [filterScope, paymentRecords, startPaymentKey, endPaymentKey]);
+
+    const getPaymentLabel = (p) => {
+        const dStr = formatDate(p.date);
+        const amt = (p.decrease && p.decrease > 0) ? p.decrease : (p.increase && p.increase > 0 ? p.increase : 0);
+        const typeStr = p.type === 'Voucher' 
+            ? (p.decrease > 0 ? 'Thu' : 'Chi') 
+            : p.type === 'Bank' 
+                ? 'CK' 
+                : 'Trả tiền';
+        return `${dStr.split(' ')[0]} - ${typeStr} #${p.ref_id} (${formatNumber(amt)}đ)`;
+    };
 
     let displayLedger = [...ledger];
-    if (rangeMode === 'latest') {
-        const latestReceiptIdx = displayLedger.findIndex(o => o.type === 'Voucher' && o.obj && o.obj.type === 'Receipt');
-        if (latestReceiptIdx !== -1) {
-            displayLedger = displayLedger.slice(0, latestReceiptIdx + 1);
+    if (filterScope === 'latest_payment') {
+        const latestPaymentIdx = displayLedger.findIndex(o => o.type === 'Voucher' || o.type === 'Bank' || (o.decrease && o.decrease > 0));
+        if (latestPaymentIdx !== -1) {
+            displayLedger = displayLedger.slice(0, latestPaymentIdx + 1);
         }
-    } else if (rangeMode === 'custom' && startReceiptId && endReceiptId) {
-        const idxA = displayLedger.findIndex(o => o.id.toString() === startReceiptId && o.type === 'Voucher');
-        const idxB = displayLedger.findIndex(o => o.id.toString() === endReceiptId && o.type === 'Voucher');
+    } else if (filterScope === 'payment_range' && startPaymentKey && endPaymentKey) {
+        const getKey = (o) => `${o.type}_${o.id}_${o.date}`;
+        const idxA = displayLedger.findIndex(o => getKey(o) === startPaymentKey);
+        const idxB = endPaymentKey === 'now' ? 0 : displayLedger.findIndex(o => getKey(o) === endPaymentKey);
         if (idxA !== -1 && idxB !== -1) {
             const minIdx = Math.min(idxA, idxB);
             const maxIdx = Math.max(idxA, idxB);
             displayLedger = displayLedger.slice(minIdx, maxIdx + 1);
+        }
+    } else if (filterScope === 'debt_cycle' && selectedCycleId !== 'all') {
+        const cycle = debtCycles.find(c => c.id.toString() === selectedCycleId.toString());
+        if (cycle) {
+            const cStart = new Date(cycle.start_date);
+            const cEnd = cycle.end_date ? new Date(cycle.end_date) : new Date();
+            displayLedger = displayLedger.filter(o => {
+                const d = new Date(o.date);
+                return d >= cStart && d <= cEnd;
+            });
         }
     }
 
@@ -570,252 +600,306 @@ export default function PartnerProfile() {
                     </div>
                 </m.div>
 
-                {/* Sub-Header Toolbar Section */}
+                {/* Modern Sleek Toolbar Section */}
                 {selectedPartner && (
                     <m.div 
                         initial="hidden"
                         animate="visible"
                         variants={itemVariants} 
-                        className="pos-card bg-transparent border border-border p-4 rounded-3xl flex flex-wrap gap-4 items-center justify-between shadow-none relative z-50"
+                        className="flex flex-col gap-2.5 relative z-40"
                     >
-                        <div className="flex flex-wrap gap-3 items-center">
-                            {/* filterType select: All, Debt, Cash */}
-                            <div className="p-1 pos-card rounded-2xl border border-border flex gap-1 bg-transparent">
-                                {['all', 'debt', 'cash'].map(type => (
-                                    <button
-                                        key={type}
-                                        onClick={() => setFilterType(type)}
-                                        className={cn(
-                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all tracking-wider",
-                                            filterType === type
-                                                ? "bg-primary text-white"
-                                                : "text-muted hover:text-primary hover:bg-primary/5"
-                                        )}
-                                    >
-                                        {type === 'all' ? 'Tất cả' : type === 'debt' ? 'Dư nợ' : 'Tiền mặt'}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* rangeMode select: Full, Latest, Custom */}
-                            <div className="p-1 pos-card rounded-2xl border border-border flex gap-1 bg-transparent">
-                                {[
-                                    { id: 'all', label: 'Hiện Full' },
-                                    { id: 'latest', label: 'Trả gần nhất → Nay' },
-                                    { id: 'custom', label: 'Tùy chọn' }
-                                ].map((m) => (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => {
-                                            setRangeMode(m.id);
-                                            if (m.id !== 'all') {
-                                                setDateType('all');
-                                            }
-                                        }}
-                                        className={cn(
-                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
-                                            rangeMode === m.id
-                                                ? "bg-primary text-white"
-                                                : "text-muted hover:text-primary hover:bg-primary/5"
-                                        )}
-                                    >
-                                        {m.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Date filter select: Mọi lúc, Năm, Tháng, Quý, Tùy chọn ngày */}
-                            <div className="p-1 pos-card rounded-2xl border border-border flex gap-1 bg-transparent">
-                                {[
-                                    { id: 'all', label: 'Mọi lúc' },
-                                    { id: 'year', label: 'Theo Năm' },
-                                    { id: 'month', label: 'Theo Tháng' },
-                                    { id: 'quarter', label: 'Theo Quý' },
-                                    { id: 'custom', label: 'Tùy chọn ngày' }
-                                ].map((t) => (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => {
-                                            setDateType(t.id);
-                                            if (t.id !== 'all') {
-                                                setRangeMode('all');
-                                            }
-                                        }}
-                                        className={cn(
-                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
-                                            dateType === t.id
-                                                ? "bg-primary text-white"
-                                                : "text-muted hover:text-primary hover:bg-primary/5"
-                                        )}
-                                    >
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Additional Date Selectors depending on dateType */}
-                            {dateType === 'year' && (
-                                <div className="p-1 pos-card rounded-2xl border border-border flex items-center bg-transparent gap-2">
-                                    <span className="text-[9px] font-black uppercase text-slate-400 pl-2">Năm</span>
-                                    <select
-                                        value={filterYear}
-                                        onChange={(e) => setFilterYear(e.target.value)}
-                                        className="bg-transparent border-none text-[10px] rounded p-1 font-bold outline-none dark:text-white"
-                                    >
-                                        {[...Array(5)].map((_, i) => {
-                                            const y = new Date().getFullYear() - i;
-                                            return <option key={y} value={y.toString()}>{y}</option>
-                                        })}
-                                    </select>
-                                </div>
-                            )}
-
-                            {dateType === 'month' && (
-                                <div className="p-1 pos-card rounded-2xl border border-border flex items-center bg-transparent gap-2">
-                                    <span className="text-[9px] font-black uppercase text-slate-400 pl-2">Tháng / Năm</span>
-                                    <select
-                                        value={filterMonth}
-                                        onChange={(e) => setFilterMonth(e.target.value)}
-                                        className="bg-transparent border-none text-[10px] rounded p-1 font-bold outline-none dark:text-white"
-                                    >
-                                        <option value="">Tất cả</option>
-                                        {[...Array(12)].map((_, i) => (
-                                            <option key={i + 1} value={(i + 1).toString()}>Tháng {i + 1}</option>
-                                        ))}
-                                    </select>
-                                    <span className="text-[10px] font-black text-slate-350 dark:text-slate-650">/</span>
-                                    <select
-                                        value={filterYear}
-                                        onChange={(e) => setFilterYear(e.target.value)}
-                                        className="bg-transparent border-none text-[10px] rounded p-1 font-bold outline-none dark:text-white"
-                                    >
-                                        {[...Array(5)].map((_, i) => {
-                                            const y = new Date().getFullYear() - i;
-                                            return <option key={y} value={y.toString()}>{y}</option>
-                                        })}
-                                    </select>
-                                </div>
-                            )}
-
-                            {dateType === 'quarter' && (
-                                <div className="p-1 pos-card rounded-2xl border border-border flex items-center bg-transparent gap-2">
-                                    <span className="text-[9px] font-black uppercase text-slate-400 pl-2">Quý / Năm</span>
-                                    <select
-                                        value={filterQuarter}
-                                        onChange={(e) => setFilterQuarter(e.target.value)}
-                                        className="bg-transparent border-none text-[10px] rounded p-1 font-bold outline-none dark:text-white"
-                                    >
-                                        <option value="">Tất cả</option>
-                                        <option value="1">Quý 1</option>
-                                        <option value="2">Quý 2</option>
-                                        <option value="3">Quý 3</option>
-                                        <option value="4">Quý 4</option>
-                                    </select>
-                                    <span className="text-[10px] font-black text-slate-350 dark:text-slate-650">/</span>
-                                    <select
-                                        value={filterYear}
-                                        onChange={(e) => setFilterYear(e.target.value)}
-                                        className="bg-transparent border-none text-[10px] rounded p-1 font-bold outline-none dark:text-white"
-                                    >
-                                        {[...Array(5)].map((_, i) => {
-                                            const y = new Date().getFullYear() - i;
-                                            return <option key={y} value={y.toString()}>{y}</option>
-                                        })}
-                                    </select>
-                                </div>
-                            )}
-
-                            {dateType === 'custom' && (
-                                <div className="p-1.5 pos-card rounded-2xl border border-border flex items-center bg-transparent gap-2 px-3">
-                                    <span className="text-[9px] font-black uppercase text-slate-400">Từ</span>
-                                    <CustomDatePicker
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                    />
-                                    <span className="text-[9px] font-black uppercase text-slate-400">Đến</span>
-                                    <CustomDatePicker
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                    />
-                                </div>
-                            )}
-
-                            {rangeMode === 'custom' && (
-                                <div className="flex gap-2 items-center p-1 pos-card rounded-2xl border border-border bg-transparent">
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-[7px] text-slate-500 uppercase font-black px-1">Từ lần trả</span>
-                                        <select
-                                            value={startReceiptId}
-                                            onChange={(e) => setStartReceiptId(e.target.value)}
-                                            className="bg-transparent border-none text-[9px] rounded p-1 font-bold outline-none dark:text-white"
+                        {/* Main Toolbar Row */}
+                        <div className="pos-card bg-surface/80 backdrop-blur-md border border-border p-2.5 rounded-2xl flex flex-wrap gap-3 items-center justify-between shadow-xs">
+                            <div className="flex flex-wrap items-center gap-2">
+                                {/* Segmented Type Filter: Tất cả | Dư nợ | Tiền mặt */}
+                                <div className="p-1 bg-surface-2/60 border border-border/60 rounded-xl flex gap-1">
+                                    {[
+                                        { id: 'all', label: 'Tất cả' },
+                                        { id: 'debt', label: 'Dư nợ' },
+                                        { id: 'cash', label: 'Tiền mặt' }
+                                    ].map(item => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setFilterType(item.id)}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all",
+                                                filterType === item.id
+                                                    ? "bg-primary text-white shadow-sm"
+                                                    : "text-muted hover:text-primary hover:bg-primary/5"
+                                            )}
                                         >
-                                            <option value="">-- Chọn --</option>
-                                            {receiptVouchers.map(v => (
-                                                <option key={v.id} value={v.id.toString()}>
-                                                    {v.desc.split(' - ')[0]} #{v.id} ({formatDate(v.date).split(' ')[0]})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <span className="text-[8px] text-slate-400 font-bold self-end mb-1.5">→</span>
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="text-[7px] text-slate-500 uppercase font-black px-1">Đến lần trả</span>
-                                        <select
-                                            value={endReceiptId}
-                                            onChange={(e) => setEndReceiptId(e.target.value)}
-                                            className="bg-transparent border-none text-[9px] rounded p-1 font-bold outline-none dark:text-white"
-                                        >
-                                            <option value="">-- Chọn --</option>
-                                            {receiptVouchers.map(v => (
-                                                <option key={v.id} value={v.id.toString()}>
-                                                    {v.desc.split(' - ')[0]} #{v.id} ({formatDate(v.date).split(' ')[0]})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                            {item.label}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleRefresh}
-                                className="p-3 hover:bg-primary/10 border border-border rounded-xl transition-all text-slate-500 hover:text-primary flex items-center justify-center"
-                                title="Làm mới thông tin"
-                            >
-                                <RefreshCw size={16} className={loadingDetails ? "animate-spin" : ""} />
-                            </button>
-                            <button
-                                onClick={() => navigate('/invoice-designer?module=PartnerLedger')}
-                                className="p-3 hover:bg-primary/10 border border-border rounded-xl transition-all text-slate-400 hover:text-primary flex items-center justify-center"
-                                title="Thiết kế mẫu in sổ nợ"
-                            >
-                                <Info size={16} />
-                            </button>
-                            <button
-                                onClick={handlePrint}
-                                className="p-3 hover:bg-primary/10 border border-border rounded-xl transition-all text-slate-550 hover:text-primary flex items-center justify-center"
-                                title="In sổ nợ"
-                            >
-                                <Printer size={16} />
-                            </button>
-                            <button
-                                onClick={handleExport}
-                                className="p-3 hover:bg-primary/10 border border-border rounded-xl transition-all text-slate-550 hover:text-primary flex items-center justify-center"
-                                title="Xuất Excel sổ nợ"
-                            >
-                                <Download size={16} />
-                            </button>
-                            <button
-                                onClick={handleShare}
-                                className="p-3 hover:bg-primary/10 border border-border rounded-xl transition-all text-slate-550 hover:text-primary flex items-center justify-center"
-                                title="Chia sẻ hồ sơ"
-                            >
-                                <Share2 size={16} />
-                            </button>
-                        </div>
-                    </m.div>
-                )}
+                                <div className="h-4 w-px bg-border/80 hidden sm:block" />
+
+                                {/* Scope Pills */}
+                                <div className="p-1 bg-surface-2/60 border border-border/60 rounded-xl flex flex-wrap gap-1">
+                                    {[
+                                        { id: 'all', label: 'Toàn bộ' },
+                                        { id: 'latest_payment', label: 'Trả gần nhất → Nay' },
+                                        { id: 'payment_range', label: 'Lọc 2 kỳ trả' },
+                                        ...(debtCycles.length > 0 ? [{ id: 'debt_cycle', label: 'Chu kỳ nợ' }] : []),
+                                    ].map(item => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setFilterScope(item.id)}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5",
+                                                filterScope === item.id
+                                                    ? "bg-primary text-white shadow-sm"
+                                                    : "text-muted hover:text-primary hover:bg-primary/5"
+                                            )}
+                                        >
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Quick Date Picker Dropdown */}
+                                <div className="relative">
+                                    <CustomSelect
+                                         value={['custom_date', 'month', 'quarter', 'year'].includes(filterScope) ? filterScope : ''}
+                                         onChange={(e) => {
+                                             if (e.target.value) {
+                                                 setFilterScope(e.target.value);
+                                             }
+                                         }}
+                                         placeholder="📅 Lọc theo thời gian..."
+                                         className={cn(
+                                             "min-w-[170px] text-[11px] font-bold rounded-xl",
+                                             ['custom_date', 'month', 'quarter', 'year'].includes(filterScope)
+                                                 ? "!bg-primary !text-white !border-primary shadow-sm font-black"
+                                                 : ""
+                                         )}
+                                         options={[
+                                             { value: "custom_date", label: "📆 Tùy chọn ngày" },
+                                             { value: "month", label: "🗓️ Theo Tháng" },
+                                             { value: "quarter", label: "📊 Theo Quý" },
+                                             { value: "year", label: "📈 Theo Năm" },
+                                         ]}
+                                     />
+                                 </div>
+                             </div>
+
+                             {/* Action Buttons */}
+                             <div className="flex items-center gap-1.5">
+                                 <button
+                                     onClick={handleRefresh}
+                                     className="p-2 hover:bg-primary/10 border border-border/80 rounded-xl transition-all text-slate-500 hover:text-primary flex items-center justify-center bg-surface-2/30"
+                                     title="Làm mới thông tin"
+                                 >
+                                     <RefreshCw size={15} className={loadingDetails ? "animate-spin" : ""} />
+                                 </button>
+                                 <button
+                                     onClick={() => navigate('/invoice-designer?module=PartnerLedger')}
+                                     className="p-2 hover:bg-primary/10 border border-border/80 rounded-xl transition-all text-slate-400 hover:text-primary flex items-center justify-center bg-surface-2/30"
+                                     title="Cấu hình mẫu in sổ nợ"
+                                 >
+                                     <Info size={15} />
+                                 </button>
+                                 <button
+                                     onClick={handlePrint}
+                                     className="p-2 hover:bg-primary/10 border border-border/80 rounded-xl transition-all text-slate-600 dark:text-slate-300 hover:text-primary flex items-center justify-center bg-surface-2/30"
+                                     title="In sổ nợ"
+                                 >
+                                     <Printer size={15} />
+                                 </button>
+                                 <button
+                                     onClick={handleExport}
+                                     className="p-2 hover:bg-primary/10 border border-border/80 rounded-xl transition-all text-slate-600 dark:text-slate-300 hover:text-primary flex items-center justify-center bg-surface-2/30"
+                                     title="Xuất Excel sổ nợ"
+                                 >
+                                     <Download size={15} />
+                                 </button>
+                                 <button
+                                     onClick={handleShare}
+                                     className="p-2 hover:bg-primary/10 border border-border/80 rounded-xl transition-all text-slate-600 dark:text-slate-300 hover:text-primary flex items-center justify-center bg-surface-2/30"
+                                     title="Chia sẻ hồ sơ"
+                                 >
+                                     <Share2 size={15} />
+                                 </button>
+                             </div>
+                         </div>
+
+                         {/* Parameter Sub-Bar (Renders only when parameters are needed) */}
+                         <AnimatePresence>
+                             {['payment_range', 'custom_date', 'month', 'quarter', 'year', 'debt_cycle'].includes(filterScope) && (
+                                 <m.div 
+                                     initial={{ opacity: 0, height: 0, y: -6 }}
+                                     animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                     exit={{ opacity: 0, height: 0, y: -6 }}
+                                     transition={{ duration: 0.18 }}
+                                     className="overflow-hidden"
+                                 >
+                                     <div className="pos-card bg-surface-2/40 border border-primary/20 p-2.5 rounded-2xl flex flex-wrap items-center gap-3 shadow-xs">
+                                         {/* 1. Lọc 2 kỳ trả */}
+                                         {filterScope === 'payment_range' && (
+                                             <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                                                 <div className="flex items-center gap-1.5 text-primary text-[10px] font-black uppercase tracking-wider">
+                                                     <CreditCard size={14} />
+                                                     <span>Phạm vi kỳ trả:</span>
+                                                 </div>
+                                                 {paymentRecords.length > 0 ? (
+                                                     <div className="flex flex-wrap items-center gap-2">
+                                                         <div className="flex items-center gap-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-400">Từ:</span>
+                                                             <CustomSelect
+                                                                 value={startPaymentKey}
+                                                                 onChange={(e) => setStartPaymentKey(e.target.value)}
+                                                                 className="min-w-[210px] text-[11px]"
+                                                                 options={paymentRecords.map(p => {
+                                                                     const key = `${p.type}_${p.id}_${p.date}`;
+                                                                     return { value: key, label: getPaymentLabel(p) };
+                                                                 })}
+                                                             />
+                                                         </div>
+
+                                                         <span className="text-[12px] text-slate-400 font-black">→</span>
+
+                                                         <div className="flex items-center gap-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-400">Đến:</span>
+                                                             <CustomSelect
+                                                                 value={endPaymentKey}
+                                                                 onChange={(e) => setEndPaymentKey(e.target.value)}
+                                                                 className="min-w-[210px] text-[11px]"
+                                                                 options={[
+                                                                     { value: "now", label: "⚡ Hiện tại (Nay)" },
+                                                                     ...paymentRecords.map(p => {
+                                                                         const key = `${p.type}_${p.id}_${p.date}`;
+                                                                         return { value: key, label: getPaymentLabel(p) };
+                                                                     })
+                                                                 ]}
+                                                             />
+                                                         </div>
+                                                     </div>
+                                                 ) : (
+                                                     <span className="text-[11px] font-medium text-slate-400 italic">
+                                                         Chưa có giao dịch thanh toán nào để chọn mốc
+                                                     </span>
+                                                 )}
+                                             </div>
+                                         )}
+
+                                         {/* 2. Tùy chọn ngày */}
+                                         {filterScope === 'custom_date' && (
+                                             <div className="flex flex-wrap items-center gap-2">
+                                                 <div className="flex items-center gap-1.5 bg-surface border border-border/80 rounded-xl px-2.5 py-1 shadow-2xs">
+                                                     <span className="text-[9px] font-black uppercase text-slate-400">Từ ngày:</span>
+                                                     <CustomDatePicker
+                                                         value={startDate}
+                                                         onChange={(e) => setStartDate(e.target.value)}
+                                                     />
+                                                 </div>
+                                                 <span className="text-[12px] text-slate-400 font-black">→</span>
+                                                 <div className="flex items-center gap-1.5 bg-surface border border-border/80 rounded-xl px-2.5 py-1 shadow-2xs">
+                                                     <span className="text-[9px] font-black uppercase text-slate-400">Đến ngày:</span>
+                                                     <CustomDatePicker
+                                                         value={endDate}
+                                                         onChange={(e) => setEndDate(e.target.value)}
+                                                     />
+                                                 </div>
+                                             </div>
+                                         )}
+
+                                         {/* 3. Theo Tháng */}
+                                         {filterScope === 'month' && (
+                                             <div className="flex items-center gap-2">
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Tháng:</span>
+                                                 <CustomSelect
+                                                     value={filterMonth}
+                                                     onChange={(e) => setFilterMonth(e.target.value)}
+                                                     className="min-w-[105px] text-[11px]"
+                                                     options={[...Array(12)].map((_, i) => ({
+                                                         value: (i + 1).toString(),
+                                                         label: `Tháng ${i + 1}`
+                                                     }))}
+                                                 />
+                                                 <span className="text-[11px] font-black text-slate-350 dark:text-slate-650">/</span>
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
+                                                 <CustomSelect
+                                                     value={filterYear}
+                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     className="min-w-[95px] text-[11px]"
+                                                     options={[...Array(5)].map((_, i) => {
+                                                         const y = new Date().getFullYear() - i;
+                                                         return { value: y.toString(), label: y.toString() };
+                                                     })}
+                                                 />
+                                             </div>
+                                         )}
+
+                                         {/* 4. Theo Quý */}
+                                         {filterScope === 'quarter' && (
+                                             <div className="flex items-center gap-2">
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Quý:</span>
+                                                 <CustomSelect
+                                                     value={filterQuarter}
+                                                     onChange={(e) => setFilterQuarter(e.target.value)}
+                                                     className="min-w-[130px] text-[11px]"
+                                                     options={[
+                                                         { value: "1", label: "Quý 1 (T1 - T3)" },
+                                                         { value: "2", label: "Quý 2 (T4 - T6)" },
+                                                         { value: "3", label: "Quý 3 (T7 - T9)" },
+                                                         { value: "4", label: "Quý 4 (T10 - T12)" },
+                                                     ]}
+                                                 />
+                                                 <span className="text-[11px] font-black text-slate-350 dark:text-slate-650">/</span>
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
+                                                 <CustomSelect
+                                                     value={filterYear}
+                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     className="min-w-[95px] text-[11px]"
+                                                     options={[...Array(5)].map((_, i) => {
+                                                         const y = new Date().getFullYear() - i;
+                                                         return { value: y.toString(), label: y.toString() };
+                                                     })}
+                                                 />
+                                             </div>
+                                         )}
+
+                                         {/* 5. Theo Năm */}
+                                         {filterScope === 'year' && (
+                                             <div className="flex items-center gap-2">
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
+                                                 <CustomSelect
+                                                     value={filterYear}
+                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     className="min-w-[95px] text-[11px]"
+                                                     options={[...Array(5)].map((_, i) => {
+                                                         const y = new Date().getFullYear() - i;
+                                                         return { value: y.toString(), label: y.toString() };
+                                                     })}
+                                                 />
+                                             </div>
+                                         )}
+
+                                         {/* 6. Theo Chu kỳ nợ */}
+                                         {filterScope === 'debt_cycle' && debtCycles.length > 0 && (
+                                             <div className="flex items-center gap-2">
+                                                 <span className="text-[9px] font-black uppercase text-slate-400">Chu kỳ:</span>
+                                                 <CustomSelect
+                                                     value={selectedCycleId}
+                                                     onChange={(e) => setSelectedCycleId(e.target.value)}
+                                                     className="min-w-[180px] text-[11px]"
+                                                     options={[
+                                                         { value: "all", label: "Tất cả chu kỳ" },
+                                                         ...debtCycles.map(c => ({
+                                                             value: c.id.toString(),
+                                                             label: `${c.label} (${c.status})`
+                                                         }))
+                                                     ]}
+                                                 />
+                                             </div>
+                                         )}
+                                     </div>
+                                 </m.div>
+                             )}
+                         </AnimatePresence>
+                     </m.div>
+                 )}
 
                 {/* Dashboard / Profile Area */}
                 <div className="space-y-6 relative no-print bg-transparent">
@@ -950,9 +1034,12 @@ export default function PartnerProfile() {
 
                                                     return Object.entries(grouped).map(([day, items], gIdx) => (
                                                         <React.Fragment key={day}>
-                                                            <tr className="bg-transparent">
-                                                                <td colSpan="7" className="px-6 py-3.5 text-[10px] font-black text-[#2d5016] dark:text-[#d4a574]/80 uppercase tracking-widest border-y border-border italic">
-                                                                    📅 {day}
+                                                            <tr className="bg-surface-2/40 border-y border-border/80">
+                                                                <td colSpan="7" className="px-6 py-2.5 text-[11px] font-black text-primary dark:text-[#d4a574] uppercase tracking-wider">
+                                                                    <span className="inline-flex items-center gap-2">
+                                                                        <Calendar size={13} className="text-primary dark:text-[#d4a574] opacity-80" />
+                                                                        <span>{day}</span>
+                                                                    </span>
                                                                 </td>
                                                             </tr>
                                                             {items.map((row, idx) => (
@@ -965,29 +1052,29 @@ export default function PartnerProfile() {
                                                 <tr><td colSpan="7" className="p-20 text-center text-slate-405 font-bold uppercase text-[10px]">Chưa có dữ liệu giao dịch phát sinh</td></tr>
                                             )}
                                         </tbody>
-                                        {ledger.length > 0 && (
+                                        {displayLedger.length > 0 && (
                                             <tfoot className="bg-transparent border-t border-border">
                                                 <tr className="font-bold text-slate-600 dark:text-slate-350">
                                                     <td colSpan="3" className="p-5 text-right text-[10px] uppercase tracking-widest">
-                                                        Tổng cộng phát sinh:
+                                                        Tổng cộng phát sinh trong kỳ:
                                                     </td>
-                                                    <td className="p-5 text-right text-blue-600 dark:text-blue-400">
-                                                        {formatNumber(ledger.reduce((sum, item) => sum + (item.increase || 0), 0))}
+                                                    <td className="p-5 text-right text-blue-600 dark:text-blue-400 font-black">
+                                                        {formatNumber(displayLedger.reduce((sum, item) => sum + (item.increase || 0), 0))}
                                                     </td>
-                                                    <td className="p-5 text-right text-red-600 dark:text-red-400">
-                                                        {formatNumber(ledger.reduce((sum, item) => sum + (item.decrease || 0), 0))}
+                                                    <td className="p-5 text-right text-red-600 dark:text-red-400 font-black">
+                                                        {formatNumber(displayLedger.reduce((sum, item) => sum + (item.decrease || 0), 0))}
                                                     </td>
-                                                    <td className="p-5 text-right text-slate-900 dark:text-white tabular-nums">
-                                                        {formatNumber(stats.current_balance || 0)}
+                                                    <td className="p-5 text-right text-slate-900 dark:text-white tabular-nums font-black">
+                                                        {formatNumber(displayLedger[0]?.running_balance ?? stats.current_balance ?? 0)}
                                                     </td>
                                                     <td></td>
                                                 </tr>
                                                 <tr className="bg-transparent">
                                                     <td colSpan="5" className="p-5 text-right text-xs uppercase font-black text-slate-500 tracking-widest">
-                                                        SỐ DƯ CUỐI CHỐT:
+                                                        SỐ DƯ CUỐI KỲ NÀY:
                                                     </td>
                                                     <td className="p-5 text-right text-lg font-black text-[#2d5016] dark:text-[#d4a574] tabular-nums">
-                                                        {formatNumber(stats.current_balance || 0)}
+                                                        {formatNumber(displayLedger[0]?.running_balance ?? stats.current_balance ?? 0)}
                                                     </td>
                                                     <td></td>
                                                 </tr>
@@ -1087,7 +1174,7 @@ export default function PartnerProfile() {
                     onClose={() => setEditingOrder(null)}
                     onSave={() => {
                         setEditingOrder(null);
-                        fetchLedgerDetails();
+                        fetchPartnerDetails();
                         fetchDebtCycles();
                     }}
                 />
@@ -1104,88 +1191,103 @@ function LedgerRow({ row, onEditOrder }) {
     const date = new Date(row.date);
 
     const getIcon = () => {
-        if (row.type === 'Order') return row.desc.includes('Bán') ? <ShoppingCart size={16} /> : <Package size={16} />;
-        if (row.type === 'Bank') return <CreditCard size={16} />;
-        if (row.type === 'Voucher') return <Receipt size={16} />;
-        if (row.type === 'System') return <History size={16} />;
-        return <Activity size={16} />;
-    }
+        if (row.type === 'Order') {
+            return row.desc?.includes('Bán') ? <ShoppingCart size={15} /> : <Package size={15} />;
+        }
+        if (row.type === 'Bank') return <CreditCard size={15} />;
+        if (row.type === 'Voucher') return <Receipt size={15} />;
+        if (row.type === 'System') return <History size={15} />;
+        return <Activity size={15} />;
+    };
 
-    const getColor = () => {
-        if (row.type === 'System') return 'text-slate-400';
-        if (row.type === 'Bank') return 'text-purple-600';
-        if (row.increase > 0) return 'text-blue-600';
-        if (row.decrease > 0) return 'text-red-650';
-        return 'text-slate-400';
-    }
+    const getIconContainerStyle = () => {
+        if (row.type === 'Order') {
+            return "bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 shadow-xs";
+        }
+        if (row.type === 'Bank') {
+            return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shadow-xs";
+        }
+        if (row.type === 'Voucher') {
+            return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-xs";
+        }
+        if (row.decrease > 0) {
+            return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+        }
+        if (row.increase > 0) {
+            return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+        }
+        return "bg-surface-2 text-muted border border-border";
+    };
 
     return (
         <>
             <m.tr
                 layout="position"
                 onClick={() => setExpanded(!expanded)}
-                whileHover={{ backgroundColor: 'rgba(45, 80, 22, 0.02)' }}
+                whileHover={{ backgroundColor: 'rgba(var(--primary-rgb, 45, 80, 22), 0.03)' }}
                 className={cn(
-                    "group hover:bg-[#2d5016]/5 dark:hover:bg-slate-800/40 transition-all cursor-pointer relative",
-                    expanded && "bg-[#2d5016]/5 dark:bg-slate-800/20 shadow-inner"
+                    "group transition-all cursor-pointer relative",
+                    expanded ? "bg-primary/5 dark:bg-slate-800/30 shadow-inner" : "hover:bg-primary/5 dark:hover:bg-slate-800/30"
                 )}
             >
-                <td className="p-4 border-b border-emerald-50/50 dark:border-slate-800">
+                <td className="p-4 border-b border-border/60">
                     <div className="flex flex-col">
                         <span className="text-xs font-black dark:text-white uppercase tracking-tight">{date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span className="text-[9px] font-bold text-slate-350 dark:text-slate-650">GIÂY: {date.getSeconds()}</span>
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">GIÂY: {date.getSeconds()}</span>
                     </div>
                 </td>
-                <td className="p-4 border-b border-emerald-50/50 dark:border-slate-800">
-                    <div className="flex items-start gap-4">
-                        <div className={cn("p-2 shrink-0 mt-0.5 transition-transform group-hover:scale-110", getColor())}>
+                <td className="p-4 border-b border-border/60">
+                    <div className="flex items-start gap-3.5">
+                        <div className={cn("p-2 rounded-xl shrink-0 mt-0.5 transition-transform group-hover:scale-110", getIconContainerStyle())}>
                             {getIcon()}
                         </div>
                         <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-black uppercase tracking-tight dark:text-slate-100 line-clamp-1">{row.desc}</span>
+                                <span className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-slate-100 line-clamp-1">{row.desc}</span>
                                 <span className={cn(
                                     "px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border shrink-0",
-                                    row.type === 'Order' ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800" :
-                                        row.type === 'Bank' ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800" :
-                                            row.type === 'Voucher' ? "bg-green-50 text-green-650 border-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800" :
-                                                "bg-transparent text-slate-650 border-slate-100 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-800"
+                                    row.type === 'Order' ? "bg-primary/10 text-primary border-primary/20 dark:text-[#d4a574]" :
+                                        row.type === 'Bank' ? "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-300" :
+                                            row.type === 'Voucher' ? "bg-emerald-500/10 text-emerald-650 border-emerald-500/20 dark:text-emerald-300" :
+                                                "bg-surface-2 text-muted border-border"
                                 )}>
                                     {row.type === 'System' ? 'MỞ ĐẦU' : translateType(row.type)}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                                <span className="text-[#2d5016] dark:text-[#d4a574]">{row.ref_id}</span>
+                                <span className="text-primary dark:text-[#d4a574] font-black">{row.ref_id}</span>
                                 <span className="opacity-30">•</span>
-                                <span className="uppercase">{translateMethod(row.payment_method)}</span>
+                                <span className="uppercase tracking-wider">{translateMethod(row.payment_method)}</span>
                             </div>
                         </div>
                     </div>
                 </td>
-                <td className="p-4 text-right border-b border-emerald-50/50 dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">{formatNumber(row.obj?.total_amount || row.obj?.amount || 0)}</span>
+                <td className="p-4 text-right border-b border-border/60">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tabular-nums">
+                        {formatNumber(row.obj?.total_amount || row.obj?.amount || (row.increase > 0 ? row.increase : row.decrease))}
+                    </span>
                 </td>
-                <td className="p-4 text-right border-b border-emerald-50/50 dark:border-slate-800">
+                <td className="p-4 text-right border-b border-border/60">
                     {row.increase > 0 ? (
                         <div className="flex flex-col items-end">
                             <span className="text-xs font-black text-blue-600 dark:text-blue-400 tabular-nums">+{formatNumber(row.increase)}</span>
                             <span className="text-[8px] font-bold text-blue-400/80 uppercase">Tăng nợ</span>
                         </div>
-                    ) : <span className="text-xs text-slate-200 dark:text-slate-800 font-bold">-</span>}
+                    ) : <span className="text-xs text-slate-300 dark:text-slate-700 font-bold">-</span>}
                 </td>
-                <td className="p-4 text-right border-b border-emerald-50/50 dark:border-slate-800">
+                <td className="p-4 text-right border-b border-border/60">
                     {row.decrease > 0 ? (
                         <div className="flex flex-col items-end">
-                            <span className="text-xs font-black text-red-650 dark:text-red-400 tabular-nums">-{formatNumber(row.decrease)}</span>
-                            <span className="text-[8px] font-bold text-red-450 uppercase">Thanh toán</span>
+                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">-{formatNumber(row.decrease)}</span>
+                            <span className="text-[8px] font-bold text-emerald-500/80 uppercase">Thanh toán</span>
                         </div>
-                    ) : <span className="text-xs text-slate-200 dark:text-slate-800 font-bold">-</span>}
+                    ) : <span className="text-xs text-slate-300 dark:text-slate-700 font-bold">-</span>}
                 </td>
-                <td className="p-4 text-right border-b border-emerald-50/50 dark:border-slate-800">
+                <td className="p-4 text-right border-b border-border/60">
                     <div className="flex flex-col items-end">
                         <span className={cn(
                             "text-xs font-black tabular-nums transition-colors",
-                            row.running_balance > 1000 ? "text-blue-600 dark:text-blue-400" : row.running_balance < -1000 ? "text-red-650 dark:text-red-400" : "text-slate-450"
+                            row.running_balance > 1000 ? "text-blue-600 dark:text-blue-400" : row.running_balance < -1000 ? "text-red-650 dark:text-red-400" : "text-slate-600 dark:text-slate-300"
                         )}>
                             {formatNumber(row.running_balance)}
                         </span>
@@ -1193,63 +1295,63 @@ function LedgerRow({ row, onEditOrder }) {
                             {row.running_balance !== 0 && (
                                 <span className={cn("inline-block w-1.5 h-1.5 rounded-full", row.running_balance > 0 ? "bg-blue-500" : "bg-red-500")} />
                             )}
-                            <span className="text-[8px] font-black text-slate-350 dark:text-slate-600 uppercase tracking-widest">Balance</span>
+                            <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Balance</span>
                         </div>
                     </div>
                 </td>
-                <td className="p-4 border-b border-emerald-50/50 dark:border-slate-800 text-right">
-                    <ChevronDown size={14} className={cn("text-slate-300 transition-transform duration-500", expanded ? "rotate-180 text-[#2d5016]" : "")} />
+                <td className="p-4 border-b border-border/60 text-right">
+                    <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-300", expanded ? "rotate-180 text-primary dark:text-[#d4a574]" : "")} />
                 </td>
             </m.tr>
 
             <AnimatePresence>
                 {expanded && (
                     <tr>
-                        <td colSpan="7" className="p-0 bg-transparent/50 dark:bg-slate-900/50">
+                        <td colSpan="7" className="p-0 bg-surface-2/30 dark:bg-slate-900/40">
                             <m.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-                                className="overflow-hidden border-b border-emerald-50/40 dark:border-slate-800"
+                                transition={{ type: 'spring', damping: 22, stiffness: 120 }}
+                                className="overflow-hidden border-b border-border/80"
                             >
-                                <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    <div className="lg:col-span-2 space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-2">
-                                            <Package size={14} /> Chi tiết hàng hóa
+                                <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div className="lg:col-span-2 space-y-3">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary dark:text-[#d4a574] flex items-center gap-2">
+                                            <Package size={14} /> Chi tiết hàng hóa trong đơn
                                         </h4>
                                         {row.details && row.details.length > 0 ? (
-                                            <div className="bg-[#fdfdfb] dark:bg-slate-950 rounded-[1.8rem] border border-emerald-100/50 dark:border-slate-800 overflow-hidden shadow-sm">
+                                            <div className="bg-surface rounded-2xl border border-border/80 overflow-hidden shadow-xs">
                                                 <table className="w-full text-left text-[11px] table-fixed">
-                                                    <thead className="bg-emerald-50/20 dark:bg-slate-900/50 border-b border-emerald-55/20 dark:border-slate-800">
+                                                    <thead className="bg-surface-2/60 border-b border-border/60">
                                                         <tr>
-                                                            <th className="p-3.5 font-black uppercase text-slate-455 tracking-wider">Sản phẩm / Quy cách</th>
-                                                            <th className="w-24 p-3.5 font-black uppercase text-slate-455 tracking-wider text-right">SLượng</th>
-                                                            <th className="w-32 p-3.5 font-black uppercase text-slate-455 tracking-wider text-right">Đơn giá</th>
-                                                            <th className="w-32 p-3.5 font-black uppercase text-slate-455 tracking-wider text-right">Tổng tiền</th>
+                                                            <th className="p-3 font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Sản phẩm / Quy cách</th>
+                                                            <th className="w-20 p-3 font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider text-right">SL</th>
+                                                            <th className="w-28 p-3 font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider text-right">Đơn giá</th>
+                                                            <th className="w-28 p-3 font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider text-right">Tổng tiền</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y divide-emerald-50/25 dark:divide-slate-900">
+                                                    <tbody className="divide-y divide-border/40">
                                                         {row.details.map((d, i) => (
-                                                            <tr key={i} className="hover:bg-emerald-50/10 dark:hover:bg-slate-900 transition-colors">
-                                                                <td className="p-3.5">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-8 h-8 rounded-lg bg-emerald-50/40 dark:bg-slate-900 flex items-center justify-center shrink-0">
-                                                                            <Package size={14} className="text-[#2d5016] dark:text-[#d4a574]/60" />
+                                                            <tr key={i} className="hover:bg-primary/5 transition-colors">
+                                                                <td className="p-3">
+                                                                    <div className="flex items-center gap-2.5">
+                                                                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                                                            <Package size={13} className="text-primary dark:text-[#d4a574]" />
                                                                         </div>
                                                                         <div>
-                                                                            <p className="font-bold dark:text-slate-200">{d.product_name}</p>
-                                                                            {d.specification && <p className="text-[9px] text-[#2d5016] dark:text-[#d4a574] font-black uppercase tracking-widest mt-0.5">{d.specification}</p>}
+                                                                            <p className="font-bold text-slate-800 dark:text-slate-200">{d.product_name}</p>
+                                                                            {d.specification && <p className="text-[9px] text-primary dark:text-[#d4a574] font-black uppercase tracking-widest mt-0.5">{d.specification}</p>}
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="p-3.5 text-right font-black tabular-nums">
-                                                                    {d.quantity} <span className="text-[8px] text-slate-400 font-normal uppercase">{d.unit}</span>
+                                                                <td className="p-3 text-right font-black tabular-nums">
+                                                                    {d.quantity} <span className="text-[9px] text-slate-400 font-normal uppercase">{d.unit}</span>
                                                                 </td>
-                                                                <td className="p-3.5 text-right text-slate-500 tabular-nums">
+                                                                <td className="p-3 text-right text-slate-500 dark:text-slate-400 tabular-nums">
                                                                     {formatNumber(d.unit_price)}
                                                                 </td>
-                                                                <td className="p-3.5 text-right font-black tabular-nums text-slate-700 dark:text-slate-200">
+                                                                <td className="p-3 text-right font-black tabular-nums text-slate-800 dark:text-slate-100">
                                                                     {formatNumber(d.total_price)}
                                                                 </td>
                                                             </tr>
@@ -1258,48 +1360,57 @@ function LedgerRow({ row, onEditOrder }) {
                                                 </table>
                                             </div>
                                         ) : (
-                                            <div className="p-8 text-center bg-transparent rounded-[1.8rem] border border-dashed border-emerald-100/50 dark:border-slate-800 text-slate-400 font-bold text-xs uppercase tracking-wider">
-                                                Giao dịch này không có chi tiết hàng hóa (Chứng từ tiền mặt)
+                                            <div className="p-6 text-center bg-surface/50 rounded-2xl border border-dashed border-border text-slate-400 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                                                <Receipt size={16} className="text-slate-400 opacity-60" />
+                                                <span>Giao dịch này không có chi tiết hàng hóa ({row.type === 'Order' ? 'Đơn hàng chưa có chi tiết' : 'Chứng từ tiền mặt / Ngân hàng'})</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="space-y-4">
-                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-2">
+                                    <div className="space-y-3">
+                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary dark:text-[#d4a574] flex items-center gap-2">
                                             <Info size={14} /> Thông tin bổ sung
                                         </h4>
-                                        <div className="p-5 bg-[#fdfdfb] dark:bg-slate-950 rounded-[1.8rem] border border-emerald-100/50 dark:border-slate-800 space-y-4 shadow-sm">
+                                        <div className="p-4 bg-surface rounded-2xl border border-border/80 space-y-3 shadow-xs">
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-slate-400 font-bold uppercase tracking-wider">Người thực hiện</span>
-                                                <span className="font-black dark:text-slate-200">{row.user_name || 'Hệ thống'}</span>
+                                                <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Người thực hiện</span>
+                                                <span className="font-black text-slate-800 dark:text-slate-200">{row.user_name || 'Hệ thống'}</span>
                                             </div>
                                             <div className="flex justify-between items-center text-xs">
-                                                <span className="text-slate-400 font-bold uppercase tracking-wider">Trạng thái</span>
-                                                <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300 text-[10px] font-black uppercase tracking-widest">Đã xác nhận</span>
+                                                <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Trạng thái</span>
+                                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">Đã xác nhận</span>
                                             </div>
-                                            <div className="pt-3 border-t border-emerald-50/40 dark:border-slate-850 flex gap-2">
+                                            <div className="pt-2.5 border-t border-border/60 flex gap-2">
                                                 {row.type === 'Order' ? (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (onEditOrder) {
-                                                                onEditOrder(row.obj);
+                                                                onEditOrder(row.obj || { id: row.id, display_id: row.ref_id, total_amount: row.increase || row.decrease, date: row.date });
                                                             }
                                                         }}
-                                                        className="flex-1 py-2.5 bg-transparent hover:bg-[#2d5016] border border-[#2d5016]/20 hover:border-transparent hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all dark:text-slate-200 flex items-center justify-center gap-2 shadow-sm"
+                                                        className="flex-1 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-xs"
                                                     >
-                                                        <Edit2 size={14} /> Sửa đơn
+                                                        <Edit2 size={13} /> Sửa đơn
                                                     </button>
                                                 ) : (
                                                     <button
                                                         disabled
-                                                        className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-900 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed opacity-50"
+                                                        className="flex-1 py-2 bg-surface-2 text-muted rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-not-allowed opacity-50"
                                                     >
                                                         Không thể sửa
                                                     </button>
                                                 )}
-                                                <button className="p-2.5 bg-transparent hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-slate-400 hover:text-primary transition-all">
-                                                    <Share2 size={16} />
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigator.clipboard.writeText(`${row.desc} - ${row.ref_id}: ${formatNumber(row.increase || row.decrease)}đ`);
+                                                        setToast({ message: 'Đã sao chép thông tin giao dịch', type: 'success' });
+                                                    }}
+                                                    className="p-2 bg-surface-2 hover:bg-primary/10 border border-border/80 rounded-xl text-slate-500 hover:text-primary transition-all"
+                                                    title="Sao chép giao dịch"
+                                                >
+                                                    <Share2 size={14} />
                                                 </button>
                                             </div>
                                         </div>

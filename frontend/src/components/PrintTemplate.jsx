@@ -996,21 +996,22 @@ const PrintTemplate = forwardRef(({
         borderTop: isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : 'none'),
         borderBottom: isHeaderBadge ? badgeHeaderBorder : headerBorderValue,
         borderRight: (!isHeaderBadge && s.invoice_table_border_cols === 'true') ? borderValue : 'none',
-        padding: isHeaderBadge ? `${Math.max(2, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(1, Math.floor(parseInt(s.invoice_row_padding || 4) * 0.8))}px ${s.invoice_row_padding || 4}px`,
+        padding: isHeaderBadge ? `${Math.max(4, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(4, parseInt(s.invoice_row_padding || 4))}px 4px`,
         backgroundColor: isHeaderBadge ? (s.invoice_table_header_badge_bg || '#2d5016') : (s.invoice_table_header_bg_enabled === 'true' ? (s.invoice_table_header_bg_color || '#f2f2f2') : 'transparent'),
         fontWeight: 'bold',
-        fontSize: `${s.invoice_table_header_size}px`,
+        fontSize: `${s.invoice_table_header_size || 11}px`,
         textAlign: 'center',
+        verticalAlign: 'middle',
         color: isHeaderBadge ? (s.invoice_table_header_badge_text_color || '#fff') : (s.invoice_color_table_header || '#000'),
         transition: 'all 0.2s ease',
-        whiteSpace: (s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? 'normal' : 'nowrap',
+        whiteSpace: (s.paper_size === 'A5' || s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') ? 'normal' : 'nowrap',
         wordBreak: 'break-word',
-        lineHeight: s.invoice_table_line_height || '1.15'
+        lineHeight: s.invoice_table_line_height || '1.25'
     };
 
     const getThStyle = (isFirst, isLast) => {
         let style = { ...thStyle };
-        const isSmallPaper = s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58';
+        const isSmallPaper = s.paper_size === 'A5' || s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58';
         const sidePadding = isSmallPaper ? '12px' : '20px';
 
         if (isHeaderBadge) {
@@ -1335,15 +1336,16 @@ const PrintTemplate = forwardRef(({
                                 if (getShowColSetting('invoice_show_col_method') === 'true') cols.push({ id: 'method', label: 'PTTT', width: getColWidthSetting('invoice_col_method') });
                                 if (getShowColSetting('invoice_show_col_total') === 'true') cols.push({ id: 'total', label: 'Thành tiền', width: getColWidthSetting('invoice_col_total'), align: 'right' });
                             } else if (type === 'PartnerLedger') {
-                                const isSmall = s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58';
-                                cols.push({ id: 'date', label: 'Ngày', width: isSmall ? 55 : (getColWidthSetting('invoice_col_date') || 70) });
-                                cols.push({ id: 'content', label: 'Nội dung / Sản phẩm', width: getColWidthSetting('invoice_col_content') || 'auto', align: 'left' });
-                                cols.push({ id: 'qty', label: 'SL', width: isSmall ? 30 : (getColWidthSetting('invoice_col_qty') || 40), align: 'center' });
-                                cols.push({ id: 'price', label: 'Đơn giá', width: isSmall ? 65 : (getColWidthSetting('invoice_col_price') || 80), align: 'right' });
-                                cols.push({ id: 'total', label: 'T.Tiền', width: isSmall ? 70 : (getColWidthSetting('invoice_col_total') || 90), align: 'right' });
-                                cols.push({ id: 'increase', label: 'Ghi nợ (+)', width: isSmall ? 70 : (getColWidthSetting('invoice_col_ledger_increase') || 90), align: 'right' });
-                                cols.push({ id: 'decrease', label: 'T.Toán (-)', width: isSmall ? 70 : (getColWidthSetting('invoice_col_ledger_decrease') || 90), align: 'right' });
-                                cols.push({ id: 'balance', label: 'Dư nợ', width: isSmall ? 80 : (getColWidthSetting('invoice_col_ledger_balance') || 100), align: 'right' });
+                                const isA5 = s.paper_size === 'A5';
+                                const isSmall = isA5 || s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58';
+                                cols.push({ id: 'date', label: 'Ngày', width: isSmall ? 68 : (getColWidthSetting('invoice_col_date') || 78), align: 'center' });
+                                cols.push({ id: 'content', label: 'Nội dung / Diễn giải', width: getColWidthSetting('invoice_col_content') || 'auto', align: 'left' });
+                                cols.push({ id: 'qty', label: 'SL', width: isSmall ? 36 : (getColWidthSetting('invoice_col_qty') || 44), align: 'center' });
+                                cols.push({ id: 'price', label: 'Đơn giá', width: isSmall ? 62 : (getColWidthSetting('invoice_col_price') || 75), align: 'right' });
+                                cols.push({ id: 'total', label: 'T.Tiền', width: isSmall ? 68 : (getColWidthSetting('invoice_col_total') || 82), align: 'right' });
+                                cols.push({ id: 'increase', label: 'Ghi nợ (+)', width: isSmall ? 74 : (getColWidthSetting('invoice_col_ledger_increase') || 88), align: 'right' });
+                                cols.push({ id: 'decrease', label: 'T.Toán (-)', width: isSmall ? 74 : (getColWidthSetting('invoice_col_ledger_decrease') || 88), align: 'right' });
+                                cols.push({ id: 'balance', label: 'Dư nợ', width: isSmall ? 80 : (getColWidthSetting('invoice_col_ledger_balance') || 98), align: 'right' });
                             } else {
                                 if (getShowColSetting('invoice_show_col_name') === 'true') cols.push({ id: 'name', label: 'Tên hàng hóa', width: getColWidthSetting('invoice_col_name'), align: 'left' });
                                 if (getShowColSetting('invoice_show_col_unit') === 'true') cols.push({ id: 'unit', label: 'ĐVT', width: getColWidthSetting('invoice_col_unit') });
@@ -1399,29 +1401,72 @@ const PrintTemplate = forwardRef(({
                         const rowBg = (s.invoice_table_zebra_stripe === 'true' && globalIdx % 2 === 1) ? (s.invoice_table_zebra_color || '#f9fafb') : 'transparent';
 
                         if (type === 'PartnerLedger') {
+                            const descClean = (item.desc || '').replace(/^[-\s]+|[-\s]+$/g, '');
+                            const isOpening = item.ref_id === '#NODAU' || item.desc?.includes('Nợ đầu');
                             return (
                                 <React.Fragment key={idx}>
-                                    <tr style={{ backgroundColor: '#f8fafc', fontWeight: 'bold' }}>
-                                        {getShowColSetting('invoice_show_col_stt') === 'true' && <td style={{ ...tdStyle, textAlign: 'center' }}>{globalIdx + 1}</td>}
-                                        <td style={{ ...tdStyle, textAlign: 'center' }}>{formatDate(item.date).split(' ')[1]}</td>
-                                        <td style={tdStyle}>
-                                            <span style={{ color: '#2563eb' }}>[{item.type}]</span> {item.ref_id} - {item.desc}
+                                    <tr style={{ 
+                                        backgroundColor: isOpening ? '#f1f5f9' : (idx % 2 === 1 ? '#fafbfd' : '#ffffff'),
+                                        borderBottom: '1px solid #e2e8f0',
+                                        fontSize: '0.96em'
+                                    }}>
+                                        {getShowColSetting('invoice_show_col_stt') === 'true' && (
+                                            <td style={{ ...tdStyle, textAlign: 'center', color: '#64748b' }}>{globalIdx + 1}</td>
+                                        )}
+                                        <td style={{ ...tdStyle, textAlign: 'center', whiteSpace: 'nowrap', fontWeight: 600, color: '#334155' }}>
+                                            {formatDate(item.date).split(' ')[1] || formatDate(item.date)}
                                         </td>
-                                        <td style={tdStyle}></td>
-                                        <td style={tdStyle}></td>
-                                        <td style={tdStyle}></td>
-                                        <td style={{ ...tdStyle, textAlign: 'right' }}>{item.increase > 0 ? formatNumber(item.increase) : '-'}</td>
-                                        <td style={{ ...tdStyle, textAlign: 'right' }}>{item.decrease > 0 ? formatNumber(item.decrease) : '-'}</td>
-                                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 900 }}>{formatNumber(item.running_balance)}</td>
+                                        <td style={{ ...tdStyle, textAlign: 'left' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                <span style={{ 
+                                                    display: 'inline-block',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '9px',
+                                                    fontWeight: 800,
+                                                    letterSpacing: '0.3px',
+                                                    textTransform: 'uppercase',
+                                                    backgroundColor: item.type === 'Hóa đơn' || item.type === 'Order' ? '#eff6ff' : (item.type === 'Chứng từ' || item.type === 'Voucher' || item.type === 'Bank' ? '#f0fdf4' : '#f8fafc'),
+                                                    color: item.type === 'Hóa đơn' || item.type === 'Order' ? '#1d4ed8' : (item.type === 'Chứng từ' || item.type === 'Voucher' || item.type === 'Bank' ? '#15803d' : '#475569'),
+                                                    border: `1px solid ${item.type === 'Hóa đơn' || item.type === 'Order' ? '#dbeafe' : (item.type === 'Chứng từ' || item.type === 'Voucher' || item.type === 'Bank' ? '#bbf7d0' : '#e2e8f0')}`
+                                                }}>
+                                                    {item.type}
+                                                </span>
+                                                <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                                                    {item.ref_id}
+                                                </span>
+                                                {descClean && descClean !== item.ref_id && (
+                                                    <span style={{ color: '#475569', fontWeight: 500 }}>
+                                                        - {descClean}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td style={{ ...tdStyle, textAlign: 'center', color: '#94a3b8' }}>-</td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', color: '#94a3b8' }}>-</td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', color: '#94a3b8' }}>-</td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: item.increase > 0 ? 700 : 400, color: item.increase > 0 ? '#1e40af' : '#94a3b8' }}>
+                                            {item.increase > 0 ? formatNumber(item.increase) : '-'}
+                                        </td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: item.decrease > 0 ? 700 : 400, color: item.decrease > 0 ? '#15803d' : '#94a3b8' }}>
+                                            {item.decrease > 0 ? formatNumber(item.decrease) : '-'}
+                                        </td>
+                                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 800, color: item.running_balance < 0 ? '#b91c1c' : '#0f172a' }}>
+                                            {formatNumber(item.running_balance)}
+                                        </td>
                                     </tr>
                                     {item.items && item.items.map((it, iti) => (
-                                        <tr key={`${idx}-${iti}`} style={{ color: '#64748b', fontSize: '0.92em' }}>
+                                        <tr key={`${idx}-${iti}`} style={{ backgroundColor: '#fcfdfd', color: '#475569', fontSize: '0.88em', borderBottom: iti === item.items.length - 1 ? '1px dashed #e2e8f0' : 'none' }}>
                                             {getShowColSetting('invoice_show_col_stt') === 'true' && <td style={tdStyle}></td>}
                                             <td style={tdStyle}></td>
-                                            <td style={{ ...tdStyle, paddingLeft: '20px' }}>• {it.product_name}</td>
-                                            <td style={{ ...tdStyle, textAlign: 'center' }}>{it.quantity}</td>
-                                            <td style={{ ...tdStyle, textAlign: 'right' }}>{formatNumber(it.unit_price)}</td>
-                                            <td style={{ ...tdStyle, textAlign: 'right' }}>{formatNumber(it.total_price)}</td>
+                                            <td style={{ ...tdStyle, paddingLeft: '24px', color: '#334155' }}>
+                                                <span style={{ color: '#94a3b8', marginRight: '4px' }}>↳</span>
+                                                <strong>{it.product_name}</strong>
+                                                {it.specification && <span style={{ color: '#8b5cf6', marginLeft: '6px', fontSize: '0.85em' }}>({it.specification})</span>}
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600 }}>{it.quantity}</td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', color: '#64748b' }}>{formatNumber(it.unit_price)}</td>
+                                            <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: '#334155' }}>{formatNumber(it.total_price)}</td>
                                             <td style={tdStyle}></td>
                                             <td style={tdStyle}></td>
                                             <td style={tdStyle}></td>
@@ -1733,20 +1778,54 @@ const PrintTemplate = forwardRef(({
                     {(type === 'Sale' || type === 'Purchase' || type === 'Report' || type === 'PartnerLedger') && (
                         <>
                             {type === 'PartnerLedger' ? (
-                                <div style={{ marginTop: '10px', paddingTop: '5px' }}>
-                                    <div style={summaryRowStyle}>
-                                        <div style={summaryLabelStyle}>Tổng phát sinh (+):</div>
-                                        <div style={summaryValueStyle}>{formatNumber((data.details || []).reduce((sum, item) => sum + (item.increase || 0), 0))}</div>
+                                <div style={{ 
+                                    marginTop: '16px', 
+                                    padding: '12px 18px', 
+                                    backgroundColor: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px',
+                                    maxWidth: '380px',
+                                    marginLeft: 'auto'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                                        <span style={{ color: '#475569', fontWeight: 600 }}>Tổng phát sinh (+):</span>
+                                        <span style={{ color: '#1e40af', fontWeight: 700 }}>
+                                            {formatNumber((data.details || []).reduce((sum, item) => sum + (item.increase || 0), 0))} đ
+                                        </span>
                                     </div>
-                                    <div style={summaryRowStyle}>
-                                        <div style={summaryLabelStyle}>Tổng thanh toán (-):</div>
-                                        <div style={summaryValueStyle}>{formatNumber((data.details || []).reduce((sum, item) => sum + (item.decrease || 0), 0))}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                                        <span style={{ color: '#475569', fontWeight: 600 }}>Tổng thanh toán (-):</span>
+                                        <span style={{ color: '#15803d', fontWeight: 700 }}>
+                                            {formatNumber((data.details || []).reduce((sum, item) => sum + (item.decrease || 0), 0))} đ
+                                        </span>
                                     </div>
-                                    <div style={{ ...summaryRowStyle, marginTop: '5px' }}>
-                                        <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size || 16}px`, fontWeight: '900' }}>DƯ NỢ CUỐI KỲ:</div>
-                                        <div style={{ ...summaryValueStyle, fontSize: `${s.invoice_total_balance_size || 16}px`, fontWeight: '900' }}>
-                                            {formatNumber(data.current_balance || safeTotalAmount || 0)}
-                                        </div>
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center', 
+                                        marginTop: '4px',
+                                        paddingTop: '8px',
+                                        borderTop: '1px dashed #cbd5e1'
+                                    }}>
+                                        <span style={{ 
+                                            fontSize: `${s.invoice_total_balance_size || 15}px`, 
+                                            fontWeight: 900,
+                                            color: '#0f172a',
+                                            letterSpacing: '0.3px',
+                                            textTransform: 'uppercase'
+                                        }}>
+                                            DƯ NỢ CUỐI KỲ:
+                                        </span>
+                                        <span style={{ 
+                                            fontSize: `${parseInt(s.invoice_total_balance_size || 15) + 2}px`, 
+                                            fontWeight: 900,
+                                            color: (data.current_balance || safeTotalAmount || 0) < 0 ? '#dc2626' : '#0f172a'
+                                        }}>
+                                            {formatNumber(data.current_balance || safeTotalAmount || 0)} đ
+                                        </span>
                                     </div>
                                 </div>
                             ) : (

@@ -72,6 +72,11 @@ jobs:
           cd frontend
           npx tauri build --target universal-apple-darwin
 
+      - name: Fix execution permissions in macOS app bundle
+        run: |
+          # Ensure sidecar binaries inside .app bundle have executable permissions
+          find frontend/src-tauri/target/universal-apple-darwin/release/bundle/macos -name "lyang-backend*" -exec chmod +x {} + || true
+
       - name: Prepare Release Artifacts
         id: prepare_artifacts
         run: |

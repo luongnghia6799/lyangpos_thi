@@ -36,24 +36,7 @@ impl AppConfig {
 
         let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
 
-        // Helper to get base application directory (where the binary is running)
-        let get_base_dir = || -> PathBuf {
-            if let Ok(mut exe_path) = std::env::current_exe() {
-                exe_path.pop(); // remove binary name
-                // Check if running directly inside target/release or target/debug during development
-                let path_str = exe_path.to_string_lossy();
-                if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
-                    || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {
-                    exe_path.pop(); // pop release/debug
-                    exe_path.pop(); // pop target
-                    exe_path.pop(); // pop backend-rust
-                }
-                return exe_path;
-            }
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-        };
-
-        let base_dir = get_base_dir();
+        let base_dir = crate::utils::get_app_base_dir();
 
         // 2. Resolve Database: --db <name> or DATABASE_URL or LYANG_DB or easypos.db
         let database_url = if let Some(db_name) = cli_db {

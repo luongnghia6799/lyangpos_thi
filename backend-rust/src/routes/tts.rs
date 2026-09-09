@@ -195,18 +195,7 @@ pub async fn fetch_edge_tts_rust(text: &str, voice: &str, rate: &str, pitch: &st
 }
 
 fn get_base_dir() -> PathBuf {
-    if let Ok(mut exe_path) = std::env::current_exe() {
-        exe_path.pop();
-        let path_str = exe_path.to_string_lossy();
-        if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
-            || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {
-            exe_path.pop();
-            exe_path.pop();
-            exe_path.pop();
-        }
-        return exe_path;
-    }
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+    crate::utils::get_app_base_dir()
 }
 
 fn resolve_tts_dir() -> PathBuf {

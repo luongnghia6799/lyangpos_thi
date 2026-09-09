@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use serde_json::json;
-use sqlx::SqlitePool;
+use sqlx::{Row, SqlitePool};
 
 use crate::error::AppError;
 
@@ -298,8 +298,175 @@ pub async fn open_external_chrome(Json(data): Json<serde_json::Value>) -> impl I
     Json(json!({"success": true}))
 }
 
-pub async fn scan_purchase_invoice(Json(data): Json<serde_json::Value>) -> impl IntoResponse {
-    // Mock response or Gemini call if key provided
-    Json(json!([]))
+pub async fn scan_purchase_invoice(
+    State(pool): State<SqlitePool>,
+    Json(data): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let mut api_key = data.get("api_key").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+
+    if api_key.is_empty() {
+        if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_api_key'")
+            .fetch_optional(&pool)
+            .await
+        {
+            if let Some(r) = row {
+                if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                    api_key = val.trim_matches('"').trim().to_string();
+                }
+            }
+        }
+    }
+
+    if api_key.is_empty() {
+        return Ok(Json(json!([])));
+    }
+
+    let raw_images = match data.get("images").and_then(|v| v.as_array()) {
+        Some(imgs) => imgs,
+        None => return Ok(Json(json!([]))),
+    };
+
+    if raw_images.is_empty() {
+        return Ok(Json(json!([])));
+    }
+
+    let mut parts: Vec<serde_json::Value> = Vec::new();
+    let prompt = r#"Bạn là chuyên gia bóc tách hóa đơn bán lẻ, hóa đơn VAT, phiếu xuất kho và toa hàng tại Việt Nam.
+Hãy quan sát kỹ từng dòng của bảng sản phẩm trong hình ảnh hóa đơn từ TRÊN XUỐNG DƯỚI (đúng 100% theo thứ tự xuất hiện trên hóa đơn) và bóc tách danh sách sản phẩm.
+
+QUY TẮC BẮT BUỘC:
+1. GIỮ NGUYÊN THỨ TỰ: Các mặt hàng trong mảng JSON phải đúng theo thứ tự dòng từ trên xuống dưới của hóa đơn gốc.
+2. PHÂN BIỆT RÕ CỘT SỐ LƯỢNG VÀ CÁC CỘT KHÁC:
+   - "quantity" (Số lượng): Lấy chính xác số lượng hàng ghi ở cột "Số lượng" (SL / Qty / Số lượng xuất). Không được nhầm lẫn số thứ tự (STT), số lô/hạn dùng, quy cách đóng gói (ví dụ 10 vỉ/hộp thì không lấy 10 trừ khi khách mua 10 hộp), đơn giá hay mã sản phẩm sang số lượng.
+   - Nếu có phép nhân hoặc số lượng là số lẻ (vd: 0.5, 1.5, 2.5), lấy đúng giá trị số thực.
+3. CỘT ĐƠN VỊ TÍNH ("unit"): Lấy đúng tên đơn vị tính ghi trên hóa đơn (Hộp, Chai, Gói, Vỉ, Tuýp, Viên, Thùng, Kg, Lọ, Cái,...).
+4. CỘT ĐƠN GIÁ ("price"): Lấy đơn giá của 1 đơn vị tính (trước hoặc sau thuế tùy hóa đơn).
+5. CỘT THÀNH TIỀN ("total"): Thành tiền tương ứng của dòng đó (quantity * price).
+
+Định dạng trả về DUY NHẤT một chuỗi JSON (mảng array of objects), KHÔNG kèm bất kỳ markdown giải thích nào:
+[
+  {"product_name": "Tên sản phẩm 1", "quantity": 2, "unit": "Hộp", "price": 45000, "total": 90000},
+  {"product_name": "Tên sản phẩm 2", "quantity": 10, "unit": "Chai", "price": 12000, "total": 120000}
+]
+
+Nếu ảnh không có dòng sản phẩm nào hoặc không đọc được, trả về: []"#;
+
+    parts.push(json!({
+        "text": prompt
+    }));
+
+    for img_val in raw_images {
+        if let Some(data_url) = img_val.as_str() {
+            let (mime_type, base64_data) = if let Some(idx) = data_url.find(";base64,") {
+                let mime = data_url[5..idx].to_string();
+                let b64 = &data_url[idx + 8..];
+                (mime, b64)
+            } else {
+                ("image/jpeg".to_string(), data_url)
+            };
+
+            parts.push(json!({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": base64_data
+                }
+            }));
+        }
+    }
+
+    let request_body = json!({
+        "contents": [
+            {
+                "parts": parts
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.1
+        }
+    });
+
+    let client = reqwest::Client::new();
+    // Use gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-flash
+    let models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    let mut response_text = String::new();
+
+    for model in models {
+        let url = format!(
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            model, api_key
+        );
+
+        let res = client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .json(&request_body)
+            .send()
+            .await;
+
+        if let Ok(resp) = res {
+            if resp.status().is_success() {
+                if let Ok(gemini_res) = resp.json::<serde_json::Value>().await {
+                    if let Some(text) = gemini_res
+                        .get("candidates")
+                        .and_then(|c| c.get(0))
+                        .and_then(|c0| c0.get("content"))
+                        .and_then(|cnt| cnt.get("parts"))
+                        .and_then(|p| p.get(0))
+                        .and_then(|p0| p0.get("text"))
+                        .and_then(|t| t.as_str())
+                    {
+                        response_text = text.trim().to_string();
+                        break;
+                    }
+                }
+            } else {
+                tracing::warn!("Gemini API error with model {}: status {}", model, resp.status());
+            }
+        }
+    }
+
+    if response_text.is_empty() {
+        return Ok(Json(json!([])));
+    }
+
+    // Clean up potential markdown formatting: ```json ... ``` or extract JSON array substring
+    let mut cleaned_json = response_text.trim();
+    if let Some(start_idx) = cleaned_json.find('[') {
+        if let Some(end_idx) = cleaned_json.rfind(']') {
+            if end_idx >= start_idx {
+                cleaned_json = &cleaned_json[start_idx..=end_idx];
+            }
+        }
+    } else if cleaned_json.starts_with("```json") {
+        cleaned_json = cleaned_json.strip_prefix("```json").unwrap_or(cleaned_json);
+        if cleaned_json.ends_with("```") {
+            cleaned_json = cleaned_json.strip_suffix("```").unwrap_or(cleaned_json);
+        }
+        cleaned_json = cleaned_json.trim();
+    } else if cleaned_json.starts_with("```") {
+        cleaned_json = cleaned_json.strip_prefix("```").unwrap_or(cleaned_json);
+        if cleaned_json.ends_with("```") {
+            cleaned_json = cleaned_json.strip_suffix("```").unwrap_or(cleaned_json);
+        }
+        cleaned_json = cleaned_json.trim();
+    }
+
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(cleaned_json) {
+        if parsed.is_array() {
+            return Ok(Json(parsed));
+        }
+    }
+
+    // Fallback if it returned an object with items key
+    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(cleaned_json) {
+        if let Some(items) = parsed.get("items").or_else(|| parsed.get("products")) {
+            if items.is_array() {
+                return Ok(Json(items.clone()));
+            }
+        }
+    }
+
+    Ok(Json(json!([])))
 }
+
 

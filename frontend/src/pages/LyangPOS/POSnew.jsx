@@ -388,7 +388,7 @@ function POSPage({
                 U = (Te || localStorage.getItem("unified_pos_mode") || "Retail") === "Wholesale" ? n.bulk_price || n.sale_price || 0 : n.sale_price || 0;
               w !== void 0 ? S = w : n.bulk_quantity > 0 && h >= n.bulk_quantity && n.bulk_price ? S = n.bulk_price : S = U, S <= 0 && s.price && parseFloat(s.price) > 0 && (S = parseFloat(s.price));
               const L = r.findIndex(ce => ce.product_id === n.id && ce.price === S);
-              L > -1 ? (r[L].quantity += h, r[L].secondary_qty = r[L].quantity / (n.multiplier || 1)) : r.unshift({
+              L > -1 ? (r[L].quantity += h, r[L].secondary_qty = r[L].quantity / (n.multiplier || 1)) : r.push({
                 cartId: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 product_id: n.id,
                 product_name: n.name,
@@ -411,7 +411,7 @@ function POSPage({
               });
             } else {
               const d = s.price && parseFloat(s.price) > 0 ? parseFloat(s.price) : 0;
-              r.unshift({
+              r.push({
                 cartId: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 product_id: null,
                 product_name: s.product_name,

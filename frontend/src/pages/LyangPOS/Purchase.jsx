@@ -504,8 +504,8 @@ export default function Purchase() {
             const newCart = [...cart];
             items.forEach(item => {
                 const match = findBestMatch(item.product_name, products);
-                const qtyToAdd = item.quantity || 1;
-                const appliedPrice = item.price || 0;
+                const qtyToAdd = parseFloat(item.quantity) || 1;
+                const appliedPrice = parseFloat(item.price) || 0;
 
                 if (match) {
                     const existingIdx = newCart.findIndex(c => c.product_id === match.id && c.price === appliedPrice);
@@ -513,7 +513,7 @@ export default function Purchase() {
                         newCart[existingIdx].quantity += qtyToAdd;
                         newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (match.multiplier || 1);
                     } else {
-                        newCart.unshift({
+                        newCart.push({
                             product_id: match.id,
                             product_name: match.name,
                             unit: match.unit,
@@ -530,7 +530,7 @@ export default function Purchase() {
                         });
                     }
                 } else {
-                    newCart.unshift({
+                    newCart.push({
                         product_id: null,
                         product_name: item.product_name,
                         unit: item.unit || 'Cái',

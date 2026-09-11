@@ -2456,7 +2456,7 @@ export default function Purchase() {
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
-                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md border-0 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent border-0 shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}>
+                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border border-primary/25 dark:border-primary/30", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}>
                             <AnimatePresence>
                                 {historyLoading && (
                                     <m.div
@@ -4194,7 +4194,7 @@ export default function Purchase() {
                                                     ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]"
                                                     : (selectedPartner?.debt_balance || 0) < 0
                                                         ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]"
-                                                        : "bg-card/40 hover:bg-card/70 border-border/80 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
+                                                        : "bg-card/40 hover:bg-card/70 border border-primary/25 dark:border-primary/30 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
                                             )}
                                             title={selectedPartner ? `Xem lịch sử nợ NCC ${selectedPartner.name}` : "Chưa chọn NCC"}
                                         >
@@ -4242,7 +4242,7 @@ export default function Purchase() {
                                         <div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5">
                                             <button
                                                 onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setToast({ message: 'Vui lòng chọn NCC trước', type: 'warning' })}
-                                                className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-border/80 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm"
+                                                className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm"
                                                 title="Lịch sử đơn nhập NCC"
                                             >
                                                 <div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none">
@@ -4256,7 +4256,7 @@ export default function Purchase() {
                                                     "relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl text-[9px] font-black tracking-wider transition-all text-center shadow-xs hover:scale-[1.02] active:scale-[0.98] group/gk backdrop-blur-sm",
                                                     isConsignment
                                                         ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.35)]"
-                                                        : "border border-border/80 bg-card/40 text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25"
+                                                        : "border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25"
                                                 )}
                                                 title={isConsignment ? "Đang chọn: Đơn hàng gửi kho (Bấm để tắt)" : "Chọn đơn hàng gửi kho (Bấm để bật)"}
                                             >
@@ -4285,7 +4285,7 @@ export default function Purchase() {
                                                     "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm",
                                                     paymentMethod === 'Cash' 
                                                         ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" 
-                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -4302,7 +4302,7 @@ export default function Purchase() {
                                                     "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm",
                                                     paymentMethod === 'Debt' 
                                                         ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60" 
-                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -4319,7 +4319,7 @@ export default function Purchase() {
                                                     "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm",
                                                     paymentMethod === 'Transfer' 
                                                         ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60" 
-                                                        : "bg-card/40 text-foreground border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -4334,7 +4334,7 @@ export default function Purchase() {
 
                                         {paymentMethod === 'Transfer' ? (
                                             <CustomSelect
-                                                className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-card/40 border border-border/80 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm"
+                                                className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-card/40 border border-primary/25 dark:border-primary/30 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm"
                                                 value={selectedBankAccountId}
                                                 onChange={(e) => setSelectedBankAccountId(e.target.value)}
                                                 options={bankAccounts.map(acc => ({
@@ -4343,7 +4343,7 @@ export default function Purchase() {
                                                 }))}
                                             />
                                         ) : (
-                                            <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-border/80 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm">
+                                            <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-primary/25 dark:border-primary/30 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm">
                                                 <div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none overflow-hidden">
                                                     <ReceiptText size={42} strokeWidth={1.5} />
                                                 </div>
@@ -4354,7 +4354,7 @@ export default function Purchase() {
                                                     type="text"
                                                     readOnly={paymentMethod === 'Cash'}
                                                     className={cn(
-                                                        "w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10",
+                                                        "w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none !border-none !shadow-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10",
                                                         paymentMethod === 'Cash' ? "text-primary/70 cursor-not-allowed" : "text-primary"
                                                     )}
                                                     value={formatNumber(amountPaid)}
@@ -4379,7 +4379,7 @@ export default function Purchase() {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.3, delay: 0.1 }}
-                                        className="md:col-span-3 h-full p-2 px-3 rounded-2xl bg-card/40 border border-border/80 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
+                                        className="md:col-span-3 h-full p-2 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
                                     >
                                         <div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none">
                                             <ArrowLeftRight size={48} strokeWidth={1.5} />
@@ -4514,7 +4514,7 @@ export default function Purchase() {
                                                     whileTap={{ scale: 0.95 }}
                                                     disabled={cart.length === 0}
                                                     onClick={handleHold}
-                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-border/80 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm"
+                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm"
                                                     title="Tạm đơn [F4]"
                                                 >
                                                     <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none">

@@ -80,7 +80,7 @@ const Summary = () => {
         localStorage.setItem('summary_activeTab', activeTab);
     }, [activeTab]);
 
-    const handleEditOrder = async (item) => {
+    const handleEditOrder = async (item, partnerObj = null) => {
         if (!item) return;
         const idToCheck = item.display_id || item.ref_id || '';
         const isVoucher = item.isVoucher || item.category === 'Voucher' || (idToCheck.startsWith('PT-')) || (idToCheck.startsWith('PC-'));
@@ -91,19 +91,34 @@ const Summary = () => {
         }
 
         let orderToEdit = item;
+        const orderId = item.id || item.order_id;
         const displayId = idToCheck;
 
-        if ((!item.details || !Array.isArray(item.details)) && displayId) {
-            try {
+        try {
+            if (orderId) {
+                const res = await axios.get(`/api/orders/${orderId}`);
+                if (res.data) orderToEdit = res.data;
+            } else if (displayId) {
                 const searchId = displayId.replace('#', '');
                 const res = await axios.get(`/api/orders`, { params: { search_id: searchId } });
                 const found = Array.isArray(res.data) ? res.data.find(o => o.display_id === displayId) : (res.data.items || []).find(o => o.display_id === displayId);
                 if (found) orderToEdit = found;
-            } catch (err) {
-                console.error("Error fetching order details:", err);
             }
+        } catch (err) {
+            console.error("Error fetching full order details in Summary:", err);
         }
-        if (orderToEdit) setEditingOrder(orderToEdit);
+
+        if (orderToEdit) {
+            if (partnerObj && !orderToEdit.partner) {
+                orderToEdit = {
+                    ...orderToEdit,
+                    partner: partnerObj,
+                    partner_id: orderToEdit.partner_id || partnerObj.id,
+                    partner_name: orderToEdit.partner_name || partnerObj.name
+                };
+            }
+            setEditingOrder(orderToEdit);
+        }
     };
 
     return (
@@ -151,7 +166,15 @@ const Summary = () => {
             <Portal>
                 <AnimatePresence>
                     {editingOrder && (
-                        <OrderEditPopup order={editingOrder} onClose={() => setEditingOrder(null)} onSave={() => setEditingOrder(null)} />
+                        <OrderEditPopup 
+                            order={editingOrder} 
+                            partner={editingOrder.partner} 
+                            onClose={() => setEditingOrder(null)} 
+                            onSave={() => {
+                                setEditingOrder(null);
+                                setToast({ message: "Đã cập nhật đơn hàng thành công!", type: "success" });
+                            }} 
+                        />
                     )}
                 </AnimatePresence>
             </Portal>
@@ -648,7 +671,7 @@ const PartnerLedger = ({ onEditOrder }) => {
                                                             "p-3 font-bold text-center",
                                                             row.type === 'Order' ? "text-primary cursor-pointer hover:underline" : "text-muted"
                                                         )} 
-                                                        onClick={() => row.type === 'Order' && row.obj && onEditOrder(row.obj)}
+                                                        onClick={() => row.type === 'Order' && row.obj && onEditOrder(row.obj, selectedPartner)}
                                                     >
                                                         {row.ref_id}
                                                     </td>

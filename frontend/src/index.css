@@ -568,18 +568,26 @@ body {
   backdrop-filter: none !important;
 }
 
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  color: var(--text-main) !important;
-  border: 1px solid var(--border-color) !important;
+.dark input:not(.border-none):not([class*="border-none"]):not([class*="border-0"]):not([class*="border-b-"]):not([class*="bg-transparent"]),
+.dark textarea:not(.border-none):not([class*="border-none"]):not([class*="border-0"]),
+.dark select:not(.border-none):not([class*="border-none"]):not([class*="border-0"]) {
+  background-color: rgba(0, 0, 0, 0.3);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
 }
 
-.dark input:focus,
-.dark textarea:focus {
-  border-color: var(--primary-color) !important;
-  box-shadow: 0 0 15px var(--primary-color) !important;
+.dark input:focus:not(.border-none):not([class*="border-none"]):not([class*="border-0"]):not([class*="bg-transparent"]),
+.dark textarea:focus:not(.border-none):not([class*="border-none"]):not([class*="border-0"]) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px var(--primary-color);
+}
+
+.dark input.border-none,
+.dark input.border-0,
+.dark input[class*="border-none"],
+.dark input[class*="border-0"] {
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .dark .text-gray-900,

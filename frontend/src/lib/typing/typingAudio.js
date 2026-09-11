@@ -169,7 +169,7 @@ class TTSEngine {
 
     getAudioUrls(word) {
         const encodedText = encodeURIComponent(word);
-        const rate = (typeof localStorage !== 'undefined' && localStorage.getItem("pos_speech_rate")) || "1.4";
+        const rate = (typeof localStorage !== 'undefined' && localStorage.getItem("pos_speech_rate")) || "1";
         const pitch = (typeof localStorage !== 'undefined' && localStorage.getItem("pos_speech_pitch")) || "0";
         const selectedVoice = (typeof localStorage !== 'undefined' && (localStorage.getItem("pos_selected_voice") || (localStorage.getItem("pos_tts_mode") === "male" ? "edge-vi-male" : "edge-vi-female"))) || "edge-vi-female";
         const voiceParam = (selectedVoice === 'edge-vi-male' || (typeof localStorage !== 'undefined' && localStorage.getItem("pos_tts_mode") === "male")) ? 'edge-vi-male' : 'edge-vi-female';

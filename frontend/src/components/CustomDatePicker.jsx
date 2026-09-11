@@ -164,9 +164,9 @@ export default function CustomDatePicker({
                     inputClassName
                 )}
             >
-                <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
                     <CalendarIcon size={14} className="text-primary/70 dark:text-emerald-400/70 shrink-0" />
-                    <span className={cn("truncate text-xs font-bold font-mono", !selectedDate && "text-muted-foreground font-sans font-medium")}>
+                    <span className={cn("text-xs font-bold font-mono whitespace-nowrap", !selectedDate && "text-muted-foreground font-sans font-medium truncate")}>
                         {displayFormat(selectedDate)}
                     </span>
                 </div>

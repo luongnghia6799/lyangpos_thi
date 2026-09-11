@@ -980,7 +980,7 @@ export const clearTTSAudioCache = async () => {
 export const precacheCommonTTS = (products = [], options = {}) => {
   try {
     const currentSessionId = ++activePrecacheSessionId;
-    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1");
     const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
     if (selectedVoiceName !== "google" && !selectedVoiceName.startsWith("edge")) {
@@ -1009,8 +1009,7 @@ export const precacheCommonTTS = (products = [], options = {}) => {
       "Soạn hàng",
       "Đã soạn xong",
       "Trả hàng",
-      "số tiền của quý khách là",
-      "số tiền cần chuyển khoản là"
+      "số tiền của quý khách là"
     ];
     commonPhrases.forEach(phrase => {
       if (phrase && !textsToPrecache.includes(phrase)) {
@@ -1120,7 +1119,7 @@ export const checkMissingTTSCache = (products = []) => {
 
 export const precacheAmounts = (totalAmount, partnerName = "") => {
   try {
-    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1");
     const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || (localStorage.getItem("pos_tts_mode") === "male" ? "edge-vi-male" : "edge-vi-female");
     const baseUrl = getDynamicBaseUrl();
@@ -1128,7 +1127,7 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
 
     // Clean up old dynamic entries in ttsAudioCache to prevent memory leak (RAM overflow)
     Object.keys(ttsAudioCache).forEach(key => {
-      if (key.includes("số tiền của") || key.includes("số tiền cần chuyển khoản")) {
+      if (key.includes("số tiền của") || key.includes("dạ ")) {
         delete ttsAudioCache[key];
       }
     });
@@ -1144,33 +1143,17 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
     const finalAmount = Math.round(Number(totalAmount) || 0);
     if (finalAmount <= 0) return;
 
-    // A. Total Amount Text
+    // Total Amount Text
     const disablePartnerTemplate = localStorage.getItem("pos_tts_disable_partner_template") === "true";
     const finalPartnerDisplay = disablePartnerTemplate ? "" : partnerDisplay;
     const totalTemplate = finalPartnerDisplay
-      ? (localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng")
-      : (localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng");
+      ? (localStorage.getItem("pos_tts_currency_partner_template") || "dạ {amount} đồng")
+      : (localStorage.getItem("pos_tts_currency_template") || "dạ {amount} đồng");
     const totalViText = totalTemplate
       .replace("{amount}", numberToViText(finalAmount))
       .replace(/{partner}/gi, finalPartnerDisplay || "quý khách")
       .replace(/{customer}/gi, finalPartnerDisplay || "quý khách");
     textsToCache.push(totalViText);
-
-    // B. F7 Transfer Amount Text
-    const step1 = finalAmount / 1.05;
-    const step2 = Math.floor(step1 / 100) * 100;
-    const finalAmountTransfer = step2 * 1.05;
-
-    const disablePartnerTransfer = localStorage.getItem("pos_tts_disable_partner_transfer_template") === "true";
-    const finalPartnerDisplayTransfer = disablePartnerTransfer ? "" : partnerDisplay;
-    const transferTemplate = finalPartnerDisplayTransfer
-      ? (localStorage.getItem("pos_tts_transfer_partner_template") || "số tiền cần chuyển khoản của {partner} là {amount} đồng")
-      : (localStorage.getItem("pos_tts_transfer_template") || "số tiền cần chuyển khoản là {amount} đồng");
-    const transferViText = transferTemplate
-      .replace("{amount}", numberToViText(finalAmountTransfer))
-      .replace(/{partner}/gi, finalPartnerDisplayTransfer || "quý khách")
-      .replace(/{customer}/gi, finalPartnerDisplayTransfer || "quý khách");
-    textsToCache.push(transferViText);
 
     textsToCache.forEach(text => {
       const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
@@ -1223,8 +1206,8 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
         const template = customTemplate
           ? customTemplate
           : (finalPartnerDisplay
-              ? (localStorage.getItem("pos_tts_currency_partner_template") || "số tiền của {partner} là {amount} đồng")
-              : (localStorage.getItem("pos_tts_currency_template") || "số tiền của quý khách là {amount} đồng"));
+              ? (localStorage.getItem("pos_tts_currency_partner_template") || "dạ {amount} đồng")
+              : (localStorage.getItem("pos_tts_currency_template") || "dạ {amount} đồng"));
           
         viText = template
           .replace("{amount}", viText)
@@ -1240,7 +1223,7 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
     lastSpokenText = viText;
     lastSpokenTime = now;
 
-    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+    const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1");
     const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     const selectedVoiceName = localStorage.getItem("pos_selected_voice") || (localStorage.getItem("pos_tts_mode") === "male" ? "edge-vi-male" : "edge-vi-female");
     const baseUrl = getDynamicBaseUrl();
@@ -1325,7 +1308,7 @@ export const speakAudioSequence = async (items = []) => {
   if (validItems.length === 0) return;
 
   const seqId = ++currentSequenceId;
-  const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1.4");
+  const rate = parseFloat(localStorage.getItem("pos_speech_rate") || "1");
   const pitch = localStorage.getItem("pos_speech_pitch") || "0";
   const selectedVoiceName = localStorage.getItem("pos_selected_voice") || (localStorage.getItem("pos_tts_mode") === "male" ? "edge-vi-male" : "edge-vi-female");
   const baseUrl = getDynamicBaseUrl();

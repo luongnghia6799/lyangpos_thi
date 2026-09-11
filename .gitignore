@@ -32,8 +32,6 @@ src-tauri/target/
 *.sqlite
 *.sqlite3
 easypos.db
-easypos.db-shm
-easypos.db-wal
 uploads/
 **/uploads/
 tts_cache/

@@ -565,39 +565,40 @@ const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' })
           title={fullDateStr}
           className={cn(
             "group/clock relative overflow-hidden flex items-center justify-between gap-1.5 h-[26px]",
-            "bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.04] dark:hover:bg-white/[0.1]",
-            "border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40",
-            "rounded-lg px-2 backdrop-blur-md shadow-xs",
-            "select-none cursor-pointer transition-all duration-300 shrink-0 box-border hover:scale-[1.02] active:scale-98",
+            "bg-gradient-to-r from-[#2d5016] via-[#38631e] to-[#2d5016] dark:from-[#0b261b] dark:via-[#113828] dark:to-[#0b261b]",
+            "hover:brightness-110 active:scale-98",
+            "border border-[#2d5016]/50 dark:border-emerald-500/40",
+            "rounded-lg px-2.5 shadow-sm shadow-[#2d5016]/20",
+            "select-none cursor-pointer transition-all duration-300 shrink-0 box-border hover:scale-[1.02]",
             className
           )}
         >
           {/* Watermark Icon */}
-          <div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/clock:scale-110">
+          <div className="absolute -right-1 -bottom-1 text-white/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/clock:scale-110">
             <Clock size={18} strokeWidth={2.3} />
           </div>
 
           {/* Left: Lịch Dương & Lịch Âm */}
           <div className="flex flex-col items-start justify-center leading-none min-w-0 relative z-10">
-            <div className="flex items-center gap-0.5 text-[9.5px] font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums">
-              <span className="uppercase text-[8px] text-[#8b6f47] dark:text-[#d4a574] font-extrabold mr-0.5">{weekday}</span>
+            <div className="flex items-center gap-0.5 text-[9.5px] font-black text-white tracking-tight tabular-nums">
+              <span className="uppercase text-[8px] text-amber-300 dark:text-amber-400 font-extrabold mr-0.5">{weekday}</span>
               <span>{solarDate}</span>
             </div>
             <div className="flex items-center gap-0.5 text-[6.5px] font-black tracking-wider uppercase mt-0.5">
-              <span className="text-[#8b6f47] dark:text-[#d4a574]">ÂM</span>
-              <span className="text-[#2d5016] dark:text-emerald-400 tabular-nums">
+              <span className="text-emerald-200/90 dark:text-emerald-300">ÂM</span>
+              <span className="text-amber-200 dark:text-amber-300 tabular-nums font-black">
                 {lunarDay}/{lunarMonth}
               </span>
             </div>
           </div>
 
           {/* Divider */}
-          <div className="w-px h-3 bg-[#8b6f47]/25 dark:bg-white/15 shrink-0 mx-0.5 relative z-10" />
+          <div className="w-px h-3.5 bg-white/25 dark:bg-white/20 shrink-0 mx-0.5 relative z-10" />
 
           {/* Right: Time */}
-          <div className="flex items-baseline font-black text-[11.5px] text-[#2d5016] dark:text-emerald-400 tabular-nums tracking-tight leading-none drop-shadow-xs relative z-10">
+          <div className="flex items-baseline font-black text-[12px] text-white dark:text-emerald-200 tabular-nums tracking-tight leading-none drop-shadow-xs relative z-10">
             <span>{hours}</span>
-            <span className="text-[#8b6f47] dark:text-[#d4a574] px-px">:</span>
+            <span className="text-amber-300 dark:text-amber-400 px-px font-black">:</span>
             <span>{minutes}</span>
           </div>
         </div>

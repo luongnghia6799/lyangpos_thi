@@ -716,10 +716,11 @@ pub async fn get_partner_ledger(
     if !order_ids.is_empty() {
         let placeholders = order_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
         let sql = format!(
-            "SELECT od.order_id, od.product_id, od.product_name_override, \
+            "SELECT od.id as detail_id, od.order_id, od.product_id, od.product_name_override, \
              CAST(od.quantity AS REAL) as quantity, \
              CAST(od.price AS REAL) as price, \
-             p.name as product_name, p.unit \
+             CAST(od.cost_price AS REAL) as cost_price, \
+             p.name as product_name, p.unit, p.secondary_unit, CAST(p.multiplier AS REAL) as multiplier \
              FROM order_detail od \
              LEFT JOIN product p ON od.product_id = p.id \
              WHERE od.order_id IN ({})",
@@ -733,19 +734,32 @@ pub async fn get_partner_ledger(
 
         if let Ok(rows) = q.fetch_all(&pool).await {
             for row in rows {
+                let detail_id: i64 = row.get("detail_id");
                 let oid: i64 = row.get("order_id");
+                let prod_id: Option<i64> = row.get("product_id");
                 let qty: f64 = row.get::<Option<f64>, _>("quantity").unwrap_or(0.0);
                 let price: f64 = row.get::<Option<f64>, _>("price").unwrap_or(0.0);
+                let cost_price: f64 = row.get::<Option<f64>, _>("cost_price").unwrap_or(0.0);
                 let p_name: Option<String> = row.get("product_name");
                 let p_override: Option<String> = row.get("product_name_override");
                 let name = p_override.or(p_name).unwrap_or_else(|| "Sản phẩm".into());
                 let unit: Option<String> = row.get("unit");
+                let secondary_unit: Option<String> = row.get("secondary_unit");
+                let multiplier: f64 = row.get::<Option<f64>, _>("multiplier").unwrap_or(1.0);
+                let unit_str = unit.unwrap_or_else(|| "cái".into());
 
                 let item_json = json!({
+                    "id": detail_id,
+                    "product_id": prod_id,
                     "product_name": name,
                     "quantity": qty,
-                    "unit": unit.unwrap_or_else(|| "cái".into()),
+                    "price": price,
                     "unit_price": price,
+                    "cost_price": cost_price,
+                    "unit": unit_str.clone(),
+                    "product_unit": unit_str,
+                    "secondary_unit": secondary_unit.unwrap_or_default(),
+                    "multiplier": multiplier,
                     "total_price": qty * price,
                     "specification": serde_json::Value::Null
                 });
@@ -826,6 +840,15 @@ pub async fn get_partner_ledger(
             let details = order_details_map.remove(&o_id).unwrap_or_default();
             let raw_obj = json!({
                 "id": o_id,
+                "partner_id": id,
+                "partner_name": partner.name.clone(),
+                "partner": {
+                    "id": partner.id,
+                    "name": partner.name.clone(),
+                    "phone": partner.phone.clone(),
+                    "address": partner.address.clone(),
+                    "debt_balance": partner.debt_balance
+                },
                 "display_id": display_id.clone().unwrap_or_else(|| format!("ORD-{}", o_id)),
                 "date": d.to_string(),
                 "type": o_type,

@@ -34,7 +34,6 @@ import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
 import axios from "axios";
 import PrintTemplate from "../../components/PrintTemplate";
 import ConfirmModal from "../../components/ConfirmModal";
-import TaxCalculatorModal from "../../components/TaxCalculatorModal";
 import { DEFAULT_SETTINGS } from "../../lib/settings";
 import ProductEditModal from "../../components/ProductEditModal";
 import PartnerEditModal from "../../components/PartnerEditModal";
@@ -808,12 +807,6 @@ const POSLite = () => {
       if (e.key === 'F4') {
         e.preventDefault();
         handleNewOrder();
-      }
-      if (e.key === 'F7') {
-        e.preventDefault();
-        if (cart.length > 0) {
-          setIsTaxModalOpen(true);
-        }
       }
       if (e.key === 'F9') {
         e.preventDefault();
@@ -2486,15 +2479,6 @@ const POSLite = () => {
               </div>
             </div>
           </div>
-        )}
-
-        {localStorage.getItem('feature_tax_calculator_enabled') === 'true' && (
-          <TaxCalculatorModal
-            isOpen={isTaxModalOpen}
-            onClose={() => setIsTaxModalOpen(false)}
-            totalAmount={cart.reduce((sum, i) => sum + i.price * i.quantity, 0)}
-            partnerName={selectedPartner?.name || ""}
-          />
         )}
 
         {confirm && (

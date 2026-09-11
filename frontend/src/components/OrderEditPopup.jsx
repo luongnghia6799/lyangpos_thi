@@ -10,17 +10,23 @@ import CustomDatePicker from './CustomDatePicker';
 
 export default function OrderEditPopup({ order, partner, onClose, onSave }) {
     const [orderDate, setOrderDate] = useState(order?.date ? order.date.slice(0, 10) : new Date().toISOString().slice(0, 10));
-    const [cart, setCart] = useState((order?.details || []).map(d => ({
-        ...d,
-        product_id: d.product_id,
-        quantity: d.quantity,
-        price: d.price,
-        unit: d.product_unit,
-        secondary_unit: d.secondary_unit,
-        multiplier: d.multiplier || 1,
-        secondary_qty: d.quantity / (d.multiplier || 1),
-        cartId: Math.random().toString(36).substr(2, 9)
-    })));
+    const [cart, setCart] = useState((order?.details || []).map(d => {
+        const qty = Number(d.quantity) || 0;
+        const price = Number(d.price !== undefined && d.price !== null ? d.price : d.unit_price) || 0;
+        const multiplier = Number(d.multiplier) || 1;
+        return {
+            ...d,
+            product_id: d.product_id,
+            product_name: d.product_name || d.name || 'Sản phẩm',
+            quantity: qty,
+            price: price,
+            unit: d.product_unit || d.unit || 'cái',
+            secondary_unit: d.secondary_unit || '',
+            multiplier: multiplier,
+            secondary_qty: d.secondary_qty !== undefined && d.secondary_qty !== null ? Number(d.secondary_qty) : (qty / multiplier),
+            cartId: Math.random().toString(36).substr(2, 9)
+        };
+    }));
 
     const parsedNote = useMemo(() => {
         const lines = (order.note || '').split('\n');
@@ -67,18 +73,21 @@ export default function OrderEditPopup({ order, partner, onClose, onSave }) {
     const cashGivenInputRef = useRef(null);
 
     useEffect(() => {
-        if (!partner && order.partner_id) {
+        const pId = order?.partner_id || order?.partner?.id;
+        if (order?.partner) {
+            setLoadedPartner(order.partner);
+        } else if (partner) {
+            setLoadedPartner(partner);
+        } else if (pId) {
             axios.get('/api/partners')
                 .then(res => {
                     const list = res.data.items || res.data || [];
-                    const p = list.find(x => x.id === order.partner_id);
+                    const p = list.find(x => x.id === pId);
                     if (p) setLoadedPartner(p);
                 })
                 .catch(err => console.error("Failed to load partner in OrderEditPopup", err));
-        } else {
-            setLoadedPartner(partner);
         }
-    }, [partner, order.partner_id]);
+    }, [partner, order?.partner_id, order?.partner]);
 
     const totalAmount = useMemo(() => cart.reduce((sum, item) => sum + (item.price * item.quantity), 0), [cart]);
 
@@ -310,19 +319,20 @@ export default function OrderEditPopup({ order, partner, onClose, onSave }) {
                                         {order.type === 'Sale' ? 'Bán lẻ' : 'Nhập hàng'}
                                     </span>
                                     <span>•</span>
-                                    <span>Đối tác: {order.partner_name || loadedPartner?.name || 'Khách Vãng Lai'}</span>
+                                    <span>Đối tác: {order.partner_name || order.partner?.name || loadedPartner?.name || partner?.name || (order.type === 'Purchase' ? 'Nhà cung cấp vãng lai' : 'Khách Vãng Lai')}</span>
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-2xl border border-slate-200 dark:border-white/10">
-                                <Clock size={15} className="text-emerald-600 dark:text-emerald-400" />
-                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase">Ngày:</span>
-                                <div className="w-36">
+                                <Clock size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase shrink-0">Ngày:</span>
+                                <div className="min-w-[155px]">
                                     <CustomDatePicker
                                         value={orderDate}
                                         onChange={(e) => setOrderDate(e.target.value)}
                                         className="py-1 px-2 text-xs"
+                                        inputClassName="py-1 px-2.5 text-xs whitespace-nowrap"
                                     />
                                 </div>
                             </div>

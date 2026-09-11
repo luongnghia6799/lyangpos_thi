@@ -735,9 +735,7 @@ const PrintTemplate = forwardRef(({
         fontSize: `${s.invoice_table_content_size || s.invoice_font_size}px`,
         lineHeight: s.invoice_line_spacing || '1.4',
         color: '#000',
-        padding: isPreview 
-            ? `${mt + printPaddingTop + (isThermal ? 0 : 4)}mm ${mr}mm ${mb}mm ${ml}mm` 
-            : `${mt + printPaddingTop + (isThermal ? 0 : 4)}mm ${mr}mm ${mb}mm ${ml}mm`,
+        padding: `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm`,
         maxWidth: 'none',
         width: isPreview ? width : (isThermal ? width : `calc(${width} - ${ml}mm - ${mr}mm)`),
         minHeight: isPreview ? height : (watermarkBottom > 0 ? `${watermarkBottom}px` : '0'),
@@ -757,7 +755,7 @@ const PrintTemplate = forwardRef(({
         boxShadow: isPreview ? '0 15px 40px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05)' : 'none',
         borderRadius: isPreview ? '2px' : '0',
         backgroundImage: (isPreview && s.invoice_preview_bg_image && s.invoice_preview_bg_image !== 'none')
-            ? `linear-gradient(rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.75)), url(/${s.invoice_preview_bg_image})`
+            ? `linear-gradient(rgba(255, 255, 255, ${Math.max(0, Math.min(1, 1 - (parseFloat(s.invoice_preview_bg_opacity !== undefined && s.invoice_preview_bg_opacity !== '' ? s.invoice_preview_bg_opacity : '0.45'))))}), rgba(255, 255, 255, ${Math.max(0, Math.min(1, 1 - (parseFloat(s.invoice_preview_bg_opacity !== undefined && s.invoice_preview_bg_opacity !== '' ? s.invoice_preview_bg_opacity : '0.45'))))})), url("${s.invoice_preview_bg_image.startsWith('data:') || s.invoice_preview_bg_image.startsWith('http') || s.invoice_preview_bg_image.startsWith('/') ? s.invoice_preview_bg_image : '/' + s.invoice_preview_bg_image}")`
             : 'none',
         backgroundSize: '100% 100%',
         backgroundPosition: 'center',
@@ -2271,138 +2269,112 @@ const PrintTemplate = forwardRef(({
                             )}
                         </div>
                     ) : (
-                        <table className="print-layout-table" style={{ width: '100%', border: 'none', borderCollapse: 'collapse', backgroundColor: 'transparent' }}>
-                            {s.invoice_repeat_header_on_later_pages === 'true' ? (
-                                <thead>
-                                    <tr>
-                                        <td style={{ border: 'none', padding: 0 }}>
-                                            <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
-                                                {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
-                                                {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
-                                                {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
-                                                {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
-                                                {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
-                                                {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
-                                                {customerAddressEl && (
-                                                    <DraggableBlock 
-                                                        xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
-                                                        yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
-                                                        wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
-                                                        settings={s} 
-                                                        isPreview={false}
-                                                    >
-                                                        {customerAddressEl}
-                                                    </DraggableBlock>
-                                                )}
-                                                {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
-                                                {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </thead>
-                            ) : null}
-                            <tbody>
-                                <tr>
-                                    <td style={{ border: 'none', padding: 0 }}>
-                                        {s.invoice_repeat_header_on_later_pages !== 'true' && (
-                                            <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
-                                                {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
-                                                {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
-                                                {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
-                                                {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
-                                                {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
-                                                {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
-                                                {customerAddressEl && (
-                                                    <DraggableBlock 
-                                                        xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
-                                                        yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
-                                                        wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
-                                                        settings={s} 
-                                                        isPreview={false}
-                                                    >
-                                                        {customerAddressEl}
-                                                    </DraggableBlock>
-                                                )}
-                                                {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
-                                                {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
-                                            </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', margin: 0, padding: 0 }}>
+                            {/* 1. Header Area with dynamic height container */}
+                            <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
+                                {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
+                                {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
+                                {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
+                                {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
+                                {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
+                                {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
+                                {customerAddressEl && (
+                                    <DraggableBlock 
+                                        xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
+                                        yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
+                                        wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
+                                        settings={s} 
+                                        isPreview={false}
+                                    >
+                                        {customerAddressEl}
+                                    </DraggableBlock>
+                                )}
+                                {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
+                                {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
+                            </div>
+
+                            {/* 2. Table Area */}
+                            {isTwoColumns ? (
+                                <>
+                                    <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%', alignItems: 'flex-start', position: 'relative' }}>
+                                        {leftTableEl && (
+                                            <DraggableBlock 
+                                                xKey="pos_table_left_x" 
+                                                yKey="pos_table_y" 
+                                                wKey="pos_width_table_left" 
+                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                positionMode="relative-flow" 
+                                                settings={{
+                                                    ...s,
+                                                    pos_table_left_x: s.pos_table_left_x !== undefined ? s.pos_table_left_x : String(leftTableX),
+                                                    pos_width_table_left: s.pos_width_table_left !== undefined ? s.pos_width_table_left : String(leftTableWidth)
+                                                }} 
+                                                isPreview={false}
+                                            >
+                                                {leftTableEl}
+                                            </DraggableBlock>
                                         )}
-                                        {isTwoColumns ? (
-                                            <>
-                                                <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%', alignItems: 'flex-start', position: 'relative' }}>
-                                                    {leftTableEl && (
-                                                        <DraggableBlock 
-                                                            xKey="pos_table_left_x" 
-                                                            yKey="pos_table_y" 
-                                                            wKey="pos_width_table_left" 
-                                                            yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                                            positionMode="relative-flow" 
-                                                            settings={{
-                                                                ...s,
-                                                                pos_table_left_x: s.pos_table_left_x !== undefined ? s.pos_table_left_x : String(leftTableX),
-                                                                pos_width_table_left: s.pos_width_table_left !== undefined ? s.pos_width_table_left : String(leftTableWidth)
-                                                            }} 
-                                                            isPreview={false}
-                                                        >
-                                                            {leftTableEl}
-                                                        </DraggableBlock>
-                                                    )}
-                                                    {rightTableEl && (
-                                                        <DraggableBlock 
-                                                            xKey="pos_table_right_x" 
-                                                            yKey="pos_table_y" 
-                                                            wKey="pos_width_table_right" 
-                                                            yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                                            positionMode="relative-flow" 
-                                                            settings={{
-                                                                ...s,
-                                                                pos_table_right_x: s.pos_table_right_x !== undefined ? s.pos_table_right_x : String(rightTableX),
-                                                                pos_width_table_right: s.pos_width_table_right !== undefined ? s.pos_width_table_right : String(rightTableWidth)
-                                                            }} 
-                                                            isPreview={false}
-                                                        >
-                                                            {rightTableEl}
-                                                        </DraggableBlock>
-                                                    )}
-                                                </div>
-                                                {totalSummaryEl && (
-                                                    <DraggableBlock 
-                                                        xKey="pos_table_summary_x" 
-                                                        yKey="pos_table_summary_y" 
-                                                        wKey="pos_width_table_summary" 
-                                                        yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                                        positionMode="relative-flow" 
-                                                        settings={{
-                                                            ...s,
-                                                            pos_table_summary_x: s.pos_table_summary_x !== undefined ? s.pos_table_summary_x : s.pos_table_x,
-                                                            pos_table_summary_y: s.pos_table_summary_y !== undefined ? s.pos_table_summary_y : String(leftTableY - 230 + 100),
-                                                            pos_width_table_summary: s.pos_width_table_summary !== undefined ? s.pos_width_table_summary : s.pos_width_table
-                                                        }} 
-                                                        isPreview={false}
-                                                    >
-                                                        {totalSummaryEl}
-                                                    </DraggableBlock>
-                                                )}
-                                            </>
-                                        ) : (
-                                            tableEl && (
-                                                <DraggableBlock xKey="pos_table_x" yKey="pos_table_y" wKey="pos_width_table" yOffset={-(parseInt(s.pos_table_y) || 230)} positionMode="relative-flow" settings={s} isPreview={false}>
-                                                    {tableEl}
-                                                </DraggableBlock>
-                                            )
+                                        {rightTableEl && (
+                                            <DraggableBlock 
+                                                xKey="pos_table_right_x" 
+                                                yKey="pos_table_y" 
+                                                wKey="pos_width_table_right" 
+                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                positionMode="relative-flow" 
+                                                settings={{
+                                                    ...s,
+                                                    pos_table_right_x: s.pos_table_right_x !== undefined ? s.pos_table_right_x : String(rightTableX),
+                                                    pos_width_table_right: s.pos_width_table_right !== undefined ? s.pos_width_table_right : String(rightTableWidth)
+                                                }} 
+                                                isPreview={false}
+                                            >
+                                                {rightTableEl}
+                                            </DraggableBlock>
                                         )}
-                                        {getFooterHeight() > 0 && (
-                                            <div style={{ position: 'relative', width: '100%', height: `${getFooterHeight()}px`, marginTop: '15px', overflow: 'visible' }}>
-                                                {notesEl && <DraggableBlock xKey="pos_notes_x" yKey="pos_notes_y" wKey="pos_width_notes" yOffset={-500} settings={s} isPreview={false}>{notesEl}</DraggableBlock>}
-                                                {summaryEl && <DraggableBlock xKey="pos_summary_x" yKey="pos_summary_y" wKey="pos_width_summary" yOffset={-500} settings={s} isPreview={false}>{summaryEl}</DraggableBlock>}
-                                                {signaturesEl && <DraggableBlock xKey="pos_signatures_x" yKey="pos_signatures_y" wKey="pos_width_signatures" yOffset={-500} settings={s} isPreview={false}>{signaturesEl}</DraggableBlock>}
-                                                {thankYouEl && <DraggableBlock xKey="pos_thank_you_x" yKey="pos_thank_you_y" wKey="pos_width_thank_you" yOffset={-500} settings={s} isPreview={false}>{thankYouEl}</DraggableBlock>}
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                    {totalSummaryEl && (
+                                        <DraggableBlock 
+                                            xKey="pos_table_summary_x" 
+                                            yKey="pos_table_summary_y" 
+                                            wKey="pos_width_table_summary" 
+                                            yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                            positionMode="relative-flow" 
+                                            settings={{
+                                                ...s,
+                                                pos_table_summary_x: s.pos_table_summary_x !== undefined ? s.pos_table_summary_x : s.pos_table_x,
+                                                pos_table_summary_y: s.pos_table_summary_y !== undefined ? s.pos_table_summary_y : String(leftTableY - 230 + 100),
+                                                pos_width_table_summary: s.pos_width_table_summary !== undefined ? s.pos_width_table_summary : s.pos_width_table
+                                            }} 
+                                            isPreview={false}
+                                        >
+                                            {totalSummaryEl}
+                                        </DraggableBlock>
+                                    )}
+                                </>
+                            ) : (
+                                tableEl && (
+                                    <DraggableBlock xKey="pos_table_x" yKey="pos_table_y" wKey="pos_width_table" yOffset={-(parseInt(s.pos_table_y) || 230)} positionMode="relative-flow" settings={s} isPreview={false}>
+                                        {tableEl}
+                                    </DraggableBlock>
+                                )
+                            )}
+
+                            {/* 3. Footer Area */}
+                            {getFooterHeight() > 0 && (
+                                <div style={{ position: 'relative', width: '100%', height: `${getFooterHeight()}px`, marginTop: '15px', overflow: 'visible' }}>
+                                    {notesEl && <DraggableBlock xKey="pos_notes_x" yKey="pos_notes_y" wKey="pos_width_notes" yOffset={-500} settings={s} isPreview={false}>{notesEl}</DraggableBlock>}
+                                    {summaryEl && <DraggableBlock xKey="pos_summary_x" yKey="pos_summary_y" wKey="pos_width_summary" yOffset={-500} settings={s} isPreview={false}>{summaryEl}</DraggableBlock>}
+                                    {signaturesEl && <DraggableBlock xKey="pos_signatures_x" yKey="pos_signatures_y" wKey="pos_width_signatures" yOffset={-500} settings={s} isPreview={false}>{signaturesEl}</DraggableBlock>}
+                                    {thankYouEl && <DraggableBlock xKey="pos_thank_you_x" yKey="pos_thank_you_y" wKey="pos_width_thank_you" yOffset={-500} settings={s} isPreview={false}>{thankYouEl}</DraggableBlock>}
+                                </div>
+                            )}
+
+                            {pageNumberEl && (
+                                <div style={{ width: '100%' }}>
+                                    {pageNumberEl}
+                                </div>
+                            )}
+                        </div>
                     )
                 ) : (
                     isPreview ? (() => {

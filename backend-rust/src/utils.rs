@@ -94,39 +94,9 @@ pub fn get_app_base_dir() -> std::path::PathBuf {
         return p;
     }
 
-    // 2. Determine based on OS / App Bundle
-    #[cfg(target_os = "macos")]
-    {
-        // On macOS, .app bundle inside /Applications is read-only.
-        // Data must be saved in ~/Library/Application Support/com.lyangpos.app/ or ~/Library/Application Support/LyangPOS/
-        if let Ok(home) = std::env::var("HOME") {
-            let app_support = std::path::PathBuf::from(home)
-                .join("Library")
-                .join("Application Support")
-                .join("com.lyangpos.app");
-            let _ = std::fs::create_dir_all(&app_support);
-            return app_support;
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(mut exe_path) = std::env::current_exe() {
-            exe_path.pop(); // remove binary name
-            let path_str = exe_path.to_string_lossy();
-            if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
-                || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {
-                exe_path.pop();
-                exe_path.pop();
-                exe_path.pop();
-            }
-            return exe_path;
-        }
-    }
-
-    // Fallback for Linux or generic development
+    // 2. Portable Mode: always locate next to the running executable or current workdir
     if let Ok(mut exe_path) = std::env::current_exe() {
-        exe_path.pop();
+        exe_path.pop(); // remove binary name
         let path_str = exe_path.to_string_lossy();
         if path_str.ends_with("target/release") || path_str.ends_with("target\\release")
             || path_str.ends_with("target/debug") || path_str.ends_with("target\\debug") {

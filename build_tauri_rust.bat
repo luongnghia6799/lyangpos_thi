@@ -30,13 +30,24 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo [*] Buoc 1: Bien dich Backend Rust che do Release (sieu nhanh va nhe)...
+echo [*] Buoc 1: Kiem tra dependencies va build Frontend truoc (tao thu muc dist)...
+cd /d "%~dp0frontend"
+if not exist "node_modules" (
+    echo [*] Dang cai dat dependencies frontend...
+    call npm install
+)
+echo [*] Dang build ma nguon Frontend React...
+call npm run build
+if %ERRORLEVEL% NEQ 0 goto :error_frontend
+
+echo.
+echo [*] Buoc 2: Bien dich Backend Rust che do Release (Nhung thang toan bo Frontend Web vao file .exe)...
 cd /d "%~dp0backend-rust"
 cargo build --release --bin backend-rust
 if %ERRORLEVEL% NEQ 0 goto :error_backend
 
 echo.
-echo [*] Buoc 2: Sao chep file binary backend-rust vao thu muc Tauri Sidecar...
+echo [*] Buoc 3: Sao chep file binary backend-rust vao thu muc Tauri Sidecar...
 cd /d "%~dp0"
 if not exist "%~dp0frontend\src-tauri\bin" mkdir "%~dp0frontend\src-tauri\bin"
 
@@ -51,15 +62,8 @@ if %ERRORLEVEL% NEQ 0 goto :error_copy
 echo [*] Sao chep Sidecar thanh cong: lyang-backend-x86_64-pc-windows-msvc.exe
 
 echo.
-echo [*] Buoc 3: Di chuyen vao thu muc Frontend va kiem tra thu vien...
+echo [*] Buoc 4: Bat dau qua trinh dong goi Tauri (.msi / .exe)...
 cd /d "%~dp0frontend"
-if not exist "node_modules" (
-    echo [*] Dang cai dat dependencies frontend...
-    call npm install
-)
-
-echo.
-echo [*] Buoc 4: Bat dau qua trinh build frontend va dong goi Tauri (.msi / .exe)...
 echo [!] Qua trinh dong goi Tauri dang chay...
 call npm run tauri:build
 if %ERRORLEVEL% NEQ 0 goto :error_tauri
@@ -89,6 +93,12 @@ echo.
 echo =====================================================================
 pause
 exit /b 0
+
+:error_frontend
+echo.
+echo [LOI] Qua trinh build Frontend React bi that bai! Vui long kiem tra loi phia tren.
+pause
+exit /b 1
 
 :error_backend
 echo.

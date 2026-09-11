@@ -1179,6 +1179,27 @@ pub async fn create_order(
     .await?;
 
     let resp = populate_order_details_response(&pool, &created_order).await?;
+
+    // Broadcast Real-time WebSocket Event to all LAN clients & Web Terminals
+    crate::routes::ws::broadcast_event(
+        "ORDER_CREATED",
+        serde_json::json!({
+            "order_id": order_id,
+            "type": payload.r#type,
+            "display_id": display_id,
+            "total_amount": total_amount,
+            "status": order_status,
+            "partner_id": payload.partner_id,
+        }),
+    );
+    crate::routes::ws::broadcast_event(
+        "STOCK_CHANGED",
+        serde_json::json!({
+            "reason": "ORDER_CREATED",
+            "order_id": order_id,
+        }),
+    );
+
     Ok((StatusCode::CREATED, Json(resp)))
 }
 
@@ -1457,6 +1478,22 @@ pub async fn delete_order(
     if let Some(p_id) = partner_id {
         let _ = recalculate_partner_debt_internal(&pool, p_id).await;
     }
+
+    // Broadcast Real-time WebSocket Event to all LAN clients & Web Terminals
+    crate::routes::ws::broadcast_event(
+        "ORDER_DELETED",
+        serde_json::json!({
+            "order_id": order.id,
+            "type": order.r#type,
+        }),
+    );
+    crate::routes::ws::broadcast_event(
+        "STOCK_CHANGED",
+        serde_json::json!({
+            "reason": "ORDER_DELETED",
+            "order_id": order.id,
+        }),
+    );
 
     Ok(Json(json!({
         "message": "Order deleted and data reversed successfully"
@@ -2169,6 +2206,27 @@ pub async fn update_order(
     .await?;
 
     let resp = populate_order_details_response(&pool, &updated_order).await?;
+
+    // Broadcast Real-time WebSocket Event to all LAN clients & Web Terminals
+    crate::routes::ws::broadcast_event(
+        "ORDER_UPDATED",
+        serde_json::json!({
+            "order_id": order.id,
+            "type": order_type,
+            "display_id": display_id,
+            "total_amount": total_amount,
+            "status": new_status,
+            "partner_id": payload.partner_id,
+        }),
+    );
+    crate::routes::ws::broadcast_event(
+        "STOCK_CHANGED",
+        serde_json::json!({
+            "reason": "ORDER_UPDATED",
+            "order_id": order.id,
+        }),
+    );
+
     Ok(Json(resp))
 }
 

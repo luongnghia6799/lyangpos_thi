@@ -14,6 +14,8 @@ import { checkIsAdmin } from './lib/auth';
 import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
 
+import { wsService } from './lib/websocket';
+
 const DEFAULT_PORT = import.meta.env.VITE_BACKEND_PORT || '3579';
 
 const resolveApiUrl = (val) => {
@@ -41,9 +43,15 @@ if (savedIp) {
            window.location.hostname !== 'localhost' && 
            window.location.hostname !== '127.0.0.1' && 
            window.location.hostname !== 'tauri.localhost') {
-    axios.defaults.baseURL = `${window.location.protocol}//${window.location.hostname}:${DEFAULT_PORT}`;
+    // Direct Web access from Phone/Laptop: automatically use the current origin
+    axios.defaults.baseURL = window.location.origin;
 } else {
     axios.defaults.baseURL = `http://localhost:${DEFAULT_PORT}`;
+}
+
+// Connect Real-time WebSocket Hub
+if (typeof window !== 'undefined') {
+    wsService.connect();
 }
 
 // Don dep bo nho dem bi loi neu co

@@ -14,6 +14,7 @@ mod utils;
 
 use axum::{
     extract::DefaultBodyLimit,
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
@@ -346,8 +347,13 @@ async fn main() -> anyhow::Result<()> {
             "/api/users/:id",
             axum::routing::patch(routes::auth::update_user).delete(routes::auth::delete_user),
         )
+        // WebSocket Real-time Sync Hub
+        .route("/ws", get(routes::ws::ws_handler))
         // Serve static uploads
         .nest_service("/uploads", ServeDir::new(&config.uploads_dir))
+        .fallback(static_web_handler);
+
+    let app = app
         .with_state(pool.clone())
         .merge(pos_router)
         .layer(cors)
@@ -373,5 +379,33 @@ async fn main() -> anyhow::Result<()> {
     let _ = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE);").execute(&pool).await;
 
     Ok(())
+}
+
+#[derive(rust_embed::RustEmbed)]
+#[folder = "../frontend/dist/"]
+struct Assets;
+
+async fn static_web_handler(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
+    let path = uri.path().trim_start_matches('/');
+    let path = if path.is_empty() { "index.html" } else { path };
+
+    // 1. Try to serve exact embedded file
+    if let Some(content) = Assets::get(path) {
+        let mime = mime_guess::from_path(path).first_or_octet_stream();
+        return axum::response::Response::builder()
+            .header(axum::http::header::CONTENT_TYPE, mime.as_ref())
+            .body(axum::body::Body::from(content.data))
+            .unwrap_or_else(|_| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to render asset").into_response());
+    }
+
+    // 2. SPA fallback: return index.html for unknown routes (e.g., /pos, /inventory, /history)
+    if let Some(content) = Assets::get("index.html") {
+        return axum::response::Response::builder()
+            .header(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")
+            .body(axum::body::Body::from(content.data))
+            .unwrap_or_else(|_| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, "Failed to render asset").into_response());
+    }
+
+    (axum::http::StatusCode::NOT_FOUND, "404 Not Found").into_response()
 }
 

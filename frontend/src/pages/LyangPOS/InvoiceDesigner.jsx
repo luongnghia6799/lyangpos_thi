@@ -198,6 +198,7 @@ const DEFAULT_INVOICE_CONFIG = {
     pos_width_signatures: '750',
     pos_width_thank_you: '750',
     invoice_preview_bg_image: 'none',
+    invoice_preview_bg_opacity: '0.45',
     invoice_table_name_nowrap: 'false',
     invoice_show_title: 'true',
     invoice_repeat_header_on_later_pages: 'true',
@@ -759,6 +760,27 @@ const InvoiceDesigner = () => {
         }
     };
 
+    const handlePreviewBgUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 8 * 1024 * 1024) {
+            setToast({ message: "Kích thước ảnh mẫu quá lớn! Vui lòng chọn ảnh dưới 8MB.", type: "error" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64data = reader.result;
+            updateSetting('invoice_preview_bg_image', base64data);
+            setToast({ message: "Đã tải ảnh mẫu hóa đơn đối chiếu thành công!", type: "success" });
+        };
+        reader.onerror = () => {
+            setToast({ message: "Lỗi khi đọc file ảnh mẫu!", type: "error" });
+        };
+        reader.readAsDataURL(file);
+    };
+
     return (
         <div className="flex min-h-screen font-sans bg-transparent">
             {customFontsStyle}
@@ -1089,6 +1111,98 @@ const InvoiceDesigner = () => {
                                     </div>
                                 </DesignerSection>
 
+                                <DesignerSection title="Phôi Hóa Đơn Đối Chiếu (Xem Trước)">
+                                    <p className="text-[10px] text-slate-400 italic mb-3">
+                                        Tải ảnh chụp hoặc scan phôi hóa đơn/chứng từ thực tế của bạn để căn chỉnh chữ, bảng biểu khớp từng milimet. 
+                                        <span className="font-bold text-[#8b6f47] dark:text-[#d4a574]"> (Chỉ hiển thị trên màn hình xem trước, hoàn toàn không in ra giấy).</span>
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <input
+                                                type="file"
+                                                id="preview-bg-upload-layout"
+                                                accept="image/*"
+                                                onChange={handlePreviewBgUpload}
+                                                className="hidden"
+                                            />
+                                            <label
+                                                htmlFor="preview-bg-upload-layout"
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#d4a574]/10 dark:bg-slate-800/20 text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/30 dark:border-slate-700 hover:bg-[#d4a574]/20 rounded-xl cursor-pointer text-xs font-black uppercase tracking-wider transition-all shadow-none"
+                                            >
+                                                <Upload size={14} /> Tải ảnh mẫu hóa đơn của bạn lên
+                                            </label>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574]/60 uppercase tracking-widest block">Mẫu đối chiếu đang áp dụng:</label>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={
+                                                        !settings.invoice_preview_bg_image || settings.invoice_preview_bg_image === 'none'
+                                                            ? 'none'
+                                                            : (settings.invoice_preview_bg_image === 'a5_template.png' ? 'a5_template.png' : 'custom')
+                                                    }
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        if (val === 'none') {
+                                                            updateSetting('invoice_preview_bg_image', 'none');
+                                                        } else if (val === 'a5_template.png') {
+                                                            updateSetting('invoice_preview_bg_image', 'a5_template.png');
+                                                        }
+                                                    }}
+                                                    className="flex-1 text-xs bg-transparent border border-border rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 outline-none font-bold"
+                                                >
+                                                    <option value="none">Không sử dụng (Nền trắng)</option>
+                                                    <option value="a5_template.png">Mẫu giấy in sẵn A5 Syngenta (Mẫu chuẩn)</option>
+                                                    {settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none' && settings.invoice_preview_bg_image !== 'a5_template.png' && (
+                                                        <option value="custom">Ảnh phôi bạn vừa tải lên</option>
+                                                    )}
+                                                </select>
+                                                {settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            updateSetting('invoice_preview_bg_image', 'none');
+                                                            setToast({ message: "Đã tắt ảnh phôi đối chiếu!", type: "info" });
+                                                        }}
+                                                        className="p-2 border border-border rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-xs font-bold transition-all"
+                                                        title="Tắt ảnh phôi đối chiếu"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none' && (
+                                            <div className="space-y-2 pt-3 border-t border-border">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574]/60 uppercase tracking-widest">
+                                                        Độ hiển thị phôi nền:
+                                                    </label>
+                                                    <span className="text-xs font-mono font-bold text-primary">
+                                                        {Math.round(parseFloat(settings.invoice_preview_bg_opacity || '0.45') * 100)}%
+                                                    </span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0.1"
+                                                    max="1.0"
+                                                    step="0.05"
+                                                    value={settings.invoice_preview_bg_opacity || '0.45'}
+                                                    onChange={(e) => updateSetting('invoice_preview_bg_opacity', e.target.value)}
+                                                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-primary"
+                                                />
+                                                <div className="flex justify-between text-[9px] text-slate-400">
+                                                    <span>10% (Mờ nhẹ)</span>
+                                                    <span>50% (Tiêu chuẩn)</span>
+                                                    <span>100% (Rõ nét)</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </DesignerSection>
+
                                 <DesignerSection title="Bố cục tự do (Kéo thả)">
                                     <Toggle
                                         label="Kích hoạt vị trí tự do"
@@ -1098,19 +1212,6 @@ const InvoiceDesigner = () => {
                                     <p className="text-[10px] text-slate-400 italic mb-2">Bật để tự do kéo thả tất cả các thành phần trên màn hình xem trước.</p>
                                     {settings.invoice_free_layout === 'true' && (
                                           <>
-                                              <div className="mt-2 mb-3">
-                                                 <label className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] block mb-1 uppercase tracking-wider">Ảnh mẫu đối chiếu (Chỉ hiện preview):</label>
-                                                 <select
-                                                     value={settings.invoice_preview_bg_image || 'none'}
-                                                     onChange={(e) => updateSetting('invoice_preview_bg_image', e.target.value)}
-                                                     className="w-full text-xs bg-slate-50 dark:bg-slate-900 border border-border rounded-xl px-3 py-2 text-slate-800 dark:text-slate-200 outline-none"
-                                                 >
-                                                     <option value="none">Không sử dụng</option>
-                                                     <option value="a5_template.png">Mẫu giấy A5 Syngenta (In sẵn)</option>
-                                                 </select>
-                                                 <p className="text-[9px] text-slate-400 italic mt-1">Chọn ảnh mẫu để căn chỉnh các ô thông tin không bị in đè vào các dòng có sẵn trên giấy in.</p>
-                                             </div>
-
                                              <button
                                                  onClick={() => {
                                                      updateSetting('pos_logo_x', '20');
@@ -1943,7 +2044,43 @@ const InvoiceDesigner = () => {
                             </div>
                             <h3 className="text-4xl font-black text-slate-800 dark:text-emerald-50 uppercase tracking-tighter">Xem trước Thời gian thực</h3>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            {/* Phôi Mẫu Đối Chiếu Quick Button */}
+                            <div className="flex items-center gap-1.5 bg-[#d4a574]/5 dark:bg-slate-800/20 px-2.5 py-1.5 rounded-xl border border-border">
+                                <input
+                                    type="file"
+                                    id="preview-quick-bg-upload"
+                                    accept="image/*"
+                                    onChange={handlePreviewBgUpload}
+                                    className="hidden"
+                                />
+                                <label
+                                    htmlFor="preview-quick-bg-upload"
+                                    className={cn(
+                                        "flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider cursor-pointer px-2.5 py-1 rounded-lg transition-all",
+                                        settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none'
+                                            ? "bg-[#4a7c59] text-white shadow-sm"
+                                            : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-[#d4a574]/15"
+                                    )}
+                                    title="Tải ảnh phôi hóa đơn của bạn lên để đối chiếu căn chỉnh"
+                                >
+                                    <ImageIcon size={13} />
+                                    {settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none' ? 'Đang bật phôi mẫu' : 'Tải phôi mẫu'}
+                                </label>
+                                {settings.invoice_preview_bg_image && settings.invoice_preview_bg_image !== 'none' && (
+                                    <button
+                                        onClick={() => {
+                                            updateSetting('invoice_preview_bg_image', 'none');
+                                            setToast({ message: "Đã tắt ảnh phôi đối chiếu!", type: "info" });
+                                        }}
+                                        className="text-[10px] text-rose-500 hover:text-rose-600 px-1 py-0.5 font-bold hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded"
+                                        title="Tắt ảnh phôi đối chiếu"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+
                             <div className="flex items-center gap-2 bg-[#d4a574]/5 dark:bg-slate-800/20 px-3 py-1.5 rounded-xl border border-border">
                                 <span className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">Hàng test:</span>
                                 <select

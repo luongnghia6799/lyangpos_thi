@@ -27,9 +27,13 @@ src-tauri/target/
 
 # Database & Cache & Uploads
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 easypos.db
+easypos.db-shm
+easypos.db-wal
 uploads/
 **/uploads/
 tts_cache/

@@ -209,6 +209,7 @@ export const DEFAULT_SETTINGS = {
     pos_width_signatures: '750',
     pos_width_thank_you: '750',
     invoice_preview_bg_image: 'none',
+    invoice_preview_bg_opacity: '0.45',
     invoice_table_name_nowrap: 'false',
     invoice_show_title: 'true',
     invoice_repeat_header_on_later_pages: 'true',

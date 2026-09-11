@@ -139,16 +139,10 @@ pub fn run() {
       let app_handle = app.handle();
       match app_handle.shell().sidecar("lyang-backend") {
         Ok(sidecar) => {
-          let mut sidecar = sidecar
+          let sidecar = sidecar
             .args(["--tauri", "--port", "3579", "--db", "easypos.db"])
             .env("LYANG_PORT", "3579")
             .env("LYANG_DB", "easypos.db");
-
-          // Pass persistent data directory to sidecar
-          if let Ok(app_data_dir) = app.path().app_data_dir() {
-            let _ = std::fs::create_dir_all(&app_data_dir);
-            sidecar = sidecar.env("LYANG_DATA_DIR", app_data_dir.to_string_lossy().to_string());
-          }
 
           match sidecar.spawn() {
             Ok((mut rx, child)) => {

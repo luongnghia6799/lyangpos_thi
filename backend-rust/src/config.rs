@@ -6,6 +6,7 @@ pub struct AppConfig {
     pub host: String,
     pub database_url: String,
     pub uploads_dir: PathBuf,
+    pub web_dist_dir: Option<PathBuf>,
 }
 
 impl AppConfig {
@@ -53,11 +54,44 @@ impl AppConfig {
         let uploads_dir = base_dir.join("uploads");
         let _ = std::fs::create_dir_all(&uploads_dir);
 
+        // 3. Resolve Frontend Dist Directory for Direct Web Access (Chrome/Safari via LAN IP)
+        let mut possible_dist_paths = vec![
+            base_dir.join("dist"),
+            base_dir.join("frontend").join("dist"),
+            base_dir.join("..").join("frontend").join("dist"),
+            std::path::PathBuf::from("frontend/dist"),
+            std::path::PathBuf::from("dist"),
+            std::path::PathBuf::from("../dist"),
+            std::path::PathBuf::from("../../frontend/dist"),
+        ];
+
+        // Also check relative to current executable binary (Tauri installation directory)
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                possible_dist_paths.push(exe_dir.join("dist"));
+                possible_dist_paths.push(exe_dir.join("..").join("dist"));
+                possible_dist_paths.push(exe_dir.join("..").join("Resources").join("dist")); // macOS bundle
+            }
+        }
+
+        let mut web_dist_dir = None;
+        for p in possible_dist_paths {
+            if p.exists() && p.join("index.html").exists() {
+                if let Ok(canonical) = p.canonicalize() {
+                    web_dist_dir = Some(canonical);
+                } else {
+                    web_dist_dir = Some(p);
+                }
+                break;
+            }
+        }
+
         Self {
             port,
             host,
             database_url,
             uploads_dir,
+            web_dist_dir,
         }
     }
 }

@@ -74,14 +74,14 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     return (
-        <m.div className={cn("relative py-1", isCollapsed ? "px-0 flex justify-center" : "px-3")}>
+        <m.div className={cn("relative py-0.5", isCollapsed ? "px-0 flex justify-center" : "px-3 py-1")}>
             <Link
                 to={path}
                 onClick={onClick}
                 style={linkStyle}
                 className={cn(
                     "group relative flex items-center transition-all duration-300",
-                    isCollapsed ? "justify-center w-12 h-12 p-0 rounded-2xl mx-auto" : "gap-4 px-4 py-3 rounded-2xl",
+                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" : "gap-4 px-4 py-3 rounded-2xl",
                     isLite 
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
@@ -105,14 +105,13 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         layoutId="sidebar-active-pill"
                         className="absolute inset-0 rounded-2xl bg-[#2d5016]/10 dark:bg-emerald-500/15 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-white/15 shadow-sm shadow-[#2d5016]/5 z-0"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                )}
-                {active && !isLite && (
-                    <m.div
-                        layoutId="sidebar-active-glow"
-                        className="absolute left-0 top-3 bottom-3 w-1.5 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full shadow-[0_0_10px_rgba(45,80,22,0.4)] z-20"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
+                    >
+                        <m.div
+                            layoutId="sidebar-active-glow"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-4.5 bg-[#2d5016] dark:bg-emerald-500 rounded-r-md shadow-[0_0_8px_rgba(45,80,22,0.4)] z-20"
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                    </m.div>
                 )}
 
                 <m.div
@@ -255,7 +254,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                 onClick={handleHeaderClick}
                 className={cn(
                     "group relative flex items-center transition-all duration-300",
-                    isCollapsed ? "justify-center w-12 h-12 p-0 rounded-2xl mx-auto mb-1" : "gap-4 px-4 py-3 mx-3 mb-1 rounded-2xl",
+                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-1 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
@@ -277,7 +276,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
 
                 {/* Active Indicator for Collapsed Mode */}
                 {isCollapsed && isAnyChildActive && (
-                    <div className="absolute left-0 top-3 bottom-3 w-1.5 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full shadow-[0_0_10px_rgba(45,80,22,0.4)]" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-4.5 bg-[#2d5016] dark:bg-emerald-500 rounded-r-md shadow-[0_0_8px_rgba(45,80,22,0.4)] z-20" />
                 )}
             </m.button>
 

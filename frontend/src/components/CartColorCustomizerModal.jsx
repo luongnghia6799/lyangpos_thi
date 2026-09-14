@@ -435,8 +435,8 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                         {currentConfig.borderWidth || '1'}px
                                     </span>
                                 </label>
-                                <div className="grid grid-cols-4 gap-1.5">
-                                    {['1', '2', '3', '4'].map((w) => (
+                                <div className="grid grid-cols-6 gap-1.5">
+                                    {['0.5', '1', '1.5', '2', '3', '4'].map((w) => (
                                         <button
                                             key={w}
                                             type="button"

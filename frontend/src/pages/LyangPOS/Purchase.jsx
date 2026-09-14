@@ -2487,7 +2487,7 @@ export default function Purchase() {
                             className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
                             style={{
                                 borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
-                                borderWidth: cartColorConfig.borderWidth && cartColorConfig.borderWidth !== '1' ? `${cartColorConfig.borderWidth}px` : undefined,
+                                borderWidth: cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined,
                                 boxShadow: cartColorConfig.borderColor !== 'default' ? `0 0 25px ${cartColorConfig.borderColor}20, 0 8px 32px ${cartColorConfig.borderColor}15` : undefined
                             }}
                         >
@@ -2640,7 +2640,7 @@ export default function Purchase() {
                                     </m.div>
                                 )}
                             </AnimatePresence>
-                            <div className="w-full h-full rounded-3xl overflow-hidden relative bg-transparent">
+                            <div className="w-full h-full relative bg-transparent">
                                 <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]">
                                     <div className="w-full transition-colors relative group/decoration pb-[400px]">
                                         {/* Background Decoration Layer */}

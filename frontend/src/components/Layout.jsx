@@ -150,22 +150,11 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         layoutId="sidebar-active-pill"
                         style={hasCustomAccent ? {
                             background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
-                            borderColor: `${accentCol}80`,
-                            boxShadow: `0 4px 18px ${accentCol}40`
+                            borderColor: `${accentCol}80`
                         } : undefined}
-                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-md shadow-[#2d5016]/25 dark:shadow-emerald-950/50 z-0 overflow-hidden"
+                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 z-0 overflow-hidden"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    >
-                        <m.div
-                            layoutId="sidebar-active-glow"
-                            style={hasCustomAccent ? {
-                                backgroundColor: accentCol,
-                                boxShadow: `0 0 10px ${accentCol}`
-                            } : undefined}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md shadow-[0_0_10px_rgba(163,230,53,0.9)] z-20"
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                    </m.div>
+                    />
                 )}
 
                 <m.div

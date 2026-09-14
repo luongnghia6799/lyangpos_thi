@@ -154,7 +154,18 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         } : undefined}
                         className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 z-0 overflow-hidden"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
+                    >
+                        <m.div
+                            layoutId="sidebar-active-indicator"
+                            style={hasCustomAccent ? {
+                                backgroundColor: cartColorConfig.headerText !== 'default' 
+                                    ? cartColorConfig.headerText 
+                                    : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
+                            } : undefined}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20"
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                    </m.div>
                 )}
 
                 <m.div
@@ -499,21 +510,13 @@ const FloatingLiteMenu = ({ liteTheme, navigate, containerRef }) => {
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleMenu}
-                className={cn(
-                    "w-20 h-20 flex items-center justify-center cursor-grab active:cursor-grabbing p-1 overflow-hidden",
-                    getLogoRoundedClass(logoConfig.shape),
-                    getLogoFrameClass(logoConfig.frame)
-                )}
+                className="w-20 h-20 flex items-center justify-center cursor-grab active:cursor-grabbing"
             >
                 <img 
-                    src={customLogo || "/logo.png"} 
+                    src="/logo.png" 
                     alt="POS" 
                     draggable="false"
-                    className={cn(
-                        "w-full h-full select-none pointer-events-none drop-shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:drop-shadow-[0_6px_16px_rgba(16,185,129,0.6)] transition-all",
-                        getLogoRoundedClass(logoConfig.shape),
-                        getLogoFitClass(logoConfig.fit)
-                    )} 
+                    className="w-18 h-18 object-contain drop-shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:drop-shadow-[0_6px_16px_rgba(16,185,129,0.6)] transition-all select-none pointer-events-none" 
                 />
             </m.div>
 
@@ -745,63 +748,6 @@ export default function Layout({ children }) {
             window.removeEventListener('storage', handleSidebarVisibilityChange);
         };
     }, []);
-
-    const [customLogo, setCustomLogo] = useState(() => localStorage.getItem('pos_custom_app_logo') || '');
-    const [logoConfig, setLogoConfig] = useState(() => {
-        try {
-            const saved = localStorage.getItem('pos_custom_app_logo_config');
-            return saved ? JSON.parse(saved) : { shape: 'squircle', fit: 'cover', frame: 'border' };
-        } catch (e) {
-            return { shape: 'squircle', fit: 'cover', frame: 'border' };
-        }
-    });
-
-    useEffect(() => {
-        const handleLogoChange = () => {
-            setCustomLogo(localStorage.getItem('pos_custom_app_logo') || '');
-            try {
-                const saved = localStorage.getItem('pos_custom_app_logo_config');
-                if (saved) setLogoConfig(JSON.parse(saved));
-            } catch (e) {}
-        };
-        const handleSync = (e) => {
-            if (e.data?.type === 'APP_LOGO_UPDATED') {
-                setCustomLogo(e.data.value || '');
-            }
-            if (e.data?.type === 'APP_LOGO_CONFIG_UPDATED') {
-                setLogoConfig(e.data.value || { shape: 'squircle', fit: 'cover', frame: 'border' });
-            }
-        };
-        window.addEventListener('app_logo_changed', handleLogoChange);
-        window.addEventListener('storage', handleLogoChange);
-        let chan;
-        try {
-            chan = new BroadcastChannel('pos_data_sync');
-            chan.addEventListener('message', handleSync);
-        } catch (e) {}
-        return () => {
-            window.removeEventListener('app_logo_changed', handleLogoChange);
-            window.removeEventListener('storage', handleLogoChange);
-            if (chan) chan.close();
-        };
-    }, []);
-
-    const getLogoRoundedClass = (shape) => {
-        if (shape === 'circle') return 'rounded-full';
-        if (shape === 'rounded') return 'rounded-xl';
-        if (shape === 'square') return 'rounded-md';
-        return 'rounded-2xl'; // squircle default
-    };
-
-    const getLogoFitClass = (fit) => {
-        return fit === 'contain' ? 'object-contain' : 'object-cover';
-    };
-
-    const getLogoFrameClass = (frame) => {
-        if (frame === 'none') return 'bg-transparent border-0 shadow-none';
-        if (frame === 'shadow') return 'bg-white/40 dark:bg-black/40 backdrop-blur-md shadow-md border border-black/5 dark:border-white/10';
-        return 'bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10 shadow-xs';
-    };
 
     const userMenuRef = useRef(null);
     const navigate = useNavigate();
@@ -1551,21 +1497,13 @@ export default function Layout({ children }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className={cn(
-                        "w-14 h-14 flex items-center justify-center cursor-pointer transition-transform overflow-hidden p-0.5",
-                        getLogoRoundedClass(logoConfig.shape),
-                        getLogoFrameClass(logoConfig.frame)
-                    )}
+                    className="w-14 h-14 flex items-center justify-center cursor-pointer transition-transform"
                 >
                     <img 
-                        src={customLogo || "/logo.png"} 
+                        src="/logo.png" 
                         alt="Logo" 
                         draggable="false"
-                        className={cn(
-                            "w-full h-full select-none pointer-events-none transition-all",
-                            getLogoRoundedClass(logoConfig.shape),
-                            getLogoFitClass(logoConfig.fit)
-                        )} 
+                        className="w-14 h-14 object-contain select-none pointer-events-none" 
                     />
                 </m.div>
 

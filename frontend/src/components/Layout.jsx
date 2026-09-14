@@ -594,6 +594,10 @@ export default function Layout({ children }) {
     const liteTheme = useMemo(() => getLiteTheme(liteBgColor), [liteBgColor]);
     const liteMenuContainerRef = useRef(null);
 
+    const cartColorConfig = useCartColorConfig();
+    const hasCustomAccent = !isLiteMode && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
+    const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+
     const activeTabLabel = useMemo(() => {
         if (import.meta.env.VITE_APP_MODE === 'lite') {
             const liteItems = [
@@ -1616,7 +1620,11 @@ export default function Layout({ children }) {
                     "mb-3 backdrop-blur-xl transition-all duration-300 border border-[#2d5016]/40 dark:border-emerald-500/30 bg-gradient-to-b from-[#2d5016] to-[#223d11] dark:from-[#13220f] dark:to-[#0c160a] shadow-lg shadow-[#2d5016]/25 dark:shadow-emerald-950/50 text-white",
                     isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2.5"
                 )} 
-                style={isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {}}
+                style={hasCustomAccent ? {
+                    background: `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
+                    borderColor: `${accentCol}60`,
+                    boxShadow: `0 8px 24px ${accentCol}35`
+                } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
             >
 
                 {/* Footer Actions (Volume, Theme, Close) */}

@@ -530,6 +530,45 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
 const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [cartColorConfig, setCartColorConfig] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pos_cart_color_config') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (e.data?.type === 'CART_COLOR_CONFIG_UPDATED' || (e.data?.type === 'UI_SETTING_UPDATED' && e.data?.key === 'pos_cart_color_config')) {
+        try {
+          const parsed = typeof e.data.value === 'string' ? JSON.parse(e.data.value) : (e.data.config || e.data.value);
+          if (parsed) setCartColorConfig(parsed);
+        } catch {}
+      }
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'pos_cart_color_config') {
+        try {
+          setCartColorConfig(JSON.parse(e.newValue || '{}'));
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    let chan;
+    try {
+      chan = new BroadcastChannel('pos_data_sync');
+      chan.addEventListener('message', handleSync);
+    } catch {}
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (chan) chan.close();
+    };
+  }, []);
+
+  const hasCustomAccent = cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
+  const customAccent = hasCustomAccent ? cartColorConfig.accentColor : undefined;
 
   useEffect(() => {
     const intervalTime = gpuDisabled ? 60000 : 1000;
@@ -563,6 +602,11 @@ const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' })
         <div
           onClick={handleOpenCalendar}
           title={fullDateStr}
+          style={hasCustomAccent ? {
+            background: `linear-gradient(to right, ${customAccent}, ${customAccent}dd)`,
+            borderColor: `${customAccent}80`,
+            boxShadow: `0 2px 10px ${customAccent}35`
+          } : undefined}
           className={cn(
             "group/clock relative overflow-hidden flex items-center justify-between gap-1.5 h-[26px]",
             "bg-gradient-to-r from-[#2d5016] via-[#38631e] to-[#2d5016] dark:from-[#0b261b] dark:via-[#113828] dark:to-[#0b261b]",

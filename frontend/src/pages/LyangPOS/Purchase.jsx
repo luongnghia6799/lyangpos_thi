@@ -1650,7 +1650,7 @@ export default function Purchase() {
                     <div className="flex items-center gap-3 shrink-0 mr-2">
                         <div className="flex items-center gap-3 group cursor-default relative">
                             <div className="flex flex-col">
-                                <h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none">
+                                <h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
                                     NHẬP HÀNG
                                 </h1>
                                 <span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">
@@ -1710,9 +1710,9 @@ export default function Purchase() {
                                                             : editOrderId 
                                                                 ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" 
                                                                 : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
-                                                    )} />
+                                                    )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
                                                     <div className="flex flex-col justify-center leading-none min-w-0">
-                                                        <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1">
+                                                        <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
                                                             #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
                                                         </span>
                                                         {(() => {
@@ -2106,6 +2106,7 @@ export default function Purchase() {
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsNoteModalOpen(true)}
+                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
                             className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title={note ? `Ghi chú: ${note}` : "Thêm ghi chú đơn nhập"}
                         >
@@ -2121,6 +2122,7 @@ export default function Purchase() {
                             whileTap={{ scale: 0.98 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
                             onClick={() => setIsHeldSidebarOpen(true)}
+                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
                             className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
                             title="Danh sách đơn nhập tạm"
                         >
@@ -2152,7 +2154,7 @@ export default function Purchase() {
                                     }}
                                     className="px-2.5 flex items-center justify-center min-w-[55px]"
                                 >
-                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#e8dfd5]">
+                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#e8dfd5]" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
                                         {editingOriginalOrder?.display_id ? `#${editingOriginalOrder.display_id}` : (editOrderId ? `#${editOrderId}` : "MỚI")}
                                     </span>
                                 </m.button>
@@ -2175,6 +2177,7 @@ export default function Purchase() {
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleModeChange(posMode === 'Retail' ? 'Wholesale' : 'Retail')}
+                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
                             className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title={posMode === 'Wholesale' ? "Chế độ Nhập Sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Nhập Lẻ (Bấm để đổi sang Sỉ)"}
                         >
@@ -2192,6 +2195,7 @@ export default function Purchase() {
                             onClick={() => {
                                 setIsDailyHistoryOpen(true);
                             }}
+                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
                             className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
                             title="Lịch sử đơn nhập hàng trong ngày"
                         >
@@ -2224,6 +2228,7 @@ export default function Purchase() {
                                 whileHover={{ y: -2, scale: 1.05 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActionMenuOpen(prev => !prev)}
+                                style={isActionMenuOpen && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor, borderColor: cartColorConfig.accentColor } : (!isActionMenuOpen && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined)}
                                 className={cn(
                                     "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer",
                                     isActionMenuOpen ? "bg-[#8b6f47] text-white border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"

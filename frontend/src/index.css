@@ -403,7 +403,7 @@ input, button, select, textarea, optgroup, option {
 
 .dropdown-item:hover,
 .dropdown-item.active {
-  background: linear-gradient(135deg, #2d5016 0%, #3d6b1e 100%) !important;
+  background: linear-gradient(135deg, var(--primary-color, #2d5016) 0%, var(--primary-hover, #3d6b1e) 100%) !important;
   color: white !important;
 }
 
@@ -415,8 +415,8 @@ input, button, select, textarea, optgroup, option {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #d4a574;
-  box-shadow: 2px 0 10px rgba(212, 165, 116, 0.6);
+  background: var(--color-ring, #d4a574);
+  box-shadow: 2px 0 10px rgba(var(--primary-rgb, 45, 80, 22), 0.6);
   z-index: 30;
 }
 

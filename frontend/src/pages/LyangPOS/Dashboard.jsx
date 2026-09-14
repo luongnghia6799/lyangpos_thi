@@ -62,7 +62,10 @@ import {
     Eye,
     EyeOff,
     Edit,
-    Sparkles
+    Sparkles,
+    Upload,
+    RotateCcw,
+    Check
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -219,6 +222,103 @@ export default function Dashboard() {
     const fileInputRef = useRef(null);
 
     const [showWallpaperSettings, setShowWallpaperSettings] = useState(false);
+    const [activeThemeTab, setActiveThemeTab] = useState('wallpaper');
+    const [customLogo, setCustomLogo] = useState(() => localStorage.getItem('pos_custom_app_logo') || '');
+
+    const broadcastCustomLogo = (logoVal) => {
+        try {
+            const chan = new BroadcastChannel('pos_data_sync');
+            chan.postMessage({ type: 'APP_LOGO_UPDATED', value: logoVal });
+            chan.close();
+        } catch (e) {}
+    };
+
+    useEffect(() => {
+        const handleLogoChange = () => {
+            setCustomLogo(localStorage.getItem('pos_custom_app_logo') || '');
+        };
+        const handleSync = (e) => {
+            if (e.data?.type === 'APP_LOGO_UPDATED') {
+                setCustomLogo(e.data.value || '');
+            }
+        };
+        window.addEventListener('app_logo_changed', handleLogoChange);
+        window.addEventListener('storage', handleLogoChange);
+        let chan;
+        try {
+            chan = new BroadcastChannel('pos_data_sync');
+            chan.addEventListener('message', handleSync);
+        } catch (e) {}
+        return () => {
+            window.removeEventListener('app_logo_changed', handleLogoChange);
+            window.removeEventListener('storage', handleLogoChange);
+            if (chan) chan.close();
+        };
+    }, []);
+
+    const compressAndSetLogo = (file) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                
+                const maxDim = 512;
+                let width = img.width;
+                let height = img.height;
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                const isPng = file.type === 'image/png';
+                const compressedBase64 = isPng ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.85);
+                
+                if (compressedBase64.length > 2 * 1024 * 1024) {
+                    setToast({ message: "Ảnh logo quá lớn. Vui lòng chọn ảnh dung lượng nhẹ hơn.", type: "error" });
+                    return;
+                }
+                
+                localStorage.setItem('pos_custom_app_logo', compressedBase64);
+                setCustomLogo(compressedBase64);
+                window.dispatchEvent(new Event('app_logo_changed'));
+                broadcastCustomLogo(compressedBase64);
+                setToast({ message: "Đã cập nhật Logo ứng dụng thành công!", type: "success" });
+            };
+            img.onerror = () => {
+                const base64 = event.target.result;
+                localStorage.setItem('pos_custom_app_logo', base64);
+                setCustomLogo(base64);
+                window.dispatchEvent(new Event('app_logo_changed'));
+                broadcastCustomLogo(base64);
+                setToast({ message: "Đã cập nhật Logo ứng dụng thành công!", type: "success" });
+            };
+            img.src = event.target.result;
+        };
+        reader.onerror = () => {
+            setToast({ message: "Không thể đọc file hình ảnh.", type: "error" });
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const removeCustomLogo = () => {
+        localStorage.removeItem('pos_custom_app_logo');
+        setCustomLogo('');
+        window.dispatchEvent(new Event('app_logo_changed'));
+        broadcastCustomLogo('');
+        setToast({ message: "Đã khôi phục logo mặc định!", type: "info" });
+    };
+
     const [appWallpaper, setAppWallpaper] = useState(() => {
         const saved = localStorage.getItem("pos_cart_wallpaper");
         return saved ? JSON.parse(saved) : { image: "", size: "cover", position: "center", blur: 0, opacity: 100 };
@@ -835,7 +935,7 @@ export default function Dashboard() {
                                         )
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-white/10">
-                                            <img src="/logo.png" alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md" />
+                                            <img src={customLogo || "/logo.png"} alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md rounded-2xl" />
                                         </div>
                                     )}
                                 </div>
@@ -854,10 +954,13 @@ export default function Dashboard() {
                             </p>
                             <div className="flex items-center gap-2 mt-3">
                                 <button
-                                    onClick={() => setShowWallpaperSettings(true)}
+                                    onClick={() => {
+                                        setActiveThemeTab('wallpaper');
+                                        setShowWallpaperSettings(true);
+                                    }}
                                     className="px-3 py-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 hover:bg-[#2d5016] hover:text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#2d5016]/20 cursor-pointer"
                                 >
-                                    <Paintbrush size={14} /> Hình Nền
+                                    <Paintbrush size={14} /> Hình Nền & Logo
                                 </button>
                                 <button
                                     onClick={() => setHideStats(prev => {
@@ -1507,7 +1610,7 @@ export default function Dashboard() {
                                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                                className="bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
+                                className="bg-card w-full max-w-lg rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
                             >
                                 <div className="p-5 flex items-center justify-between border-b border-border bg-card">
                                     <div className="flex items-center gap-3">
@@ -1515,8 +1618,8 @@ export default function Dashboard() {
                                             <Paintbrush className="text-primary" size={20} />
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Hình Nền</h3>
-                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Tùy chỉnh giao diện</p>
+                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Giao Diện & Logo</h3>
+                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Tùy chỉnh hình nền và logo thương hiệu</p>
                                         </div>
                                     </div>
                                     <button
@@ -1526,8 +1629,164 @@ export default function Dashboard() {
                                         <X size={16} strokeWidth={2.5} />
                                     </button>
                                 </div>
+
+                                {/* Tab Navigation */}
+                                <div className="flex border-b border-border bg-black/[0.02] dark:bg-white/[0.02] px-5 pt-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveThemeTab('wallpaper')}
+                                        className={cn(
+                                            "pb-2.5 px-3 font-black text-xs uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-1.5",
+                                            activeThemeTab === 'wallpaper'
+                                                ? "border-primary text-primary"
+                                                : "border-transparent text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <ImageIcon size={14} /> Hình Nền POS
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveThemeTab('logo')}
+                                        className={cn(
+                                            "pb-2.5 px-3 font-black text-xs uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-1.5",
+                                            activeThemeTab === 'logo'
+                                                ? "border-primary text-primary"
+                                                : "border-transparent text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        <Sparkles size={14} /> Logo Ứng Dụng (Sidebar)
+                                    </button>
+                                </div>
+
                                 <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[70vh] bg-card/50">
-                                    {/* Preview & Upload */}
+                                    {activeThemeTab === 'logo' ? (
+                                        <div className="space-y-5">
+                                            {/* Preview Card */}
+                                            <div className="flex flex-col items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.02] rounded-2xl border border-border/80 gap-3">
+                                                <div className="relative group">
+                                                    <div className="w-24 h-24 rounded-3xl bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10 p-2 flex items-center justify-center shadow-lg transition-transform group-hover:scale-105">
+                                                        <img 
+                                                            src={customLogo || "/logo.png"} 
+                                                            alt="App Logo Preview" 
+                                                            className="w-full h-full object-contain rounded-2xl select-none"
+                                                        />
+                                                    </div>
+                                                    {customLogo && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCustomLogo}
+                                                            title="Gỡ logo tùy chỉnh"
+                                                            className="absolute -top-2 -right-2 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-all cursor-pointer"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="text-center">
+                                                    <div className="text-xs font-black uppercase tracking-wider text-foreground">
+                                                        {customLogo ? "Logo tùy chỉnh đang áp dụng" : "Logo mặc định của hệ thống"}
+                                                    </div>
+                                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                                        Hiển thị ở góc trên Sidebar, Widget nổi và Trang chủ
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Upload Button */}
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <Upload size={14} className="text-primary" />
+                                                    Tải Logo từ máy tính của bạn
+                                                </label>
+                                                <label className="flex flex-col items-center justify-center w-full h-28 bg-background/50 border-2 border-dashed border-border hover:border-primary rounded-xl cursor-pointer hover:bg-primary/5 transition-all">
+                                                    <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-1.5">
+                                                        <Upload size={18} />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-foreground/80">Chọn tệp ảnh logo từ máy tính</span>
+                                                    <span className="text-[10px] text-muted-foreground mt-0.5">Hỗ trợ PNG trong suốt, JPG, WEBP, SVG</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                compressAndSetLogo(file);
+                                                                e.target.value = '';
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            {/* Presets Gallery for Mascot/Logo */}
+                                            <div className="space-y-2 pt-2 border-t border-border/60">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Sparkles size={14} className="text-amber-500" />
+                                                        Biểu tượng & Mascot có sẵn
+                                                    </label>
+                                                    {customLogo && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCustomLogo}
+                                                            className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                                                        >
+                                                            Khôi phục mặc định
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {[
+                                                        { id: 'default', name: 'Logo Chuẩn', path: '/logo.png', desc: 'Logo gốc' },
+                                                        { id: 'farm', name: 'Bé Nông Trại', path: presetMascotFarm, desc: 'Mascot đồi táo' },
+                                                        { id: 'latte', name: 'Bé Đồng Quê', path: presetMascotLatte, desc: 'Mascot ấm cúng' },
+                                                    ].map((preset) => {
+                                                        const isSelected = (!customLogo && preset.id === 'default') || (customLogo && customLogo.includes(preset.id));
+                                                        return (
+                                                            <button
+                                                                key={preset.id}
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    if (preset.id === 'default') {
+                                                                        removeCustomLogo();
+                                                                        return;
+                                                                    }
+                                                                    try {
+                                                                        const response = await fetch(preset.path);
+                                                                        const blob = await response.blob();
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => {
+                                                                            const base64 = reader.result;
+                                                                            localStorage.setItem('pos_custom_app_logo', base64);
+                                                                            setCustomLogo(base64);
+                                                                            window.dispatchEvent(new Event('app_logo_changed'));
+                                                                            broadcastCustomLogo(base64);
+                                                                            setToast({ message: `Đã đổi sang ${preset.name}!`, type: "success" });
+                                                                        };
+                                                                        reader.readAsDataURL(blob);
+                                                                    } catch (err) {
+                                                                        console.error('Error applying preset logo:', err);
+                                                                    }
+                                                                }}
+                                                                className={cn(
+                                                                    "group/p relative flex flex-col items-center gap-1.5 p-2 rounded-xl border bg-card/60 hover:bg-primary/5 transition-all cursor-pointer text-center",
+                                                                    isSelected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary"
+                                                                )}
+                                                            >
+                                                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 border border-border/60 p-1 flex items-center justify-center">
+                                                                    <img src={preset.path} alt={preset.name} className="w-full h-full object-contain rounded-lg group-hover/p:scale-110 transition-transform" />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold text-foreground leading-tight">{preset.name}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Preview & Upload */}
                                     <div className="space-y-3">
                                         <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Ảnh Nền Của Bạn</label>
                                         
@@ -1730,8 +1989,10 @@ export default function Dashboard() {
                                             className="w-full accent-primary"
                                         />
                                     </div>
-                                </div>
-                            </m.div>
+                                    </>
+                                )}
+                            </div>
+                        </m.div>
                         </div>
                     )}
                 </AnimatePresence>

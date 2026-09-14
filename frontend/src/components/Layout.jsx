@@ -502,10 +502,10 @@ const FloatingLiteMenu = ({ liteTheme, navigate, containerRef }) => {
                 className="w-20 h-20 flex items-center justify-center cursor-grab active:cursor-grabbing"
             >
                 <img 
-                    src="/logo.png" 
+                    src={customLogo || "/logo.png"} 
                     alt="POS" 
                     draggable="false"
-                    className="w-18 h-18 object-contain drop-shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:drop-shadow-[0_6px_16px_rgba(16,185,129,0.6)] transition-all select-none pointer-events-none" 
+                    className="w-18 h-18 object-contain rounded-2xl drop-shadow-[0_4px_12px_rgba(16,185,129,0.4)] hover:drop-shadow-[0_6px_16px_rgba(16,185,129,0.6)] transition-all select-none pointer-events-none" 
                 />
             </m.div>
 
@@ -735,6 +735,31 @@ export default function Layout({ children }) {
         return () => {
             window.removeEventListener('sidebar_visibility_changed', handleSidebarVisibilityChange);
             window.removeEventListener('storage', handleSidebarVisibilityChange);
+        };
+    }, []);
+
+    const [customLogo, setCustomLogo] = useState(() => localStorage.getItem('pos_custom_app_logo') || '');
+
+    useEffect(() => {
+        const handleLogoChange = () => {
+            setCustomLogo(localStorage.getItem('pos_custom_app_logo') || '');
+        };
+        const handleSync = (e) => {
+            if (e.data?.type === 'APP_LOGO_UPDATED') {
+                setCustomLogo(e.data.value || '');
+            }
+        };
+        window.addEventListener('app_logo_changed', handleLogoChange);
+        window.addEventListener('storage', handleLogoChange);
+        let chan;
+        try {
+            chan = new BroadcastChannel('pos_data_sync');
+            chan.addEventListener('message', handleSync);
+        } catch (e) {}
+        return () => {
+            window.removeEventListener('app_logo_changed', handleLogoChange);
+            window.removeEventListener('storage', handleLogoChange);
+            if (chan) chan.close();
         };
     }, []);
 
@@ -1489,10 +1514,10 @@ export default function Layout({ children }) {
                     className="w-14 h-14 flex items-center justify-center cursor-pointer transition-transform"
                 >
                     <img 
-                        src="/logo.png" 
+                        src={customLogo || "/logo.png"} 
                         alt="Logo" 
                         draggable="false"
-                        className="w-14 h-14 object-contain select-none pointer-events-none" 
+                        className="w-14 h-14 object-contain rounded-2xl select-none pointer-events-none" 
                     />
                 </m.div>
 

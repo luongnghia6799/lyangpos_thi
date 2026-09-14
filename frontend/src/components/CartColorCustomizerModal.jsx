@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as m } from 'framer-motion';
-import { Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, Layers } from 'lucide-react';
+import { Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, Layers, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const CART_COLOR_PRESETS = [
@@ -13,8 +13,10 @@ export const CART_COLOR_PRESETS = [
         headerText: 'default',
         borderColor: 'default',
         borderWidth: '1',
+        accentColor: 'default',
         previewHeaderBg: '#8b6f47',
-        previewBorder: '#8b6f47'
+        previewBorder: '#8b6f47',
+        previewAccent: '#2d5016'
     },
     {
         id: 'emerald',
@@ -24,8 +26,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#6ee7b7',
         borderColor: '#10b981',
         borderWidth: '2',
+        accentColor: '#059669',
         previewHeaderBg: '#064e3b',
-        previewBorder: '#10b981'
+        previewBorder: '#10b981',
+        previewAccent: '#059669'
     },
     {
         id: 'forest',
@@ -35,8 +39,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#d9f99d',
         borderColor: '#2d5016',
         borderWidth: '2',
+        accentColor: '#2d5016',
         previewHeaderBg: '#1e3a10',
-        previewBorder: '#2d5016'
+        previewBorder: '#2d5016',
+        previewAccent: '#2d5016'
     },
     {
         id: 'terracotta',
@@ -46,8 +52,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#fde68a',
         borderColor: '#8b6f47',
         borderWidth: '2',
+        accentColor: '#8b5a2b',
         previewHeaderBg: '#543b24',
-        previewBorder: '#8b6f47'
+        previewBorder: '#8b6f47',
+        previewAccent: '#8b5a2b'
     },
     {
         id: 'navy',
@@ -57,8 +65,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#93c5fd',
         borderColor: '#3b82f6',
         borderWidth: '2',
+        accentColor: '#2563eb',
         previewHeaderBg: '#172554',
-        previewBorder: '#3b82f6'
+        previewBorder: '#3b82f6',
+        previewAccent: '#2563eb'
     },
     {
         id: 'purple',
@@ -68,8 +78,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#e9d5ff',
         borderColor: '#8b5cf6',
         borderWidth: '2',
+        accentColor: '#7c3aed',
         previewHeaderBg: '#3b0764',
-        previewBorder: '#8b5cf6'
+        previewBorder: '#8b5cf6',
+        previewAccent: '#7c3aed'
     },
     {
         id: 'rose',
@@ -79,8 +91,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#fecdd3',
         borderColor: '#f43f5e',
         borderWidth: '2',
+        accentColor: '#e11d48',
         previewHeaderBg: '#4c0519',
-        previewBorder: '#f43f5e'
+        previewBorder: '#f43f5e',
+        previewAccent: '#e11d48'
     },
     {
         id: 'amber',
@@ -90,8 +104,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#fde68a',
         borderColor: '#f59e0b',
         borderWidth: '2',
+        accentColor: '#d97706',
         previewHeaderBg: '#451a03',
-        previewBorder: '#f59e0b'
+        previewBorder: '#f59e0b',
+        previewAccent: '#d97706'
     },
     {
         id: 'slate',
@@ -101,8 +117,10 @@ export const CART_COLOR_PRESETS = [
         headerText: '#cbd5e1',
         borderColor: '#475569',
         borderWidth: '2',
+        accentColor: '#334155',
         previewHeaderBg: '#0f172a',
-        previewBorder: '#475569'
+        previewBorder: '#475569',
+        previewAccent: '#334155'
     }
 ];
 
@@ -111,8 +129,50 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     headerText: 'default',
     borderColor: 'default',
     borderWidth: '1',
+    accentColor: 'default',
     enableGlow: true,
     enableShadow: true
+};
+
+export const applyCartThemeToDom = (config) => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    const cfg = config || (() => {
+        try {
+            return JSON.parse(localStorage.getItem('pos_cart_color_config') || '{}');
+        } catch (e) {
+            return {};
+        }
+    })();
+
+    if (cfg && cfg.accentColor && cfg.accentColor !== 'default') {
+        const color = cfg.accentColor;
+        root.style.setProperty('--primary-color', color);
+        root.style.setProperty('--color-primary', color);
+        root.style.setProperty('--color-ring', color);
+        
+        const hex = color.replace('#', '');
+        if (hex.length === 6) {
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            root.style.setProperty('--primary-rgb', `${r}, ${g}, ${b}`);
+            
+            const hr = Math.max(0, Math.floor(r * 0.85));
+            const hg = Math.max(0, Math.floor(g * 0.85));
+            const hb = Math.max(0, Math.floor(b * 0.85));
+            const hoverHex = `#${hr.toString(16).padStart(2, '0')}${hg.toString(16).padStart(2, '0')}${hb.toString(16).padStart(2, '0')}`;
+            root.style.setProperty('--primary-hover', hoverHex);
+            root.style.setProperty('--color-primary-hover', hoverHex);
+        }
+    } else {
+        root.style.removeProperty('--primary-color');
+        root.style.removeProperty('--color-primary');
+        root.style.removeProperty('--color-ring');
+        root.style.removeProperty('--primary-rgb');
+        root.style.removeProperty('--primary-hover');
+        root.style.removeProperty('--color-primary-hover');
+    }
 };
 
 export const getCartBoxShadow = (config) => {
@@ -146,13 +206,16 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
             headerBg: preset.headerBg,
             headerText: preset.headerText,
             borderColor: preset.borderColor,
-            borderWidth: preset.borderWidth
+            borderWidth: preset.borderWidth,
+            accentColor: preset.accentColor || 'default'
         };
         onChangeConfig(newCfg);
+        applyCartThemeToDom(newCfg);
     };
 
     const handleReset = () => {
         onChangeConfig(DEFAULT_CART_COLOR_CONFIG);
+        applyCartThemeToDom(DEFAULT_CART_COLOR_CONFIG);
     };
 
     // Quick color swatch picker options
@@ -161,6 +224,10 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
         '#2563eb', '#1d4ed8', '#7c3aed', '#db2777', '#e11d48',
         '#d97706', '#0f172a', '#334155', '#475569', '#ffffff', '#000000'
     ];
+
+    if (typeof document === 'undefined') return null;
+
+    const activeAccentColor = currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016';
 
     return createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
@@ -182,18 +249,21 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[#8b6f47]/20 dark:border-white/10 bg-white/40 dark:bg-slate-900/40">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-primary/10 dark:bg-emerald-500/20 text-primary dark:text-emerald-400 flex items-center justify-center shadow-inner">
+                        <div 
+                            className="w-10 h-10 rounded-2xl text-white flex items-center justify-center shadow-inner transition-colors"
+                            style={{ backgroundColor: activeAccentColor }}
+                        >
                             <Palette size={20} strokeWidth={2.5} />
                         </div>
                         <div>
                             <h3 className="font-black text-sm uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                <span>Tùy Biến Màu Header & Viền Giỏ Hàng</span>
+                                <span>Tùy Biến Màu Bảng & Điểm Nhấn Tông Màu</span>
                                 <span className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 font-extrabold px-2 py-0.5 rounded-full">
                                     Live Sync
                                 </span>
                             </h3>
                             <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                Áp dụng tức thì cho cả POS Bán Hàng & Nhập Hàng
+                                Áp dụng đồng bộ tức thì cho Header, Viền, Nút Active & Thẻ tổng tiền
                             </p>
                         </div>
                     </div>
@@ -211,10 +281,10 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                         <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
                             <span className="flex items-center gap-1.5">
                                 <Eye size={14} className="text-primary dark:text-emerald-400" />
-                                Xem trước giỏ hàng (Live Preview)
+                                Xem trước giỏ hàng & các nút (Live Preview)
                             </span>
                             <span className="text-[10px] text-slate-400 lowercase font-medium">
-                                thay đổi có hiệu lực ngay trên bảng
+                                thay đổi có hiệu lực ngay
                             </span>
                         </div>
 
@@ -235,7 +305,17 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                         className="transition-colors duration-200 border-b border-black/10 dark:border-white/10"
                                     >
                                         <th className="py-2.5 px-3 font-black uppercase text-[10px] w-12 text-center" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Stt</th>
-                                        <th className="py-2.5 px-3 font-black uppercase text-[10px]" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Tên sản phẩm</th>
+                                        <th className="py-2.5 px-3 font-black uppercase text-[10px]" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>
+                                            <div className="flex items-center gap-2">
+                                                <span>Tên sản phẩm</span>
+                                                <span 
+                                                    className="px-2 py-0.5 rounded-full text-[9px] font-black text-white shadow-xs"
+                                                    style={{ backgroundColor: activeAccentColor }}
+                                                >
+                                                    1 món
+                                                </span>
+                                            </div>
+                                        </th>
                                         <th className="py-2.5 px-3 font-black uppercase text-[10px] text-center w-20" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Số lượng</th>
                                         <th className="py-2.5 px-3 font-black uppercase text-[10px] text-right w-24" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Đơn giá</th>
                                         <th className="py-2.5 px-3 font-black uppercase text-[10px] text-right w-28" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Thành tiền</th>
@@ -250,12 +330,37 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                     >
                                         <td className="py-2.5 px-3 text-center font-bold text-slate-400">1</td>
                                         <td className="py-2.5 px-3 font-black text-slate-800 dark:text-slate-100 uppercase">Sản phẩm mẫu VIP</td>
-                                        <td className="py-2.5 px-3 text-center font-black text-emerald-600 dark:text-emerald-400">2</td>
+                                        <td className="py-2.5 px-3 text-center font-black" style={{ color: activeAccentColor }}>2</td>
                                         <td className="py-2.5 px-3 text-right font-black text-slate-600 dark:text-slate-300">150.000</td>
-                                        <td className="py-2.5 px-3 text-right font-black text-emerald-600 dark:text-emerald-400">300.000đ</td>
+                                        <td className="py-2.5 px-3 text-right font-black" style={{ color: activeAccentColor }}>300.000đ</td>
                                     </tr>
                                 </tbody>
                             </table>
+
+                            {/* Sample active bar preview */}
+                            <div className="p-2.5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3 text-[11px]">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-slate-400">Nút Active mẫu:</span>
+                                    <div 
+                                        className="px-3 py-1 rounded-xl text-white font-black text-[10px] shadow-sm flex items-center gap-1.5"
+                                        style={{
+                                            background: `linear-gradient(90deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor})`
+                                        }}
+                                    >
+                                        <Check size={12} strokeWidth={3} />
+                                        TIỀN MẶT
+                                    </div>
+                                </div>
+                                <div 
+                                    className="px-3.5 py-1.5 rounded-xl text-white font-black text-xs shadow-md flex items-center gap-2"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor}dd)`
+                                    }}
+                                >
+                                    <span className="text-[9px] uppercase tracking-wider opacity-85">TỔNG:</span>
+                                    <span>300.000đ</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -281,6 +386,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                 const isSelected = currentConfig.headerBg === preset.headerBg && 
                                                    currentConfig.headerText === preset.headerText && 
                                                    currentConfig.borderColor === preset.borderColor &&
+                                                   (currentConfig.accentColor || 'default') === (preset.accentColor || 'default') &&
                                                    (currentConfig.borderWidth || '1') === preset.borderWidth;
                                 return (
                                     <button
@@ -305,18 +411,23 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5">
                                             <div 
-                                                className="w-5 h-5 rounded-lg border border-black/10 shadow-inner shrink-0" 
+                                                className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
                                                 style={{ backgroundColor: preset.previewHeaderBg }}
                                                 title="Màu nền Header"
                                             />
                                             <div 
-                                                className="w-5 h-5 rounded-lg border-2 shrink-0" 
+                                                className="w-4 h-4 rounded-md border-2 shrink-0" 
                                                 style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
                                                 title="Màu viền"
                                             />
-                                            <span className="text-[9px] font-bold text-slate-400 truncate">
+                                            <div 
+                                                className="w-4 h-4 rounded-md shadow-xs shrink-0" 
+                                                style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
+                                                title="Màu nút & Active"
+                                            />
+                                            <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
                                                 {preset.desc}
                                             </span>
                                         </div>
@@ -326,18 +437,72 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                         </div>
                     </div>
 
-                    {/* Custom Color Tuning */}
-                    <div className="space-y-3 p-4 bg-white/60 dark:bg-slate-900/60 rounded-2xl border border-black/10 dark:border-white/10">
+                    {/* Custom Controls */}
+                    <div className="space-y-4 pt-2 border-t border-[#8b6f47]/20 dark:border-white/10">
                         <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                            <Sliders size={14} className="text-primary dark:text-emerald-400" />
-                            Tùy chỉnh chi tiết (Màu tự do)
+                            <Sliders size={14} className="text-primary" />
+                            Tùy Chỉnh Màu Sắc & Điểm Nhấn (Custom Elements)
                         </h4>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Header Background Color */}
+                            {/* Accent Color / Active elements */}
+                            <div className="space-y-2 sm:col-span-2 p-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
+                                <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <Zap size={14} className="text-amber-500" />
+                                        Màu Tô Đậm / Điểm Nhấn (Nút, Active, Thẻ Tổng Tiền):
+                                    </span>
+                                    <span className="font-mono text-[10px] text-primary dark:text-emerald-400">
+                                        {currentConfig.accentColor === 'default' ? 'Mặc định (Lyang Green)' : currentConfig.accentColor}
+                                    </span>
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newCfg = { ...currentConfig, accentColor: 'default' };
+                                            onChangeConfig(newCfg);
+                                            applyCartThemeToDom(newCfg);
+                                        }}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
+                                            currentConfig.accentColor === 'default'
+                                                ? "bg-primary text-white border-primary shadow-xs"
+                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                        )}
+                                    >
+                                        Mặc định
+                                    </button>
+                                    <div className="relative flex items-center gap-1.5 flex-1">
+                                        <input
+                                            type="color"
+                                            value={currentConfig.accentColor === 'default' ? '#2d5016' : currentConfig.accentColor}
+                                            onChange={(e) => {
+                                                const newCfg = { ...currentConfig, accentColor: e.target.value };
+                                                onChangeConfig(newCfg);
+                                                applyCartThemeToDom(newCfg);
+                                            }}
+                                            className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={currentConfig.accentColor === 'default' ? '' : currentConfig.accentColor}
+                                            placeholder="#HEX (vd: #059669)..."
+                                            onChange={(e) => {
+                                                const newCfg = { ...currentConfig, accentColor: e.target.value };
+                                                onChangeConfig(newCfg);
+                                                applyCartThemeToDom(newCfg);
+                                            }}
+                                            className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Header Background */}
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                    <span>Màu nền Header:</span>
+                                    <span>Màu nền Header bảng:</span>
                                     <span className="font-mono text-[10px] text-primary dark:text-emerald-400">
                                         {currentConfig.headerBg === 'default' ? 'Mặc định' : currentConfig.headerBg}
                                     </span>
@@ -482,7 +647,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                         {/* Quick Color Swatches */}
                         <div className="pt-2 border-t border-black/5 dark:border-white/5">
                             <span className="text-[10px] font-bold text-slate-400 block mb-1.5">
-                                Bảng màu chọn nhanh:
+                                Bảng màu chọn nhanh cho Điểm nhấn & Viền:
                             </span>
                             <div className="flex items-center gap-1.5 flex-wrap">
                                 {colorSwatches.map((color) => (
@@ -490,11 +655,13 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                         key={color}
                                         type="button"
                                         onClick={() => {
-                                            onChangeConfig({
+                                            const newCfg = {
                                                 ...currentConfig,
                                                 borderColor: color,
-                                                headerBg: color
-                                            });
+                                                accentColor: color
+                                            };
+                                            onChangeConfig(newCfg);
+                                            applyCartThemeToDom(newCfg);
                                         }}
                                         className="w-5 h-5 rounded-md border border-black/20 hover:scale-125 transition-transform shadow-xs cursor-pointer"
                                         style={{ backgroundColor: color }}
@@ -609,6 +776,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                         type="button"
                         onClick={onClose}
                         className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-950/20 transition-all cursor-pointer"
+                        style={currentConfig.accentColor !== 'default' ? { backgroundColor: currentConfig.accentColor } : undefined}
                     >
                         Hoàn tất & Đóng
                     </button>

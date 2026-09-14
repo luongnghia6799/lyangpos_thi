@@ -4241,6 +4241,11 @@ export default function Purchase() {
                                                         ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]"
                                                         : "bg-card/40 hover:bg-card/70 border border-primary/25 dark:border-primary/30 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
                                             )}
+                                            style={(selectedPartner?.debt_balance || 0) <= 0 && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined
+                                            } : undefined}
                                             title={selectedPartner ? `Xem lịch sử nợ NCC ${selectedPartner.name}` : "Chưa chọn NCC"}
                                         >
                                             <div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none">
@@ -4332,6 +4337,11 @@ export default function Purchase() {
                                                         ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" 
                                                         : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
                                                 )}
+                                                style={paymentMethod === 'Cash' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                    background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`,
+                                                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined
+                                                } : undefined}
                                             >
                                                 <div className={cn(
                                                     "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none",
@@ -4520,6 +4530,11 @@ export default function Purchase() {
                                         <div 
                                             onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
                                             className="flex-1 h-full p-2 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main"
+                                            style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined
+                                            } : undefined}
                                             title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
                                         >
                                             {/* Subtle glass reflection overlay */}

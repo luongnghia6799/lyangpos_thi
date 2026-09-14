@@ -131,7 +131,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
                             ? "text-white font-black"
-                            : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
+                            : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
                 {active && isLite && (
@@ -297,6 +297,10 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
         };
     };
 
+    const cartColorConfig = useCartColorConfig();
+    const hasCustomAccent = !isLite && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
+    const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+
     return (
         <div
             ref={groupRef}
@@ -306,14 +310,18 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
         >
             <m.button
                 onClick={handleHeaderClick}
+                style={hasCustomAccent && (isAnyChildActive || isFlyoutOpen) ? {
+                    background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
+                    borderColor: `${accentCol}80`
+                } : undefined}
                 className={cn(
                     "group relative flex items-center transition-all duration-300 overflow-hidden",
                     isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-1 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-md shadow-[#2d5016]/20"
-                            : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
+                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40"
+                            : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
                 <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-white" : "")} />
@@ -330,7 +338,14 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
 
                 {/* Active Indicator for Collapsed Mode */}
                 {isCollapsed && isAnyChildActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md shadow-[0_0_10px_rgba(163,230,53,0.9)] z-20" />
+                    <div 
+                        style={hasCustomAccent ? {
+                            backgroundColor: cartColorConfig.headerText !== 'default' 
+                                ? cartColorConfig.headerText 
+                                : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
+                        } : undefined}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
+                    />
                 )}
             </m.button>
 
@@ -1575,11 +1590,11 @@ export default function Layout({ children }) {
                 <button
                     onClick={() => setShowQuickSearch(true)}
                     className={cn(
-                        "w-full flex items-center gap-3 transition-all hover:bg-[#2d5016]/5 dark:hover:bg-white/5 border border-transparent hover:border-[#8b6f47]/20 dark:hover:border-white/10",
+                        "w-full flex items-center gap-3 transition-all sidebar-search-btn hover:bg-primary/5 dark:hover:bg-primary/10 border border-transparent hover:border-primary/20 dark:hover:border-primary/30",
                         isSidebarCollapsed ? "h-12 justify-center p-0 rounded-xl mx-auto" : "px-4 py-3 rounded-2xl bg-transparent"
                     )}
                 >
-                    <Search size={18} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
+                    <Search size={18} className="text-primary dark:text-emerald-400 shrink-0" />
                     {!isSidebarCollapsed && (
                         <div className="flex-1 flex items-center justify-between min-w-0">
                             <span className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">Tìm kiếm nhanh</span>

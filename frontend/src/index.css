@@ -1596,3 +1596,24 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.4);
 }
+
+/* Sidebar Navigation Hover & Accent Theme Rules */
+.sidebar-nav-item:hover {
+  color: var(--primary-color) !important;
+  background-color: rgba(var(--primary-rgb, 45, 80, 22), 0.08) !important;
+}
+
+.dark .sidebar-nav-item:hover {
+  color: #ffffff !important;
+  background-color: rgba(var(--primary-rgb, 74, 222, 128), 0.15) !important;
+}
+
+.sidebar-search-btn:hover {
+  border-color: rgba(var(--primary-rgb, 45, 80, 22), 0.25) !important;
+  background-color: rgba(var(--primary-rgb, 45, 80, 22), 0.06) !important;
+}
+
+.dark .sidebar-search-btn:hover {
+  border-color: rgba(var(--primary-rgb, 74, 222, 128), 0.3) !important;
+  background-color: rgba(var(--primary-rgb, 74, 222, 128), 0.12) !important;
+}

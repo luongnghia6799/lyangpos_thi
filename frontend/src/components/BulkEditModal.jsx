@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { X, Save, Tags, Hash, List, Sparkles, Type, Binary } from 'lucide-react';
+import { X, Save, Tags, Hash, List, Sparkles, Type, Binary, Package } from 'lucide-react';
 import { cn } from '../lib/utils';
 import Portal from './Portal';
 import CategoryIcon from './CategoryIcon';

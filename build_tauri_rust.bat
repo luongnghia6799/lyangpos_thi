@@ -62,18 +62,18 @@ if %ERRORLEVEL% NEQ 0 goto :error_copy
 echo [*] Sao chep Sidecar thanh cong: lyang-backend-x86_64-pc-windows-msvc.exe
 
 echo.
-echo [*] Buoc 4: Bat dau qua trinh dong goi Tauri (.msi / .exe)...
+echo [*] Buoc 4: Bat dau qua trinh dong goi NSIS sieu nhanh (.exe installer)...
 cd /d "%~dp0frontend"
-echo [!] Qua trinh dong goi Tauri dang chay...
+echo [!] Qua trinh dong goi NSIS dang chay (da bo qua MSI de tang toc do)...
 call npm run tauri:build
 if %ERRORLEVEL% NEQ 0 goto :error_tauri
 
 echo.
 echo =====================================================================
-echo    * DONG GOI TAURI VOI RUST BACKEND THANH CONG RUC RO! *
+echo    * DONG GOI TAURI NSIS VOI RUST BACKEND THANH CONG RUC RO! *
 echo =====================================================================
 echo.
-echo [*] File cai dat da duoc tao tai:
+echo [*] File cai dat NSIS da duoc tao tai:
 echo     frontend\src-tauri\target\release\bundle\nsis\
 echo.
 echo [>] Dang mo thu muc chua file cai dat cho ban...

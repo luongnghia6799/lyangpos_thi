@@ -121,6 +121,7 @@ import { DEFAULT_SETTINGS as Gl, DEFAULT_SETTINGS as Tr } from "@/lib/settings";
 import { ensureFontLoaded } from "@/lib/googleFonts";
 import PrintTemplate from "@/components/PrintTemplate";
 const Ul = PrintTemplate;
+const Mn = PrintTemplate;
 import PartnerEditModal from "@/components/PartnerEditModal";
 const Fl = PartnerEditModal;
 import PartnerInfoHoverCard from "@/components/PartnerInfoHoverCard";
@@ -4825,7 +4826,7 @@ function POSPage({
                     type: "spring",
                     stiffness: 200,
                     damping: 25
-                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top"><Mn data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
+                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top"><PrintTemplate data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
               setEditingHistoryOrder(t);
             }} onEditOrder={async t => {
               kt(!1);

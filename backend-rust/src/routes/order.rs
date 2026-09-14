@@ -408,11 +408,15 @@ pub async fn get_orders(
 
     // General search across order ID, partner name/phone, product name/code
     if let Some(ref s) = params.search {
-        if !s.trim().is_empty() {
-            let norm = remove_accents(s.trim());
+        let s_clean = s.trim();
+        if !s_clean.is_empty() {
+            let norm = remove_accents(s_clean);
             conditions.push_str(&format!(
-                " AND (o.display_id LIKE '%{s}%' OR CAST(o.id AS TEXT) LIKE '%{s}%' OR p.phone LIKE '%{s}%' \
-                 OR od.product_name_override LIKE '%{s}%' \
+                " AND (o.display_id LIKE '%{s_clean}%' OR CAST(o.id AS TEXT) LIKE '%{s_clean}%' OR p.phone LIKE '%{s_clean}%' \
+                 OR p.name LIKE '%{s_clean}%' \
+                 OR prod.name LIKE '%{s_clean}%' \
+                 OR prod.code LIKE '%{s_clean}%' \
+                 OR od.product_name_override LIKE '%{s_clean}%' \
                  OR lower(coalesce(p.name, 'KHÁCH LẺ')) LIKE '%{norm}%' \
                  OR lower(coalesce(prod.name, '')) LIKE '%{norm}%')"
             ));
@@ -436,27 +440,30 @@ pub async fn get_orders(
     }
 
     if let Some(ref sp) = params.search_partner {
-        if !sp.trim().is_empty() {
-            let norm = remove_accents(sp.trim());
+        let sp_clean = sp.trim();
+        if !sp_clean.is_empty() {
+            let norm = remove_accents(sp_clean);
             conditions.push_str(&format!(
-                " AND lower(coalesce(p.name, 'KHÁCH LẺ')) LIKE '%{norm}%'"
+                " AND (p.name LIKE '%{sp_clean}%' OR p.phone LIKE '%{sp_clean}%' OR lower(coalesce(p.name, 'KHÁCH LẺ')) LIKE '%{norm}%')"
             ));
         }
     }
 
     if let Some(ref sid) = params.search_id {
-        if !sid.trim().is_empty() {
+        let sid_clean = sid.trim();
+        if !sid_clean.is_empty() {
             conditions.push_str(&format!(
-                " AND (o.display_id LIKE '%{sid}%' OR CAST(o.id AS TEXT) LIKE '%{sid}%')"
+                " AND (o.display_id LIKE '%{sid_clean}%' OR CAST(o.id AS TEXT) LIKE '%{sid_clean}%')"
             ));
         }
     }
 
     if let Some(ref sprod) = params.search_product {
-        if !sprod.trim().is_empty() {
-            let norm = remove_accents(sprod.trim());
+        let sprod_clean = sprod.trim();
+        if !sprod_clean.is_empty() {
+            let norm = remove_accents(sprod_clean);
             conditions.push_str(&format!(
-                " AND (od.product_name_override LIKE '%{sprod}%' OR lower(coalesce(prod.name, '')) LIKE '%{norm}%')"
+                " AND (prod.name LIKE '%{sprod_clean}%' OR prod.code LIKE '%{sprod_clean}%' OR od.product_name_override LIKE '%{sprod_clean}%' OR lower(coalesce(prod.name, '')) LIKE '%{norm}%')"
             ));
         }
     }

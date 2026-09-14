@@ -11,11 +11,11 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build && node rename_installer.js",
-    "tauri:release": "tauri build && node rename_installer.js && node upload_release.js",
+    "tauri:build": "tauri build --bundles nsis && node rename_installer.js",
+    "tauri:release": "tauri build --bundles nsis && node rename_installer.js && node upload_release.js",
     "release": "node upload_release.js",
     "build:no-accounting": "vite build --mode no-accounting",
-    "tauri:build:no-accounting": "vite build --mode no-accounting && tauri build && node rename_installer_no_accounting.js"
+    "tauri:build:no-accounting": "vite build --mode no-accounting && tauri build --bundles nsis && node rename_installer_no_accounting.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

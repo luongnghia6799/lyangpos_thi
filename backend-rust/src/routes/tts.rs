@@ -16,6 +16,54 @@ pub struct TtsParams {
     pub voice: Option<String>,
     pub rate: Option<String>,
     pub pitch: Option<String>,
+    pub category: Option<String>,
+}
+
+fn sanitize_category(cat: &str) -> &'static str {
+    let lower = cat.to_lowercase();
+    if lower.contains("qty") || lower.contains("so_luong") || lower.contains("soluong") {
+        "so_luong"
+    } else if lower.contains("tien") || lower.contains("amount") || lower.contains("currency") || lower.contains("price") {
+        "so_tien"
+    } else if lower.contains("alias") || lower.contains("san_pham") || lower.contains("product") || lower.contains("mon") {
+        "alias"
+    } else {
+        "he_thong"
+    }
+}
+
+fn detect_category_from_text(text: &str) -> &'static str {
+    let t = text.trim();
+    let clean = remove_accents(t).to_lowercase();
+
+    // 1. Số tiền: chứa đồng, vnd, ngan, nghin, trieu, ty, hoac template gia
+    if clean.contains("dong") || clean.contains("vnd") || clean.contains("dạ") || clean.contains("da ") || 
+       clean.contains("tong tien") || clean.contains("so tien") || clean.contains("thanh toan") {
+        return "so_tien";
+    }
+
+    // 2. Số lượng: nếu là số đếm kèm dấu phẩy hoặc chuỗi số đếm đơn giản
+    // ví dụ: "mot,", "hai,", "ba,", "1", "2", "3", "muoi,"
+    if t.ends_with(',') || t.parse::<f64>().is_ok() {
+        return "so_luong";
+    }
+
+    let is_number_word = match clean.trim_matches(',').trim() {
+        "khong" | "mot" | "hai" | "ba" | "bon" | "tu" | "nam" | "sau" | "bay" | "tam" | "chin" | "muoi" | "lam" => true,
+        _ => false,
+    };
+    if is_number_word {
+        return "so_luong";
+    }
+
+    // 3. Hệ thống / Common Phrases
+    if clean == "cam on quy khach" || clean == "da xoa" || clean == "da soan" || 
+       clean == "soan hang" || clean == "da soan xong" || clean == "tra hang" {
+        return "he_thong";
+    }
+
+    // 4. Mặc định là tên món / alias sản phẩm hoặc đơn vị tính
+    "alias"
 }
 
 fn remove_accents(input: &str) -> String {
@@ -217,6 +265,11 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
         }
     };
 
+    let category = match params.category {
+        Some(ref c) if !c.trim().is_empty() => sanitize_category(c),
+        _ => detect_category_from_text(text),
+    };
+
     let voice_type = params.voice.unwrap_or_else(|| "edge-vi-female".to_string());
     let voice_suffix = if voice_type.to_lowercase().contains("male") && !voice_type.to_lowercase().contains("female") {
         "nam"
@@ -269,8 +322,16 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
     let human_readable_name = format!("{}_{}_{}_{}.mp3", safe_slug, voice_suffix, rate_slug, pitch_slug);
 
     let tts_dir = resolve_tts_dir();
+    let category_dir = tts_dir.join(category);
+    let _ = std::fs::create_dir_all(&category_dir);
+
     let base_dir = get_base_dir();
     let cache_dirs = [
+        category_dir.clone(),
+        tts_dir.join("so_luong"),
+        tts_dir.join("alias"),
+        tts_dir.join("so_tien"),
+        tts_dir.join("he_thong"),
         tts_dir.clone(),
         base_dir.join("tts"),
         base_dir.join("resources").join("tts_cache"),
@@ -328,7 +389,7 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
         }
     }
 
-    let target_file = tts_dir.join(&human_readable_name);
+    let target_file = category_dir.join(&human_readable_name);
 
     let edge_voice = if voice_suffix == "nam" {
         "vi-VN-NamMinhNeural"
@@ -364,21 +425,26 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
 pub async fn clear_tts_cache() -> impl IntoResponse {
     let tts_dir = resolve_tts_dir();
     let mut deleted_count = 0;
-    if let Ok(entries) = std::fs::read_dir(&tts_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() {
-                if let Some(ext) = path.extension() {
-                    if ext == "mp3" {
-                        if std::fs::remove_file(&path).is_ok() {
-                            deleted_count += 1;
+
+    fn remove_mp3s_recursive(dir: &Path, count: &mut usize) {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    remove_mp3s_recursive(&path, count);
+                } else if path.is_file() {
+                    if let Some(ext) = path.extension() {
+                        if ext == "mp3" && std::fs::remove_file(&path).is_ok() {
+                            *count += 1;
                         }
                     }
                 }
             }
         }
     }
-    tracing::info!("Cleared TTS cache: deleted {} mp3 files", deleted_count);
+
+    remove_mp3s_recursive(&tts_dir, &mut deleted_count);
+    tracing::info!("Cleared TTS cache: deleted {} mp3 files across subfolders", deleted_count);
     (
         StatusCode::OK,
         Json(serde_json::json!({

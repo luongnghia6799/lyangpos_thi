@@ -312,6 +312,7 @@ export default function History() {
                     await axios.delete(`/api/orders/${id}`);
                     setToast({ message: "Đã xóa đơn hàng thành công", type: "success" });
                     fetchOrders();
+                    fetchActiveFilters();
                     if (activeTab === 'Sale') {
                         fetchDuplicates();
                     }
@@ -485,6 +486,11 @@ export default function History() {
                         <ComboSearch
                             value={searchPartner}
                             onChange={setSearchPartner}
+                            onSelect={(val) => {
+                                setSearchPartner(val);
+                                setSearchPartnerQuery(val);
+                                setPage(1);
+                            }}
                             onSearch={handleSearchTrigger}
                             options={allPartners}
                             placeholder="Tất cả đối tác..."
@@ -506,6 +512,11 @@ export default function History() {
                         <ComboSearch
                             value={searchProduct}
                             onChange={setSearchProduct}
+                            onSelect={(val) => {
+                                setSearchProduct(val);
+                                setSearchProductQuery(val);
+                                setPage(1);
+                            }}
                             onSearch={handleSearchTrigger}
                             options={allProducts}
                             placeholder="Tất cả sản phẩm..."

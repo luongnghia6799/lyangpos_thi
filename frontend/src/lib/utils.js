@@ -881,51 +881,63 @@ const getDynamicBaseUrl = () => {
   return baseUrl;
 };
 
-export const numberToViText = (numIn) => {
+export const cleanNumberToViText = (numIn) => {
   let n = Math.round(numIn);
-  const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
   if (n === 0) return "không";
-  if (n < 0) return "âm " + numberToViText(Math.abs(n));
   
-  let text = "";
-  if (n >= 1000000000) {
-    text += numberToViText(Math.floor(n / 1000000000)) + " tỷ ";
-    n %= 1000000000;
-  }
-  if (n >= 1000000) {
-    text += numberToViText(Math.floor(n / 1000000)) + " triệu ";
-    n %= 1000000;
-  }
-  if (n >= 1000) {
-    text += numberToViText(Math.floor(n / 1000)) + " nghìn ";
-    n %= 1000;
-  }
-  if (n >= 100) {
-    text += units[Math.floor(n / 100)] + " trăm ";
-    n %= 100;
-    if (n > 0 && n < 10) {
-      text += "lẻ ";
+  const convertNumber = (val) => {
+    let num = Math.round(val);
+    const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+    if (num === 0) return "không";
+    if (num < 0) return "âm " + convertNumber(Math.abs(num));
+
+    let text = "";
+    if (num >= 1000000000) {
+      text += convertNumber(Math.floor(num / 1000000000)) + " tỷ ";
+      num %= 1000000000;
     }
-  }
-  if (n >= 10) {
-    const ten = Math.floor(n / 10);
-    const unit = n % 10;
-    if (ten === 1) {
-      text += "mười ";
-    } else {
-      text += units[ten] + " mươi ";
+    if (num >= 1000000) {
+      text += convertNumber(Math.floor(num / 1000000)) + " triệu ";
+      num %= 1000000;
     }
-    if (unit === 1) {
-      text += ten === 1 ? "một" : "mốt";
-    } else if (unit === 5) {
-      text += "lăm";
-    } else if (unit > 0) {
-      text += units[unit];
+    if (num >= 1000) {
+      text += convertNumber(Math.floor(num / 1000)) + " nghìn ";
+      num %= 1000;
     }
-  } else if (n > 0) {
-    text += units[n];
-  }
-  return text.trim();
+    if (num >= 100) {
+      text += units[Math.floor(num / 100)] + " trăm ";
+      num %= 100;
+      if (num > 0 && num < 10) {
+        text += "lẻ ";
+      }
+    }
+    if (num >= 10) {
+      const ten = Math.floor(num / 10);
+      const unit = num % 10;
+      if (ten === 1) {
+        text += "mười ";
+      } else {
+        text += units[ten] + " mươi ";
+      }
+      if (unit === 1) {
+        text += ten === 1 ? "một" : "mốt";
+      } else if (unit === 5) {
+        text += "lăm";
+      } else if (unit > 0) {
+        text += units[unit];
+      }
+    } else if (num > 0) {
+      text += units[num];
+    }
+    return text.trim();
+  };
+
+  const raw = convertNumber(n);
+  return raw || "không";
+};
+
+export const numberToViText = (numIn) => {
+  return cleanNumberToViText(numIn);
 };
 
 let activePrecacheSessionId = 0;
@@ -993,14 +1005,15 @@ export const precacheCommonTTS = (products = [], options = {}) => {
     const secondaryVoice = activeVoice === 'edge-vi-female' ? 'edge-vi-male' : 'edge-vi-female';
     const voicesToCache = options.voice ? [options.voice] : [activeVoice, secondaryVoice];
     
-    // 1. Basic numbers 1-1000 and thank you text
-    const textsToPrecache = [];
+    // 1. Basic numbers 1-1000
+    const qtyTexts = [];
     const maxNumbers = options.limitNumbers || 1000;
     for (let i = 1; i <= maxNumbers; i++) {
-      textsToPrecache.push(numberToViText(i));
+      qtyTexts.push(numberToViText(i));
     }
     
     // Common system phrases for POS & Packing
+    const systemTexts = [];
     const commonPhrases = [
       localStorage.getItem("pos_tts_thankyou_template") || "Cảm ơn quý khách",
       "Cảm ơn quý khách",
@@ -1012,23 +1025,24 @@ export const precacheCommonTTS = (products = [], options = {}) => {
       "số tiền của quý khách là"
     ];
     commonPhrases.forEach(phrase => {
-      if (phrase && !textsToPrecache.includes(phrase)) {
-        textsToPrecache.push(phrase);
+      if (phrase && !systemTexts.includes(phrase)) {
+        systemTexts.push(phrase);
       }
     });
 
     // 2. Pre-cache raw alias and unique units for active products
+    const aliasTexts = [];
     if (products && Array.isArray(products)) {
       products.forEach(p => {
         if (p.alias && p.alias.trim()) {
           const alias = p.alias.trim();
-          if (!textsToPrecache.includes(alias)) {
-            textsToPrecache.push(alias);
+          if (!aliasTexts.includes(alias)) {
+            aliasTexts.push(alias);
           }
         }
         const unit = (p.unit || p.product_unit || "").trim();
-        if (unit && !textsToPrecache.includes(unit)) {
-          textsToPrecache.push(unit);
+        if (unit && !aliasTexts.includes(unit)) {
+          aliasTexts.push(unit);
         }
       });
     }
@@ -1036,8 +1050,14 @@ export const precacheCommonTTS = (products = [], options = {}) => {
     // Build combination list: active voice items first, then secondary voice items
     const queueItems = [];
     voicesToCache.forEach(voiceParam => {
-      textsToPrecache.forEach(text => {
-        queueItems.push({ voiceParam, text });
+      qtyTexts.forEach(text => {
+        queueItems.push({ voiceParam, text, category: 'so_luong' });
+      });
+      aliasTexts.forEach(text => {
+        queueItems.push({ voiceParam, text, category: 'alias' });
+      });
+      systemTexts.forEach(text => {
+        queueItems.push({ voiceParam, text, category: 'he_thong' });
       });
     });
 
@@ -1077,10 +1097,11 @@ export const precacheCommonTTS = (products = [], options = {}) => {
       }
       
       const item = queueItems[index++];
-      const { voiceParam, text } = item;
+      const { voiceParam, text, category } = item;
       const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
       
-      const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
+      const catParam = category ? `&category=${encodeURIComponent(category)}` : '';
+      const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}${catParam}`;
       try {
         await loadAndCacheAudio(audioUrl, cacheKey, 'low');
       } catch (err) {
@@ -1150,7 +1171,7 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
       ? (localStorage.getItem("pos_tts_currency_partner_template") || "dạ {amount} đồng")
       : (localStorage.getItem("pos_tts_currency_template") || "dạ {amount} đồng");
     const totalViText = totalTemplate
-      .replace("{amount}", numberToViText(finalAmount))
+      .replace("{amount}", cleanNumberToViText(finalAmount))
       .replace(/{partner}/gi, finalPartnerDisplay || "quý khách")
       .replace(/{customer}/gi, finalPartnerDisplay || "quý khách");
     textsToCache.push(totalViText);
@@ -1158,7 +1179,7 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
     textsToCache.forEach(text => {
       const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
       if (!ttsAudioCache[cacheKey]) {
-        const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
+        const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}&category=so_tien`;
         loadAndCacheAudio(audioUrl, cacheKey, 'high');
       }
     });
@@ -1199,8 +1220,8 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
         viText = viText.replace(/\{partner\}/g, "quý khách").replace(/\{customer\}/g, "quý khách");
       }
     } else {
-      viText = numberToViText(num);
       if (isCurrency) {
+        viText = cleanNumberToViText(num);
         const disablePartnerTemplate = localStorage.getItem("pos_tts_disable_partner_template") === "true";
         const finalPartnerDisplay = disablePartnerTemplate ? "" : partnerDisplay;
         const template = customTemplate
@@ -1213,6 +1234,8 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
           .replace("{amount}", viText)
           .replace(/{partner}/gi, finalPartnerDisplay || "quý khách")
           .replace(/{customer}/gi, finalPartnerDisplay || "quý khách");
+      } else {
+        viText = numberToViText(num);
       }
     }
 

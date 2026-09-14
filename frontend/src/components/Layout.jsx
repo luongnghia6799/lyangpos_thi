@@ -85,7 +85,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     isLite 
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
-                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black"
+                            ? "text-white font-black"
                             : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
                 )}
             >
@@ -96,19 +96,19 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                             background: liteTheme.accent,
                             borderColor: liteTheme.border
                          }}
-                        className="absolute inset-0 rounded-2xl z-0 border shadow-inner"
+                        className="absolute inset-0 rounded-2xl z-0 border shadow-inner overflow-hidden"
                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                 )}
                 {active && !isLite && (
                     <m.div
                         layoutId="sidebar-active-pill"
-                        className="absolute inset-0 rounded-2xl bg-[#2d5016]/10 dark:bg-emerald-500/15 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-white/15 shadow-sm shadow-[#2d5016]/5 z-0"
+                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-md shadow-[#2d5016]/25 dark:shadow-emerald-950/50 z-0 overflow-hidden"
                         transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     >
                         <m.div
                             layoutId="sidebar-active-glow"
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-4.5 bg-[#2d5016] dark:bg-emerald-500 rounded-r-md shadow-[0_0_8px_rgba(45,80,22,0.4)] z-20"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md shadow-[0_0_10px_rgba(163,230,53,0.9)] z-20"
                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
                     </m.div>
@@ -119,7 +119,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     whileHover={{ scale: 1.15, rotate: [0, -8, 8, 0] }}
                     transition={{ duration: 0.2 }}
                 >
-                    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-[#2d5016] dark:text-emerald-400" : "")} />
+                    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-white drop-shadow-sm" : "")} />
                 </m.div>
 
                 <AnimatePresence>
@@ -253,16 +253,16 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
             <m.button
                 onClick={handleHeaderClick}
                 className={cn(
-                    "group relative flex items-center transition-all duration-300",
+                    "group relative flex items-center transition-all duration-300 overflow-hidden",
                     isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-1 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-[#2d5016] dark:text-[#e8dfd5] font-black bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#8b6f47]/30 dark:border-white/15 shadow-sm shadow-[#2d5016]/5"
+                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-md shadow-[#2d5016]/20"
                             : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
                 )}
             >
-                <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-[#2d5016] dark:text-emerald-400" : "")} />
+                <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-white" : "")} />
                 {!isCollapsed && (
                     <>
                         <div className="flex-1 min-w-0 sidebar-marquee-container">
@@ -270,13 +270,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                                 {item.label}
                             </span>
                         </div>
-                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-40 shrink-0", isOpen ? "rotate-90 opacity-100 text-[#2d5016] dark:text-emerald-400" : "")} />
+                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-40 shrink-0", isOpen ? "rotate-90 opacity-100 text-white" : "")} />
                     </>
                 )}
 
                 {/* Active Indicator for Collapsed Mode */}
                 {isCollapsed && isAnyChildActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-4.5 bg-[#2d5016] dark:bg-emerald-500 rounded-r-md shadow-[0_0_8px_rgba(45,80,22,0.4)] z-20" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md shadow-[0_0_10px_rgba(163,230,53,0.9)] z-20" />
                 )}
             </m.button>
 
@@ -1559,7 +1559,7 @@ export default function Layout({ children }) {
             {/* Bottom Actions Cluster */}
             <div 
                 className={cn(
-                    "mb-3 backdrop-blur-xl transition-all duration-300 border border-[#8b6f47]/30 dark:border-white/10 bg-white/10 dark:bg-black/10 shadow-sm",
+                    "mb-3 backdrop-blur-xl transition-all duration-300 border border-[#2d5016]/40 dark:border-emerald-500/30 bg-gradient-to-b from-[#2d5016] to-[#223d11] dark:from-[#13220f] dark:to-[#0c160a] shadow-lg shadow-[#2d5016]/25 dark:shadow-emerald-950/50 text-white",
                     isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2.5"
                 )} 
                 style={isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {}}
@@ -1579,9 +1579,9 @@ export default function Layout({ children }) {
                             color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
                         } : {}}
                         className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-[#2d5016]/10 dark:hover:bg-white/10 shrink-0 shadow-none",
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none",
                             isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12",
-                            isLiteMode ? "" : (isMuted ? "text-rose-500 hover:text-rose-600" : "text-[#2d5016] dark:text-[#d4a574] hover:opacity-90")
+                            isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
                         )}
                         title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
                     >
@@ -1595,7 +1595,7 @@ export default function Layout({ children }) {
                                     transition={{ duration: 0.15 }}
                                     className={cn(
                                         "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
-                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-500" : "text-[#2d5016] dark:text-[#d4a574]")
+                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-300" : "text-emerald-100")
                                     )}
                                 >
                                     {isMuted ? "Tắt" : "Bật"}
@@ -1609,7 +1609,7 @@ export default function Layout({ children }) {
                         whileTap={{ scale: 0.9 }}
                         onClick={toggleTheme}
                         className={cn(
-                            "rounded-full hover:bg-[#2d5016]/10 bg-transparent dark:hover:bg-white/10 text-[#2d5016] dark:text-[#d4a574] hover:opacity-90 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
+                            "rounded-full hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
                             isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
                         )}
                         title="Sáng/Tối"
@@ -1622,7 +1622,7 @@ export default function Layout({ children }) {
                                     animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                     exit={{ opacity: 0, height: 0, scale: 0.8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-[#2d5016]/80 dark:text-[#d4a574]/80"
+                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-emerald-100/90"
                                 >
                                     Phông
                                 </m.span>
@@ -1639,7 +1639,7 @@ export default function Layout({ children }) {
                             color: "rgb(239, 68, 68)"
                         } : {}}
                         className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-rose-500/10 dark:hover:bg-rose-500/20 shrink-0 shadow-none text-rose-500 hover:text-rose-600",
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200",
                             isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
                         )}
                         title="Đóng menu"
@@ -1652,7 +1652,7 @@ export default function Layout({ children }) {
                                     animate={{ opacity: 1, height: 'auto', scale: 1 }}
                                     exit={{ opacity: 0, height: 0, scale: 0.8 }}
                                     transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-rose-500"
+                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-rose-300"
                                 >
                                     Đóng
                                 </m.span>
@@ -1671,9 +1671,9 @@ export default function Layout({ children }) {
                         color: liteTheme.text
                     } : {}}
                     className={cn(
-                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-[#2d5016]/10 dark:hover:bg-white/10 border-t border-[#8b6f47]/20 dark:border-white/10 pt-1.5",
+                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-white/15 dark:hover:bg-white/10 border-t border-white/20 pt-1.5",
                         isSidebarCollapsed ? "py-1.5 min-h-[34px]" : "py-2.5 min-h-[40px]",
-                        isLiteMode ? "" : "text-[#2d5016] dark:text-[#d4a574] hover:opacity-90"
+                        isLiteMode ? "" : "text-white hover:opacity-90"
                     )}
                 >
                     {isSidebarCollapsed ? <ChevronRight size={18} /> : (

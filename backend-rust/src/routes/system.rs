@@ -226,44 +226,96 @@ pub async fn get_history_active_filters(
     Query(params): Query<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
     let order_type = params.get("type").and_then(|v| v.as_str()).unwrap_or("Sale");
-    let partners: Vec<crate::models::partner::Partner> = sqlx::query_as(
-        "SELECT id, name, type, \
-         CAST(is_customer AS BOOLEAN) as is_customer, \
-         CAST(is_supplier AS BOOLEAN) as is_supplier, \
-         cccd, phone, address, \
-         CAST(debt_balance AS REAL) as debt_balance \
+
+    let year_str = params.get("year").and_then(|v| {
+        if v.is_number() {
+            Some(v.to_string())
+        } else {
+            v.as_str().map(|s| s.to_string())
+        }
+    }).filter(|s| !s.trim().is_empty());
+
+    let month_str = params.get("month").and_then(|v| {
+        if v.is_number() {
+            Some(v.to_string())
+        } else {
+            v.as_str().map(|s| s.to_string())
+        }
+    }).filter(|s| !s.trim().is_empty());
+
+    let day_str = params.get("day").and_then(|v| {
+        if v.is_number() {
+            Some(v.to_string())
+        } else {
+            v.as_str().map(|s| s.to_string())
+        }
+    }).filter(|s| !s.trim().is_empty());
+
+    let mut date_cond = String::new();
+    if let Some(y) = year_str {
+        date_cond.push_str(&format!(" AND strftime('%Y', o.date) = '{y}'"));
+    }
+    if let Some(m) = month_str {
+        if let Ok(m_num) = m.parse::<i32>() {
+            let m_pad = format!("{:02}", m_num);
+            date_cond.push_str(&format!(" AND strftime('%m', o.date) = '{m_pad}'"));
+        }
+    }
+    if let Some(d) = day_str {
+        if let Ok(d_num) = d.parse::<i32>() {
+            let d_pad = format!("{:02}", d_num);
+            date_cond.push_str(&format!(" AND strftime('%d', o.date) = '{d_pad}'"));
+        }
+    }
+
+    let partner_query = format!(
+        "SELECT DISTINCT p.id, p.name, p.phone, p.address \
          FROM partner p \
          JOIN \"order\" o ON o.partner_id = p.id \
-         WHERE o.type = ?"
-    )
-    .bind(order_type)
-    .fetch_all(&pool)
-    .await
-    .unwrap_or_default();
+         WHERE o.type = ? AND p.name IS NOT NULL AND p.name != '' {date_cond} \
+         ORDER BY p.name ASC"
+    );
 
-    let products: Vec<crate::models::product::Product> = sqlx::query_as(
-        "SELECT DISTINCT p.id, p.name, p.code, p.unit, p.secondary_unit, \
-                CAST(p.multiplier AS REAL) as multiplier, \
-                CAST(p.cost_price AS REAL) as cost_price, \
-                CAST(p.sale_price AS REAL) as sale_price, \
-                CAST(p.stock AS REAL) as stock, \
-                p.expiry_date, p.active_ingredient, p.brand, \
-                CAST(p.is_combo AS BOOLEAN) as is_combo, \
-                CAST(p.is_active AS BOOLEAN) as is_active, \
-                p.category_id, \
-                CAST(p.accounting_price AS REAL) as accounting_price, \
-                CAST(p.accounting_stock AS REAL) as accounting_stock, \
-                CAST(p.bulk_quantity AS REAL) as bulk_quantity, \
-                CAST(p.bulk_price AS REAL) as bulk_price \
+    let partner_rows = sqlx::query(&partner_query)
+        .bind(order_type)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+
+    let mut partners = Vec::new();
+    for row in partner_rows {
+        partners.push(json!({
+            "id": row.get::<i64, _>("id"),
+            "name": row.get::<String, _>("name"),
+            "phone": row.get::<Option<String>, _>("phone"),
+            "address": row.get::<Option<String>, _>("address"),
+        }));
+    }
+
+    let product_query = format!(
+        "SELECT DISTINCT p.id, p.name, p.code, p.unit \
          FROM product p \
          JOIN order_detail od ON od.product_id = p.id \
          JOIN \"order\" o ON o.id = od.order_id \
-         WHERE o.type = ?"
-    )
-    .bind(order_type)
-    .fetch_all(&pool)
-    .await
-    .unwrap_or_default();
+         WHERE o.type = ? AND p.name IS NOT NULL AND p.name != '' {date_cond} \
+         ORDER BY p.name ASC"
+    );
+
+    let product_rows = sqlx::query(&product_query)
+        .bind(order_type)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+
+    let mut products = Vec::new();
+    for row in product_rows {
+        products.push(json!({
+            "id": row.get::<i64, _>("id"),
+            "name": row.get::<String, _>("name"),
+            "code": row.get::<Option<String>, _>("code"),
+            "unit": row.get::<Option<String>, _>("unit"),
+        }));
+    }
 
     Ok(Json(json!({
         "partners": partners,

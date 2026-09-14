@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion as m } from 'framer-motion';
 import { Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -138,7 +139,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
         '#d97706', '#0f172a', '#334155', '#475569', '#ffffff', '#000000'
     ];
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
             <m.div
                 initial={{ opacity: 0 }}
@@ -496,6 +497,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                     </button>
                 </div>
             </m.div>
-        </div>
+        </div>,
+        document.body
     );
 }

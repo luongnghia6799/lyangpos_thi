@@ -32,7 +32,7 @@ import {
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette 
 } from "lucide-react";
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG } from "../../components/CartColorCustomizerModal";
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow } from "../../components/CartColorCustomizerModal";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -3346,7 +3346,7 @@ function POSPage({
               style={{
                 borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
                 borderWidth: cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined,
-                boxShadow: cartColorConfig.borderColor !== 'default' ? `0 0 25px ${cartColorConfig.borderColor}20, 0 8px 32px ${cartColorConfig.borderColor}15` : undefined
+                boxShadow: getCartBoxShadow(cartColorConfig)
               }}
             ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div

@@ -26,7 +26,7 @@ import CustomSelect from '../../components/CustomSelect';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG } from '../../components/CartColorCustomizerModal';
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow } from '../../components/CartColorCustomizerModal';
 import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
@@ -2488,7 +2488,7 @@ export default function Purchase() {
                             style={{
                                 borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
                                 borderWidth: cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined,
-                                boxShadow: cartColorConfig.borderColor !== 'default' ? `0 0 25px ${cartColorConfig.borderColor}20, 0 8px 32px ${cartColorConfig.borderColor}15` : undefined
+                                boxShadow: getCartBoxShadow(cartColorConfig)
                             }}
                         >
                             <AnimatePresence>

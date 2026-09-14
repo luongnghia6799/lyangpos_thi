@@ -32,6 +32,7 @@ import {
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette 
 } from "lucide-react";
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG } from "../../components/CartColorCustomizerModal";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -1388,6 +1389,15 @@ function POSPage({
     [transparentCartTable, setTransparentCartTable] = i.useState(() => {
       const t = localStorage.getItem("pos_transparent_cart_table");
       return t === null ? true : t === "true";
+    }),
+    [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false),
+    [cartColorConfig, setCartColorConfig] = i.useState(() => {
+      try {
+        const saved = localStorage.getItem("pos_cart_color_config");
+        return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
+      } catch {
+        return DEFAULT_CART_COLOR_CONFIG;
+      }
     });
   i.useEffect(() => {
     localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
@@ -1478,6 +1488,11 @@ function POSPage({
           ...r,
           ui_enable_smart_sorting: data.value
         }));
+      } else if (data.type === "CART_COLOR_CONFIG_UPDATED" || (data.type === "UI_SETTING_UPDATED" && data.key === "pos_cart_color_config")) {
+        try {
+          const cfg = typeof data.value === "string" ? JSON.parse(data.value) : (data.config || data.value);
+          if (cfg) setCartColorConfig(cfg);
+        } catch {}
       }
     };
     t.onmessage = handleSync;
@@ -3110,6 +3125,8 @@ function POSPage({
                       </div>
 
                       <button onClick={() => {
+                        Ct(!1), setShowCartColorCustomizer(!0);
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Palette size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màu giỏ hàng & Viền</span></button><button onClick={() => {
                         Ct(!1), fs(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
                         Ct(!1), setShowMascotCustomizer(!0);
@@ -3324,7 +3341,14 @@ function POSPage({
               type: "spring",
               stiffness: 300,
               damping: 30
-            }} className="flex flex-col min-h-0 flex-1"><div className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border border-primary/25 dark:border-primary/30", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
+            }} className="flex flex-col min-h-0 flex-1"><div 
+              className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+              style={{
+                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
+                borderWidth: cartColorConfig.borderWidth && cartColorConfig.borderWidth !== '1' ? `${cartColorConfig.borderWidth}px` : undefined,
+                boxShadow: cartColorConfig.borderColor !== 'default' ? `0 0 25px ${cartColorConfig.borderColor}20, 0 8px 32px ${cartColorConfig.borderColor}15` : undefined
+              }}
+            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
                 initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -3507,7 +3531,12 @@ function POSPage({
                             width: "14%"
                           }} /><col style={{
                             width: "5%"
-                          }} /></colgroup><thead className="bg-transparent sticky top-0 z-[100] print:hidden border-none"><tr className="border-none"><th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Stt</th><th onClick={t => {
+                          }} /></colgroup><thead 
+                            className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
+                            style={{
+                              backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
+                            }}
+                          ><tr className="border-none"><th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined, ...(cartColorConfig.headerText === 'default' ? {} : {}) }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th><th onClick={t => {
                                 t.stopPropagation();
                                 if (ve && ve.length > 0) {
                                   const anyPacked = ve.some(item => item.isPacked);
@@ -3519,7 +3548,7 @@ function POSPage({
                                     G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
                                   }
                                 }
-                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" title="Bấm để uncheck toàn bộ / soạn lại">Soạn</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm</span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20"><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />{ll} món</span></div><x.button
+                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }} title="Bấm để uncheck toàn bộ / soạn lại"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span></th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20"><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />{ll} món</span></div><x.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={t => {
@@ -3564,7 +3593,7 @@ function POSPage({
                                         className="w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                       />
                                     </div>
-                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap"><div className="flex flex-col items-center justify-center leading-tight"><span>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn giá</th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row" onDoubleClick={() => {
+                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] border-b transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row" style={{ borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined }} onDoubleClick={() => {
                             m.product && (Vt(m.product), vt(!0));
                           }}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
@@ -3893,7 +3922,7 @@ function POSPage({
                               stiffness: 300,
                               damping: 25,
                               delay: a * 0.02
-                            }} id={`cart-row-${a}`} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent")} onDoubleClick={() => {
+                            }} id={`cart-row-${a}`} className={c("relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-50", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent")} style={{ borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined }} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {
@@ -6083,6 +6112,25 @@ function POSPage({
                   </button>
                 </x.div>
               </Fn>
+            )}</P><P>{showCartColorCustomizer && (
+              <CartColorCustomizerModal
+                isOpen={showCartColorCustomizer}
+                config={cartColorConfig}
+                onClose={() => setShowCartColorCustomizer(false)}
+                onChangeConfig={newCfg => {
+                  setCartColorConfig(newCfg);
+                  localStorage.setItem("pos_cart_color_config", JSON.stringify(newCfg));
+                  try {
+                    const syncChan = new BroadcastChannel("pos_data_sync");
+                    syncChan.postMessage({
+                      type: "CART_COLOR_CONFIG_UPDATED",
+                      key: "pos_cart_color_config",
+                      value: JSON.stringify(newCfg)
+                    });
+                    syncChan.close();
+                  } catch (e) {}
+                }}
+              />
             )}</P><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><Fn><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
               const a = (T || []).find(r => r.id === t.id) || t,
                 hasCustomPrice = Boolean(p && p.id && R && R[a.id] !== void 0),

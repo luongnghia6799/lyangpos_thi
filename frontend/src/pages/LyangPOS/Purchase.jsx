@@ -26,6 +26,7 @@ import CustomSelect from '../../components/CustomSelect';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG } from '../../components/CartColorCustomizerModal';
 import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
@@ -212,6 +213,15 @@ export default function Purchase() {
     const [transparentCartTable, setTransparentCartTable] = useState(() => {
         const t = localStorage.getItem("pos_transparent_cart_table");
         return t === null ? true : t === "true";
+    });
+    const [showCartColorCustomizer, setShowCartColorCustomizer] = useState(false);
+    const [cartColorConfig, setCartColorConfig] = useState(() => {
+        try {
+            const saved = localStorage.getItem("pos_cart_color_config");
+            return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
+        } catch {
+            return DEFAULT_CART_COLOR_CONFIG;
+        }
     });
     const [availableTemplates, setAvailableTemplates] = useState([]);
     const [currentTemplateId, setCurrentTemplateId] = useState(null);
@@ -688,6 +698,11 @@ export default function Purchase() {
                 } else if (e.data.key === 'pos_typing_sound_enabled') {
                     setTypingSoundEnabled(e.data.value !== 'false');
                 }
+            } else if (e.data?.type === 'CART_COLOR_CONFIG_UPDATED' || (e.data?.type === 'UI_SETTING_UPDATED' && e.data.key === 'pos_cart_color_config')) {
+                try {
+                    const cfg = typeof e.data.value === 'string' ? JSON.parse(e.data.value) : (e.data.config || e.data.value);
+                    if (cfg) setCartColorConfig(cfg);
+                } catch {}
             }
         };
         return () => syncChan.close();
@@ -2304,6 +2319,18 @@ export default function Purchase() {
                                             )}
                                         </div>
 
+                                        {/* Cart Header and Border Color Customizer */}
+                                        <button
+                                            onClick={() => {
+                                                setIsActionMenuOpen(false);
+                                                setShowCartColorCustomizer(true);
+                                            }}
+                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left cursor-pointer"
+                                        >
+                                            <Palette size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                            <span className="font-black uppercase tracking-tight text-left">Màu giỏ hàng & Viền</span>
+                                        </button>
+
                                         {/* AI Invoice Scanner */}
                                         <button
                                             onClick={() => {
@@ -2456,7 +2483,14 @@ export default function Purchase() {
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
-                        <div className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border border-primary/25 dark:border-primary/30", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}>
+                        <div 
+                            className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+                            style={{
+                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
+                                borderWidth: cartColorConfig.borderWidth && cartColorConfig.borderWidth !== '1' ? `${cartColorConfig.borderWidth}px` : undefined,
+                                boxShadow: cartColorConfig.borderColor !== 'default' ? `0 0 25px ${cartColorConfig.borderColor}20, 0 8px 32px ${cartColorConfig.borderColor}15` : undefined
+                            }}
+                        >
                             <AnimatePresence>
                                 {historyLoading && (
                                     <m.div
@@ -2629,44 +2663,52 @@ export default function Purchase() {
                                                 <col style={{ width: "14%" }} />
                                                 <col style={{ width: "4%" }} />
                                             </colgroup>
-                                            <thead className="bg-transparent sticky top-0 z-[100] print:hidden border-none">
+                                            <thead 
+                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
+                                                style={{
+                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
+                                                }}
+                                            >
                                                 <tr className="border-none">
-                                                    <th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Stt</th>
+                                                    <th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th>
                                                     <th className="px-3 py-2.5 align-middle whitespace-nowrap">
                                                         <div className="flex items-center justify-between w-full gap-2">
-                                                            <span className="font-black uppercase tracking-wider text-[11px] text-[#8b6f47] dark:text-[#d4a574]">Danh mục sản phẩm nhập hàng</span>
+                                                            <span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
+                                                                <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm nhập hàng</span>
+                                                            </span>
                                                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />
                                                                 {totalItems} món
                                                             </span>
                                                         </div>
                                                     </th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Đơn vị</th>
-                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th>
+                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
                                                         <div className="flex flex-col items-center justify-center leading-tight">
-                                                            <span>Quy đổi</span>
-                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalSecondaryQty > 0 ? "text-[#8b6f47] dark:text-[#d4a574] font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>
+                                                            <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span>
+                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalSecondaryQty > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>
                                                                 {totalSecondaryQty > 0 ? formatNumber(totalSecondaryQty) : "—"}
                                                             </span>
                                                         </div>
                                                     </th>
-                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">
+                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
                                                         <div className="flex flex-col items-center justify-center leading-tight">
-                                                            <span>Số lượng</span>
-                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalQty > 0 ? "text-primary dark:text-emerald-400 font-black" : "text-[#8b6f47]/40 dark:text-[#d4a574]/40 font-normal")}>
+                                                            <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span>
+                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalQty > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>
                                                                 {totalQty > 0 ? formatNumber(totalQty) : "—"}
                                                             </span>
                                                         </div>
                                                     </th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Giá nhập</th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap">Thành tiền</th>
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Giá nhập</span></th>
+                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th>
                                                     <th className="py-2.5 px-2 text-center align-middle" />
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer"
+                                                    className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer"
+                                                    style={{ borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined }}
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {
                                                             setEditingProduct(workingItem.product);
@@ -3132,6 +3174,9 @@ export default function Purchase() {
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
                                                                         : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-white/5 dark:hover:bg-slate-800/5"
                                                                 )}
+                                                                style={{
+                                                                    borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined
+                                                                }}
                                                                 onDoubleClick={() => {
                                                                     const p = products.find(prod => prod.id === item.product_id);
                                                                     if (p) {
@@ -5864,6 +5909,30 @@ export default function Purchase() {
                             message={toast.message}
                             type={toast.type}
                             onClose={() => setToast(null)}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Cart Color & Border Customizer Modal */}
+                <AnimatePresence>
+                    {showCartColorCustomizer && (
+                        <CartColorCustomizerModal
+                            isOpen={showCartColorCustomizer}
+                            config={cartColorConfig}
+                            onClose={() => setShowCartColorCustomizer(false)}
+                            onChangeConfig={(newCfg) => {
+                                setCartColorConfig(newCfg);
+                                localStorage.setItem("pos_cart_color_config", JSON.stringify(newCfg));
+                                try {
+                                    const syncChan = new BroadcastChannel("pos_data_sync");
+                                    syncChan.postMessage({
+                                        type: "CART_COLOR_CONFIG_UPDATED",
+                                        key: "pos_cart_color_config",
+                                        value: JSON.stringify(newCfg)
+                                    });
+                                    syncChan.close();
+                                } catch (e) {}
+                            }}
                         />
                     )}
                 </AnimatePresence>

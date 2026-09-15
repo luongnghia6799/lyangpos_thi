@@ -44,7 +44,8 @@ const USER_AVATAR_PRESETS = [
     '/assets/images/user_mascot.png',
     '/assets/images/cute_farmer_boy.png',
     '/assets/images/plant_doctor.png',
-    logo
+    logo,
+    '/doraemon.png'
 ];
 
 const getUserAvatar = (user, index = 0) => {
@@ -106,6 +107,20 @@ export default function Welcome() {
         // Update clock every 15 seconds instead of every second
         const timer = setInterval(() => setTime(new Date()), 15000);
         return () => clearInterval(timer);
+    }, []);
+
+    const [avatarKey, setAvatarKey] = useState(0);
+
+    useEffect(() => {
+        const handleAvatarUpdate = () => {
+            setAvatarKey(k => k + 1);
+        };
+        window.addEventListener('user_avatar_updated', handleAvatarUpdate);
+        window.addEventListener('storage', handleAvatarUpdate);
+        return () => {
+            window.removeEventListener('user_avatar_updated', handleAvatarUpdate);
+            window.removeEventListener('storage', handleAvatarUpdate);
+        };
     }, []);
 
     // Fetch users & Auto-login if default landing page is dashboard

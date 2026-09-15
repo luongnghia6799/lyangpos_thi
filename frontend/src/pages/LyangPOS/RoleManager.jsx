@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { AnimatePresence, motion as m } from 'framer-motion';
@@ -6,11 +6,38 @@ import CustomSelect from '../../components/CustomSelect';
 import { 
     Users, ShieldCheck, UserPlus, Trash2, Key, Save, 
     X, AlertCircle, CheckCircle2, Shield, UserCircle,
-    Fingerprint, Lock, ShieldAlert, Wheat, Tractor
+    Fingerprint, Lock, ShieldAlert, Wheat, Tractor,
+    Camera, Upload, Sparkles, Image as ImageIcon, Check
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
 import ConfirmModal from '../../components/ConfirmModal';
+import logo from '../../assets/logo.png';
+
+export const USER_AVATAR_PRESETS = [
+    { id: 'mascot', name: 'Nông Dân Lyang', url: '/assets/images/user_mascot.png' },
+    { id: 'farmer_boy', name: 'Cậu Bé Nông Dân', url: '/assets/images/cute_farmer_boy.png' },
+    { id: 'plant_doctor', name: 'Bác Sĩ Cây Trồng', url: '/assets/images/plant_doctor.png' },
+    { id: 'logo', name: 'Logo LyangPOS', url: logo },
+    { id: 'doraemon', name: 'Doraemon', url: '/doraemon.png' },
+];
+
+export const getUserAvatar = (user, index = 0) => {
+    if (!user) return USER_AVATAR_PRESETS[0].url;
+    if (user.avatar) return user.avatar;
+    const custom = localStorage.getItem(`user_avatar_${user.username}`) || localStorage.getItem(`user_avatar_${user.id}`);
+    if (custom) return custom;
+    
+    // Hash username for consistent avatar assignment
+    const key = user.username || String(user.id || index);
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+        hash = (hash << 5) - hash + key.charCodeAt(i);
+        hash |= 0;
+    }
+    const idx = Math.abs(hash) % USER_AVATAR_PRESETS.length;
+    return USER_AVATAR_PRESETS[idx].url;
+};
 
 export default function RoleManager() {
     const [users, setUsers] = useState([]);
@@ -19,11 +46,15 @@ export default function RoleManager() {
     const [toast, setToast] = useState(null);
     const [confirm, setConfirm] = useState(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editingAvatarUser, setEditingAvatarUser] = useState(null);
+    const [selectedAvatarUrl, setSelectedAvatarUrl] = useState('');
+    const fileInputRef = useRef(null);
     const [newUser, setNewUser] = useState({
         username: '',
         password: '',
         display_name: '',
-        role: 'user'
+        role: 'user',
+        avatar: USER_AVATAR_PRESETS[0].url
     });
 
     const roles = [
@@ -143,9 +174,32 @@ export default function RoleManager() {
                         >
                             <div className="flex items-start justify-between gap-6 mb-6 relative z-10">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-border flex items-center justify-center text-[#2d5016] dark:text-emerald-400 group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-                                        <UserCircle size={32} strokeWidth={1.5} />
+                                    {/* User Avatar with Edit Overlay */}
+                                    <div 
+                                        onClick={() => {
+                                            setEditingAvatarUser(user);
+                                            setSelectedAvatarUrl(getUserAvatar(user));
+                                        }}
+                                        className="relative group/avatar cursor-pointer shrink-0"
+                                        title="Bấm để đổi Avatar cho nhân viên này"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md group-hover/avatar:scale-105 transition-all duration-300">
+                                            <div className="w-full h-full rounded-[14px] bg-slate-900/10 dark:bg-slate-900 overflow-hidden flex items-center justify-center relative shadow-inner">
+                                                <img 
+                                                    src={getUserAvatar(user)} 
+                                                    alt={user.display_name || user.username}
+                                                    className="w-full h-full object-cover select-none filter drop-shadow-xs"
+                                                    onError={(e) => { e.currentTarget.src = logo; }}
+                                                />
+                                                {/* Hover Camera Icon */}
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[8px] font-black gap-0.5">
+                                                    <Camera size={15} />
+                                                    <span>Đổi</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
+
                                     <div>
                                         <div className="text-[10px] font-black text-[#8b6f47] uppercase tracking-[0.3em] mb-0.5">ID: #{user.id}</div>
                                         <input
@@ -239,7 +293,36 @@ export default function RoleManager() {
                                     </button>
                                 </div>
 
-                                <form onSubmit={handleAddUser} className="space-y-6">
+                                <form onSubmit={handleAddUser} className="space-y-5">
+                                    {/* Avatar Selection in Add Modal */}
+                                    <div className="flex items-center gap-4 p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-border">
+                                        <div 
+                                            onClick={() => {
+                                                setEditingAvatarUser(newUser);
+                                                setSelectedAvatarUrl(newUser.avatar || USER_AVATAR_PRESETS[0].url);
+                                            }}
+                                            className="w-14 h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md cursor-pointer group/add-avatar shrink-0 relative"
+                                            title="Bấm chọn Avatar"
+                                        >
+                                            <div className="w-full h-full rounded-[14px] bg-slate-900/10 dark:bg-slate-900 overflow-hidden flex items-center justify-center relative">
+                                                <img 
+                                                    src={newUser.avatar || USER_AVATAR_PRESETS[0].url} 
+                                                    alt="New User Avatar"
+                                                    className="w-full h-full object-cover select-none"
+                                                    onError={(e) => { e.currentTarget.src = logo; }}
+                                                />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/add-avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[8px] font-black gap-0.5">
+                                                    <Camera size={14} />
+                                                    <span>Đổi</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 block">Avatar nhân viên</span>
+                                            <span className="text-[10px] text-slate-400 block">Bấm vào ảnh để chọn nhân vật 3D hoặc tải ảnh riêng</span>
+                                        </div>
+                                    </div>
+
                                     <div className="space-y-4">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">ID Đăng nhập (Username)</label>
@@ -315,6 +398,170 @@ export default function RoleManager() {
                             </m.div>
                         </div>
                     )}
+                </AnimatePresence>,
+                document.body
+            )}
+
+            {/* Avatar Customization Modal */}
+            {editingAvatarUser && createPortal(
+                <AnimatePresence>
+                    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6 font-sans">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setEditingAvatarUser(null)}
+                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        />
+                        <m.div
+                            initial={{ opacity: 0, scale: 0.92, y: 25 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92, y: 25 }}
+                            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-border relative z-10 overflow-hidden space-y-6"
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md">
+                                        <Sparkles size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg sm:text-xl font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight">
+                                            Tùy Chỉnh Avatar Nhân Viên
+                                        </h3>
+                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                            Tài khoản: @{editingAvatarUser.username || 'nhân_viên_mới'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setEditingAvatarUser(null)} 
+                                    className="p-2 hover:bg-black/5 dark:hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            {/* Live Preview of Selected Avatar */}
+                            <div className="flex flex-col items-center justify-center py-2">
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1.5 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-xl relative group">
+                                    <div className="w-full h-full rounded-full bg-slate-900/10 dark:bg-slate-900 overflow-hidden flex items-center justify-center shadow-inner">
+                                        <img 
+                                            src={selectedAvatarUrl || getUserAvatar(editingAvatarUser)} 
+                                            alt="Selected Avatar"
+                                            className="w-full h-full object-cover select-none"
+                                            onError={(e) => { e.currentTarget.src = logo; }}
+                                        />
+                                    </div>
+                                </div>
+                                <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 mt-2 uppercase tracking-wider">
+                                    Xem trước hiển thị
+                                </span>
+                            </div>
+
+                            {/* Preset Avatars Grid */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    <span>Nhân vật 3D / Linh vật có sẵn</span>
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 lowercase font-medium">bấm để chọn</span>
+                                </div>
+
+                                <div className="grid grid-cols-5 gap-3">
+                                    {USER_AVATAR_PRESETS.map((preset) => {
+                                        const isChosen = selectedAvatarUrl === preset.url;
+                                        return (
+                                            <button
+                                                key={preset.id}
+                                                type="button"
+                                                onClick={() => setSelectedAvatarUrl(preset.url)}
+                                                className={cn(
+                                                    "p-2 rounded-2xl border transition-all flex flex-col items-center gap-1.5 group cursor-pointer relative",
+                                                    isChosen 
+                                                        ? "bg-emerald-500/15 border-emerald-500 shadow-md shadow-emerald-500/20 scale-105" 
+                                                        : "bg-black/5 dark:bg-white/5 border-border hover:border-emerald-500/50 hover:bg-black/10 dark:hover:bg-white/10"
+                                                )}
+                                            >
+                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-slate-800 flex items-center justify-center p-1 shadow-xs">
+                                                    <img src={preset.url} alt={preset.name} className="w-full h-full object-contain select-none" />
+                                                </div>
+                                                <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 truncate w-full text-center">
+                                                    {preset.name}
+                                                </span>
+                                                {isChosen && (
+                                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                                                        <Check size={11} strokeWidth={3.5} />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Upload Custom Avatar Button */}
+                            <div className="pt-2 border-t border-border">
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        if (file.size > 3 * 1024 * 1024) {
+                                            setToast({ message: 'Ảnh vượt quá 3MB, vui lòng chọn ảnh nhỏ hơn!', type: 'error' });
+                                            return;
+                                        }
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                            setSelectedAvatarUrl(reader.result);
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="w-full py-3 px-4 rounded-2xl border border-dashed border-emerald-600/40 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                >
+                                    <Upload size={16} />
+                                    <span>Tải lên ảnh từ máy tính (JPG, PNG, WebP)</span>
+                                </button>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingAvatarUser(null)}
+                                    className="flex-1 py-3.5 rounded-2xl border border-border text-slate-600 dark:text-slate-300 font-black text-xs uppercase tracking-wider hover:bg-black/5 dark:hover:bg-white/5 transition-all cursor-pointer"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!selectedAvatarUrl) return;
+                                        if (editingAvatarUser.id) {
+                                            localStorage.setItem(`user_avatar_${editingAvatarUser.username}`, selectedAvatarUrl);
+                                            localStorage.setItem(`user_avatar_${editingAvatarUser.id}`, selectedAvatarUrl);
+                                            setToast({ message: `Đã lưu avatar cho ${editingAvatarUser.display_name || editingAvatarUser.username}`, type: 'success' });
+                                            setUsers(prev => [...prev]);
+                                        } else {
+                                            setNewUser(prev => ({ ...prev, avatar: selectedAvatarUrl }));
+                                            setToast({ message: 'Đã chọn avatar cho nhân viên mới', type: 'success' });
+                                        }
+                                        window.dispatchEvent(new Event('user_avatar_updated'));
+                                        window.dispatchEvent(new Event('storage'));
+                                        setEditingAvatarUser(null);
+                                    }}
+                                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-[#2d5016]/20 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer"
+                                >
+                                    Áp Dụng Avatar
+                                </button>
+                            </div>
+                        </m.div>
+                    </div>
                 </AnimatePresence>,
                 document.body
             )}

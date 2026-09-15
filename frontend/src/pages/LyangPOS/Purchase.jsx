@@ -2529,8 +2529,9 @@ export default function Purchase() {
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
                         <div 
-                            className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+                            className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
                             style={{
+                                border: cartColorConfig.enableBorder === false ? 'none' : undefined,
                                 borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
                                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                                 boxShadow: getCartBoxShadow(cartColorConfig)
@@ -2752,8 +2753,8 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className="bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] border-b transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer"
-                                                    style={{ borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined }}
+                                                    className={cn("bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
+                                                    style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {
                                                             setEditingProduct(workingItem.product);
@@ -3214,13 +3215,14 @@ export default function Purchase() {
                                                                     delay: idx * 0.02
                                                                 }}
                                                                 className={cn(
-                                                                    "relative transition-colors duration-200 group cursor-pointer border-b border-[#8b6f47]/10 dark:border-white/5 last:border-b-0",
+                                                                    "relative transition-colors duration-200 group cursor-pointer last:border-b-0",
+                                                                    cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
                                                                         : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-white/5 dark:hover:bg-slate-800/5"
                                                                 )}
                                                                 style={{
-                                                                    borderColor: cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined
+                                                                    borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
                                                                 }}
                                                                 onDoubleClick={() => {
                                                                     const p = products.find(prod => prod.id === item.product_id);

@@ -793,18 +793,18 @@ export default function Dashboard() {
                                     {/* Preview Circle */}
                                     <div className="flex flex-col items-center justify-center gap-3">
                                         <div className="relative group/prev">
-                                            <div className="w-28 h-28 rounded-3xl p-1 bg-gradient-to-br from-[#2d5016] via-[#3d6e1e] to-[#8b6f47] border-2 border-primary/30 shadow-lg overflow-hidden flex items-center justify-center bg-card">
+                                            <div className="w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center bg-card/30 shadow-md">
                                                 {getAvatarSrc(avatarUrl) ? (
                                                     <img 
                                                         src={getAvatarSrc(avatarUrl)} 
                                                         alt="Avatar Preview" 
-                                                        className="w-full h-full object-cover rounded-[1.2rem]" 
+                                                        className="w-full h-full object-cover rounded-2xl" 
                                                     />
                                                 ) : (
                                                     <img 
                                                         src="/logo.png" 
                                                         alt="Default Logo" 
-                                                        className="w-[85%] h-[85%] object-contain drop-shadow-md" 
+                                                        className="w-full h-full object-contain p-2" 
                                                     />
                                                 )}
                                             </div>
@@ -867,24 +867,22 @@ export default function Dashboard() {
                                 whileHover={{ scale: 1.05, rotate: 1.5 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setShowAvatarModal(true)}
-                                className="w-28 h-28 lg:w-32 lg:h-32 rounded-[1.5rem] p-0.5 bg-gradient-to-br from-[#2d5016] via-[#3d6e1e] to-[#8b6f47] shadow-none cursor-pointer overflow-hidden border-2 border-white/20 relative"
+                                className="w-28 h-28 lg:w-32 lg:h-32 rounded-2xl cursor-pointer overflow-hidden relative flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
                             >
-                                <div className="w-full h-full rounded-[1.1rem] overflow-hidden bg-card/40 flex items-center justify-center">
-                                    {getAvatarSrc(avatarUrl) ? (
-                                        <img 
-                                            src={getAvatarSrc(avatarUrl)} 
-                                            alt="Avatar" 
-                                            className="w-full h-full object-cover" 
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-white/10">
-                                            <img src="/logo.png" alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md" />
-                                        </div>
-                                    )}
-                                </div>
+                                {getAvatarSrc(avatarUrl) ? (
+                                    <img 
+                                        src={getAvatarSrc(avatarUrl)} 
+                                        alt="Avatar" 
+                                        className="w-full h-full object-cover rounded-2xl" 
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-card/30 p-2">
+                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full object-contain drop-shadow-md" />
+                                    </div>
+                                )}
 
                                 {/* Hover Camera Badge */}
-                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white rounded-[1.5rem]">
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white rounded-2xl">
                                     <Camera size={22} className="drop-shadow-sm" />
                                     <span className="text-[10px] font-black uppercase tracking-wider">Đổi ảnh</span>
                                 </div>

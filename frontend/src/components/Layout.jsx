@@ -592,9 +592,8 @@ const FloatingLiteMenu = ({ liteTheme, navigate, containerRef }) => {
 const getAvatarSrc = (url) => {
     if (!url || url === 'undefined' || url === 'null') return '';
     const normalized = url.replace(/\\/g, '/').trim();
-    if (normalized.startsWith('preset:')) return normalized;
-    if (normalized.startsWith('http') || normalized.startsWith('data:')) {
-        return encodeURI(normalized);
+    if (normalized.startsWith('http') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+        return normalized;
     }
     const base = axios.defaults.baseURL || 'http://localhost:3579';
     const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
@@ -731,7 +730,12 @@ export default function Layout({ children }) {
         }
         window.dispatchEvent(new Event("gpu_state_changed"));
     };
-    const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('user_avatar') || '');
+    const [avatarUrl, setAvatarUrl] = useState(() => {
+        const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+        return (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
+               (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
+               localStorage.getItem('user_avatar') || '';
+    });
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(localStorage.getItem('sidebar_collapsed') === 'true');
     const [isSidebarHidden, setIsSidebarHidden] = useState(localStorage.getItem('sidebar_hidden') === 'true');
     const [accountingEnabled, setAccountingEnabled] = useState(() => {
@@ -1453,13 +1457,20 @@ export default function Layout({ children }) {
     }, []);
 
     useEffect(() => {
-        const checkUpdates = () => {
-            const url = localStorage.getItem('user_avatar');
-            if (url !== avatarUrl) setAvatarUrl(url || '');
+        const updateAvatar = () => {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const custom = (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
+                           (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
+                           localStorage.getItem('user_avatar') || '';
+            setAvatarUrl(custom);
         };
-        const interval = setInterval(checkUpdates, 2000);
-        return () => clearInterval(interval);
-    }, [avatarUrl]);
+        window.addEventListener('user_avatar_updated', updateAvatar);
+        window.addEventListener('storage', updateAvatar);
+        return () => {
+            window.removeEventListener('user_avatar_updated', updateAvatar);
+            window.removeEventListener('storage', updateAvatar);
+        };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('user');
@@ -1512,14 +1523,23 @@ export default function Layout({ children }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-14 h-14 flex items-center justify-center cursor-pointer transition-transform"
+                    className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs"
                 >
-                    <img 
-                        src="/logo.png" 
-                        alt="Logo" 
-                        draggable="false"
-                        className="w-14 h-14 object-contain select-none pointer-events-none" 
-                    />
+                    {getAvatarSrc(avatarUrl) ? (
+                        <img 
+                            src={getAvatarSrc(avatarUrl)} 
+                            alt="Logo" 
+                            draggable="false"
+                            className="w-full h-full object-cover rounded-2xl select-none pointer-events-none" 
+                        />
+                    ) : (
+                        <img 
+                            src="/logo.png" 
+                            alt="Logo" 
+                            draggable="false"
+                            className="w-full h-full object-contain select-none pointer-events-none" 
+                        />
+                    )}
                 </m.div>
 
                 {/* User Dropdown positioning relative to top logo container */}

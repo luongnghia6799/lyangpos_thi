@@ -200,7 +200,28 @@ export default function Dashboard() {
     const [showMascot, setShowMascot] = useState(localStorage.getItem('ui_show_dashboard_mascot') !== 'false');
     const [animateMascot, setAnimateMascot] = useState(() => localStorage.getItem('ui_mascot_animate') === 'true');
     const [mascotConfig, setMascotConfig] = useState({ x: 0, y: 0, scale: 1.5 });
-    const [avatarUrl, setAvatarUrl] = useState(localStorage.getItem('user_avatar') || '');
+    const [avatarUrl, setAvatarUrl] = useState(() => {
+        const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+        return (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
+               (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
+               localStorage.getItem('user_avatar') || '';
+    });
+
+    useEffect(() => {
+        const updateAvatar = () => {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const custom = (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
+                           (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
+                           localStorage.getItem('user_avatar') || '';
+            setAvatarUrl(custom);
+        };
+        window.addEventListener('user_avatar_updated', updateAvatar);
+        window.addEventListener('storage', updateAvatar);
+        return () => {
+            window.removeEventListener('user_avatar_updated', updateAvatar);
+            window.removeEventListener('storage', updateAvatar);
+        };
+    }, []);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [toast, setToast] = useState(null);
     const fileInputRef = useRef(null);

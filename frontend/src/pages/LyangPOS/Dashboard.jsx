@@ -62,7 +62,10 @@ import {
     Eye,
     EyeOff,
     Edit,
-    Sparkles
+    Sparkles,
+    Camera,
+    Upload,
+    Check
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -137,29 +140,13 @@ const getInitials = (name) => {
 const getAvatarSrc = (url) => {
     if (!url || url === 'undefined' || url === 'null') return '';
     const normalized = url.replace(/\\/g, '/').trim();
-    if (normalized.startsWith('preset:')) return normalized;
-    if (normalized.startsWith('http') || normalized.startsWith('data:')) {
-        return encodeURI(normalized);
+    if (normalized.startsWith('http') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+        return normalized;
     }
     const base = axios.defaults.baseURL || 'http://localhost:3579';
     const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
     return encodeURI(fullPath);
 };
-
-const CUTE_PRESETS = [
-    { emoji: '🌾', gradient: 'from-amber-200 to-yellow-600', label: 'Lúa Vàng' },
-    { emoji: '🥑', gradient: 'from-lime-300 to-lime-600', label: 'Bơ Ngọt' },
-    { emoji: '🥬', gradient: 'from-green-300 to-emerald-600', label: 'Cải Xanh' },
-    { emoji: '🍎', gradient: 'from-red-300 to-red-600', label: 'Táo Đỏ' },
-    { emoji: '🥕', gradient: 'from-orange-300 to-orange-600', label: 'Cà Rốt' },
-    { emoji: '🌻', gradient: 'from-yellow-300 to-amber-600', label: '🌻 Vui Vẻ' },
-    { emoji: '🐱', gradient: 'from-purple-200 to-indigo-600', label: 'Mèo Ú' },
-    { emoji: '🐶', gradient: 'from-blue-300 to-blue-600', label: 'Cún Con' },
-    { emoji: '🐷', gradient: 'from-pink-200 to-pink-500', label: 'Heo Xinh' },
-    { emoji: '🏪', gradient: 'from-teal-200 to-teal-600', label: 'Cửa Hàng' },
-    { emoji: '☕', gradient: 'from-amber-200 to-stone-700', label: 'Cà Phê' },
-    { emoji: '⚡', gradient: 'from-yellow-300 to-emerald-600', label: 'Tia Chớp' }
-];
 
 const ClockWidget = () => {
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -516,21 +503,91 @@ export default function Dashboard() {
     const greeting = getGreeting();
 
     const handleAvatarUpload = async (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
+
         try {
-            const res = await axios.post('/api/upload-logo', formData);
-            const url = res.data.url;
-            setAvatarUrl(url);
-            localStorage.setItem('user_avatar', url);
-            
-            // Save globally to database settings
-            await axios.post('/api/settings', { user_avatar: url });
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const img = new Image();
+                img.onload = async () => {
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    const maxDim = 512;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) {
+                            height = Math.round((height * maxDim) / width);
+                            width = maxDim;
+                        } else {
+                            width = Math.round((width * maxDim) / height);
+                            height = maxDim;
+                        }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const base64 = canvas.toDataURL("image/png", 0.9);
+
+                    setAvatarUrl(base64);
+                    localStorage.setItem('user_avatar', base64);
+
+                    const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+                    if (currentUser.username) {
+                        localStorage.setItem(`user_avatar_${currentUser.username}`, base64);
+                    }
+                    if (currentUser.id) {
+                        localStorage.setItem(`user_avatar_${currentUser.id}`, base64);
+                    }
+
+                    try {
+                        await axios.post('/api/settings', { user_avatar: base64 });
+                    } catch (sErr) {
+                        console.warn("Save avatar setting error", sErr);
+                    }
+
+                    window.dispatchEvent(new Event('user_avatar_updated'));
+                    window.dispatchEvent(new Event('storage'));
+                    setToast({ message: 'Tải ảnh đại diện thành công!', type: 'success' });
+                    setShowAvatarModal(false);
+                };
+                img.onerror = () => {
+                    setToast({ message: 'Không thể đọc dữ liệu ảnh.', type: 'error' });
+                };
+                img.src = event.target.result;
+            };
+            reader.onerror = () => {
+                setToast({ message: 'Không thể tải file ảnh.', type: 'error' });
+            };
+            reader.readAsDataURL(file);
         } catch (err) {
             console.error("Avatar upload failed", err);
+            setToast({ message: 'Lỗi tải ảnh đại diện', type: 'error' });
+        } finally {
+            if (e.target) e.target.value = '';
         }
+    };
+
+    const handleResetAvatar = async () => {
+        setAvatarUrl('');
+        localStorage.removeItem('user_avatar');
+        const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
+        if (currentUser.username) {
+            localStorage.removeItem(`user_avatar_${currentUser.username}`);
+        }
+        if (currentUser.id) {
+            localStorage.removeItem(`user_avatar_${currentUser.id}`);
+        }
+        try {
+            await axios.post('/api/settings', { user_avatar: '' });
+        } catch (e) {
+            console.warn("Reset avatar setting error", e);
+        }
+        window.dispatchEvent(new Event('user_avatar_updated'));
+        window.dispatchEvent(new Event('storage'));
+        setShowAvatarModal(false);
+        setToast({ message: 'Đã khôi phục Logo mặc định', type: 'info' });
     };
 
     const fetchData = async (isSilent = false) => {
@@ -692,11 +749,11 @@ export default function Dashboard() {
             className={cn("p-6 space-y-6 min-h-screen relative overflow-y-auto no-scrollbar bg-transparent transition-colors duration-700", gpuDisabled ? "gpu-disabled-mode" : "")}
         >
 
-            {/* Cute Avatar Picker Modal */}
+            {/* Avatar Customization Modal */}
             <Portal>
                 <AnimatePresence>
                     {showAvatarModal && (
-                        <div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto">
+                        <div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm overflow-y-auto">
                             {/* Backdrop */}
                             <m.div
                                 initial={{ opacity: 0 }}
@@ -708,90 +765,87 @@ export default function Dashboard() {
  
                             {/* Modal Content */}
                             <m.div
-                                initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                                initial={{ scale: 0.95, opacity: 0, y: 15 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                                className="bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl text-left"
+                                exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                                className="bg-card w-full max-w-md rounded-3xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl text-left"
                             >
                                 {/* Header */}
-                                <div className="p-5 flex items-center justify-between border-b border-border bg-card">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
-                                            <ImageIcon className="text-primary" size={20} />
+                                <div className="p-5 sm:p-6 flex items-center justify-between border-b border-border bg-card">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="w-11 h-11 bg-primary/10 rounded-2xl flex items-center justify-center border border-primary/20 text-primary">
+                                            <Camera size={22} />
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Cá nhân hóa Avatar</h3>
-                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Chọn icon ngộ nghĩnh hoặc tải ảnh lên</p>
+                                            <h3 className="text-base font-black text-foreground uppercase tracking-wide leading-tight">Cá nhân hóa Avatar</h3>
+                                            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-widest mt-0.5">Tải ảnh đại diện từ thiết bị của bạn</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setShowAvatarModal(false)}
-                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-transparent hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                                     >
-                                        <X size={16} strokeWidth={2.5} />
+                                        <X size={18} strokeWidth={2.5} />
                                     </button>
                                 </div>
  
-                                <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[70vh] bg-card/50">
-                                    {/* Cute Presets Grid */}
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Chọn icon cute có sẵn</label>
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {CUTE_PRESETS.map((preset, index) => (
-                                                <m.button
-                                                    key={index}
-                                                    whileHover={{ scale: 1.08, y: -2 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={async () => {
-                                                        const val = `preset:${preset.emoji}|${preset.gradient}`;
-                                                        setAvatarUrl(val);
-                                                        localStorage.setItem('user_avatar', val);
-                                                        await axios.post('/api/settings', { user_avatar: val });
-                                                        setShowAvatarModal(false);
-                                                    }}
-                                                    className={cn(
-                                                        "aspect-square rounded-xl bg-gradient-to-br flex flex-col items-center justify-center p-2 text-3xl shadow-none border border-white/20 relative group/btn cursor-pointer",
-                                                        preset.gradient
-                                                    )}
-                                                >
-                                                    <span>{preset.emoji}</span>
-                                                    <span className="absolute bottom-1 text-[8px] font-black text-white/80 uppercase tracking-tighter opacity-0 group-hover/btn:opacity-100 transition-opacity">
-                                                        {preset.label}
-                                                    </span>
-                                                </m.button>
-                                            ))}
+                                <div className="p-6 flex flex-col gap-6 bg-card/40">
+                                    {/* Preview Circle */}
+                                    <div className="flex flex-col items-center justify-center gap-3">
+                                        <div className="relative group/prev">
+                                            <div className="w-28 h-28 rounded-3xl p-1 bg-gradient-to-br from-[#2d5016] via-[#3d6e1e] to-[#8b6f47] border-2 border-primary/30 shadow-lg overflow-hidden flex items-center justify-center bg-card">
+                                                {getAvatarSrc(avatarUrl) ? (
+                                                    <img 
+                                                        src={getAvatarSrc(avatarUrl)} 
+                                                        alt="Avatar Preview" 
+                                                        className="w-full h-full object-cover rounded-[1.2rem]" 
+                                                    />
+                                                ) : (
+                                                    <img 
+                                                        src="/logo.png" 
+                                                        alt="Default Logo" 
+                                                        className="w-[85%] h-[85%] object-contain drop-shadow-md" 
+                                                    />
+                                                )}
+                                            </div>
+                                            <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1.5 rounded-xl shadow-md border-2 border-card">
+                                                <Sparkles size={14} />
+                                            </div>
                                         </div>
+                                        <p className="text-xs font-bold text-muted-foreground">
+                                            {avatarUrl ? "Ảnh đại diện tùy chỉnh hiện tại" : "Đang sử dụng Logo mặc định"}
+                                        </p>
                                     </div>
- 
-                                    {/* Custom File Upload Option */}
-                                    <div className="border-t border-border pt-4 space-y-3">
-                                        <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Hoặc tải ảnh từ thiết bị của bạn</label>
+
+                                    {/* Upload Dropzone / Button */}
+                                    <div 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/[0.04] transition-all rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 text-center cursor-pointer group"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Upload size={22} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-foreground">Tải ảnh lên từ máy tính</p>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">Hỗ trợ định dạng PNG, JPG, JPEG, WebP</p>
+                                        </div>
                                         <button
-                                            onClick={() => {
-                                                fileInputRef.current?.click();
-                                                setShowAvatarModal(false);
-                                            }}
-                                            className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl transition-all flex items-center justify-center gap-2 hover:bg-primary-hover cursor-pointer text-sm shadow-sm"
+                                            type="button"
+                                            className="mt-1 px-4 py-2 bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider rounded-xl shadow-xs group-hover:bg-primary-hover transition-colors pointer-events-none"
                                         >
-                                            <ShoppingBag size={16} /> Tải ảnh lên từ máy tính
+                                            Chọn File Ảnh
                                         </button>
                                     </div>
 
-                                    {/* Delete Current Avatar */}
+                                    {/* Reset / Remove custom avatar */}
                                     {avatarUrl && (
-                                        <div className="border-t border-border pt-4">
-                                            <button
-                                                onClick={async () => {
-                                                    setAvatarUrl('');
-                                                    localStorage.setItem('user_avatar', '');
-                                                    await axios.post('/api/settings', { user_avatar: '' });
-                                                    setShowAvatarModal(false);
-                                                }}
-                                                className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-red-400 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
-                                            >
-                                                <Trash2 size={16} /> Trở về Logo mặc định
-                                            </button>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetAvatar}
+                                            className="w-full py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+                                        >
+                                            <Trash2 size={16} /> Khôi phục Logo mặc định
+                                        </button>
                                     )}
                                 </div>
                             </m.div>
@@ -810,37 +864,38 @@ export default function Dashboard() {
                         {/* Modern Avatar Container */}
                         <div className="relative group shrink-0">
                             <m.div
-                                whileHover={{ scale: 1.05, rotate: 2 }}
+                                whileHover={{ scale: 1.05, rotate: 1.5 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setShowAvatarModal(true)}
-                                className="w-28 h-28 lg:w-32 lg:h-32 rounded-[1.5rem] p-0.5 bg-gradient-to-br from-[#2d5016] via-[#3d6e1e] to-[#8b6f47] shadow-none cursor-pointer overflow-hidden border-2 border-white/20"
+                                className="w-28 h-28 lg:w-32 lg:h-32 rounded-[1.5rem] p-0.5 bg-gradient-to-br from-[#2d5016] via-[#3d6e1e] to-[#8b6f47] shadow-none cursor-pointer overflow-hidden border-2 border-white/20 relative"
                             >
-                                <div className="w-full h-full rounded-[1.1rem] overflow-hidden bg-transparent flex items-center justify-center">
+                                <div className="w-full h-full rounded-[1.1rem] overflow-hidden bg-card/40 flex items-center justify-center">
                                     {getAvatarSrc(avatarUrl) ? (
-                                        getAvatarSrc(avatarUrl).startsWith('preset:') ? (
-                                            (() => {
-                                                const [emoji, gradient] = getAvatarSrc(avatarUrl).replace('preset:', '').split('|');
-                                                return (
-                                                    <div className={cn("w-full h-full flex items-center justify-center text-5xl lg:text-6xl select-none bg-gradient-to-br", gradient)}>
-                                                        {emoji}
-                                                    </div>
-                                                );
-                                            })()
-                                        ) : (
-                                            <img 
-                                                src={getAvatarSrc(avatarUrl)} 
-                                                alt="Avatar" 
-                                                className="w-full h-full object-cover" 
-                                            />
-                                        )
+                                        <img 
+                                            src={getAvatarSrc(avatarUrl)} 
+                                            alt="Avatar" 
+                                            className="w-full h-full object-cover" 
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-white/10">
                                             <img src="/logo.png" alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md" />
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Hover Camera Badge */}
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white rounded-[1.5rem]">
+                                    <Camera size={22} className="drop-shadow-sm" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider">Đổi ảnh</span>
+                                </div>
                             </m.div>
-                            <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleAvatarUpload} 
+                                className="hidden" 
+                                accept="image/png, image/jpeg, image/jpg, image/webp" 
+                            />
                         </div>
  
                         {/* Greeting Message */}

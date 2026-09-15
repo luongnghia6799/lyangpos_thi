@@ -39,6 +39,31 @@ const FloatingBackground = ({ isDark }) => {
     );
 };
 
+// Preset avatar illustrations
+const USER_AVATAR_PRESETS = [
+    '/assets/images/user_mascot.png',
+    '/assets/images/cute_farmer_boy.png',
+    '/assets/images/plant_doctor.png',
+    logo
+];
+
+const getUserAvatar = (user, index = 0) => {
+    if (!user) return USER_AVATAR_PRESETS[0];
+    if (user.avatar) return user.avatar;
+    const custom = localStorage.getItem(`user_avatar_${user.username}`) || localStorage.getItem(`user_avatar_${user.id}`);
+    if (custom) return custom;
+    
+    // Hash username for consistent avatar assignment
+    const key = user.username || String(user.id || index);
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+        hash = (hash << 5) - hash + key.charCodeAt(i);
+        hash |= 0;
+    }
+    const idx = Math.abs(hash) % USER_AVATAR_PRESETS.length;
+    return USER_AVATAR_PRESETS[idx];
+};
+
 export default function Welcome() {
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
@@ -729,9 +754,10 @@ export default function Welcome() {
                                                 <span>Chọn nhanh:</span>
                                             </p>
                                             <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
-                                                {users.map(u => {
+                                                {users.map((u, uIdx) => {
                                                     const isSelected = formData.username === u.username;
                                                     const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
+                                                    const avatarSrc = getUserAvatar(u, uIdx);
 
                                                     return (
                                                         <button
@@ -747,8 +773,12 @@ export default function Welcome() {
                                                                         : "bg-white/80 border-[#d4a574]/30 text-[#8b6f47] hover:border-[#2d5016] hover:text-[#2d5016]")
                                                             )}
                                                         >
-                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[8px] font-black">
-                                                                {initial}
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[8px] font-black overflow-hidden shrink-0">
+                                                                {avatarSrc ? (
+                                                                    <img src={avatarSrc} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                                                ) : (
+                                                                    initial
+                                                                )}
                                                             </div>
                                                             <span>{u.display_name?.split(' ')[0] || u.username}</span>
                                                         </button>
@@ -904,48 +934,46 @@ export default function Welcome() {
                                                     onChange={e => setRememberMe(e.target.checked)}
                                                 />
                                                 <span className={cn(
-                                                    "text-xs sm:text-sm font-bold transition-colors",
-                                                    rememberMe 
-                                                        ? (isDark ? "text-emerald-400" : "text-[#2d5016]") 
-                                                        : (isDark ? "text-slate-400" : "text-[#8b6f47]")
+                                                    "text-xs font-bold",
+                                                    isDark ? "text-slate-300" : "text-[#8b6f47]"
                                                 )}>
-                                                    Ghi nhớ đăng nhập
+                                                    Ghi nhớ tài khoản này
                                                 </span>
                                             </label>
                                         </div>
                                     )}
+                                </div>
 
-                                    {/* Error Notification Banner */}
+                                {/* Error Alert */}
+                                <AnimatePresence>
                                     {error && (
                                         <m.div
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-black text-center uppercase tracking-wider flex items-center justify-center gap-2"
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-2.5 text-rose-600 dark:text-rose-400 text-xs font-bold"
                                         >
-                                            <X size={15} />
+                                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
                                             <span>{error}</span>
                                         </m.div>
                                     )}
-                                </div>
+                                </AnimatePresence>
 
-                                {/* Submit Button */}
+                                {/* Action Submit Button */}
                                 <m.button
                                     id="login-form-submit-btn"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
                                     type="submit"
                                     disabled={loading}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     className="w-full mt-4 sm:mt-5 bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-[0.15em] py-4 sm:py-4.5 rounded-2xl shadow-xl shadow-[#2d5016]/20 hover:shadow-[#2d5016]/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-60"
                                 >
                                     {loading ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            <span>Đang xử lý...</span>
-                                        </div>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <span>{isLogin ? "Đăng nhập hệ thống" : "Hoàn tất đăng ký"}</span>
-                                            <ArrowRight size={18} />
+                                            <span>{isLogin ? 'Bắt đầu làm việc' : 'Tạo tài khoản mới'}</span>
+                                            <ArrowRight size={16} />
                                         </>
                                     )}
                                 </m.button>
@@ -975,9 +1003,10 @@ export default function Welcome() {
 
                             <div className="flex gap-3 sm:gap-5 overflow-x-auto w-full max-w-full py-2 px-2 no-scrollbar scroll-smooth items-center justify-center flex-wrap">
                                 {/* Recent Accounts Cards */}
-                                {users.map(u => {
+                                {users.map((u, uIdx) => {
                                     const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
                                     const isCurrentSelected = selectedUserLoading === u.username;
+                                    const avatarSrc = getUserAvatar(u, uIdx);
 
                                     return (
                                         <m.div
@@ -997,13 +1026,22 @@ export default function Welcome() {
 
                                             {/* Avatar with Glowing Halo */}
                                             <div className="relative mb-2 mt-1">
-                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md group-hover:rotate-6 transition-transform duration-500">
+                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
                                                     <div className={cn(
-                                                        "w-full h-full rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shadow-inner",
+                                                        "w-full h-full rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shadow-inner overflow-hidden relative",
                                                         isDark ? "bg-slate-900 text-emerald-300" : "bg-white text-[#2d5016]"
                                                     )}>
                                                         {isCurrentSelected ? (
                                                             <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+                                                        ) : avatarSrc ? (
+                                                            <img 
+                                                                src={avatarSrc} 
+                                                                alt={u.display_name || u.username}
+                                                                className="w-full h-full object-cover select-none filter drop-shadow-xs transition-transform duration-300 group-hover:scale-110"
+                                                                onError={(e) => {
+                                                                    e.currentTarget.style.display = 'none';
+                                                                }}
+                                                            />
                                                         ) : (
                                                             initial
                                                         )}

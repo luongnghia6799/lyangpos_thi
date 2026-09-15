@@ -107,6 +107,22 @@ export const formatDate = (dateInput) => {
         return '-';
     }
 }
+
+export const formatRelativePurchaseDate = (dateInput) => {
+    if (!dateInput) return '';
+    try {
+        let normalizedDateStr = typeof dateInput === 'string' ? dateInput.trim().replace(' ', 'T') : dateInput;
+        const date = new Date(normalizedDateStr);
+        if (isNaN(date.getTime())) return '';
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return '';
+    }
+};
 export const normalizeUOM = (uom) => {
     if (!uom || typeof uom !== 'string') return uom;
 

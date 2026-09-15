@@ -62,10 +62,7 @@ import {
     Eye,
     EyeOff,
     Edit,
-    Sparkles,
-    Upload,
-    RotateCcw,
-    Check
+    Sparkles
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -222,149 +219,6 @@ export default function Dashboard() {
     const fileInputRef = useRef(null);
 
     const [showWallpaperSettings, setShowWallpaperSettings] = useState(false);
-    const [activeThemeTab, setActiveThemeTab] = useState('wallpaper');
-    const [customLogo, setCustomLogo] = useState(() => localStorage.getItem('pos_custom_app_logo') || '');
-    const [logoConfig, setLogoConfig] = useState(() => {
-        try {
-            const saved = localStorage.getItem('pos_custom_app_logo_config');
-            return saved ? JSON.parse(saved) : { shape: 'squircle', fit: 'cover', frame: 'border' };
-        } catch (e) {
-            return { shape: 'squircle', fit: 'cover', frame: 'border' };
-        }
-    });
-
-    const updateLogoConfig = (newCfg) => {
-        const updated = { ...logoConfig, ...newCfg };
-        setLogoConfig(updated);
-        try {
-            localStorage.setItem('pos_custom_app_logo_config', JSON.stringify(updated));
-        } catch (e) {}
-        window.dispatchEvent(new Event('app_logo_changed'));
-        try {
-            const chan = new BroadcastChannel('pos_data_sync');
-            chan.postMessage({ type: 'APP_LOGO_CONFIG_UPDATED', value: updated });
-            chan.close();
-        } catch (e) {}
-    };
-
-    const broadcastCustomLogo = (logoVal) => {
-        try {
-            const chan = new BroadcastChannel('pos_data_sync');
-            chan.postMessage({ type: 'APP_LOGO_UPDATED', value: logoVal });
-            chan.close();
-        } catch (e) {}
-    };
-
-    useEffect(() => {
-        const handleLogoChange = () => {
-            setCustomLogo(localStorage.getItem('pos_custom_app_logo') || '');
-            try {
-                const savedCfg = localStorage.getItem('pos_custom_app_logo_config');
-                if (savedCfg) setLogoConfig(JSON.parse(savedCfg));
-            } catch (e) {}
-        };
-        const handleSync = (e) => {
-            if (e.data?.type === 'APP_LOGO_UPDATED') {
-                setCustomLogo(e.data.value || '');
-            }
-            if (e.data?.type === 'APP_LOGO_CONFIG_UPDATED') {
-                setLogoConfig(e.data.value || { shape: 'squircle', fit: 'cover', frame: 'border' });
-            }
-        };
-        window.addEventListener('app_logo_changed', handleLogoChange);
-        window.addEventListener('storage', handleLogoChange);
-        let chan;
-        try {
-            chan = new BroadcastChannel('pos_data_sync');
-            chan.addEventListener('message', handleSync);
-        } catch (e) {}
-        return () => {
-            window.removeEventListener('app_logo_changed', handleLogoChange);
-            window.removeEventListener('storage', handleLogoChange);
-            if (chan) chan.close();
-        };
-    }, []);
-
-    const getLogoRoundedClass = (shape) => {
-        if (shape === 'circle') return 'rounded-full';
-        if (shape === 'rounded') return 'rounded-xl';
-        if (shape === 'square') return 'rounded-md';
-        return 'rounded-2xl';
-    };
-
-    const getLogoFitClass = (fit) => {
-        return fit === 'contain' ? 'object-contain' : 'object-cover';
-    };
-
-    const getLogoFrameClass = (frame) => {
-        if (frame === 'none') return 'bg-transparent border-0 shadow-none';
-        if (frame === 'shadow') return 'bg-white/40 dark:bg-black/40 backdrop-blur-md shadow-md border border-black/5 dark:border-white/10';
-        return 'bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10 shadow-xs';
-    };
-
-    const compressAndSetLogo = (file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                
-                const maxDim = 512;
-                let width = img.width;
-                let height = img.height;
-                if (width > maxDim || height > maxDim) {
-                    if (width > height) {
-                        height = Math.round((height * maxDim) / width);
-                        width = maxDim;
-                    } else {
-                        width = Math.round((width * maxDim) / height);
-                        height = maxDim;
-                    }
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                const isPng = file.type === 'image/png';
-                const compressedBase64 = isPng ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.85);
-                
-                if (compressedBase64.length > 2 * 1024 * 1024) {
-                    setToast({ message: "Ảnh logo quá lớn. Vui lòng chọn ảnh dung lượng nhẹ hơn.", type: "error" });
-                    return;
-                }
-                
-                localStorage.setItem('pos_custom_app_logo', compressedBase64);
-                setCustomLogo(compressedBase64);
-                window.dispatchEvent(new Event('app_logo_changed'));
-                broadcastCustomLogo(compressedBase64);
-                setToast({ message: "Đã cập nhật Logo ứng dụng thành công!", type: "success" });
-            };
-            img.onerror = () => {
-                const base64 = event.target.result;
-                localStorage.setItem('pos_custom_app_logo', base64);
-                setCustomLogo(base64);
-                window.dispatchEvent(new Event('app_logo_changed'));
-                broadcastCustomLogo(base64);
-                setToast({ message: "Đã cập nhật Logo ứng dụng thành công!", type: "success" });
-            };
-            img.src = event.target.result;
-        };
-        reader.onerror = () => {
-            setToast({ message: "Không thể đọc file hình ảnh.", type: "error" });
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const removeCustomLogo = () => {
-        localStorage.removeItem('pos_custom_app_logo');
-        setCustomLogo('');
-        window.dispatchEvent(new Event('app_logo_changed'));
-        broadcastCustomLogo('');
-        setToast({ message: "Đã khôi phục logo mặc định!", type: "info" });
-    };
-
     const [appWallpaper, setAppWallpaper] = useState(() => {
         const saved = localStorage.getItem("pos_cart_wallpaper");
         return saved ? JSON.parse(saved) : { image: "", size: "cover", position: "center", blur: 0, opacity: 100 };
@@ -981,7 +835,7 @@ export default function Dashboard() {
                                         )
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-white/10">
-                                            <img src={customLogo || "/logo.png"} alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md rounded-2xl" />
+                                            <img src="/logo.png" alt="Logo LyangPOS" className="w-[85%] h-[85%] object-contain drop-shadow-md" />
                                         </div>
                                     )}
                                 </div>
@@ -1000,13 +854,10 @@ export default function Dashboard() {
                             </p>
                             <div className="flex items-center gap-2 mt-3">
                                 <button
-                                    onClick={() => {
-                                        setActiveThemeTab('wallpaper');
-                                        setShowWallpaperSettings(true);
-                                    }}
+                                    onClick={() => setShowWallpaperSettings(true)}
                                     className="px-3 py-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 hover:bg-[#2d5016] hover:text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#2d5016]/20 cursor-pointer"
                                 >
-                                    <Paintbrush size={14} /> Hình Nền & Logo
+                                    <Paintbrush size={14} /> Hình Nền
                                 </button>
                                 <button
                                     onClick={() => setHideStats(prev => {
@@ -1656,7 +1507,7 @@ export default function Dashboard() {
                                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                                className="bg-card w-full max-w-lg rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
+                                className="bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
                             >
                                 <div className="p-5 flex items-center justify-between border-b border-border bg-card">
                                     <div className="flex items-center gap-3">
@@ -1664,8 +1515,8 @@ export default function Dashboard() {
                                             <Paintbrush className="text-primary" size={20} />
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Giao Diện & Logo</h3>
-                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Tùy chỉnh hình nền và logo thương hiệu</p>
+                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Hình Nền</h3>
+                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Tùy chỉnh giao diện</p>
                                         </div>
                                     </div>
                                     <button
@@ -1675,278 +1526,8 @@ export default function Dashboard() {
                                         <X size={16} strokeWidth={2.5} />
                                     </button>
                                 </div>
-
-                                {/* Tab Navigation */}
-                                <div className="flex border-b border-border bg-black/[0.02] dark:bg-white/[0.02] px-5 pt-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveThemeTab('wallpaper')}
-                                        className={cn(
-                                            "pb-2.5 px-3 font-black text-xs uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-1.5",
-                                            activeThemeTab === 'wallpaper'
-                                                ? "border-primary text-primary"
-                                                : "border-transparent text-muted-foreground hover:text-foreground"
-                                        )}
-                                    >
-                                        <ImageIcon size={14} /> Hình Nền POS
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveThemeTab('logo')}
-                                        className={cn(
-                                            "pb-2.5 px-3 font-black text-xs uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-1.5",
-                                            activeThemeTab === 'logo'
-                                                ? "border-primary text-primary"
-                                                : "border-transparent text-muted-foreground hover:text-foreground"
-                                        )}
-                                    >
-                                        <Sparkles size={14} /> Logo Ứng Dụng (Sidebar)
-                                    </button>
-                                </div>
-
                                 <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[70vh] bg-card/50">
-                                    {activeThemeTab === 'logo' ? (
-                                        <div className="space-y-5">
-                                            {/* Preview Card */}
-                                            <div className="flex flex-col items-center justify-center p-6 bg-black/[0.02] dark:bg-white/[0.02] rounded-2xl border border-border/80 gap-3">
-                                                <div className="relative group">
-                                                    <div className={cn(
-                                                        "w-24 h-24 p-1 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden",
-                                                        getLogoRoundedClass(logoConfig.shape),
-                                                        getLogoFrameClass(logoConfig.frame)
-                                                    )}>
-                                                        <img 
-                                                            src={customLogo || "/logo.png"} 
-                                                            alt="App Logo Preview" 
-                                                            className={cn(
-                                                                "w-full h-full select-none transition-all",
-                                                                getLogoRoundedClass(logoConfig.shape),
-                                                                getLogoFitClass(logoConfig.fit)
-                                                            )}
-                                                        />
-                                                    </div>
-                                                    {customLogo && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={removeCustomLogo}
-                                                            title="Gỡ logo tùy chỉnh"
-                                                            className="absolute -top-2 -right-2 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-all cursor-pointer z-10"
-                                                        >
-                                                            <Trash2 size={13} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="text-center">
-                                                    <div className="text-xs font-black uppercase tracking-wider text-foreground">
-                                                        {customLogo ? "Logo tùy chỉnh đang áp dụng" : "Logo mặc định của hệ thống"}
-                                                    </div>
-                                                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                                                        Hiển thị ở góc trên Sidebar, Widget nổi và Trang chủ
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Shape Selector */}
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center justify-between">
-                                                    <span>1. Hình Dáng (Shape)</span>
-                                                    <span className="text-[10px] text-primary lowercase font-medium">
-                                                        {logoConfig.shape === 'circle' ? 'Hình tròn' : logoConfig.shape === 'square' ? 'Vuông' : logoConfig.shape === 'rounded' ? 'Bo nhẹ' : 'Bo góc mềm'}
-                                                    </span>
-                                                </label>
-                                                <div className="grid grid-cols-4 gap-2">
-                                                    {[
-                                                        { id: 'squircle', label: 'Bo mềm', desc: 'iOS App Icon', sampleClass: 'rounded-xl' },
-                                                        { id: 'circle', label: 'Tròn', desc: 'Tròn đều', sampleClass: 'rounded-full' },
-                                                        { id: 'rounded', label: 'Bo nhẹ', desc: 'Góc nhẹ', sampleClass: 'rounded-md' },
-                                                        { id: 'square', label: 'Vuông', desc: 'Khung vuông', sampleClass: 'rounded-none' },
-                                                    ].map((item) => {
-                                                        const isSelected = (logoConfig.shape || 'squircle') === item.id;
-                                                        return (
-                                                            <button
-                                                                key={item.id}
-                                                                type="button"
-                                                                onClick={() => updateLogoConfig({ shape: item.id })}
-                                                                className={cn(
-                                                                    "flex flex-col items-center gap-1.5 p-2 rounded-xl border text-center transition-all cursor-pointer",
-                                                                    isSelected
-                                                                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20 font-bold"
-                                                                        : "border-border hover:border-primary/50 text-foreground/80 bg-card"
-                                                                )}
-                                                            >
-                                                                <div className={cn("w-6 h-6 border-2 border-current bg-current/20", item.sampleClass)} />
-                                                                <span className="text-[10px] leading-tight">{item.label}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Fit Mode Selector (Cover vs Contain) */}
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center justify-between">
-                                                    <span>2. Tỉ Lệ / Cắt Ảnh (Fit)</span>
-                                                    <span className="text-[10px] text-primary font-medium">
-                                                        {logoConfig.fit === 'contain' ? 'Giữ nguyên gốc (Contain)' : 'Cắt đầy khung (Cover)'}
-                                                    </span>
-                                                </label>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateLogoConfig({ fit: 'cover' })}
-                                                        className={cn(
-                                                            "flex items-center justify-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold",
-                                                            (logoConfig.fit || 'cover') === 'cover'
-                                                                ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
-                                                                : "border-border hover:border-primary/50 text-foreground/80 bg-card"
-                                                        )}
-                                                    >
-                                                        <span>✂ Cắt đầy khung (Cover)</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateLogoConfig({ fit: 'contain' })}
-                                                        className={cn(
-                                                            "flex items-center justify-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold",
-                                                            logoConfig.fit === 'contain'
-                                                                ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
-                                                                : "border-border hover:border-primary/50 text-foreground/80 bg-card"
-                                                        )}
-                                                    >
-                                                        <span>🖼 Vừa trọn vẹn (Contain)</span>
-                                                    </button>
-                                                </div>
-                                                <p className="text-[9.5px] text-muted-foreground italic">
-                                                    * Chọn <b>Cắt đầy khung</b> khi tải ảnh chữ nhật hoặc chụp từ máy tính để ảnh luôn vừa khít vào khung hình tròn/vuông.
-                                                </p>
-                                            </div>
-
-                                            {/* Frame Style Selector */}
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center justify-between">
-                                                    <span>3. Viền & Nền (Frame)</span>
-                                                </label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {[
-                                                        { id: 'border', label: 'Có Viền Nổi' },
-                                                        { id: 'shadow', label: 'Đổ Bóng 3D' },
-                                                        { id: 'none', label: 'Trong Suốt' },
-                                                    ].map((f) => {
-                                                        const isSelected = (logoConfig.frame || 'border') === f.id;
-                                                        return (
-                                                            <button
-                                                                key={f.id}
-                                                                type="button"
-                                                                onClick={() => updateLogoConfig({ frame: f.id })}
-                                                                className={cn(
-                                                                    "py-2 px-1 rounded-xl border text-center transition-all cursor-pointer text-[10px] font-bold",
-                                                                    isSelected
-                                                                        ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/20"
-                                                                        : "border-border hover:border-primary/50 text-foreground/80 bg-card"
-                                                                )}
-                                                            >
-                                                                {f.label}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Upload Button */}
-                                            <div className="space-y-2 pt-1 border-t border-border/60">
-                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
-                                                    <Upload size={14} className="text-primary" />
-                                                    Tải Logo Mới Từ Máy Tính
-                                                </label>
-                                                <label className="flex flex-col items-center justify-center w-full h-24 bg-background/50 border-2 border-dashed border-border hover:border-primary rounded-xl cursor-pointer hover:bg-primary/5 transition-all">
-                                                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-1">
-                                                        <Upload size={16} />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-foreground/80">Chọn tệp ảnh từ máy tính (PNG, JPG, WEBP)</span>
-                                                    <span className="text-[9.5px] text-muted-foreground mt-0.5">Tự động tối ưu dung lượng</span>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                compressAndSetLogo(file);
-                                                                e.target.value = '';
-                                                            }
-                                                        }}
-                                                    />
-                                                </label>
-                                            </div>
-
-                                            {/* Presets Gallery for Mascot/Logo */}
-                                            <div className="space-y-2 pt-2 border-t border-border/60">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
-                                                        <Sparkles size={14} className="text-amber-500" />
-                                                        Biểu tượng & Mascot có sẵn
-                                                    </label>
-                                                    {customLogo && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={removeCustomLogo}
-                                                            className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
-                                                        >
-                                                            Khôi phục mặc định
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {[
-                                                        { id: 'default', name: 'Logo Chuẩn', path: '/logo.png', desc: 'Logo gốc' },
-                                                        { id: 'farm', name: 'Bé Nông Trại', path: presetMascotFarm, desc: 'Mascot đồi táo' },
-                                                        { id: 'latte', name: 'Bé Đồng Quê', path: presetMascotLatte, desc: 'Mascot ấm cúng' },
-                                                    ].map((preset) => {
-                                                        const isSelected = (!customLogo && preset.id === 'default') || (customLogo && customLogo.includes(preset.id));
-                                                        return (
-                                                            <button
-                                                                key={preset.id}
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    if (preset.id === 'default') {
-                                                                        removeCustomLogo();
-                                                                        return;
-                                                                    }
-                                                                    try {
-                                                                        const response = await fetch(preset.path);
-                                                                        const blob = await response.blob();
-                                                                        const reader = new FileReader();
-                                                                        reader.onloadend = () => {
-                                                                            const base64 = reader.result;
-                                                                            localStorage.setItem('pos_custom_app_logo', base64);
-                                                                            setCustomLogo(base64);
-                                                                            window.dispatchEvent(new Event('app_logo_changed'));
-                                                                            broadcastCustomLogo(base64);
-                                                                            setToast({ message: `Đã đổi sang ${preset.name}!`, type: "success" });
-                                                                        };
-                                                                        reader.readAsDataURL(blob);
-                                                                    } catch (err) {
-                                                                        console.error('Error applying preset logo:', err);
-                                                                    }
-                                                                }}
-                                                                className={cn(
-                                                                    "group/p relative flex flex-col items-center gap-1.5 p-2 rounded-xl border bg-card/60 hover:bg-primary/5 transition-all cursor-pointer text-center",
-                                                                    isSelected ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-border hover:border-primary"
-                                                                )}
-                                                            >
-                                                                <div className="w-14 h-14 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 border border-border/60 p-1 flex items-center justify-center">
-                                                                    <img src={preset.path} alt={preset.name} className="w-full h-full object-contain rounded-lg group-hover/p:scale-110 transition-transform" />
-                                                                </div>
-                                                                <span className="text-[10px] font-bold text-foreground leading-tight">{preset.name}</span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Preview & Upload */}
+                                    {/* Preview & Upload */}
                                     <div className="space-y-3">
                                         <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Ảnh Nền Của Bạn</label>
                                         
@@ -2149,10 +1730,8 @@ export default function Dashboard() {
                                             className="w-full accent-primary"
                                         />
                                     </div>
-                                    </>
-                                )}
-                            </div>
-                        </m.div>
+                                </div>
+                            </m.div>
                         </div>
                     )}
                 </AnimatePresence>

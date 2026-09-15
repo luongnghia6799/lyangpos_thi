@@ -23,12 +23,13 @@ import {
   Wallet,
   BadgePercent,
   Mic,
+  Clock,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import LiteClock from "../../components/LiteClock";
 import { useProductData, usePartnerData } from "../../queries/useProductData";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber } from "../../lib/utils";
+import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber, formatRelativePurchaseDate } from "../../lib/utils";
 import { getLiteTheme } from "../../lib/liteTheme";
 import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
 import axios from "axios";
@@ -216,6 +217,7 @@ const POSLite = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [customPrices, setCustomPrices] = useState({});
+  const [partnerPurchases, setPartnerPurchases] = useState({});
   // LiteClock handles time internally
   const [printData, setPrintData] = useState(null);
   const [printOptions, setPrintOptions] = useState(() => {
@@ -617,7 +619,7 @@ const POSLite = () => {
     setIsPartnerModalOpen(false);
   }, [queryClient]);
 
-  // Fetch custom prices when partner changes
+  // Fetch custom prices and purchase history when partner changes
   useEffect(() => {
     if (selectedPartner?.id) {
       axios.get(`/api/custom-prices/${selectedPartner.id}`)
@@ -626,8 +628,15 @@ const POSLite = () => {
           console.error("Lỗi khi tải bảng giá riêng:", err);
           setCustomPrices({});
         });
+      axios.get(`/api/partners/${selectedPartner.id}/last-purchases`)
+        .then(res => setPartnerPurchases(res.data || {}))
+        .catch(err => {
+          console.error("Lỗi khi tải lịch sử mua hàng đối tác:", err);
+          setPartnerPurchases({});
+        });
     } else {
       setCustomPrices({});
+      setPartnerPurchases({});
     }
   }, [selectedPartner?.id]);
 
@@ -2151,7 +2160,15 @@ const POSLite = () => {
               cart.map(item => (
                 <div key={item.id} className="pos-lite-cart-item">
                   <div className="flex flex-col min-w-0">
-                    <div className="font-normal font-mono text-base uppercase leading-tight truncate" style={{ color: "var(--lite-text)" }}>{item.name}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-normal font-mono text-base uppercase leading-tight truncate" style={{ color: "var(--lite-text)" }}>{item.name}</span>
+                      {partnerPurchases && partnerPurchases[item.product_id] && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black border border-indigo-700 dark:border-indigo-500 bg-indigo-600 dark:bg-indigo-600 text-white shadow-xs" title={`Giá mua trước: ${formatNumber(partnerPurchases[item.product_id].last_price)}đ`}>
+                          <Clock size={10} className="shrink-0 text-white" />
+                          Đã mua: {formatRelativePurchaseDate(partnerPurchases[item.product_id].last_date)}
+                        </span>
+                      )}
+                    </div>
                     
                     {/* Price & Quantity grouped together under the product name */}
                     <div className="flex items-center gap-4 mt-2">

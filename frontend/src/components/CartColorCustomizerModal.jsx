@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as m } from 'framer-motion';
-import { Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, Layers, Zap } from 'lucide-react';
+import { Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, Layers, Zap, Square } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const CART_COLOR_PRESETS = [
@@ -130,6 +130,7 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     borderColor: 'default',
     borderWidth: '1',
     accentColor: 'default',
+    enableBorder: true,
     enableGlow: true,
     enableShadow: true
 };
@@ -291,7 +292,7 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                         <div 
                             className="w-full rounded-2xl overflow-hidden transition-all duration-300 bg-card/40 backdrop-blur-md"
                             style={{
-                                border: `${currentConfig.borderWidth || '1'}px solid ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f4740'}`,
+                                border: currentConfig.enableBorder !== false ? `${currentConfig.borderWidth || '1'}px solid ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f4740'}` : 'none',
                                 boxShadow: getCartBoxShadow(currentConfig)
                             }}
                         >
@@ -671,14 +672,56 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                             </div>
                         </div>
 
-                        {/* Glow & Shadow Toggles */}
+                        {/* Border, Glow & Shadow Toggles */}
                         <div className="pt-3 border-t border-[#8b6f47]/20 dark:border-white/10 space-y-2.5">
                             <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                                 <SunMedium size={14} className="text-amber-500" />
-                                Tùy Chọn Hiệu Ứng Viền (Glow & Shadow)
+                                Tùy Chọn Viền & Hiệu Ứng (Border, Glow & Shadow)
                             </h4>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {/* Border Toggle */}
+                                <div 
+                                    onClick={() => onChangeConfig({
+                                        ...currentConfig,
+                                        enableBorder: currentConfig.enableBorder === false ? true : false
+                                    })}
+                                    className={cn(
+                                        "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none group",
+                                        currentConfig.enableBorder !== false
+                                            ? "bg-blue-500/10 border-blue-500/30 dark:bg-blue-500/15 dark:border-blue-400/30"
+                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+                                            currentConfig.enableBorder !== false
+                                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                                                : "bg-black/10 dark:bg-white/10 text-slate-400"
+                                        )}>
+                                            <Square size={16} strokeWidth={2.5} />
+                                        </div>
+                                        <div>
+                                            <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
+                                                Đường viền
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                Bật / tắt viền giỏ
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className={cn(
+                                        "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0",
+                                        currentConfig.enableBorder !== false
+                                            ? "bg-blue-600 justify-end"
+                                            : "bg-slate-300 dark:bg-slate-700 justify-start"
+                                    )}>
+                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                                    </div>
+                                </div>
+
                                 {/* Glow Toggle */}
                                 <div 
                                     onClick={() => onChangeConfig({
@@ -703,10 +746,10 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                         </div>
                                         <div>
                                             <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
-                                                Phát sáng viền (Glow)
+                                                Phát sáng (Glow)
                                             </span>
                                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                Ánh sáng neon quanh viền
+                                                Ánh sáng neon viền
                                             </span>
                                         </div>
                                     </div>
@@ -745,10 +788,10 @@ export default function CartColorCustomizerModal({ isOpen, onClose, config, onCh
                                         </div>
                                         <div>
                                             <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
-                                                Đổ bóng viền (Shadow)
+                                                Đổ bóng (Shadow)
                                             </span>
                                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                Chiều sâu đổ bóng 3D
+                                                Độ sâu đổ bóng 3D
                                             </span>
                                         </div>
                                     </div>

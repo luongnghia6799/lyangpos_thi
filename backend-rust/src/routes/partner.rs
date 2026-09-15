@@ -1154,4 +1154,60 @@ pub async fn fix_opening_balance(
     Ok(Json(json!({"message": "Đã ghi nhận nợ đầu kỳ thành công!"})))
 }
 
+pub async fn get_partner_last_purchases(
+    State(pool): State<SqlitePool>,
+    Path(partner_id): Path<i64>,
+) -> Result<impl IntoResponse, AppError> {
+    let rows = sqlx::query(
+        "WITH ranked_purchases AS (
+            SELECT 
+                od.product_id,
+                o.date as last_date,
+                CAST(od.price AS REAL) as last_price,
+                CAST(od.quantity AS REAL) as last_quantity,
+                o.id as last_order_id,
+                o.display_id as last_order_display_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY od.product_id 
+                    ORDER BY o.date DESC, o.id DESC
+                ) as rn
+            FROM order_detail od
+            JOIN \"order\" o ON od.order_id = o.id
+            WHERE o.partner_id = ?
+              AND o.type = 'Sale'
+              AND (o.display_id NOT IN ('#NODAU', 'NODAU') OR o.display_id IS NULL)
+              AND od.product_id IS NOT NULL
+        )
+        SELECT product_id, last_date, last_price, last_quantity, last_order_id, last_order_display_id
+        FROM ranked_purchases
+        WHERE rn = 1"
+    )
+    .bind(partner_id)
+    .fetch_all(&pool)
+    .await?;
+
+    let mut result_map: HashMap<i64, serde_json::Value> = HashMap::new();
+    for row in rows {
+        let p_id: Option<i64> = row.get("product_id");
+        if let Some(pid) = p_id {
+            let last_date: Option<NaiveDateTime> = row.get("last_date");
+            let last_price: Option<f64> = row.get("last_price");
+            let last_quantity: Option<f64> = row.get("last_quantity");
+            let last_order_id: Option<i64> = row.get("last_order_id");
+            let last_order_display_id: Option<String> = row.get("last_order_display_id");
+
+            result_map.insert(pid, json!({
+                "product_id": pid,
+                "last_date": last_date.map(|d| d.to_string()),
+                "last_price": last_price.unwrap_or(0.0),
+                "last_quantity": last_quantity.unwrap_or(0.0),
+                "last_order_id": last_order_id,
+                "last_order_display_id": last_order_display_id
+            }));
+        }
+    }
+
+    Ok(Json(result_map))
+}
+
 

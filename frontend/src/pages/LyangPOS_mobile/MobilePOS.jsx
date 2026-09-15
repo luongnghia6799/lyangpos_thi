@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Minus, User, X, Menu, ChevronRight, ShoppingCart, Trash2, ChevronDown, Printer, Check, PauseCircle, Clock, Gift, QrCode, Barcode, Scan } from 'lucide-react';
-import { formatNumber, normalizeUOM, removeAccents } from '../../lib/utils';
+import { formatNumber, normalizeUOM, removeAccents, formatRelativePurchaseDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useProductData } from '../../queries/useProductData';
@@ -193,14 +193,19 @@ export default function MobilePOS() {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
     const [customPrices, setCustomPrices] = useState({});
+    const [partnerPurchases, setPartnerPurchases] = useState({});
 
     useEffect(() => {
-        if (selectedPartner) {
+        if (selectedPartner?.id) {
             axios.get(`/api/custom-prices/${selectedPartner.id}`)
                 .then(res => setCustomPrices(res.data))
                 .catch(err => console.error(err));
+            axios.get(`/api/partners/${selectedPartner.id}/last-purchases`)
+                .then(res => setPartnerPurchases(res.data || {}))
+                .catch(err => console.error(err));
         } else {
             setCustomPrices({});
+            setPartnerPurchases({});
         }
     }, [selectedPartner]);
 
@@ -696,12 +701,18 @@ export default function MobilePOS() {
                                             className="bg-slate-50 dark:bg-slate-800/90 p-3.5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-3 relative z-10 touch-pan-y"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
                                                         {item.product_name || item.name}
                                                     </h4>
                                                     {item.price === 0 && (
                                                         <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">Tặng</span>
+                                                    )}
+                                                    {partnerPurchases && partnerPurchases[item.product_id || item.id] && (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10.5px] font-black shadow-xs" title={`Giá mua gần nhất: ${formatNumber(partnerPurchases[item.product_id || item.id].last_price)}đ`}>
+                                                            <Clock size={10} className="shrink-0 text-white" />
+                                                            Đã mua: {formatRelativePurchaseDate(partnerPurchases[item.product_id || item.id].last_date)}
+                                                        </span>
                                                     )}
                                                 </div>
                                                 <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">

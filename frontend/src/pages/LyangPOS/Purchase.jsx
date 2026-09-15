@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence, MotionConfig } from 'framer-motion';
-import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell, Palette } from 'lucide-react';
 import HeavyClock from '../../components/HeavyClock';
 import { formatCurrency, formatNumber, formatDebt, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound, playTypingSound } from '../../lib/utils';
@@ -27,6 +27,7 @@ import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
 import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow } from '../../components/CartColorCustomizerModal';
+import QuickAuditPopout from '../../components/QuickAuditPopout';
 import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
@@ -226,6 +227,11 @@ export default function Purchase() {
     const [availableTemplates, setAvailableTemplates] = useState([]);
     const [currentTemplateId, setCurrentTemplateId] = useState(null);
     const [showHotkeysGuide, setShowHotkeysGuide] = useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true");
+
+    // Quick Audit Popout States
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
+    const [auditProduct, setAuditProduct] = useState(null);
+    const [auditCoords, setAuditCoords] = useState(null);
 
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
@@ -490,6 +496,40 @@ export default function Purchase() {
             setScannedImages(prev => [...prev, ...results]);
         });
     };
+
+    useEffect(() => {
+        if (!isScanModalOpen) return;
+        const handlePaste = (e) => {
+            const target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+                if (target.type === 'text' || target.type === 'password') return;
+            }
+            const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+            if (!items) return;
+            const imageFiles = [];
+            for (let idx = 0; idx < items.length; idx++) {
+                if (items[idx].type.indexOf('image') !== -1) {
+                    const blob = items[idx].getAsFile();
+                    if (blob) imageFiles.push(blob);
+                }
+            }
+            if (imageFiles.length > 0) {
+                e.preventDefault();
+                const promises = imageFiles.map(file => new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
+                }));
+                Promise.all(promises).then(results => {
+                    setScannedImages(prev => [...prev, ...results]);
+                    setToast({ message: `Đã dán ${imageFiles.length} ảnh từ Clipboard!`, type: 'success' });
+                });
+            }
+        };
+
+        window.addEventListener('paste', handlePaste);
+        return () => window.removeEventListener('paste', handlePaste);
+    }, [isScanModalOpen]);
 
     const handleScanInvoice = async () => {
         if (scannedImages.length === 0) return;
@@ -2491,8 +2531,8 @@ export default function Purchase() {
                         <div 
                             className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl border", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
                             style={{
-                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined,
-                                borderWidth: cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined,
+                                borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
+                                borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                                 boxShadow: getCartBoxShadow(cartColorConfig)
                             }}
                         >
@@ -3408,13 +3448,13 @@ export default function Purchase() {
                                                                                     el?.select?.();
                                                                                 }, 50);
                                                                             }}
-                                                                            className="w-full h-auto py-1.5 px-3 flex flex-col justify-center gap-1 cursor-pointer group/marquee-wrap min-h-[44px]"
+                                                                            className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"
                                                                         >
-                                                                            <div className="w-full flex items-center justify-between gap-2.5">
-                                                                                <div className="flex-1 min-w-0 overflow-hidden">
+                                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                                <div className="flex items-center gap-2 flex-wrap">
                                                                                     <MarqueeText
                                                                                         text={item.product_name}
-                                                                                        className="text-[17px] font-black tracking-tight leading-relaxed text-emerald-900 dark:text-emerald-300"
+                                                                                        className="text-[17px] font-black tracking-tight leading-snug text-emerald-900 dark:text-emerald-300"
                                                                                         title={item.product_name}
                                                                                         onDoubleClick={(e) => {
                                                                                             e.preventDefault();
@@ -3426,46 +3466,100 @@ export default function Purchase() {
                                                                                         }}
                                                                                     />
                                                                                 </div>
+                                                                                {item.ai_scanned && (
+                                                                                    <div className="mt-1 flex items-center gap-1.5 z-10 w-fit">
+                                                                                        {item.ai_matched_status === 'matched' ? (
+                                                                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-xs">
+                                                                                                <Sparkles size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+                                                                                                <span className="truncate max-w-[320px]">AI Tự khớp: "{item.ai_original_name}"</span>
+                                                                                                <button 
+                                                                                                    type="button" 
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        const newCart = [...cart];
+                                                                                                        delete newCart[idx].ai_scanned;
+                                                                                                        setCart(newCart);
+                                                                                                    }}
+                                                                                                    className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1"
+                                                                                                    title="Xác nhận khớp đúng"
+                                                                                                >
+                                                                                                    <Check size={10} strokeWidth={3} />
+                                                                                                </button>
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-xs">
+                                                                                                <AlertCircle size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                                                                                                <span className="truncate max-w-[320px]">AI không khớp được: "{item.ai_original_name}"</span>
+                                                                                                <button 
+                                                                                                    type="button" 
+                                                                                                    onClick={(e) => {
+                                                                                                        e.stopPropagation();
+                                                                                                        const newCart = [...cart];
+                                                                                                        delete newCart[idx].ai_scanned;
+                                                                                                        setCart(newCart);
+                                                                                                    }}
+                                                                                                    className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1"
+                                                                                                    title="Bỏ qua cảnh báo"
+                                                                                                >
+                                                                                                    <X size={10} strokeWidth={3} />
+                                                                                                </button>
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                            {item.ai_scanned && (
-                                                                                <div className="flex items-center gap-1.5 z-10 w-fit">
-                                                                                    {item.ai_matched_status === 'matched' ? (
-                                                                                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black flex items-center gap-1.5 border border-emerald-500/20 shadow-xs">
-                                                                                            <Sparkles size={11} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
-                                                                                            <span>AI Tự khớp: "{item.ai_original_name}"</span>
-                                                                                            <button 
-                                                                                                type="button" 
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    const newCart = [...cart];
-                                                                                                    delete newCart[idx].ai_scanned;
-                                                                                                    setCart(newCart);
-                                                                                                }}
-                                                                                                className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-0.5"
-                                                                                                title="Xác nhận khớp đúng"
-                                                                                            >
-                                                                                                <Check size={10} strokeWidth={3} />
-                                                                                            </button>
-                                                                                        </span>
-                                                                                    ) : (
-                                                                                        <span className="px-2 py-0.5 rounded-md bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black flex items-center gap-1.5 border border-amber-500/20 shadow-xs">
-                                                                                            <AlertCircle size={11} className="text-amber-500 dark:text-amber-400 shrink-0" />
-                                                                                            <span>AI không khớp được: "{item.ai_original_name}"</span>
-                                                                                            <button 
-                                                                                                type="button" 
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    const newCart = [...cart];
-                                                                                                    delete newCart[idx].ai_scanned;
-                                                                                                    setCart(newCart);
-                                                                                                }}
-                                                                                                className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-0.5"
-                                                                                                title="Bỏ qua cảnh báo"
-                                                                                            >
-                                                                                                <X size={10} strokeWidth={3} />
-                                                                                            </button>
-                                                                                        </span>
-                                                                                    )}
+                                                                            {item.product_id && (
+                                                                                <div className="shrink-0 z-10 flex flex-col items-end gap-1">
+                                                                                    <div 
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            const prod = products.find(p => p.id === item.product_id);
+                                                                                            if (prod) {
+                                                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                                                setAuditProduct(prod);
+                                                                                                setAuditCoords({
+                                                                                                    top: rect.top,
+                                                                                                    bottom: rect.bottom,
+                                                                                                    left: rect.left,
+                                                                                                    right: rect.right
+                                                                                                });
+                                                                                                setIsAuditOpen(true);
+                                                                                            }
+                                                                                        }} 
+                                                                                        className={cn(
+                                                                                            "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", 
+                                                                                            (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 
+                                                                                                ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" 
+                                                                                                : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 
+                                                                                                    ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" 
+                                                                                                    : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black"
+                                                                                        )} 
+                                                                                        title="Kiểm tồn nhanh"
+                                                                                    >
+                                                                                        <div className="flex items-center gap-1 tabular-nums">
+                                                                                            {(item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 ? (
+                                                                                                <Package size={12} strokeWidth={2.8} className="text-white" />
+                                                                                            ) : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 ? (
+                                                                                                <AlertTriangle size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" />
+                                                                                            ) : (
+                                                                                                <Package size={12} strokeWidth={2.8} className="text-white" />
+                                                                                            )}
+                                                                                            <span className="tabular-nums font-black">
+                                                                                                {item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
+                                                                                            <>
+                                                                                                <span className="w-px h-3 bg-white/40 shrink-0" />
+                                                                                                <div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán">
+                                                                                                    <ReceiptText size={11} strokeWidth={2.4} className="shrink-0 text-white" />
+                                                                                                    <span className="tabular-nums font-black">
+                                                                                                        {item.accounting_stock !== undefined ? item.accounting_stock : (products.find(p => p.id === item.product_id)?.accounting_stock || 0)}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -5271,7 +5365,27 @@ export default function Purchase() {
                                         )}
 
                                         <div className="space-y-4 flex flex-col">
-                                            <div className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/50 rounded-[2rem] p-6 bg-slate-50/50 dark:bg-slate-800/20 min-h-[260px] relative overflow-hidden group transition-all duration-300">
+                                            <div 
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    if (e.dataTransfer?.files?.length) {
+                                                        const imgFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                                                        if (imgFiles.length > 0) {
+                                                            const promises = imgFiles.map(file => new Promise(resolve => {
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => resolve(reader.result);
+                                                                reader.readAsDataURL(file);
+                                                            }));
+                                                            Promise.all(promises).then(results => {
+                                                                setScannedImages(prev => [...prev, ...results]);
+                                                                setToast({ message: `Đã thêm ${imgFiles.length} ảnh thả vào!`, type: 'success' });
+                                                            });
+                                                        }
+                                                    }
+                                                }}
+                                                className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/50 rounded-[2rem] p-6 bg-slate-50/50 dark:bg-slate-800/20 min-h-[260px] relative overflow-hidden group transition-all duration-300"
+                                            >
                                                 {scannedImages.length > 0 ? (
                                                     <div className="w-full h-full flex flex-col space-y-4">
                                                         <div className="grid grid-cols-3 gap-3 max-h-[240px] overflow-y-auto p-1 custom-scrollbar">
@@ -5279,7 +5393,7 @@ export default function Purchase() {
                                                                 <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 group/thumb shadow-sm">
                                                                     <img src={img} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
                                                                     <button 
-                                                                        type="button"
+                                                                        type="button" 
                                                                         onClick={() => setScannedImages(prev => prev.filter((_, i) => i !== index))}
                                                                         className="absolute top-1.5 right-1.5 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow opacity-0 group-hover/thumb:opacity-100 duration-200"
                                                                     >
@@ -5296,7 +5410,7 @@ export default function Purchase() {
                                                                 <Plus size={14} strokeWidth={3} /> Thêm ảnh
                                                             </label>
                                                             <button 
-                                                                type="button"
+                                                                type="button" 
                                                                 onClick={() => setScannedImages([])}
                                                                 className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-sm active:scale-95"
                                                             >
@@ -5313,8 +5427,8 @@ export default function Purchase() {
                                                             <Camera size={36} />
                                                         </div>
                                                         <div className="text-center space-y-1.5">
-                                                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">Chụp hoặc tải ảnh hóa đơn lên</p>
-                                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hỗ trợ chọn nhiều ảnh PNG, JPG, WEBP</p>
+                                                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">Chụp, tải hoặc dán ảnh (Ctrl + V)</p>
+                                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hỗ trợ Paste Clipboard, Kéo thả & Chọn tệp ảnh</p>
                                                         </div>
                                                     </label>
                                                 )}
@@ -5956,6 +6070,22 @@ export default function Purchase() {
                         />
                     )}
                 </AnimatePresence>
+                {/* Quick Audit Popout */}
+                <Portal>
+                    {isAuditOpen && auditProduct && (
+                        <QuickAuditPopout
+                            product={auditProduct}
+                            isOpen={isAuditOpen}
+                            onClose={() => setIsAuditOpen(false)}
+                            onSave={() => {
+                                queryClient.invalidateQueries({ queryKey: ['products'] });
+                                setIsAuditOpen(false);
+                                setToast({ message: "Đã cập nhật tồn kho thành công!", type: "success" });
+                            }}
+                            coordinates={auditCoords}
+                        />
+                    )}
+                </Portal>
             </div>
         </MotionConfig>
     );

@@ -202,6 +202,10 @@ async fn main() -> anyhow::Result<()> {
             "/api/partners/:id/ledger",
             get(routes::partner::get_partner_ledger),
         )
+        .route(
+            "/api/partners/:id/last-purchases",
+            get(routes::partner::get_partner_last_purchases),
+        )
         // Category endpoints
         .route(
             "/api/categories",

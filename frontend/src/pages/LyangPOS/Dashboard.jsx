@@ -888,17 +888,17 @@ export default function Dashboard() {
                                 whileHover={{ scale: 1.05, rotate: 1.5 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => setShowAvatarModal(true)}
-                                className="w-28 h-28 lg:w-32 lg:h-32 rounded-2xl cursor-pointer overflow-hidden relative flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
+                                className="w-28 h-28 lg:w-32 lg:h-32 aspect-square shrink-0 rounded-2xl cursor-pointer overflow-hidden relative flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
                             >
                                 {getAvatarSrc(avatarUrl) ? (
                                     <img 
                                         src={getAvatarSrc(avatarUrl)} 
                                         alt="Avatar" 
-                                        className="w-full h-full object-cover rounded-2xl" 
+                                        className="w-full h-full aspect-square object-cover rounded-2xl" 
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-card/30 p-2">
-                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full object-contain drop-shadow-md" />
+                                    <div className="w-full h-full aspect-square flex items-center justify-center bg-card/30 p-2">
+                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full aspect-square object-contain drop-shadow-md" />
                                     </div>
                                 )}
 

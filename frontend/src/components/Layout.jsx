@@ -1523,21 +1523,21 @@ export default function Layout({ children }) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs"
+                    className="w-14 h-14 aspect-square shrink-0 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs"
                 >
                     {getAvatarSrc(avatarUrl) ? (
                         <img 
                             src={getAvatarSrc(avatarUrl)} 
                             alt="Logo" 
                             draggable="false"
-                            className="w-full h-full object-cover rounded-2xl select-none pointer-events-none" 
+                            className="w-full h-full aspect-square object-cover rounded-2xl select-none pointer-events-none" 
                         />
                     ) : (
                         <img 
                             src="/logo.png" 
                             alt="Logo" 
                             draggable="false"
-                            className="w-full h-full object-contain select-none pointer-events-none" 
+                            className="w-full h-full aspect-square object-contain select-none pointer-events-none" 
                         />
                     )}
                 </m.div>

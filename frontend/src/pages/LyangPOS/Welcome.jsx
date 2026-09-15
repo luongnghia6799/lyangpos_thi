@@ -597,16 +597,16 @@ export default function Welcome() {
                         transition={{ delay: 0.2, duration: 0.6 }}
                         className="space-y-0.5"
                     >
-                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-1">
+                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-1 py-1 leading-normal overflow-visible">
                             <span className={cn(
-                                "bg-gradient-to-r bg-clip-text text-transparent font-extrabold italic",
+                                "inline-block py-1 pl-1 pr-2 bg-gradient-to-r bg-clip-text text-transparent font-extrabold italic leading-normal overflow-visible",
                                 isDark 
                                     ? "from-emerald-300 via-teal-200 to-emerald-400" 
                                     : "from-[#2d5016] via-[#3e6b20] to-[#2d5016]"
                             )}>
                                 Lyang
                             </span>
-                            <span className="text-[#d4a574] not-italic drop-shadow-sm font-black">
+                            <span className="inline-block py-1 text-[#d4a574] not-italic drop-shadow-sm font-black leading-normal overflow-visible">
                                 POS
                             </span>
                         </h1>

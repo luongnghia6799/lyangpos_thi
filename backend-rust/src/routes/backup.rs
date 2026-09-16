@@ -250,6 +250,7 @@ pub async fn reset_database(
     sqlx::query("DELETE FROM bank_account").execute(&mut *tx).await?;
     sqlx::query("DELETE FROM print_template").execute(&mut *tx).await?;
     sqlx::query("DELETE FROM event").execute(&mut *tx).await?;
+    sqlx::query("DELETE FROM reminder").execute(&mut *tx).await?;
 
     tx.commit().await?;
 

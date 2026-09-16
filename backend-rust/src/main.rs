@@ -45,6 +45,9 @@ async fn main() -> anyhow::Result<()> {
     // Start auto-backup background service (Rolling 5 latest backups)
     routes::backup::start_auto_backup_task(pool.clone());
 
+    // Start reminder scheduler background service (Every 5s check and real-time alert)
+    routes::reminder::start_reminder_scheduler_task(pool.clone());
+
     // Configure CORS for local UI and remote mobile devices
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -113,6 +116,15 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/event-logs", get(routes::event::get_event_logs))
         .route("/api/event-logs/toggle", post(routes::event::toggle_event_log))
+        // Reminders & Global Alerts
+        .route("/api/reminders", get(routes::reminder::get_reminders).post(routes::reminder::create_reminder))
+        .route("/api/reminders/counts", get(routes::reminder::get_reminder_counts))
+        .route(
+            "/api/reminders/:id",
+            axum::routing::put(routes::reminder::update_reminder).delete(routes::reminder::delete_reminder),
+        )
+        .route("/api/reminders/:id/snooze", post(routes::reminder::snooze_reminder))
+        .route("/api/reminders/:id/complete", post(routes::reminder::complete_reminder))
         // Accounting Invoices & Config
         .route("/api/accounting/source-fields", get(routes::accounting::get_accounting_source_fields))
         .route("/api/accounting/templates", get(routes::accounting::get_accounting_templates))

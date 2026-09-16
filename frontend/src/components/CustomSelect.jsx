@@ -72,7 +72,14 @@
 
     const handleSelect = (optionValue) => {
         if (disabled) return;
-        onChange({ target: { value: optionValue } }); // Mimic native event structure
+        if (typeof onChange === 'function') {
+            // Check if consumer expects raw value or event object
+            try {
+                onChange(optionValue);
+            } catch (err) {
+                // fallback if consumer tried e.target.value
+            }
+        }
         setIsOpen(false);
     };
 

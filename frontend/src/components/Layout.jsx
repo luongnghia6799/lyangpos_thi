@@ -49,9 +49,10 @@ import {
     Scale,
     Keyboard,
     Sparkles,
-    Wrench
+    Wrench,
+    Bell
 } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
@@ -870,6 +871,28 @@ export default function Layout({ children }) {
         return localStorage.getItem('pos_notifications_muted') === 'true';
     });
 
+    const [reminderCount, setReminderCount] = useState(0);
+
+    const fetchReminderCount = useCallback(async () => {
+        try {
+            const res = await axios.get('/api/reminders/counts');
+            if (res.data) {
+                setReminderCount(res.data.today || res.data.pending || 0);
+            }
+        } catch (e) {}
+    }, []);
+
+    useEffect(() => {
+        fetchReminderCount();
+        const timer = setInterval(fetchReminderCount, 10000);
+        const handleReminderEvent = () => fetchReminderCount();
+        window.addEventListener('pos_reminder_event', handleReminderEvent);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('pos_reminder_event', handleReminderEvent);
+        };
+    }, [fetchReminderCount]);
+
     const [isMirrorModalOpen, setIsMirrorModalOpen] = useState(false);
 
     // Live POS Terminal Heartbeat Broadcasting
@@ -1662,11 +1685,52 @@ export default function Layout({ children }) {
                 } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
             >
 
-                {/* Footer Actions (Volume, Theme, Close) */}
+                {/* Footer Actions (Reminder, Volume, Theme, Close) */}
                 <m.div layout className={cn(
                     "grid justify-items-center transition-all duration-200",
-                    isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-3 gap-2"
+                    isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-4 gap-1.5"
                 )}>
+                    <m.button
+                        layout
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
+                        style={isLiteMode ? {
+                            backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
+                            color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
+                        } : {}}
+                        className={cn(
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative",
+                            isSidebarCollapsed ? "w-10 h-10" : "w-11 h-11",
+                            isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
+                        )}
+                        title="Nhắc nhở & Lịch hẹn"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
+                            {reminderCount > 0 && (
+                                <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
+                                    {reminderCount > 9 ? '9+' : reminderCount}
+                                </span>
+                            )}
+                        </div>
+                        <AnimatePresence>
+                            {!isSidebarCollapsed && (
+                                <m.span
+                                    initial={{ opacity: 0, height: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                                    exit={{ opacity: 0, height: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.15 }}
+                                    className={cn(
+                                        "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
+                                        reminderCount > 0 ? "text-amber-300 font-extrabold" : "text-emerald-100"
+                                    )}
+                                >
+                                    Nhắc
+                                </m.span>
+                            )}
+                        </AnimatePresence>
+                    </m.button>
+
                     <m.button
                         layout
                         whileTap={{ scale: 0.9 }}
@@ -1676,8 +1740,8 @@ export default function Layout({ children }) {
                             color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
                         } : {}}
                         className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none",
-                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12",
+                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none",
+                            isSidebarCollapsed ? "w-10 h-10" : "w-11 h-11",
                             isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
                         )}
                         title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}

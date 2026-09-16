@@ -98,6 +98,14 @@ class WebSocketService {
       queryClient.invalidateQueries({ queryKey: ['product_summary'] });
     }
 
+    if (data.type === 'REMINDER_CREATED' || data.type === 'REMINDER_UPDATED' || data.type === 'REMINDER_DELETED' || data.type === 'REMINDER_DUE') {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      queryClient.invalidateQueries({ queryKey: ['reminder-counts'] });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pos_reminder_event', { detail: data }));
+      }
+    }
+
     // 2. Notify all registered custom listeners (e.g., POS terminal cart mirror, notifications)
     this.notifyListeners(data);
   }

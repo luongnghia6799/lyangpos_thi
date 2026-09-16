@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 const hexToRgba = (hex, alpha = 1) => {
@@ -148,11 +149,13 @@ const CustomCursor = () => {
     ? `0 0 20px ${hexToRgba(cursorColor, 0.4)}` 
     : `0 0 12px ${hexToRgba(cursorColor, 0.25)}`;
 
-  return (
+  if (typeof document === 'undefined' || !document.body) return null;
+
+  return createPortal(
     <div 
       id="custom-cursor-container" 
-      className="pointer-events-none fixed inset-0 z-[999999] select-none transition-opacity duration-200"
-      style={{ opacity: isVisible ? 1 : 0 }}
+      className="pointer-events-none fixed inset-0 select-none transition-opacity duration-200"
+      style={{ opacity: isVisible ? 1 : 0, zIndex: 2147483647 }}
     >
       {/* Follower Ring */}
       <motion.div
@@ -164,6 +167,7 @@ const CustomCursor = () => {
           y: "-50%",
           borderColor: followerBorderColor,
           boxShadow: followerShadow,
+          zIndex: 2147483646,
         }}
         animate={{
           scale: isHovering ? 1.6 : 1,
@@ -183,14 +187,17 @@ const CustomCursor = () => {
           height: 8,
           backgroundColor: cursorColor,
           boxShadow: `0 0 12px ${hexToRgba(cursorColor, 0.85)}`,
+          zIndex: 2147483647,
         }}
         animate={{
           scale: isHovering ? 1.6 : 1,
         }}
         transition={{ type: "spring", stiffness: 450, damping: 22 }}
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 
 export default CustomCursor;
+

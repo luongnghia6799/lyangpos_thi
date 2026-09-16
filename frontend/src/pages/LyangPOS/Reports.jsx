@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatNumber, cn } from '../../lib/utils';
 import OrderEditPopup from '../../components/OrderEditPopup';
 import SearchableSelect from '../../components/SearchableSelect';
+import CustomSelect from '../../components/CustomSelect';
+import CustomDatePicker from '../../components/CustomDatePicker';
 import Portal from '../../components/Portal';
 
 const StatCard = ({ label, value, color, icon: Icon }) => (
@@ -109,8 +111,69 @@ export default function Reports() {
     const [allProducts, setAllProducts] = useState([]);
     const [allCategories, setAllCategories] = useState([]);
 
-    const years = [];
-    for (let i = 2023; i <= new Date().getFullYear() + 1; i++) years.push(i);
+    // Clear Filter Mode: 'day' | 'month' | 'quarter' | 'year' | 'all'
+    const [filterMode, setFilterMode] = useState('day');
+    const [exactDate, setExactDate] = useState(() => {
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dayStr}`;
+    });
+
+    const filterModeOptions = [
+        { value: 'day', label: 'Theo Ngày' },
+        { value: 'month', label: 'Theo Tháng' },
+        { value: 'quarter', label: 'Theo Quý' },
+        { value: 'year', label: 'Theo Năm' },
+        { value: 'all', label: 'Tất Cả Thời Gian' },
+    ];
+
+    const monthListOptions = React.useMemo(() => {
+        const opts = [];
+        for (let i = 1; i <= 12; i++) opts.push({ value: String(i), label: `Tháng ${i}` });
+        return opts;
+    }, []);
+
+    const quarterListOptions = [
+        { value: "1", label: "Quý 1 (Tháng 1 - 3)" },
+        { value: "2", label: "Quý 2 (Tháng 4 - 6)" },
+        { value: "3", label: "Quý 3 (Tháng 7 - 9)" },
+        { value: "4", label: "Quý 4 (Tháng 10 - 12)" },
+    ];
+
+    const yearListOptions = React.useMemo(() => {
+        const opts = [];
+        for (let i = 2023; i <= new Date().getFullYear() + 1; i++) {
+            opts.push({ value: String(i), label: `Năm ${i}` });
+        }
+        return opts;
+    }, []);
+
+    const getFilterParams = () => {
+        const p = {};
+        if (filterMode === 'day') {
+            if (exactDate) {
+                const parts = exactDate.split('-');
+                if (parts.length === 3) {
+                    p.year = parts[0];
+                    p.month = String(parseInt(parts[1], 10));
+                    p.day = String(parseInt(parts[2], 10));
+                }
+            }
+        } else if (filterMode === 'month') {
+            p.year = String(year);
+            p.month = String(month);
+        } else if (filterMode === 'quarter') {
+            p.year = String(year);
+            p.quarter = String(quarter || '1');
+        } else if (filterMode === 'year') {
+            p.year = String(year);
+        } else if (filterMode === 'all') {
+            // all time: no year/month/day/quarter filter
+        }
+        return p;
+    };
 
     useEffect(() => {
         setPage(1);
@@ -120,7 +183,7 @@ export default function Reports() {
 
     useEffect(() => {
         fetchData();
-    }, [tab, year, month, day, quarter, page, limit, sortBy, sortOrder, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate, synthesisPartnerId, synthesisProductId, groupByBrand]);
+    }, [tab, filterMode, exactDate, year, month, quarter, page, limit, sortBy, sortOrder, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate, synthesisPartnerId, synthesisProductId, groupByBrand]);
 
     useEffect(() => {
         if (!selectedBrand) {
@@ -134,8 +197,9 @@ export default function Reports() {
         const fetchBaseData = async () => {
             if (tab !== 'synthesis') return;
             try {
+                const dateParams = getFilterParams();
                 const params = new URLSearchParams({
-                    year, month, day, quarter,
+                    ...dateParams,
                     search: searchTerm,
                     brand: selectedBrand,
                     type: synthesisType,
@@ -152,7 +216,7 @@ export default function Reports() {
             }
         };
         fetchBaseData();
-    }, [tab, year, month, day, quarter, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate]);
+    }, [tab, filterMode, exactDate, year, month, quarter, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate]);
 
     useEffect(() => {
         const fetchAllPartners = async () => {
@@ -217,11 +281,9 @@ export default function Reports() {
         setLoading(true);
         try {
             let res;
+            const dateParams = getFilterParams();
             const params = new URLSearchParams({
-                year,
-                month,
-                day,
-                quarter,
+                ...dateParams,
                 page,
                 limit,
                 sort_by: sortBy,
@@ -288,7 +350,8 @@ export default function Reports() {
     useEffect(() => {
         const fetchTotals = async () => {
             try {
-                const params = new URLSearchParams({ year, month, day, quarter, search: searchTerm, brand: selectedBrand });
+                const dateParams = getFilterParams();
+                const params = new URLSearchParams({ ...dateParams, search: searchTerm, brand: selectedBrand });
                 let res;
                 if (tab === 'products') {
                     res = await axios.get(`/api/reports/products?${params.toString()}`);
@@ -324,15 +387,16 @@ export default function Reports() {
             } catch (e) { console.error(e); }
         };
         fetchTotals();
-    }, [tab, year, month, day, quarter, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate, synthesisPartnerId, synthesisProductId, groupByBrand]);
+    }, [tab, filterMode, exactDate, year, month, quarter, searchTerm, selectedBrand, synthesisType, synthesisStartDate, synthesisEndDate, synthesisPartnerId, synthesisProductId, groupByBrand]);
 
     const viewItemOrders = async (item, pageNum = 1) => {
         setSelectedItem(item);
         setItemOrdersPage(pageNum);
         setLoading(true);
         try {
+            const dateParams = getFilterParams();
             const params = new URLSearchParams({
-                year, month, day, quarter,
+                ...dateParams,
                 page: pageNum,
                 limit: itemOrdersLimit
             });
@@ -477,15 +541,112 @@ export default function Reports() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 pos-card bg-transparent border border-border p-2 rounded-2xl shadow-none">
-                    <Calendar size={20} className="ml-2 text-primary" />
-                    <select value={day} onChange={(e) => { setDay(e.target.value); setPage(1); }} className="bg-transparent border-none outline-none font-black text-sm text-primary cursor-pointer uppercase"><option value="">Ngày: Tất cả</option>{[...Array(31)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select>
-                    <div className="w-px h-6 bg-border mx-1"></div>
-                    <select value={month} onChange={(e) => { setMonth(e.target.value); setQuarter(""); setPage(1); }} className="bg-transparent border-none outline-none font-black text-sm text-primary cursor-pointer uppercase"><option value="">Tháng: Tất cả</option>{[...Array(12)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select>
-                    <div className="w-px h-6 bg-border mx-1"></div>
-                    <select value={quarter} onChange={(e) => { setQuarter(e.target.value); setMonth(""); setDay(""); setPage(1); }} className="bg-transparent border-none outline-none font-black text-sm text-primary cursor-pointer uppercase"><option value="">Quý: Tất cả</option><option value="1">Quý 1</option><option value="2">Quý 2</option><option value="3">Quý 3</option><option value="4">Quý 4</option></select>
-                    <div className="w-px h-6 bg-border mx-1"></div>
-                    <select value={year} onChange={(e) => { setYear(parseInt(e.target.value)); setPage(1); }} className="bg-transparent border-none outline-none font-black text-sm text-primary cursor-pointer pr-4 uppercase">{years.map(y => <option key={y} value={y}>{y}</option>)}</select>
+                {/* Redesigned Clean Filter Bar - Transparent Background */}
+                <div className="flex flex-wrap items-center gap-2 p-1 rounded-2xl bg-transparent border border-border shadow-none">
+                    {/* Mode selector */}
+                    <div className="flex items-center gap-1.5 pl-2 pr-1">
+                        <Calendar size={18} className="text-primary shrink-0" />
+                        <CustomSelect
+                            value={filterMode}
+                            onChange={(val) => {
+                                setFilterMode(val);
+                                setPage(1);
+                            }}
+                            options={filterModeOptions}
+                            className="min-w-[135px] bg-transparent border-none text-xs font-black text-primary"
+                        />
+                    </div>
+
+                    <div className="w-px h-5 bg-border/60"></div>
+
+                    {/* Contextual selector based on filterMode */}
+                    {filterMode === 'day' && (
+                        <div className="flex items-center gap-2">
+                            <CustomDatePicker
+                                value={exactDate}
+                                onChange={(val) => {
+                                    const dateVal = typeof val === 'object' && val?.target ? val.target.value : val;
+                                    setExactDate(dateVal || '');
+                                    setPage(1);
+                                }}
+                                className="w-[145px]"
+                                inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                            />
+                        </div>
+                    )}
+
+                    {filterMode === 'month' && (
+                        <div className="flex items-center gap-1">
+                            <CustomSelect
+                                value={String(month)}
+                                onChange={(val) => {
+                                    setMonth(val);
+                                    setPage(1);
+                                }}
+                                options={monthListOptions}
+                                placeholder="Chọn tháng..."
+                                className="min-w-[110px] bg-transparent border-none text-xs font-bold"
+                            />
+                            <div className="w-px h-4 bg-border/40"></div>
+                            <CustomSelect
+                                value={String(year)}
+                                onChange={(val) => {
+                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    setPage(1);
+                                }}
+                                options={yearListOptions}
+                                placeholder="Năm..."
+                                className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                            />
+                        </div>
+                    )}
+
+                    {filterMode === 'quarter' && (
+                        <div className="flex items-center gap-1">
+                            <CustomSelect
+                                value={String(quarter || '1')}
+                                onChange={(val) => {
+                                    setQuarter(val);
+                                    setPage(1);
+                                }}
+                                options={quarterListOptions}
+                                placeholder="Chọn quý..."
+                                className="min-w-[150px] bg-transparent border-none text-xs font-bold"
+                            />
+                            <div className="w-px h-4 bg-border/40"></div>
+                            <CustomSelect
+                                value={String(year)}
+                                onChange={(val) => {
+                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    setPage(1);
+                                }}
+                                options={yearListOptions}
+                                placeholder="Năm..."
+                                className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                            />
+                        </div>
+                    )}
+
+                    {filterMode === 'year' && (
+                        <div className="flex items-center gap-2">
+                            <CustomSelect
+                                value={String(year)}
+                                onChange={(val) => {
+                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    setPage(1);
+                                }}
+                                options={yearListOptions}
+                                placeholder="Năm..."
+                                className="min-w-[105px] bg-transparent border-none text-xs font-bold"
+                            />
+                        </div>
+                    )}
+
+                    {filterMode === 'all' && (
+                        <div className="px-3 py-1.5 text-xs font-black text-primary/80">
+                            Toàn bộ lịch sử
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-2">
@@ -618,12 +779,28 @@ export default function Reports() {
                             </select>
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
                             <span className="text-[10px] font-black uppercase text-[#8b6f47]">Từ ngày - Đến ngày</span>
-                            <div className="flex items-center gap-1 border border-border rounded-xl px-2 py-1.5 bg-transparent">
-                                <input type="date" value={synthesisStartDate} onChange={(e) => { setSynthesisStartDate(e.target.value); setPage(1); }} className="bg-transparent border-none outline-none font-bold text-[11px] text-primary uppercase w-full" />
-                                <span className="text-muted text-xs font-bold">-</span>
-                                <input type="date" value={synthesisEndDate} onChange={(e) => { setSynthesisEndDate(e.target.value); setPage(1); }} className="bg-transparent border-none outline-none font-bold text-[11px] text-primary uppercase w-full" />
+                            <div className="flex items-center gap-2">
+                                <CustomDatePicker
+                                    value={synthesisStartDate}
+                                    onChange={(val) => {
+                                        setSynthesisStartDate(val || '');
+                                        setPage(1);
+                                    }}
+                                    placeholder="Từ ngày..."
+                                    className="flex-1 min-w-[120px]"
+                                />
+                                <span className="text-muted text-xs font-bold shrink-0">-</span>
+                                <CustomDatePicker
+                                    value={synthesisEndDate}
+                                    onChange={(val) => {
+                                        setSynthesisEndDate(val || '');
+                                        setPage(1);
+                                    }}
+                                    placeholder="Đến ngày..."
+                                    className="flex-1 min-w-[120px]"
+                                />
                             </div>
                         </div>
 

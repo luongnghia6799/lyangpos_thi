@@ -10,6 +10,7 @@ pub mod order;
 pub mod partner;
 pub mod pos;
 pub mod product;
+pub mod reminder;
 pub mod report;
 pub mod setting;
 pub mod system;

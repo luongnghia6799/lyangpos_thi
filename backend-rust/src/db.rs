@@ -262,6 +262,23 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
     ).execute(pool).await?;
 
     sqlx::query(
+        "CREATE TABLE IF NOT EXISTS reminder (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            remind_at DATETIME NOT NULL,
+            repeat_type VARCHAR(20) DEFAULT 'once',
+            sound_theme VARCHAR(50) DEFAULT 'bell',
+            tts_message TEXT,
+            status VARCHAR(20) DEFAULT 'pending',
+            priority VARCHAR(20) DEFAULT 'medium',
+            color VARCHAR(20) DEFAULT '#10b981',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            completed_at DATETIME
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
         "CREATE TABLE IF NOT EXISTS event_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_id INTEGER NOT NULL,

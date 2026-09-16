@@ -19,22 +19,32 @@ export default function CustomDatePicker({
     const [dropUp, setDropUp] = useState(false);
     const containerRef = useRef(null);
 
-    // Parse value (YYYY-MM-DD)
+    // Parse value (YYYY-MM-DD or Date object or number)
     const getParsedDate = (val) => {
-        if (!val) return new Date();
-        const parts = val.split('-');
+        if (!val) return null;
+        if (val instanceof Date) return val;
+        const str = String(val).trim();
+        if (!str) return null;
+        const parts = str.split('-');
         if (parts.length === 3) {
-            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                return new Date(y, m, d);
+            }
         }
-        return new Date();
+        const parsed = new Date(str);
+        return isNaN(parsed.getTime()) ? null : parsed;
     };
 
-    const selectedDate = value ? getParsedDate(value) : null;
-    const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+    const selectedDate = getParsedDate(value);
+    const [currentMonth, setCurrentMonth] = useState(() => selectedDate || new Date());
 
     useEffect(() => {
-        if (selectedDate) {
-            setCurrentMonth(selectedDate);
+        const parsed = getParsedDate(value);
+        if (parsed) {
+            setCurrentMonth(parsed);
         }
     }, [value]);
 
@@ -98,6 +108,21 @@ export default function CustomDatePicker({
         return `${d}/${m}/${y}`;
     };
 
+    const triggerChange = (valStr) => {
+        if (typeof onChange === 'function') {
+            try {
+                onChange(valStr);
+            } catch (err) {
+                // fallback
+            }
+            try {
+                onChange({ target: { value: valStr } });
+            } catch (err) {
+                // fallback
+            }
+        }
+    };
+
     const handleSelectDay = (day) => {
         const selected = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
         const formatted = formatDateString(selected);
@@ -105,13 +130,13 @@ export default function CustomDatePicker({
         // Handle max limit
         if (max && formatted > max) return;
 
-        onChange({ target: { value: formatted } });
+        triggerChange(formatted);
         setIsOpen(false);
     };
 
     const handleClear = (e) => {
         e.stopPropagation();
-        onChange({ target: { value: '' } });
+        triggerChange('');
     };
 
     const prevMonth = () => {

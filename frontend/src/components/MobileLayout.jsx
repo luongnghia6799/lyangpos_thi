@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sun, Moon, ArrowLeft, RefreshCw, ShoppingCart, Search, ChevronDown } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, RefreshCw, ShoppingCart, Search, ChevronDown, Bell } from 'lucide-react';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMenu from './MobileMenu';
 import useMobileNative from '../hooks/useMobileNative';
 import logo from '../assets/logo.png';
+import axios from 'axios';
 import { cn } from '../lib/utils';
 
 const ROUTE_TITLES = {
@@ -49,6 +50,25 @@ export default function MobileLayout({ children }) {
     useEffect(() => {
         setStatusBarColor(isDarkMode ? '#000000' : '#ffffff');
     }, [isDarkMode, setStatusBarColor]);
+
+    const [reminderCount, setReminderCount] = useState(0);
+
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const res = await axios.get('/api/reminders/counts');
+                if (res.data) setReminderCount(res.data.today || res.data.pending || 0);
+            } catch (e) {}
+        };
+        fetchCounts();
+        const timer = setInterval(fetchCounts, 10000);
+        const handleReminderEvent = () => fetchCounts();
+        window.addEventListener('pos_reminder_event', handleReminderEvent);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('pos_reminder_event', handleReminderEvent);
+        };
+    }, []);
 
     const isPOSPage = location.pathname === '/mobile-pos';
 

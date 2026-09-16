@@ -329,29 +329,46 @@ pub async fn report_products(
     );
 
     if let Some(y) = &params.year {
-        sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y));
-    }
-    if let Some(m) = &params.month {
-        let padded = format!("{:0>2}", m);
-        sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
-    }
-    if let Some(d) = &params.day {
-        let padded = format!("{:0>2}", d);
-        sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+        if !y.trim().is_empty() {
+            sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y.trim()));
+        }
     }
     if let Some(q) = &params.quarter {
-        let (s, e) = match q.as_str() {
-            "1" => ("01", "03"),
-            "2" => ("04", "06"),
-            "3" => ("07", "09"),
-            "4" => ("10", "12"),
-            _ => ("01", "12"),
-        };
-        sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+        let q_clean = q.trim();
+        if !q_clean.is_empty() {
+            let (s, e) = match q_clean {
+                "1" => ("01", "03"),
+                "2" => ("04", "06"),
+                "3" => ("07", "09"),
+                "4" => ("10", "12"),
+                _ => ("01", "12"),
+            };
+            sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+        } else if let Some(m) = &params.month {
+            let m_clean = m.trim();
+            if !m_clean.is_empty() {
+                let padded = format!("{:0>2}", m_clean);
+                sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+            }
+        }
+    } else if let Some(m) = &params.month {
+        let m_clean = m.trim();
+        if !m_clean.is_empty() {
+            let padded = format!("{:0>2}", m_clean);
+            sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+        }
+    }
+    if let Some(d) = &params.day {
+        let d_clean = d.trim();
+        if !d_clean.is_empty() {
+            let padded = format!("{:0>2}", d_clean);
+            sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+        }
     }
     if let Some(b) = &params.brand {
-        if !b.is_empty() {
-            sql.push_str(&format!(" AND p.brand = '{}'", b));
+        let b_clean = b.trim();
+        if !b_clean.is_empty() {
+            sql.push_str(&format!(" AND p.brand = '{}'", b_clean));
         }
     }
 
@@ -479,25 +496,41 @@ pub async fn report_partners(
     );
 
     if let Some(y) = &params.year {
-        sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y));
-    }
-    if let Some(m) = &params.month {
-        let padded = format!("{:0>2}", m);
-        sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
-    }
-    if let Some(d) = &params.day {
-        let padded = format!("{:0>2}", d);
-        sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+        if !y.trim().is_empty() {
+            sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y.trim()));
+        }
     }
     if let Some(q) = &params.quarter {
-        let (s, e) = match q.as_str() {
-            "1" => ("01", "03"),
-            "2" => ("04", "06"),
-            "3" => ("07", "09"),
-            "4" => ("10", "12"),
-            _ => ("01", "12"),
-        };
-        sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+        let q_clean = q.trim();
+        if !q_clean.is_empty() {
+            let (s, e) = match q_clean {
+                "1" => ("01", "03"),
+                "2" => ("04", "06"),
+                "3" => ("07", "09"),
+                "4" => ("10", "12"),
+                _ => ("01", "12"),
+            };
+            sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+        } else if let Some(m) = &params.month {
+            let m_clean = m.trim();
+            if !m_clean.is_empty() {
+                let padded = format!("{:0>2}", m_clean);
+                sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+            }
+        }
+    } else if let Some(m) = &params.month {
+        let m_clean = m.trim();
+        if !m_clean.is_empty() {
+            let padded = format!("{:0>2}", m_clean);
+            sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+        }
+    }
+    if let Some(d) = &params.day {
+        let d_clean = d.trim();
+        if !d_clean.is_empty() {
+            let padded = format!("{:0>2}", d_clean);
+            sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+        }
     }
 
     let orders = sqlx::query(&sql).fetch_all(&pool).await?;
@@ -720,25 +753,41 @@ pub async fn report_synthesis(
         sql.push_str(&format!(" AND o.date >= '{}' AND o.date <= '{}'", s, e));
     } else {
         if let Some(y) = &params.year {
-            sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y));
-        }
-        if let Some(m) = &params.month {
-            let padded = format!("{:0>2}", m);
-            sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
-        }
-        if let Some(d) = &params.day {
-            let padded = format!("{:0>2}", d);
-            sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+            if !y.trim().is_empty() {
+                sql.push_str(&format!(" AND strftime('%Y', o.date) = '{}'", y.trim()));
+            }
         }
         if let Some(q) = &params.quarter {
-            let (s, e) = match q.as_str() {
-                "1" => ("01", "03"),
-                "2" => ("04", "06"),
-                "3" => ("07", "09"),
-                "4" => ("10", "12"),
-                _ => ("01", "12"),
-            };
-            sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+            let q_clean = q.trim();
+            if !q_clean.is_empty() {
+                let (s, e) = match q_clean {
+                    "1" => ("01", "03"),
+                    "2" => ("04", "06"),
+                    "3" => ("07", "09"),
+                    "4" => ("10", "12"),
+                    _ => ("01", "12"),
+                };
+                sql.push_str(&format!(" AND strftime('%m', o.date) BETWEEN '{}' AND '{}'", s, e));
+            } else if let Some(m) = &params.month {
+                let m_clean = m.trim();
+                if !m_clean.is_empty() {
+                    let padded = format!("{:0>2}", m_clean);
+                    sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+                }
+            }
+        } else if let Some(m) = &params.month {
+            let m_clean = m.trim();
+            if !m_clean.is_empty() {
+                let padded = format!("{:0>2}", m_clean);
+                sql.push_str(&format!(" AND strftime('%m', o.date) = '{}'", padded));
+            }
+        }
+        if let Some(d) = &params.day {
+            let d_clean = d.trim();
+            if !d_clean.is_empty() {
+                let padded = format!("{:0>2}", d_clean);
+                sql.push_str(&format!(" AND strftime('%d', o.date) = '{}'", padded));
+            }
         }
     }
 

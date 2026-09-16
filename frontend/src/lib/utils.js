@@ -1485,4 +1485,6 @@ export const speakAudioSequence = async (items = []) => {
   }
 };
 
+export const speakVi = (text) => speakNumber(text);
+
 

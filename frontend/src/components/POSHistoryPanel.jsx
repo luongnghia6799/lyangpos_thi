@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import { History, ShoppingBag, Clock, X, ChevronRight, Package, Calendar, Eye, EyeOff, BookOpen, Edit, Trash2, ReceiptText, Wallet, RotateCcw } from 'lucide-react';
-import { formatCurrency, formatDate, formatNumber, cn } from '../lib/utils';
+import { History, ShoppingBag, Clock, X, ChevronRight, Package, Calendar, Eye, EyeOff, BookOpen, Edit, Trash2, ReceiptText, Wallet, RotateCcw, Search } from 'lucide-react';
+import { formatCurrency, formatDate, formatNumber, removeAccents, cn } from '../lib/utils';
 import Portal from './Portal';
 import OrderEditPopup from './OrderEditPopup';
 import QuickVoucherModal from './QuickVoucherModal';
@@ -11,6 +11,7 @@ import QuickDebtModal from './QuickDebtModal';
 export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart, onViewOrder, onEditOrder, onDeleteOrder, onEditVoucher, onDeleteVoucher, context = 'POS', defaultType = 'Sale' }) {
     const [orders, setOrders] = useState([]);
     const [boughtProducts, setBoughtProducts] = useState([]);
+    const [productSearch, setProductSearch] = useState('');
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('invoices'); // invoices, products
     const [filterType, setFilterType] = useState('all'); // all, cash, debt
@@ -145,7 +146,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                         }
                     });
                 });
-                setBoughtProducts(Object.values(productMap).sort((a, b) => b.total_qty - a.total_qty));
+                setBoughtProducts(Object.values(productMap).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'vi')));
             }
         } catch (err) {
             console.error("Error fetching POS history:", err);
@@ -153,6 +154,13 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
             setLoading(false);
         }
     };
+
+    const filteredProducts = useMemo(() => {
+        let list = [...boughtProducts].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'vi'));
+        if (!productSearch.trim()) return list;
+        const q = removeAccents(productSearch.toLowerCase().trim());
+        return list.filter(p => removeAccents((p.name || '').toLowerCase()).includes(q));
+    }, [boughtProducts, productSearch]);
 
     const notifyPartnerUpdated = () => {
         try {
@@ -617,25 +625,60 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                                     );
                                 })()
                             ) : (
-                                boughtProducts.length === 0 ? (
-                                    <div className="text-center py-40 opacity-20">
-                                        <Package size={60} strokeWidth={1} className="mx-auto mb-8 text-white" />
-                                        <p className="font-black uppercase text-[10px] tracking-[0.4em] text-white">Trống trải...</p>
-                                    </div>
-                                ) : boughtProducts.map((p) => (
-                                    <div key={p.id} className="bg-white/[0.04] p-3 rounded-xl border border-white/5 hover:border-emerald-500/40 transition-colors flex items-center justify-between hover:bg-white/[0.08]">
-                                        <div className="flex-1 min-w-0 pr-3">
-                                            <div className="font-black text-[12px] text-white uppercase truncate mb-1" title={p.name}>{p.name}</div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/5 px-1.5 py-0.5 rounded-md border border-emerald-500/5 tabular-nums">Tổng {formatNumber(p.total_qty)} {p.unit}</span>
-                                                <span className="text-[9px] font-black text-white/20 tabular-nums">Giá cuối: {formatNumber(p.last_price)}</span>
-                                            </div>
+                                <div className="space-y-2.5">
+                                    {/* Search input for products */}
+                                    {boughtProducts.length > 0 && (
+                                        <div className="relative mb-2">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm sản phẩm (A - Z)..."
+                                                value={productSearch}
+                                                onChange={(e) => setProductSearch(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-white placeholder-white/30 outline-none focus:border-emerald-500 focus:bg-white/10 transition-all shadow-inner"
+                                            />
+                                            {productSearch && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setProductSearch('')}
+                                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1 rounded-full transition-colors"
+                                                    title="Xóa tìm kiếm"
+                                                >
+                                                    <X size={13} />
+                                                </button>
+                                            )}
                                         </div>
-                                        <button onClick={() => onAddToCart(p)} className="w-8 h-8 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg shadow-lg flex items-center justify-center transition-all border border-emerald-500/5 active:scale-90">
-                                            <PlusIcon size={14} strokeWidth={2.5} />
-                                        </button>
-                                    </div>
-                                ))
+                                    )}
+
+                                    {boughtProducts.length === 0 ? (
+                                        <div className="text-center py-40 opacity-20">
+                                            <Package size={60} strokeWidth={1} className="mx-auto mb-8 text-white" />
+                                            <p className="font-black uppercase text-[10px] tracking-[0.4em] text-white">Trống trải...</p>
+                                        </div>
+                                    ) : filteredProducts.length === 0 ? (
+                                        <div className="text-center py-20 text-white/40 space-y-2">
+                                            <Search size={32} className="mx-auto opacity-30" />
+                                            <p className="text-xs font-bold uppercase tracking-wider">
+                                                Không tìm thấy sản phẩm nào khớp "{productSearch}"
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        filteredProducts.map((p) => (
+                                            <div key={p.id} className="bg-white/[0.04] p-3 rounded-xl border border-white/5 hover:border-emerald-500/40 transition-colors flex items-center justify-between hover:bg-white/[0.08]">
+                                                <div className="flex-1 min-w-0 pr-3">
+                                                    <div className="font-black text-[12px] text-white uppercase truncate mb-1" title={p.name}>{p.name}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/5 px-1.5 py-0.5 rounded-md border border-emerald-500/5 tabular-nums">Tổng {formatNumber(p.total_qty)} {p.unit}</span>
+                                                        <span className="text-[9px] font-black text-white/20 tabular-nums">Giá cuối: {formatNumber(p.last_price)}</span>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => onAddToCart(p)} className="w-8 h-8 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg shadow-lg flex items-center justify-center transition-all border border-emerald-500/5 active:scale-90">
+                                                    <PlusIcon size={14} strokeWidth={2.5} />
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             )}
                         </div>
                     </m.div>

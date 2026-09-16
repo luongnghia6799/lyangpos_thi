@@ -11,8 +11,8 @@ import {
 import Portal from '../../components/Portal';
 import OrderEditPopup from '../../components/OrderEditPopup';
 import CustomDatePicker from '../../components/CustomDatePicker';
-import { formatCurrency, formatNumber } from '../../lib/utils';
-import { cn } from '../../lib/utils';
+import CustomSelect from '../../components/CustomSelect';
+import { formatCurrency, formatNumber, cn } from '../../lib/utils';
 import * as XLSX from 'xlsx';
 import {
     Chart as ChartJS,
@@ -42,30 +42,91 @@ ChartJS.register(
     Filler
 );
 
-// Initial Date Helper - Default to current month
-const getInitialRange = () => {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    // Helper to format YYYY-MM-DD in local time
-    const formatLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    return {
-        startDate: formatLocal(firstDay),
-        endDate: formatLocal(lastDay)
-    };
-};
+// Helper to format YYYY-MM-DD in local time
+const formatLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function ReportsBoard() {
     const savedState = JSON.parse(sessionStorage.getItem('reports_board_state') || '{}');
-    const [dateRange, setDateRange] = useState(savedState.dateRange || getInitialRange());
     const [activeTab, setActiveTab] = useState(savedState.activeTab || 'sales'); // sales, customers, purchases, inventory, brands
+
+    // Filter Mode: 'month' | 'day' | 'quarter' | 'year' | 'range' | 'all'
+    const now = new Date();
+    const [filterMode, setFilterMode] = useState(savedState.filterMode || 'month');
+    const [exactDate, setExactDate] = useState(() => formatLocal(now));
+    const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
+    const [selectedQuarter, setSelectedQuarter] = useState(String(Math.ceil((now.getMonth() + 1) / 3)));
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [customRange, setCustomRange] = useState(savedState.customRange || {
+        startDate: formatLocal(new Date(now.getFullYear(), now.getMonth(), 1)),
+        endDate: formatLocal(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+    });
+
+    const filterModeOptions = [
+        { value: 'day', label: 'Theo Ngày' },
+        { value: 'month', label: 'Theo Tháng' },
+        { value: 'quarter', label: 'Theo Quý' },
+        { value: 'year', label: 'Theo Năm' },
+        { value: 'range', label: 'Khoảng Ngày' },
+        { value: 'all', label: 'Tất Cả Thời Gian' },
+    ];
+
+    const monthListOptions = useMemo(() => {
+        const opts = [];
+        for (let i = 1; i <= 12; i++) opts.push({ value: String(i), label: `Tháng ${i}` });
+        return opts;
+    }, []);
+
+    const quarterListOptions = [
+        { value: "1", label: "Quý 1 (Tháng 1 - 3)" },
+        { value: "2", label: "Quý 2 (Tháng 4 - 6)" },
+        { value: "3", label: "Quý 3 (Tháng 7 - 9)" },
+        { value: "4", label: "Quý 4 (Tháng 10 - 12)" },
+    ];
+
+    const yearListOptions = useMemo(() => {
+        const opts = [];
+        for (let i = 2023; i <= new Date().getFullYear() + 1; i++) {
+            opts.push({ value: String(i), label: `Năm ${i}` });
+        }
+        return opts;
+    }, []);
+
+    // Compute effective dateRange from filterMode
+    const dateRange = useMemo(() => {
+        if (filterMode === 'day') {
+            const d = exactDate || formatLocal(new Date());
+            return { startDate: d, endDate: d };
+        }
+        if (filterMode === 'month') {
+            const m = parseInt(selectedMonth, 10) - 1;
+            const y = selectedYear;
+            const firstDay = new Date(y, m, 1);
+            const lastDay = new Date(y, m + 1, 0);
+            return { startDate: formatLocal(firstDay), endDate: formatLocal(lastDay) };
+        }
+        if (filterMode === 'quarter') {
+            const q = parseInt(selectedQuarter, 10);
+            const startMonth = (q - 1) * 3;
+            const endMonth = startMonth + 2;
+            const firstDay = new Date(selectedYear, startMonth, 1);
+            const lastDay = new Date(selectedYear, endMonth + 1, 0);
+            return { startDate: formatLocal(firstDay), endDate: formatLocal(lastDay) };
+        }
+        if (filterMode === 'year') {
+            const firstDay = new Date(selectedYear, 0, 1);
+            const lastDay = new Date(selectedYear, 11, 31);
+            return { startDate: formatLocal(firstDay), endDate: formatLocal(lastDay) };
+        }
+        if (filterMode === 'all') {
+            return { startDate: '', endDate: '' };
+        }
+        return customRange;
+    }, [filterMode, exactDate, selectedMonth, selectedQuarter, selectedYear, customRange]);
 
     // Persist state
     useEffect(() => {
-        sessionStorage.setItem('reports_board_state', JSON.stringify({ dateRange, activeTab }));
-    }, [dateRange, activeTab]);
+        sessionStorage.setItem('reports_board_state', JSON.stringify({ filterMode, customRange, activeTab }));
+    }, [filterMode, customRange, activeTab]);
     const [loading, setLoading] = useState(false);
 
     // Data States
@@ -366,12 +427,119 @@ export default function ReportsBoard() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 relative z-50">
-                    <div className="flex items-center gap-2">
-                        <CustomDatePicker value={dateRange.startDate} onChange={e => setDateRange({ ...dateRange, startDate: e.target.value })} />
-                        <span className="text-primary/50 mx-1 font-bold">→</span>
-                        <CustomDatePicker value={dateRange.endDate} onChange={e => setDateRange({ ...dateRange, endDate: e.target.value })} />
+                    {/* Mode-based Filter Bar */}
+                    <div className="flex flex-wrap items-center gap-2 p-1 rounded-2xl bg-transparent border border-border shadow-none">
+                        {/* Mode selector */}
+                        <div className="flex items-center gap-1.5 pl-2 pr-1">
+                            <Calendar size={18} className="text-primary shrink-0" />
+                            <CustomSelect
+                                value={filterMode}
+                                onChange={(val) => setFilterMode(val)}
+                                options={filterModeOptions}
+                                className="min-w-[135px] bg-transparent border-none text-xs font-black text-primary"
+                            />
+                        </div>
+
+                        <div className="w-px h-5 bg-border/60"></div>
+
+                        {/* Contextual control */}
+                        {filterMode === 'day' && (
+                            <div className="flex items-center gap-2">
+                                <CustomDatePicker
+                                    value={exactDate}
+                                    onChange={(val) => {
+                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                        setExactDate(d || '');
+                                    }}
+                                    className="w-[145px]"
+                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                />
+                            </div>
+                        )}
+
+                        {filterMode === 'month' && (
+                            <div className="flex items-center gap-1">
+                                <CustomSelect
+                                    value={selectedMonth}
+                                    onChange={(val) => setSelectedMonth(val)}
+                                    options={monthListOptions}
+                                    placeholder="Chọn tháng..."
+                                    className="min-w-[110px] bg-transparent border-none text-xs font-bold"
+                                />
+                                <div className="w-px h-4 bg-border/40"></div>
+                                <CustomSelect
+                                    value={String(selectedYear)}
+                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                    options={yearListOptions}
+                                    placeholder="Năm..."
+                                    className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                                />
+                            </div>
+                        )}
+
+                        {filterMode === 'quarter' && (
+                            <div className="flex items-center gap-1">
+                                <CustomSelect
+                                    value={selectedQuarter}
+                                    onChange={(val) => setSelectedQuarter(val)}
+                                    options={quarterListOptions}
+                                    placeholder="Chọn quý..."
+                                    className="min-w-[150px] bg-transparent border-none text-xs font-bold"
+                                />
+                                <div className="w-px h-4 bg-border/40"></div>
+                                <CustomSelect
+                                    value={String(selectedYear)}
+                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                    options={yearListOptions}
+                                    placeholder="Năm..."
+                                    className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                                />
+                            </div>
+                        )}
+
+                        {filterMode === 'year' && (
+                            <div className="flex items-center gap-2">
+                                <CustomSelect
+                                    value={String(selectedYear)}
+                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                    options={yearListOptions}
+                                    placeholder="Năm..."
+                                    className="min-w-[105px] bg-transparent border-none text-xs font-bold"
+                                />
+                            </div>
+                        )}
+
+                        {filterMode === 'range' && (
+                            <div className="flex items-center gap-2">
+                                <CustomDatePicker
+                                    value={customRange.startDate}
+                                    onChange={(val) => {
+                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                        setCustomRange(prev => ({ ...prev, startDate: d || '' }));
+                                    }}
+                                    className="w-[145px]"
+                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                />
+                                <span className="text-primary/50 font-bold">→</span>
+                                <CustomDatePicker
+                                    value={customRange.endDate}
+                                    onChange={(val) => {
+                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                        setCustomRange(prev => ({ ...prev, endDate: d || '' }));
+                                    }}
+                                    className="w-[145px]"
+                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                />
+                            </div>
+                        )}
+
+                        {filterMode === 'all' && (
+                            <div className="px-3 py-1.5 text-xs font-black text-primary/80">
+                                Toàn bộ lịch sử
+                            </div>
+                        )}
                     </div>
-                    <button onClick={() => setDateRange(getInitialRange())} className="px-4 py-2 text-xs font-black uppercase tracking-wider bg-transparent text-primary hover:bg-primary/10 border border-[#d4a574]/30 rounded-2xl transition-colors active:scale-[0.98] shadow-none">Tháng này</button>
+
                     <div className="relative">
                         {searchTerm !== debouncedSearchTerm ? (
                             <RefreshCw className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary animate-spin" size={16} />

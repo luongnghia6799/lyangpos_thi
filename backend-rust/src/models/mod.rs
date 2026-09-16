@@ -5,6 +5,7 @@ pub mod event;
 pub mod order;
 pub mod partner;
 pub mod product;
+pub mod reminder;
 pub mod report;
 pub mod setting;
 pub mod user;

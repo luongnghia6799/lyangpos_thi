@@ -1261,7 +1261,7 @@ body {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 999999;
+  z-index: 2147483647 !important;
   overflow: hidden;
 }
 
@@ -1272,7 +1272,7 @@ body {
   background-color: #10b981; /* Emerald green theme color */
   border-radius: 50%;
   pointer-events: none;
-  z-index: 1000000;
+  z-index: 2147483647 !important;
   top: -100px;
   left: -100px;
   box-shadow: 0 0 10px 2px rgba(16, 185, 129, 0.5);
@@ -1287,7 +1287,7 @@ body {
   background-color: transparent;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 999999;
+  z-index: 2147483646 !important;
   top: -100px;
   left: -100px;
   opacity: 0.8;

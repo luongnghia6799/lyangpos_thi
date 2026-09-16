@@ -10,6 +10,8 @@ import { queryClient } from './lib/queryClient';
 import FontLoader from './components/FontLoader';
 import LoadingOverlay from './components/LoadingOverlay';
 import CustomCursor from './components/CustomCursor';
+import GlobalReminderAlert from './components/GlobalReminderAlert';
+import ReminderModal from './components/ReminderModal';
 import { checkIsAdmin } from './lib/auth';
 import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
@@ -698,6 +700,18 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  const [showReminderModal, setShowReminderModal] = useState(false);
+
+  useEffect(() => {
+    const handleOpenReminderModal = () => {
+      setShowReminderModal(true);
+    };
+    window.addEventListener('pos_open_reminders', handleOpenReminderModal);
+    return () => {
+      window.removeEventListener('pos_open_reminders', handleOpenReminderModal);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LazyMotion features={domMax}>
@@ -713,6 +727,10 @@ function App() {
             <AutoOptimizeDb />
             <FontLoader />
             <AppWallpaper />
+
+            {/* Global Reminder Banner & Sound Alert across all tabs */}
+            <GlobalReminderAlert onOpenManager={() => setShowReminderModal(true)} />
+            <ReminderModal isOpen={showReminderModal} onClose={() => setShowReminderModal(false)} />
 
             <Suspense fallback={<LoadingOverlay isVisible={true} message="Khởi động..." />}>
               <Routes>

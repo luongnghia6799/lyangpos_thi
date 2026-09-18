@@ -2386,7 +2386,7 @@ const PrintTemplate = forwardRef(({
                         
                         const printableH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
                         const firstHeaderH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
-                        const otherHeaderH = s.invoice_repeat_header_on_later_pages === 'true' ? firstHeaderH : 35;
+                        const otherHeaderH = 35;
                         const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
 
                         const renderStandardPages = (isForPreview) => {
@@ -2464,17 +2464,7 @@ const PrintTemplate = forwardRef(({
                                                             {invoiceMetaEl}
                                                         </div>
                                                     </>
-                                                ) : (
-                                                    s.invoice_repeat_header_on_later_pages === 'true' && (
-                                                        <div style={{ ...headerStyle, paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px dashed #cbd5e1' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{s.invoice_shop_name || 'CỬA HÀNG'}</span>
-                                                                <span style={{ fontSize: '11px', color: '#64748b' }}>Hóa đơn: #{data.display_id || data.id} (tiếp theo)</span>
-                                                            </div>
-                                                            <span style={{ fontSize: '10px', color: '#64748b' }}>{data.date ? formatDate(data.date) : ''}</span>
-                                                        </div>
-                                                    )
-                                                )}
+                                                ) : null}
                                                 <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>{renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}</div>
                                                 {isLastPage && (
                                                     <>

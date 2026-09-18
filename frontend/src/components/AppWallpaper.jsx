@@ -62,6 +62,19 @@ const AppWallpaper = () => {
 
   if (!wallpaper?.image) return null;
 
+  const getFilterStyle = () => {
+    const filters = [];
+    if (wallpaper.blur) filters.push(`blur(${wallpaper.blur}px)`);
+    if (wallpaper.brightness !== undefined && wallpaper.brightness !== 100) filters.push(`brightness(${wallpaper.brightness}%)`);
+    if (wallpaper.contrast !== undefined && wallpaper.contrast !== 100) filters.push(`contrast(${wallpaper.contrast}%)`);
+    if (wallpaper.saturate !== undefined && wallpaper.saturate !== 100) filters.push(`saturate(${wallpaper.saturate}%)`);
+    if (wallpaper.sepia !== undefined && wallpaper.sepia > 0) filters.push(`sepia(${wallpaper.sepia}%)`);
+    if (wallpaper.hueRotate !== undefined && wallpaper.hueRotate > 0) filters.push(`hue-rotate(${wallpaper.hueRotate}deg)`);
+    if (wallpaper.grayscale !== undefined && wallpaper.grayscale > 0) filters.push(`grayscale(${wallpaper.grayscale}%)`);
+    if (wallpaper.invert !== undefined && wallpaper.invert > 0) filters.push(`invert(${wallpaper.invert}%)`);
+    return filters.length > 0 ? filters.join(' ') : 'none';
+  };
+
   return (
     <>
       <div
@@ -73,20 +86,34 @@ const AppWallpaper = () => {
           backgroundPosition: wallpaper.position || 'center',
           backgroundRepeat: 'no-repeat',
           opacity: (wallpaper.opacity ?? 100) / 100,
-          filter: `blur(${wallpaper.blur || 0}px)`,
+          filter: getFilterStyle(),
           transform: wallpaper.blur ? 'scale(1.1)' : 'none'
         }}
       />
+      {/* Optional Color Tint / Filter Overlay */}
+      {wallpaper.tintColor && (
+        <div
+          className="fixed inset-0 pointer-events-none transition-all duration-300"
+          style={{
+            zIndex: -9.5,
+            backgroundColor: wallpaper.tintColor,
+            opacity: (wallpaper.tintOpacity !== undefined ? wallpaper.tintOpacity : 20) / 100,
+            mixBlendMode: wallpaper.tintBlendMode || 'multiply'
+          }}
+        />
+      )}
       {/* Glass Overlay */}
-      <div
-        className="fixed inset-0 pointer-events-none transition-all duration-300"
-        style={{
-          zIndex: -9,
-          backdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
-          WebkitBackdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
-          backgroundColor: `color-mix(in srgb, var(--bg-color) ${wallpaper.glassOpacity !== undefined ? wallpaper.glassOpacity : 20}%, transparent)`
-        }}
-      />
+      {(wallpaper.glassEnabled !== false) && (
+        <div
+          className="fixed inset-0 pointer-events-none transition-all duration-300"
+          style={{
+            zIndex: -9,
+            backdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
+            WebkitBackdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
+            backgroundColor: `color-mix(in srgb, var(--bg-color) ${wallpaper.glassOpacity !== undefined ? wallpaper.glassOpacity : 20}%, transparent)`
+          }}
+        />
+      )}
       {/* Dark Overlay for Dark Mode */}
       <div
         className="fixed inset-0 pointer-events-none transition-opacity duration-300 bg-black/50 opacity-0 dark:opacity-100"

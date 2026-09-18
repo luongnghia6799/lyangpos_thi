@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import CustomSelect from '../../components/CustomSelect';
+import CustomDatePicker from '../../components/CustomDatePicker';
 import { m, AnimatePresence } from 'framer-motion';
 import { Search, Eye, TrendingUp, TrendingDown, Calendar, X, FileText, Trash2, Edit, ChevronUp, ChevronDown, ArrowUpDown, Wheat, Droplets, Leaf, Sprout, Coins, User, Clock, Package, History as HistoryIcon, AlertTriangle, CheckCircle, Warehouse } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate } from '../../lib/utils';
@@ -18,17 +19,34 @@ export default function History() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(() => localStorage.getItem('history_activeTab') || 'Sale');
-    const [year, setYear] = useState(() => {
-        const saved = localStorage.getItem('history_year');
-        return saved ? parseInt(saved, 10) : new Date().getFullYear();
+    const getTodayStr = () => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    };
+
+    const [startDate, setStartDate] = useState(() => {
+        const saved = localStorage.getItem('history_startDate');
+        if (saved !== null) return saved;
+        // Migration from old year/month/day
+        const y = localStorage.getItem('history_year');
+        const m = localStorage.getItem('history_month');
+        const d = localStorage.getItem('history_day');
+        if (y && m && d) {
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+        return getTodayStr();
     });
-    const [month, setMonth] = useState(() => {
-        const saved = localStorage.getItem('history_month');
-        return saved !== null ? saved : String(new Date().getMonth() + 1);
-    });
-    const [day, setDay] = useState(() => {
-        const saved = localStorage.getItem('history_day');
-        return saved !== null ? saved : String(new Date().getDate());
+
+    const [endDate, setEndDate] = useState(() => {
+        const saved = localStorage.getItem('history_endDate');
+        if (saved !== null) return saved;
+        const y = localStorage.getItem('history_year');
+        const m = localStorage.getItem('history_month');
+        const d = localStorage.getItem('history_day');
+        if (y && m && d) {
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+        return getTodayStr();
     });
 
     // Input states
@@ -85,9 +103,8 @@ export default function History() {
 
     useEffect(() => {
         localStorage.setItem('history_activeTab', activeTab);
-        localStorage.setItem('history_year', year ? year.toString() : '');
-        localStorage.setItem('history_month', month !== null ? month.toString() : '');
-        localStorage.setItem('history_day', day !== null ? day.toString() : '');
+        localStorage.setItem('history_startDate', startDate || '');
+        localStorage.setItem('history_endDate', endDate || '');
         localStorage.setItem('history_searchPartner', searchPartner || '');
         localStorage.setItem('history_searchId', searchId || '');
         localStorage.setItem('history_minPrice', minPrice || '');
@@ -105,24 +122,25 @@ export default function History() {
         localStorage.setItem('history_limit', limit.toString());
         localStorage.setItem('history_sortBy', sortBy || '');
         localStorage.setItem('history_sortOrder', sortOrder || '');
-    }, [activeTab, year, month, day, searchPartner, searchId, minPrice, maxPrice, exactPrice, searchPartnerQuery, searchIdQuery, minPriceQuery, maxPriceQuery, exactPriceQuery, searchProduct, searchProductQuery, paymentMethod, page, limit, sortBy, sortOrder]);
-
-    const years = [];
-    for (let i = 2023; i <= new Date().getFullYear() + 1; i++) years.push(i);
+    }, [activeTab, startDate, endDate, searchPartner, searchId, minPrice, maxPrice, exactPrice, searchPartnerQuery, searchIdQuery, minPriceQuery, maxPriceQuery, exactPriceQuery, searchProduct, searchProductQuery, paymentMethod, page, limit, sortBy, sortOrder]);
 
     useEffect(() => {
         fetchOrders();
-    }, [page, activeTab, year, month, day, limit, searchPartnerQuery, searchIdQuery, minPriceQuery, maxPriceQuery, exactPriceQuery, searchProductQuery, sortBy, sortOrder, paymentMethod]);
+    }, [page, activeTab, startDate, endDate, limit, searchPartnerQuery, searchIdQuery, minPriceQuery, maxPriceQuery, exactPriceQuery, searchProductQuery, sortBy, sortOrder, paymentMethod]);
 
     useEffect(() => {
         fetchSettings();
         fetchActiveFilters();
-    }, [activeTab, year, month, day]);
+    }, [activeTab, startDate, endDate]);
 
     const fetchActiveFilters = async () => {
         try {
             const res = await axios.get('/api/history/active-filters', {
-                params: { type: activeTab, year, month, day }
+                params: {
+                    type: activeTab,
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined
+                }
             });
             setAllPartners(res.data.partners);
             setAllProducts(res.data.products);
@@ -154,7 +172,8 @@ export default function History() {
             const res = await axios.get(`/api/orders`, {
                 params: {
                     type: activeTab,
-                    year, month, day,
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined,
                     search_partner: searchPartnerQuery,
                     search_id: searchIdQuery,
                     minPrice: minPriceQuery,
@@ -377,63 +396,71 @@ export default function History() {
                     </div>
                 </div>
 
-                <div className="relative pos-card p-6 rounded-2xl space-y-6 overflow-hidden">
+                <div className="relative pos-card p-3.5 sm:p-4 rounded-2xl space-y-3 overflow-hidden">
                     {/* Subtle grain pattern overlay */}
                     <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
                     }}></div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
-                        <div className="md:col-span-9 flex items-center gap-3 pos-card p-3 rounded-2xl transition-all">
-                            <Calendar size={20} className="ml-2 text-[#4a7c59]" />
-                            <CustomSelect
-                                className="border-0 p-0 min-w-[120px]"
-                                value={day}
-                                onChange={(e) => { setDay(e.target.value); setPage(1); }}
-                                options={[
-                                    { value: "", label: "Ngày: Tất cả" },
-                                    ...[...Array(31)].map((_, i) => ({ value: String(i + 1), label: String(i + 1) }))
-                                ]}
-                            />
-                            <div className="w-px h-6 bg-[#d4a574]/30 mx-1"></div>
-                            <CustomSelect
-                                className="border-0 p-0 min-w-[130px]"
-                                value={month}
-                                onChange={(e) => { setMonth(e.target.value); setPage(1); }}
-                                options={[
-                                    { value: "", label: "Tháng: Tất cả" },
-                                    ...[...Array(12)].map((_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))
-                                ]}
-                            />
-                            <div className="w-px h-6 bg-[#d4a574]/30 mx-1"></div>
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-black text-[#8b6f47] uppercase shrink-0">Năm:</span>
-                                <CustomSelect
-                                    className="border-0 p-0 min-w-[80px]"
-                                    value={year}
-                                    onChange={(e) => { setYear(parseInt(e.target.value)); setPage(1); }}
-                                    options={years.map(y => ({ value: y, label: String(y) }))}
-                                />
-                            </div>
-
-                            <div className="w-px h-6 bg-[#d4a574]/30 mx-1 hidden sm:block"></div>
-                            <button
-                                onClick={() => {
-                                    const now = new Date();
-                                    setDay(now.getDate());
-                                    setMonth(now.getMonth() + 1);
-                                    setYear(now.getFullYear());
+                    <div className="flex flex-wrap items-center gap-2 relative z-10">
+                        {/* Visual CustomDatePicker range: Từ ngày -> Đến ngày */}
+                        <div className="w-[145px] sm:w-[155px]">
+                            <CustomDatePicker
+                                value={startDate}
+                                placeholder="Từ ngày..."
+                                inputClassName="bg-transparent border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016] dark:hover:border-emerald-500 py-1.5 px-2.5 rounded-xl text-xs"
+                                onChange={(val) => {
+                                    setStartDate(val || '');
                                     setPage(1);
                                 }}
-                                className="px-4 py-1.5 bg-[#2d5016]/10 hover:bg-[#2d5016] text-[#2d5016] hover:text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap active:scale-95"
-                            >
-                                <Clock size={14} /> Hôm nay
-                            </button>
+                            />
                         </div>
 
-                        <div className="md:col-span-3">
-                            <button onClick={handleSearchTrigger} className="w-full h-full bg-transparent border border-border text-primary hover:bg-primary/10 p-3 rounded-2xl font-black uppercase text-xs transition-all flex items-center justify-center gap-2 shadow-none">
-                                <Search size={18} /> Lọc kết quả
+                        <span className="text-[#8b6f47] dark:text-[#d4a574] font-black text-xs px-0.5 select-none opacity-60">→</span>
+
+                        <div className="w-[145px] sm:w-[155px]">
+                            <CustomDatePicker
+                                value={endDate}
+                                placeholder="Đến ngày..."
+                                inputClassName="bg-transparent border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016] dark:hover:border-emerald-500 py-1.5 px-2.5 rounded-xl text-xs"
+                                onChange={(val) => {
+                                    setEndDate(val || '');
+                                    setPage(1);
+                                }}
+                            />
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const today = getTodayStr();
+                                setStartDate(today);
+                                setEndDate(today);
+                                setPage(1);
+                            }}
+                            className="px-3 py-1.5 bg-[#2d5016]/10 hover:bg-[#2d5016] text-[#2d5016] hover:text-white rounded-xl text-[10px] font-black uppercase transition-all shadow-sm flex items-center gap-1.5 whitespace-nowrap active:scale-95 shrink-0"
+                        >
+                            <Clock size={13} /> Hôm nay
+                        </button>
+
+                        {(startDate || endDate) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setStartDate('');
+                                    setEndDate('');
+                                    setPage(1);
+                                }}
+                                className="px-2.5 py-1.5 hover:bg-rose-500/10 text-rose-500 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-1 whitespace-nowrap active:scale-95 shrink-0"
+                                title="Xem tất cả ngày"
+                            >
+                                <X size={13} /> Xóa ngày
+                            </button>
+                        )}
+
+                        <div className="ml-auto">
+                            <button onClick={handleSearchTrigger} className="bg-transparent border border-border text-primary hover:bg-primary/10 px-4 py-2 rounded-2xl font-black uppercase text-xs transition-all flex items-center justify-center gap-2 shadow-none whitespace-nowrap">
+                                <Search size={15} /> Lọc kết quả
                             </button>
                         </div>
                     </div>
@@ -697,7 +724,7 @@ export default function History() {
                                                         </td>
                                                         <td className="p-4 py-5 min-w-[240px]">
                                                             <div className="flex items-center gap-2 mb-2 py-0.5">
-                                                                <span className="font-black text-[#2d5016] dark:text-gray-100 uppercase text-xs tracking-tight truncate max-w-[200px] py-0.5 leading-normal">{o.partner_name}</span>
+                                                                <span className="font-black text-foreground uppercase text-xs tracking-tight truncate max-w-[200px] py-0.5 leading-normal">{o.partner_name}</span>
                                                                 {o.is_consignment && (
                                                                     <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[8px] font-black uppercase flex items-center gap-0.5 shrink-0">
                                                                         <Warehouse size={9} /> GỬI KHO
@@ -709,11 +736,11 @@ export default function History() {
                                                                     {o.details.slice(0, 5).map((d, dIdx) => (
                                                                         <div
                                                                             key={dIdx}
-                                                                            className="px-2 py-0.5 bg-[#2d5016]/5 dark:bg-emerald-500/10 border border-[#2d5016]/10 dark:border-emerald-500/20 rounded-md text-[9px] font-black text-[#2d5016]/70 dark:text-emerald-400 uppercase flex items-center gap-1"
+                                                                            className="px-2 py-0.5 bg-primary/5 dark:bg-emerald-500/10 border border-primary/15 dark:border-emerald-500/20 rounded-md text-[9px] font-black uppercase flex items-center gap-1"
                                                                         >
-                                                                            <span className="truncate max-w-[80px]">{d.product_name}</span>
+                                                                            <span className="truncate max-w-[80px]" style={{ color: 'var(--product-text-color, inherit)' }}>{d.product_name}</span>
                                                                             <span className="text-[8px] opacity-40">x</span>
-                                                                            <span className="text-emerald-600 dark:text-emerald-300">{d.quantity}</span>
+                                                                            <span className="text-primary dark:text-emerald-300">{d.quantity}</span>
                                                                         </div>
                                                                     ))}
                                                                     {o.details.length > 5 && (
@@ -862,10 +889,10 @@ export default function History() {
                                                 <tbody>
                                                     {selectedOrder.details.map((d, i) => (
                                                         <tr key={i} className="border-b border-[#d4a574]/10 text-sm">
-                                                            <td className="py-2 font-bold text-[#2d5016] dark:text-white">{d.product_name}</td>
+                                                            <td className="py-2 font-bold text-foreground" style={{ color: 'var(--product-text-color, inherit)' }}>{d.product_name}</td>
                                                             <td className="py-2 text-right text-[#8b6f47] font-black">{d.quantity}</td>
                                                             <td className="py-2 text-right text-[#8b6f47]">{formatNumber(d.price)}</td>
-                                                            <td className="py-2 text-right font-bold text-[#2d5016] dark:text-[#4a7c59]">{formatNumber(d.quantity * d.price)}</td>
+                                                            <td className="py-2 text-right font-bold text-primary dark:text-[#4a7c59]">{formatNumber(d.quantity * d.price)}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

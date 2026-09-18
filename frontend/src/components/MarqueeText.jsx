@@ -1,6 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, memo } from 'react';
 
-export const MarqueeText = ({
+export const MarqueeText = memo(({
   text,
   className = "",
   style,
@@ -19,21 +19,19 @@ export const MarqueeText = ({
       if (containerRef.current && textRef.current) {
         const containerW = containerRef.current.clientWidth;
         const textW = textRef.current.scrollWidth;
-        if (textW > containerW + 1) {
-          setOverflowDist(textW - containerW);
-        } else {
-          setOverflowDist(0);
-        }
+        const newDist = textW > containerW + 2 ? textW - containerW : 0;
+        setOverflowDist(prev => (Math.abs(prev - newDist) > 2 ? newDist : prev));
       }
     };
 
     checkOverflow();
-    
+
     let ro;
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(checkOverflow);
+      ro = new ResizeObserver(() => {
+        checkOverflow();
+      });
       if (containerRef.current) ro.observe(containerRef.current);
-      if (textRef.current) ro.observe(textRef.current);
     } else {
       window.addEventListener('resize', checkOverflow);
     }
@@ -76,6 +74,7 @@ export const MarqueeText = ({
       </span>
     </div>
   );
-};
+});
 
 export default MarqueeText;
+

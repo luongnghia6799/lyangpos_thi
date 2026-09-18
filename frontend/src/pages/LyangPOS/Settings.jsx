@@ -50,7 +50,7 @@ export default function Settings() {
         gemini_api_key: '',
         brands_directory: '',
         ui_show_doraemon: localStorage.getItem('ui_show_doraemon') || DEFAULT_SETTINGS.ui_show_doraemon,
-        ui_show_dashboard_mascot: localStorage.getItem('ui_show_dashboard_mascot') || 'true',
+        ui_show_dashboard_mascot: localStorage.getItem('ui_show_dashboard_mascot') || 'false',
         ui_custom_cursor_enabled: localStorage.getItem('pos_cursor_disabled') !== 'true' ? 'true' : 'false',
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,

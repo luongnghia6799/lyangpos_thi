@@ -201,7 +201,6 @@ const DEFAULT_INVOICE_CONFIG = {
     invoice_preview_bg_opacity: '0.45',
     invoice_table_name_nowrap: 'false',
     invoice_show_title: 'true',
-    invoice_repeat_header_on_later_pages: 'true',
     invoice_show_page_number: 'false',
     invoice_page_number_position: 'bottom-right',
     invoice_page_number_format: 'page_total',
@@ -1024,90 +1023,81 @@ const InvoiceDesigner = () => {
 
                         {activeTab === 'layout' && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-left-2 duration-300">
-                                <DesignerSection title="Đa trang & Đánh số trang">
+                                <DesignerSection title="Đánh số trang">
                                     <div className="space-y-3">
                                         <div>
-                                            <Toggle
-                                                label="Lặp lại Header ở trang 2 trở đi"
-                                                checked={settings.invoice_repeat_header_on_later_pages === 'true'}
-                                                onChange={(v) => updateSetting('invoice_repeat_header_on_later_pages', v ? 'true' : 'false')}
-                                            />
-                                            <p className="text-[10px] text-slate-400 italic mt-0.5 ml-1">Bật để tự động lặp lại thông tin cửa hàng & tiêu đề ở đầu trang 2 trở đi khi in đơn dài; tắt để tiết kiệm giấy.</p>
-                                        </div>
-
-                                        <div className="pt-2 border-t border-border">
                                             <Toggle
                                                 label="Đánh số trang (Trang 1/2...)"
                                                 checked={settings.invoice_show_page_number === 'true'}
                                                 onChange={(v) => updateSetting('invoice_show_page_number', v ? 'true' : 'false')}
                                             />
-                                            {settings.invoice_show_page_number === 'true' && (
-                                                <div className="mt-3 space-y-3 pl-3 border-l-2 border-[#4a7c59]/40 animate-in fade-in duration-200">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Vị trí số trang</label>
-                                                        <div className="flex bg-[#d4a574]/5 dark:bg-slate-800/20 p-1 rounded-xl border border-border">
-                                                            {[
-                                                                { id: 'bottom-left', label: 'Dưới Trái' },
-                                                                { id: 'bottom-center', label: 'Dưới Giữa' },
-                                                                { id: 'bottom-right', label: 'Dưới Phải' }
-                                                            ].map(pos => (
-                                                                <button
-                                                                    key={pos.id}
-                                                                    type="button"
-                                                                    onClick={() => updateSetting('invoice_page_number_position', pos.id)}
-                                                                    className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                                                        (settings.invoice_page_number_position || 'bottom-right') === pos.id
-                                                                            ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-none"
-                                                                            : "text-slate-400 hover:text-slate-200"
-                                                                    )}
-                                                                >
-                                                                    {pos.label}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Định dạng hiển thị</label>
-                                                        <div className="flex bg-[#d4a574]/5 dark:bg-slate-800/20 p-1 rounded-xl border border-border">
-                                                            {[
-                                                                { id: 'page_total', label: 'Trang X/Y (Trang 1/2)' },
-                                                                { id: 'page_only', label: 'Chỉ số trang (Trang 1)' }
-                                                            ].map(fmt => (
-                                                                <button
-                                                                    key={fmt.id}
-                                                                    type="button"
-                                                                    onClick={() => updateSetting('invoice_page_number_format', fmt.id)}
-                                                                    className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
-                                                                        (settings.invoice_page_number_format || 'page_total') === fmt.id
-                                                                            ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-none"
-                                                                            : "text-slate-400 hover:text-slate-200"
-                                                                    )}
-                                                                >
-                                                                    {fmt.label}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <DesignerInput
-                                                            label="Cỡ chữ số trang (px)"
-                                                            type="number"
-                                                            value={settings.invoice_page_number_size || '10'}
-                                                            onChange={(v) => updateSetting('invoice_page_number_size', v)}
-                                                        />
-                                                        <ColorPicker
-                                                            label="Màu chữ số trang"
-                                                            value={settings.invoice_page_number_color || '#64748b'}
-                                                            onChange={(v) => updateSetting('invoice_page_number_color', v)}
-                                                        />
+                                        </div>
+                                        {settings.invoice_show_page_number === 'true' && (
+                                            <div className="mt-3 space-y-3 pl-3 border-l-2 border-[#4a7c59]/40 animate-in fade-in duration-200">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Vị trí số trang</label>
+                                                    <div className="flex bg-[#d4a574]/5 dark:bg-slate-800/20 p-1 rounded-xl border border-border">
+                                                        {[
+                                                            { id: 'bottom-left', label: 'Dưới Trái' },
+                                                            { id: 'bottom-center', label: 'Dưới Giữa' },
+                                                            { id: 'bottom-right', label: 'Dưới Phải' }
+                                                        ].map(pos => (
+                                                            <button
+                                                                key={pos.id}
+                                                                type="button"
+                                                                onClick={() => updateSetting('invoice_page_number_position', pos.id)}
+                                                                className={cn(
+                                                                    "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                                                    (settings.invoice_page_number_position || 'bottom-right') === pos.id
+                                                                        ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-none"
+                                                                        : "text-slate-400 hover:text-slate-200"
+                                                                )}
+                                                            >
+                                                                {pos.label}
+                                                            </button>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Định dạng hiển thị</label>
+                                                    <div className="flex bg-[#d4a574]/5 dark:bg-slate-800/20 p-1 rounded-xl border border-border">
+                                                        {[
+                                                            { id: 'page_total', label: 'Trang X/Y (Trang 1/2)' },
+                                                            { id: 'page_only', label: 'Chỉ số trang (Trang 1)' }
+                                                        ].map(fmt => (
+                                                            <button
+                                                                key={fmt.id}
+                                                                type="button"
+                                                                onClick={() => updateSetting('invoice_page_number_format', fmt.id)}
+                                                                className={cn(
+                                                                    "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                                                    (settings.invoice_page_number_format || 'page_total') === fmt.id
+                                                                        ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-none"
+                                                                        : "text-slate-400 hover:text-slate-200"
+                                                                )}
+                                                            >
+                                                                {fmt.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <DesignerInput
+                                                        label="Cỡ chữ số trang (px)"
+                                                        type="number"
+                                                        value={settings.invoice_page_number_size || '10'}
+                                                        onChange={(v) => updateSetting('invoice_page_number_size', v)}
+                                                    />
+                                                    <ColorPicker
+                                                        label="Màu chữ số trang"
+                                                        value={settings.invoice_page_number_color || '#64748b'}
+                                                        onChange={(v) => updateSetting('invoice_page_number_color', v)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </DesignerSection>
 
@@ -1216,50 +1206,49 @@ const InvoiceDesigner = () => {
                                                  onClick={() => {
                                                      updateSetting('pos_logo_x', '20');
                                                      updateSetting('pos_logo_y', '20');
+                                                     updateSetting('pos_width_logo', '150');
                                                      updateSetting('pos_shop_name_x', '100');
                                                      updateSetting('pos_shop_name_y', '20');
+                                                     updateSetting('pos_width_shop_name', '300');
                                                      updateSetting('pos_shop_info_x', '100');
                                                      updateSetting('pos_shop_info_y', '50');
+                                                     updateSetting('pos_width_shop_info', '300');
                                                      updateSetting('pos_title_x', '500');
                                                      updateSetting('pos_title_y', '20');
+                                                     updateSetting('pos_width_title', '250');
                                                      updateSetting('pos_customer_info_x', '20');
                                                      updateSetting('pos_customer_info_y', '150');
-                                                      updateSetting('pos_customer_name_x', '20');
-                                                      updateSetting('pos_customer_name_y', '150');
-                                                      updateSetting('pos_customer_phone_x', '20');
-                                                      updateSetting('pos_customer_phone_y', '168');
-                                                      updateSetting('pos_customer_address_x', '20');
-                                                      updateSetting('pos_customer_address_y', '186');
+                                                     updateSetting('pos_width_customer_info', '450');
+                                                     updateSetting('pos_customer_name_x', '20');
+                                                     updateSetting('pos_customer_name_y', '150');
+                                                     updateSetting('pos_width_customer_name', '450');
+                                                     updateSetting('pos_customer_phone_x', '20');
+                                                     updateSetting('pos_customer_phone_y', '168');
+                                                     updateSetting('pos_width_customer_phone', '450');
+                                                     updateSetting('pos_customer_address_x', '20');
+                                                     updateSetting('pos_customer_address_y', '186');
+                                                     updateSetting('pos_width_customer_address', '450');
                                                      updateSetting('pos_invoice_meta_x', '500');
                                                      updateSetting('pos_invoice_meta_y', '150');
+                                                     updateSetting('pos_width_invoice_meta', '250');
                                                      updateSetting('pos_table_x', '20');
                                                      updateSetting('pos_table_y', '230');
+                                                     updateSetting('pos_width_table', '750');
                                                      updateSetting('pos_notes_x', '20');
                                                      updateSetting('pos_notes_y', '500');
+                                                     updateSetting('pos_width_notes', '350');
                                                      updateSetting('pos_summary_x', '450');
                                                      updateSetting('pos_summary_y', '500');
+                                                     updateSetting('pos_width_summary', '350');
                                                      updateSetting('pos_signatures_x', '20');
                                                      updateSetting('pos_signatures_y', '650');
+                                                     updateSetting('pos_width_signatures', '750');
                                                      updateSetting('pos_thank_you_x', '20');
                                                      updateSetting('pos_thank_you_y', '750');
-                                                     updateSetting('pos_width_logo', '150');
-                                                     updateSetting('pos_width_shop_name', '300');
-                                                     updateSetting('pos_width_shop_info', '300');
-                                                     updateSetting('pos_width_title', '250');
-                                                     updateSetting('pos_width_customer_info', '450');
-                                                     updateSetting('pos_width_customer_name', '450');
-                                                     updateSetting('pos_width_customer_phone', '450');
-                                                     updateSetting('pos_width_customer_address', '450');
-                                                     updateSetting('pos_width_invoice_meta', '250');
-                                                     updateSetting('pos_width_table', '750');
-                                                     updateSetting('pos_width_notes', '350');
-                                                     updateSetting('pos_width_summary', '350');
-                                                     updateSetting('pos_width_signatures', '750');
                                                      updateSetting('pos_width_thank_you', '750');
                                                      updateSetting('invoice_preview_bg_image', 'none');
                                                      updateSetting('invoice_table_name_nowrap', 'false');
                                                       updateSetting('invoice_show_title', 'true');
-                                                      updateSetting('invoice_repeat_header_on_later_pages', 'true');
                                                      setToast({ message: "Đã đặt lại thiết kế mặc định!", type: "info" });
                                                  }}
                                                  className="w-full py-2 mt-2 bg-transparent text-[#8b6f47] border border-border rounded-xl hover:bg-[#d4a574]/10 transition-all text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-none"

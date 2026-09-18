@@ -64,17 +64,15 @@ export default function CustomDatePicker({
         }
     }, [isOpen]);
 
-    // Auto-close on scroll/resize
+    // Auto-close on resize (not scroll capture, or only scroll outside portal)
     useEffect(() => {
         if (!isOpen) return;
-        const handleScrollOrResize = () => {
+        const handleResize = () => {
             setIsOpen(false);
         };
-        window.addEventListener('scroll', handleScrollOrResize, true);
-        window.addEventListener('resize', handleScrollOrResize);
+        window.addEventListener('resize', handleResize);
         return () => {
-            window.removeEventListener('scroll', handleScrollOrResize, true);
-            window.removeEventListener('resize', handleScrollOrResize);
+            window.removeEventListener('resize', handleResize);
         };
     }, [isOpen]);
 
@@ -113,19 +111,22 @@ export default function CustomDatePicker({
             try {
                 onChange(valStr);
             } catch (err) {
-                // fallback
-            }
-            try {
-                onChange({ target: { value: valStr } });
-            } catch (err) {
-                // fallback
+                try {
+                    onChange({
+                        target: { value: valStr, name: '' },
+                        currentTarget: { value: valStr },
+                        value: valStr
+                    });
+                } catch (e2) {
+                    console.error("Error in CustomDatePicker onChange:", e2);
+                }
             }
         }
     };
 
-    const handleSelectDay = (day) => {
-        const selected = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const formatted = formatDateString(selected);
+    const handleSelectDay = (cell) => {
+        const targetDate = new Date(year, month + (cell.monthOffset || 0), cell.day);
+        const formatted = formatDateString(targetDate);
         
         // Handle max limit
         if (max && formatted > max) return;
@@ -256,14 +257,14 @@ export default function CustomDatePicker({
                                             key={idx}
                                             type="button"
                                             disabled={isMaxed}
-                                            onClick={() => cell.current && handleSelectDay(cell.day)}
+                                            onClick={() => handleSelectDay(cell)}
                                             className={cn(
                                                 "h-8 w-8 text-xs font-bold rounded-xl flex items-center justify-center transition-all cursor-pointer",
-                                                !cell.current && "opacity-25 pointer-events-none",
+                                                !cell.current && "opacity-35 hover:opacity-100",
                                                 isToday && "border border-primary text-primary",
                                                 isSelected && "bg-primary text-white dark:bg-[#4a7c59] dark:text-white scale-105",
                                                 isMaxed && "opacity-20 cursor-not-allowed pointer-events-none",
-                                                cell.current && !isSelected && !isMaxed && "hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                !isSelected && !isMaxed && "hover:bg-slate-100 dark:hover:bg-slate-800"
                                             )}
                                         >
                                             {cell.day}

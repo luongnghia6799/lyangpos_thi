@@ -724,6 +724,7 @@ export default function Purchase() {
     const [historyPartner, setHistoryPartner] = useState(null);
     const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
     const [typingSoundEnabled, setTypingSoundEnabled] = useState(() => localStorage.getItem('pos_typing_sound_enabled') !== 'false');
+    const [showEmptyCartGuide, setShowEmptyCartGuide] = useState(() => localStorage.getItem('pos_show_empty_cart_guide') !== 'false');
 
     useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
@@ -737,6 +738,8 @@ export default function Purchase() {
                     setTransparentCartTable(e.data.value === 'true');
                 } else if (e.data.key === 'pos_typing_sound_enabled') {
                     setTypingSoundEnabled(e.data.value !== 'false');
+                } else if (e.data.key === 'pos_show_empty_cart_guide') {
+                    setShowEmptyCartGuide(e.data.value !== 'false');
                 }
             } else if (e.data?.type === 'CART_COLOR_CONFIG_UPDATED' || (e.data?.type === 'UI_SETTING_UPDATED' && e.data.key === 'pos_cart_color_config')) {
                 try {
@@ -1010,7 +1013,11 @@ export default function Purchase() {
         if (draft) {
             try {
                 const d = JSON.parse(draft);
-                setCart(d.cart || []);
+                const loadedCart = (d.cart || []).map(item => ({
+                    ...item,
+                    cartId: item.cartId || `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                }));
+                setCart(loadedCart);
                 setNote(d.note || '');
                 setAmountPaid(d.amountPaid || 0);
                 setPaymentMethod(d.paymentMethod || (localStorage.getItem('unified_pos_mode') === 'Wholesale' ? 'Debt' : 'Cash'));
@@ -1024,6 +1031,8 @@ export default function Purchase() {
                 setEditOrderId(null);
                 setEditingOriginalOrder(null);
                 setHistoryStep(0);
+                setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
+                setRowSearchIdx(null);
                 return true;
             } catch (e) {
                 console.error("Error loading draft", e);
@@ -1033,23 +1042,34 @@ export default function Purchase() {
     };
 
     const loadOrder = (order) => {
+        if (!order) return;
         setEditOrderId(order.id);
         setEditingOriginalOrder(order);
-        setCart(order.details.map(d => ({
-            product_id: d.product_id,
-            product_name: d.product_name,
-            unit: d.product_unit,
-            secondary_unit: d.secondary_unit,
-            multiplier: d.multiplier || 1,
-            price: d.price,
-            quantity: d.quantity,
-            secondary_qty: d.quantity / (d.multiplier || 1),
-            stock: d.stock || 0,
-            active_ingredient: d.active_ingredient
-        })));
+        const detailsList = order.details || order.items || [];
+        setCart(detailsList.map(d => {
+            const matchedProd = products.find(p => p.id === d.product_id);
+            const multiplier = d.multiplier || matchedProd?.multiplier || 1;
+            const qty = d.quantity !== undefined ? d.quantity : 1;
+            return {
+                cartId: Math.random().toString(36).substr(2, 9),
+                product_id: d.product_id,
+                product_name: d.product_name || d.product?.name || matchedProd?.name || 'Sản phẩm',
+                unit: d.product_unit || d.unit || d.product?.unit || matchedProd?.unit || 'Cái',
+                secondary_unit: d.secondary_unit || d.product?.secondary_unit || matchedProd?.secondary_unit,
+                multiplier: multiplier,
+                price: d.price !== undefined ? d.price : (d.unit_price !== undefined ? d.unit_price : (matchedProd?.cost_price || 0)),
+                quantity: qty,
+                secondary_qty: d.secondary_qty !== undefined ? d.secondary_qty : (qty / multiplier),
+                stock: d.stock !== undefined ? d.stock : (d.product?.stock !== undefined ? d.product.stock : (matchedProd?.stock || 0)),
+                active_ingredient: d.active_ingredient || d.product?.active_ingredient || matchedProd?.active_ingredient || null,
+                expiry_date: d.expiry_date || null
+            };
+        }));
+        setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
+        setRowSearchIdx(null);
         setNote(order.note || '');
         setAmountPaid(order.amount_paid || 0);
-        setPaymentMethod(order.payment_method);
+        setPaymentMethod(order.payment_method || 'Cash');
         setIsConsignment(order.is_consignment || false);
         setPendingPartnerId(order.partner_id);
         setCustomOrderDate(order.date ? order.date.slice(0, 10) : '');
@@ -1061,7 +1081,15 @@ export default function Purchase() {
     const fetchOrder = async (id) => {
         try {
             const res = await axios.get(`/api/orders/${id}`);
-            if (res.data) loadOrder(res.data);
+            if (res.data) {
+                loadOrder(res.data);
+                if (res.data.partner) {
+                    setSelectedPartner(res.data.partner);
+                } else if (res.data.partner_id) {
+                    const partner = partners.find(p => p.id === res.data.partner_id);
+                    setSelectedPartner(partner || null);
+                }
+            }
         } catch (e) {
             console.error("Error fetching order", e);
             setToast({ message: 'Không tìm thấy hóa đơn', type: 'error' });
@@ -1287,6 +1315,7 @@ export default function Purchase() {
             ));
         } else {
             setCart([{
+                cartId: `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 product_id: product.id,
                 product_name: product.name,
                 unit: product.unit,
@@ -1449,7 +1478,8 @@ export default function Purchase() {
 
     const resetForm = (keepPartner = false) => {
         setCart([]);
-        setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, multiplier: 1 });
+        setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, multiplier: 1, name: '' });
+        setRowSearchIdx(null);
         if (!keepPartner) {
             setSelectedPartner(null);
             setPartnerSearch('');
@@ -1485,11 +1515,15 @@ export default function Purchase() {
             const res = await axios.get(`/api/orders?type=Purchase&limit=1&page=${nextStep}`);
             const items = res.data.items || res.data;
             if (items && items.length > 0) {
-                const order = items[0];
-
-                // Small delay to allow fade out
-                await new Promise(r => setTimeout(r, 150));
-
+                let order = items[0];
+                if ((!order.details || order.details.length === 0) && order.id) {
+                    try {
+                        const fullRes = await axios.get(`/api/orders/${order.id}`);
+                        if (fullRes.data) order = fullRes.data;
+                    } catch (e) {
+                        console.error("Error fetching full order details", e);
+                    }
+                }
                 loadOrder(order);
                 const partner = partners.find(p => p.id === order.partner_id);
                 const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
@@ -1505,7 +1539,7 @@ export default function Purchase() {
             console.error(err);
             setToast({ message: "Lỗi khi tải lịch sử đơn nhập hàng", type: "error" });
         } finally {
-            setTimeout(() => setHistoryLoading(false), 300);
+            setHistoryLoading(false);
         }
     };
 
@@ -2059,7 +2093,9 @@ export default function Purchase() {
                                         initial={{ opacity: 0, y: 8, scale: 0.96 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                        transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                                        transition={{
+                                            duration: 0.15
+                                        }}
                                         className="dropdown-premium absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
@@ -2285,7 +2321,9 @@ export default function Purchase() {
                                         initial={{ opacity: 0, y: 8, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
                                         exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        transition={{ duration: 0.15 }}
+                                        transition={{
+                                            duration: 0.15
+                                        }}
                                         className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
                                         style={{ maxHeight: '50vh', overflowY: 'auto' }}
                                     >
@@ -2365,15 +2403,22 @@ export default function Purchase() {
                                         </div>
 
                                         {/* Cart Header and Border Color Customizer */}
+                                        {/* Cart Color & Table Customizer */}
                                         <button
                                             onClick={() => {
                                                 setIsActionMenuOpen(false);
                                                 setShowCartColorCustomizer(true);
                                             }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left cursor-pointer"
+                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left cursor-pointer"
                                         >
-                                            <Palette size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            <span className="font-black uppercase tracking-tight text-left">Màu giỏ hàng & Viền</span>
+                                            <div className="flex items-center gap-2.5">
+                                                <Palette size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                <div className="flex flex-col text-left">
+                                                    <span className="font-black uppercase tracking-tight text-[11px]">Tùy chỉnh giao diện giỏ hàng</span>
+                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">màu sắc, viền, mờ kính, mascot</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded-md">Mở</span>
                                         </button>
 
                                         {/* AI Invoice Scanner */}
@@ -2458,35 +2503,6 @@ export default function Purchase() {
                                             </div>
                                         </button>
 
-                                        {/* Transparent Cart Table Toggle */}
-                                        <button
-                                            onClick={() => {
-                                                const newVal = !transparentCartTable;
-                                                setTransparentCartTable(newVal);
-                                                localStorage.setItem("pos_transparent_cart_table", newVal ? "true" : "false");
-                                                try {
-                                                    const syncChan = new BroadcastChannel('pos_data_sync');
-                                                    syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_transparent_cart_table', value: newVal ? 'true' : 'false' });
-                                                    syncChan.close();
-                                                } catch (e) {}
-                                            }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 w-full text-left"
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-black uppercase tracking-tight text-[11px]">Lớp phủ mờ giỏ hàng</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{transparentCartTable ? "bật: lớp kính mờ nổi bật" : "tắt: trong suốt trùng màu nền"}</span>
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
-                                                transparentCartTable ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </button>
-
                                         {/* Layout Toggle */}
                                         <button
                                             onClick={() => {
@@ -2529,7 +2545,7 @@ export default function Purchase() {
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
                         <div 
-                            className={cn("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+                            className={cn("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
                             style={{
                                 border: cartColorConfig.enableBorder === false ? 'none' : undefined,
                                 borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
@@ -2566,7 +2582,7 @@ export default function Purchase() {
                                 )}
                             </AnimatePresence>
                             <AnimatePresence>
-                                {cart.length === 0 && !workingItem.product && !searchTerm && (
+                                {showEmptyCartGuide && !historyLoading && cart.length === 0 && !workingItem.product && !searchTerm && (
                                     <m.div
                                         key="purchase-empty-cart-overlay"
                                         initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -2753,7 +2769,7 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className={cn("bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] backdrop-blur-md sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
+                                                    className={cn("bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
                                                     style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {
@@ -2776,7 +2792,7 @@ export default function Purchase() {
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
-                                                                    className="w-full h-10 py-0 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] text-slate-900 dark:text-white outline-none transition-all focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]"
+                                                                    className="w-full h-10 py-0 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] text-slate-900 dark:text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]"
                                                                     autoComplete="off"
                                                                     value={searchTerm}
                                                                     onChange={(e) => {
@@ -2877,7 +2893,9 @@ export default function Purchase() {
                                                                             initial={{ opacity: 0, y: 8, scale: 0.96 }}
                                                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                                                             exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                                                            transition={{ duration: 0.15 }}
+                                                                            transition={{
+                                                                                duration: 0.15
+                                                                            }}
                                                                             className="dropdown-premium fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
@@ -2935,15 +2953,15 @@ export default function Purchase() {
                                                                                                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                                                                     {p.code && (
                                                                                                         <span className={cn(
-                                                                                                            "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors",
-                                                                                                            idx === activeIndex ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                            "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
+                                                                                                            idx === activeIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
                                                                                                         )}>
                                                                                                             {p.code}
                                                                                                         </span>
                                                                                                     )}
                                                                                                     <span className={cn(
-                                                                                                        "px-2 py-0.5 rounded-md border transition-colors",
-                                                                                                        idx === activeIndex ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                                                                                                        "px-2.5 py-0.5 rounded-md transition-colors font-bold",
+                                                                                                        idx === activeIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
                                                                                                     )}>
                                                                                                         {normalizeUOM(p.unit)}
                                                                                                     </span>
@@ -2959,14 +2977,14 @@ export default function Purchase() {
                                                                                         <div className="flex items-center gap-8 relative z-10">
                                                                                             <div
                                                                                                 className={cn(
-                                                                                                    "px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                    "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
                                                                                                     p.stock <= 0
-                                                                                                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                                                                                        ? "bg-rose-600 text-white"
                                                                                                         : p.stock < 10
-                                                                                                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                                                                            ? "bg-amber-500 text-slate-950"
                                                                                                             : idx === activeIndex
-                                                                                                                ? "bg-white/20 text-white border-white/40"
-                                                                                                                : "bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30"
+                                                                                                                ? "bg-white/25 text-white"
+                                                                                                                : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
                                                                                                 )}
                                                                                                 title="Tồn kho thực tế"
                                                                                             >
@@ -3074,6 +3092,7 @@ export default function Purchase() {
                                                     <td className="py-2.5 px-2">
                                                         <input
                                                             type="number"
+                                                            style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                             className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
                                                             value={workingItem.product ? workingItem.quantity : ""}
                                                             id="working-main-qty"
@@ -3151,6 +3170,7 @@ export default function Purchase() {
                                                             <div className="relative w-full">
                                                                 <input
                                                                     type="text"
+                                                                    style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                                     className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
                                                                     value={workingItem.product ? formatNumber(workingItem.price) : ""}
                                                                     id="working-price"
@@ -3183,7 +3203,7 @@ export default function Purchase() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="py-2 px-2 text-right font-black font-sans text-slate-900 dark:text-white text-base leading-normal">
+                                                    <td style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="py-2 px-2 text-right font-black font-sans text-slate-900 dark:text-white text-base leading-normal">
                                                         {workingItem.product ? formatNumber(workingItem.price * workingItem.quantity) : ""}
                                                     </td>
                                                     <td className="py-2 px-1.5 text-center">
@@ -3200,26 +3220,38 @@ export default function Purchase() {
                                                 </tr>
 
                                                 <AnimatePresence initial={false}>
-                                                    {cart.map((item, idx) => (
+                                                    {!historyLoading && cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
-                                                                key={`cart-row-${idx}`}
-                                                                layout
-                                                                initial={{ opacity: 0, x: -20 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: 50, scale: 0.95, transition: { duration: 0.2, ease: "easeIn" } }}
-                                                                transition={{
-                                                                    duration: 0.3,
-                                                                    type: "spring",
-                                                                    stiffness: 300,
-                                                                    damping: 25,
-                                                                    delay: idx * 0.02
-                                                                }}
+                                                            key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
+                                                            layout="position"
+                                                            initial={{
+                                                                opacity: 0,
+                                                                x: -20
+                                                            }}
+                                                            animate={{
+                                                                opacity: 1,
+                                                                x: 0
+                                                            }}
+                                                            exit={{
+                                                                opacity: 0,
+                                                                x: 50,
+                                                                scale: 0.95,
+                                                                backgroundColor: "rgba(0,0,0,0)",
+                                                                transition: {
+                                                                    duration: 0.2,
+                                                                    ease: "easeIn"
+                                                                }
+                                                            }}
+                                                            transition={{
+                                                                duration: 0.22,
+                                                                ease: "easeOut"
+                                                            }}
                                                                 className={cn(
-                                                                    "relative transition-colors duration-200 group cursor-pointer last:border-b-0",
+                                                                    "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
-                                                                        : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-white/5 dark:hover:bg-slate-800/5"
+                                                                        : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                                                                 )}
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
@@ -3251,8 +3283,12 @@ export default function Purchase() {
                                                                                     className={cn(
                                                                                         "w-full h-auto py-2.5 px-4 bg-white/10 dark:bg-slate-800/30 shadow-xl rounded-xl border-none focus:ring-0",
                                                                                         "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed",
-                                                                                        "text-emerald-900 dark:text-emerald-300 placeholder:text-gray-300"
+                                                                                        (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300",
+                                                                                        "placeholder:text-gray-300"
                                                                                     )}
+                                                                                    style={{
+                                                                                        color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined
+                                                                                    }}
                                                                                     autoComplete="off"
                                                                                     autoFocus
                                                                                     value={rowSearchTerm}
@@ -3456,7 +3492,13 @@ export default function Purchase() {
                                                                                 <div className="flex items-center gap-2 flex-wrap">
                                                                                     <MarqueeText
                                                                                         text={item.product_name}
-                                                                                        className="text-[17px] font-black tracking-tight leading-snug text-emerald-900 dark:text-emerald-300"
+                                                                                        className={cn(
+                                                                                            "text-[17px] font-black tracking-tight leading-snug",
+                                                                                            (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
+                                                                                        )}
+                                                                                        style={{
+                                                                                            color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined
+                                                                                        }}
                                                                                         title={item.product_name}
                                                                                         onDoubleClick={(e) => {
                                                                                             e.preventDefault();
@@ -3566,8 +3608,17 @@ export default function Purchase() {
                                                                             )}
                                                                         </div>
                                                                     )}
-                                                                    {rowSearchIdx === idx && rowSearchTerm && (
-                                                                        <div className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden">
+                                                                    <AnimatePresence>
+                                                                        {rowSearchIdx === idx && rowSearchTerm && (
+                                                                            <m.div
+                                                                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                transition={{
+                                                                                    duration: 0.15
+                                                                                }}
+                                                                                className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                            >
                                                                             <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
                                                                                 {products.filter(p => {
                                                                                     const s = rowSearchTerm.toLowerCase();
@@ -3643,15 +3694,15 @@ export default function Purchase() {
                                                                                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                                                                         {p.code && (
                                                                                                             <span className={cn(
-                                                                                                                "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors",
-                                                                                                                pIdx === rowActiveIndex ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                                "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
+                                                                                                                pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
                                                                                                             )}>
                                                                                                                 {p.code}
                                                                                                             </span>
                                                                                                         )}
                                                                                                         <span className={cn(
-                                                                                                            "px-2 py-0.5 rounded-md border transition-colors",
-                                                                                                            pIdx === rowActiveIndex ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                                                                                                            "px-2.5 py-0.5 rounded-md transition-colors font-bold",
+                                                                                                            pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
                                                                                                         )}>
                                                                                                             {normalizeUOM(p.unit)}
                                                                                                         </span>
@@ -3667,14 +3718,14 @@ export default function Purchase() {
                                                                                             <div className="flex items-center gap-8 relative z-10">
                                                                                                 <div
                                                                                                     className={cn(
-                                                                                                        "px-3 py-1.5 rounded-full text-xs font-black border transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                        "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
                                                                                                         p.stock <= 0
-                                                                                                            ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                                                                                            ? "bg-rose-600 text-white"
                                                                                                             : p.stock < 10
-                                                                                                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                                                                                ? "bg-amber-500 text-slate-950"
                                                                                                                 : pIdx === rowActiveIndex
-                                                                                                                    ? "bg-white/20 text-white border-white/40"
-                                                                                                                    : "bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30"
+                                                                                                                    ? "bg-white/25 text-white"
+                                                                                                                    : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
                                                                                                     )}
                                                                                                     title="Tồn kho thực tế"
                                                                                                 >
@@ -3703,8 +3754,9 @@ export default function Purchase() {
                                                                                         </div>
                                                                                     ))}
                                                                             </div>
-                                                                        </div>
+                                                                        </m.div>
                                                                     )}
+                                                                    </AnimatePresence>
                                                                         {item.active_ingredient && (
                                                                             <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700 uppercase-none">
                                                                                 <div className="text-[10px] font-black uppercase text-emerald-400 mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div>
@@ -3722,6 +3774,7 @@ export default function Purchase() {
                                                                         <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 shadow-none transition-all text-primary dark:text-emerald-400">
                                                                             <input
                                                                                 type="number"
+                                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                                                 className="w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300"
                                                                                 value={item.secondary_qty}
                                                                                 onFocus={(e) => e.target.select()}
@@ -3753,6 +3806,7 @@ export default function Purchase() {
                                                                 <td className="py-2 px-2 relative group/qty">
                                                                     <input
                                                                         type="number"
+                                                                        style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                                         className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-emerald-400 shadow-none transition-all placeholder:text-gray-300"
                                                                         value={item.quantity}
                                                                         onFocus={(e) => e.target.select()}
@@ -3827,6 +3881,7 @@ export default function Purchase() {
                                                                         <div className="relative w-full">
                                                                             <input
                                                                                 type="text"
+                                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                                                 className={cn(
                                                                                     "w-full p-2 text-center bg-transparent border-none focus:ring-0 rounded font-black outline-none text-lg tabular-nums text-primary dark:text-emerald-400",
                                                                                     item.price === 0 && "text-transparent select-none placeholder:text-transparent"
@@ -3879,7 +3934,7 @@ export default function Purchase() {
                                                                     </div>
                                                                 </div>
                                                                 </td>
-                                                                <td className="py-2 px-4 text-right font-black text-slate-900 dark:text-white text-lg tabular-nums">
+                                                                <td style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="py-2 px-4 text-right font-black text-slate-900 dark:text-white text-lg tabular-nums">
                                                                     {formatNumber(item.price * item.quantity)}
                                                                 </td>
                                                                 <td className="py-2 px-2 text-center">
@@ -3910,14 +3965,14 @@ export default function Purchase() {
                                         <m.div
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                                            className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl backdrop-blur-xl bg-transparent flex items-center justify-center p-4"
+                                            exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                                            className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl flex items-center justify-center p-4"
                                         >
                                             {/* Floating notification badge in center */}
                                             <m.div
                                                 initial={{ scale: 0.88, opacity: 0, y: 10 }}
                                                 animate={{ scale: 1, opacity: 1, y: 0 }}
-                                                exit={{ scale: 0.95, opacity: 0, y: -6, transition: { duration: 0.12 } }}
+                                                exit={{ scale: 0.92, opacity: 0, y: -8, transition: { duration: 0.18 } }}
                                                 transition={{ type: "spring", stiffness: 450, damping: 28 }}
                                                 className="bg-[#fbf8f2] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl rounded-3xl px-6 py-5 md:px-8 md:py-6 flex flex-col items-center gap-2.5 text-center w-auto max-w-md mx-auto relative overflow-hidden pointer-events-auto"
                                             >
@@ -5884,8 +5939,7 @@ export default function Purchase() {
                     }}
                     onEditOrder={(order) => {
                         setIsHistoryPanelOpen(false);
-                        setEditingOriginalOrder(order);
-                        setEditOrderId(order.id);
+                        loadOrder(order);
                         if (order.partner) {
                             setSelectedPartner(order.partner);
                         } else if (order.partner_id) {
@@ -5899,24 +5953,6 @@ export default function Purchase() {
                         } else {
                             setSelectedPartner(null);
                         }
-                        if (order.details && Array.isArray(order.details)) {
-                            setCart(order.details.map(d => ({
-                                product_id: d.product_id,
-                                product_name: d.product_name || d.product?.name,
-                                unit: d.unit || d.product?.unit || 'Cái',
-                                secondary_unit: d.secondary_unit || d.product?.secondary_unit,
-                                multiplier: d.multiplier || d.product?.multiplier || 1,
-                                price: d.price !== undefined ? d.price : (d.unit_price || 0),
-                                quantity: d.quantity || 1,
-                                secondary_qty: d.secondary_qty || (d.quantity ? d.quantity / (d.multiplier || 1) : 1),
-                                stock: d.product?.stock || 0,
-                                active_ingredient: d.product?.active_ingredient || null,
-                                expiry_date: d.expiry_date || null
-                            })));
-                        }
-                        setPaymentMethod(order.payment_method || 'Cash');
-                        setAmountPaid(order.amount_paid || 0);
-                        setNote(order.note || '');
                         playPopSound();
                         setToast({ message: `Đã nạp đơn #${order.display_id || order.id} ra màn hình nhập`, type: "success" });
                     }}
@@ -5952,8 +5988,7 @@ export default function Purchase() {
                     settings={settings}
                     onEditOrder={(order) => {
                         setIsDailyHistoryOpen(false);
-                        setEditingOriginalOrder(order);
-                        setEditOrderId(order.id);
+                        loadOrder(order);
                         if (order.partner) {
                             setSelectedPartner(order.partner);
                         } else if (order.partner_id) {
@@ -5967,25 +6002,8 @@ export default function Purchase() {
                         } else {
                             setSelectedPartner(null);
                         }
-                        if (order.details && Array.isArray(order.details)) {
-                            setCart(order.details.map(d => ({
-                                product_id: d.product_id,
-                                product_name: d.product_name || d.product?.name,
-                                unit: d.unit || d.product?.unit || 'Cái',
-                                secondary_unit: d.secondary_unit || d.product?.secondary_unit,
-                                multiplier: d.multiplier || d.product?.multiplier || 1,
-                                price: d.price !== undefined ? d.price : (d.unit_price || 0),
-                                quantity: d.quantity || 1,
-                                secondary_qty: d.secondary_qty || (d.quantity ? d.quantity / (d.multiplier || 1) : 1),
-                                stock: d.product?.stock || 0,
-                                active_ingredient: d.product?.active_ingredient || null,
-                                expiry_date: d.expiry_date || null
-                            })));
-                        }
-                        setPaymentMethod(order.payment_method || 'Cash');
-                        setAmountPaid(order.amount_paid || 0);
-                        setNote(order.note || '');
                         playPopSound();
+                        setToast({ message: `Đã nạp đơn #${order.display_id || order.id} ra màn hình nhập`, type: "success" });
                     }}
                     onPrintOrder={(order) => {
                         const partner = partners.find(p => p.id === order.partner_id);

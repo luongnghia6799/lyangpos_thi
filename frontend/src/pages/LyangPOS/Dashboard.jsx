@@ -5,6 +5,7 @@ import { Lunar } from 'lunar-javascript';
 import { m, AnimatePresence, useReducedMotion, MotionConfig } from 'framer-motion';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import CustomSelect from '../../components/CustomSelect';
+import CustomDatePicker from '../../components/CustomDatePicker';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -65,7 +66,10 @@ import {
     Sparkles,
     Camera,
     Upload,
-    Check
+    Check,
+    SlidersHorizontal,
+    Sliders,
+    Layers
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -148,22 +152,22 @@ const getAvatarSrc = (url) => {
     return encodeURI(fullPath);
 };
 
-const ClockWidget = () => {
+const ClockWidget = memo(() => {
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
     return (
-        <div className="flex-1 flex flex-col justify-center bg-transparent border border-[#8b6f47]/20 dark:border-white/10 rounded-3xl shadow-none p-5 backdrop-blur-md relative overflow-hidden group hover:border-[#2d5016]/40 transition-all">
-            <div className="absolute -right-4 -top-4 opacity-[0.03] dark:opacity-[0.05] group-hover:scale-110 transition-transform duration-500 pointer-events-none text-[#2d5016] dark:text-emerald-400">
-                <Clock size={100} />
+        <div className="relative p-5 flex flex-col justify-center overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+            <div className="absolute -right-3 -bottom-3 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+                <Clock size={90} strokeWidth={1.8} />
             </div>
-            <div className="flex flex-col relative z-10">
-                <div className="text-4xl lg:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums mb-1">
+            <div className="relative z-10 flex flex-col">
+                <div className="text-4xl lg:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums leading-none mb-2">
                     {currentTime.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
                 </div>
-                <div className="flex items-center gap-2 text-[#8b6f47] dark:text-[#d4a574] font-black text-[9px] sm:text-[10px] uppercase tracking-wider">
+                <div className="flex items-center gap-2 text-[#8b6f47] dark:text-[#d4a574] font-black text-[9.5px] uppercase tracking-wider">
                     <Calendar size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
                     <span className="truncate">
                         {currentTime.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -176,7 +180,7 @@ const ClockWidget = () => {
             </div>
         </div>
     );
-};
+});
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -197,7 +201,7 @@ export default function Dashboard() {
     });
     const [weather, setWeather] = useState({ temp: 28, desc: 'Nắng nhẹ', icon: Sun, city: 'Vụ mùa' });
     const [isWeatherLoading, setIsWeatherLoading] = useState(false);
-    const [showMascot, setShowMascot] = useState(localStorage.getItem('ui_show_dashboard_mascot') !== 'false');
+    const [showMascot, setShowMascot] = useState(() => localStorage.getItem('ui_show_dashboard_mascot') === 'true');
     const [animateMascot, setAnimateMascot] = useState(() => localStorage.getItem('ui_mascot_animate') === 'true');
     const [mascotConfig, setMascotConfig] = useState({ x: 0, y: 0, scale: 1.5 });
     const [avatarUrl, setAvatarUrl] = useState(() => {
@@ -226,11 +230,123 @@ export default function Dashboard() {
     const [toast, setToast] = useState(null);
     const fileInputRef = useRef(null);
 
+    const [shopInfo, setShopInfo] = useState({ shop_name: 'Lyang Nghĩa', shop_address: '', shop_phone: '' });
+    const [customGreetingTitle, setCustomGreetingTitle] = useState(() => localStorage.getItem('dashboard_custom_greeting_title') || '');
+    const [customGreetingSubtitle, setCustomGreetingSubtitle] = useState(() => localStorage.getItem('dashboard_custom_greeting_subtitle') || '');
+    const [showGreetingModal, setShowGreetingModal] = useState(false);
+    const [tempGreetingTitle, setTempGreetingTitle] = useState('');
+    const [tempGreetingSubtitle, setTempGreetingSubtitle] = useState('');
+
     const [showWallpaperSettings, setShowWallpaperSettings] = useState(false);
+    const [showCardGlassPopover, setShowCardGlassPopover] = useState(false);
+    const [cardSettingsTab, setCardSettingsTab] = useState('glass'); // 'glass' | 'glow'
+    const [cardGlassEnabled, setCardGlassEnabled] = useState(() => localStorage.getItem("ui_dashboard_card_glass") !== "false");
+    const [cardGlassOpacity, setCardGlassOpacity] = useState(() => {
+        const saved = localStorage.getItem("ui_dashboard_card_glass_opacity");
+        return saved !== null ? parseInt(saved, 10) : 40; // Mặc định 40%
+    });
+    const [cardGlassBlur, setCardGlassBlur] = useState(() => {
+        const saved = localStorage.getItem("ui_dashboard_card_glass_blur");
+        return saved !== null ? parseInt(saved, 10) : 16; // Mặc định 16px
+    });
+
+    // Card Glow States
+    const [cardGlowEnabled, setCardGlowEnabled] = useState(() => localStorage.getItem("ui_dashboard_card_glow_enabled") === "true");
+    const [cardGlowColor, setCardGlowColor] = useState(() => localStorage.getItem("ui_dashboard_card_glow_color") || "#10b981");
+    const [cardGlowSize, setCardGlowSize] = useState(() => {
+        const saved = localStorage.getItem("ui_dashboard_card_glow_size");
+        return saved !== null ? parseInt(saved, 10) : 16; // Mặc định 16px
+    });
+    const [cardGlowOpacity, setCardGlowOpacity] = useState(() => {
+        const saved = localStorage.getItem("ui_dashboard_card_glow_opacity");
+        return saved !== null ? parseInt(saved, 10) : 50; // Mặc định 50%
+    });
+
     const [appWallpaper, setAppWallpaper] = useState(() => {
         const saved = localStorage.getItem("pos_cart_wallpaper");
         return saved ? JSON.parse(saved) : { image: "", size: "cover", position: "center", blur: 0, opacity: 100 };
     });
+
+    const toggleCardGlass = () => {
+        setCardGlassEnabled(prev => {
+            const next = !prev;
+            localStorage.setItem("ui_dashboard_card_glass", String(next));
+            return next;
+        });
+    };
+
+    const updateCardGlassOpacity = (val) => {
+        setCardGlassOpacity(val);
+        localStorage.setItem("ui_dashboard_card_glass_opacity", String(val));
+    };
+
+    const updateCardGlassBlur = (val) => {
+        setCardGlassBlur(val);
+        localStorage.setItem("ui_dashboard_card_glass_blur", String(val));
+    };
+
+    const toggleCardGlow = () => {
+        setCardGlowEnabled(prev => {
+            const next = !prev;
+            localStorage.setItem("ui_dashboard_card_glow_enabled", String(next));
+            return next;
+        });
+    };
+
+    const updateCardGlowColor = (val) => {
+        setCardGlowColor(val);
+        localStorage.setItem("ui_dashboard_card_glow_color", val);
+    };
+
+    const updateCardGlowSize = (val) => {
+        setCardGlowSize(val);
+        localStorage.setItem("ui_dashboard_card_glow_size", String(val));
+    };
+
+    const updateCardGlowOpacity = (val) => {
+        setCardGlowOpacity(val);
+        localStorage.setItem("ui_dashboard_card_glow_opacity", String(val));
+    };
+
+    const hexToRgba = (hex, alpha = 1) => {
+        if (!hex) return `rgba(16, 185, 129, ${alpha})`;
+        let c = hex.replace('#', '');
+        if (c.length === 3) {
+            c = c.split('').map(char => char + char).join('');
+        }
+        const num = parseInt(c, 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const getCardGlassStyle = () => {
+        const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+        const opacity = (cardGlassOpacity ?? 40) / 100;
+        const blur = cardGlassBlur ?? 16;
+        
+        const style = {};
+        // Only engage GPU backdrop blur if a wallpaper image is actually present and card glass is enabled
+        if (cardGlassEnabled && appWallpaper.image) {
+            style.backgroundColor = isDark 
+                ? `rgba(20, 24, 18, ${Math.min(1, opacity * 0.9)})` 
+                : `rgba(255, 255, 255, ${opacity})`;
+            if (blur > 0) {
+                style.backdropFilter = `blur(${blur}px)`;
+                style.WebkitBackdropFilter = `blur(${blur}px)`;
+            }
+        }
+
+        if (cardGlowEnabled && cardGlowSize > 0) {
+            const glowAlpha = (cardGlowOpacity ?? 50) / 100;
+            const color = cardGlowColor || '#10b981';
+            style.boxShadow = `0 0 ${cardGlowSize}px ${Math.round(cardGlowSize * 0.25)}px ${hexToRgba(color, glowAlpha)}, 0 10px 30px rgba(0,0,0,0.08)`;
+            style.borderColor = hexToRgba(color, Math.min(1, glowAlpha + 0.3));
+        }
+
+        return style;
+    };
 
     const compressAndSetWallpaper = (file) => {
         const reader = new FileReader();
@@ -501,15 +617,26 @@ export default function Dashboard() {
         const fetchGlobalSettings = async () => {
             try {
                 const res = await axios.get('/api/settings');
-                if (res.data && res.data.user_avatar) {
-                    localStorage.setItem('user_avatar', res.data.user_avatar);
-                    setAvatarUrl(res.data.user_avatar);
+                if (res.data) {
+                    if (res.data.user_avatar) {
+                        localStorage.setItem('user_avatar', res.data.user_avatar);
+                        setAvatarUrl(res.data.user_avatar);
+                    }
+                    setShopInfo({
+                        shop_name: res.data.shop_name || 'Lyang Nghĩa',
+                        shop_address: res.data.shop_address || '',
+                        shop_phone: res.data.shop_phone || ''
+                    });
                 }
             } catch (err) {
-                console.error("Failed to fetch user_avatar setting", err);
+                console.error("Failed to fetch settings", err);
             }
         };
         fetchGlobalSettings();
+
+        const handleSettingsUpdate = () => fetchGlobalSettings();
+        window.addEventListener('storage', handleSettingsUpdate);
+        return () => window.removeEventListener('storage', handleSettingsUpdate);
     }, []);
 
     const getGreeting = () => {
@@ -633,8 +760,12 @@ export default function Dashboard() {
     }, [filters]);
 
     const handleFilterChange = (e) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+        if (!e) return;
+        const name = e.target ? e.target.name : e.name;
+        const value = e.target ? e.target.value : (e.value !== undefined ? e.value : e);
+        if (name) {
+            setFilters(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     // Chart Data with Natural Gradients
@@ -875,37 +1006,45 @@ export default function Dashboard() {
                 </AnimatePresence>
             </Portal>
 
+            {/* Precompute Card Background & Backdrop classes based on cardGlassEnabled */}
+            {(() => {
+                const cardGlassClasses = cardGlassEnabled
+                    ? "bg-white/40 dark:bg-black/30 backdrop-blur-xl"
+                    : "bg-[#f8f5ee] dark:bg-[#1a1c18]";
+                return null;
+            })()}
+
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 max-w-[1600px] mx-auto">
-                {/* 1. Header Hero - Span 6 */}
+                {/* 1. Header Hero - Span 7 (60% on desktop) */}
                 <m.div 
                     variants={itemVariants} 
-                    className="md:col-span-12 xl:col-span-6 relative overflow-hidden p-6 lg:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 bg-transparent border-none shadow-none"
+                    className="md:col-span-12 xl:col-span-7 relative z-30 flex flex-col justify-center py-1"
                 >
-                    <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10 text-center sm:text-left w-full">
-                        {/* Modern Avatar Container */}
-                        <div className="relative group shrink-0">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 lg:gap-6 relative z-10 text-center sm:text-left w-full h-full">
+                        {/* Modern Avatar Container - Full Height Proportion */}
+                        <div className="relative group shrink-0 self-center sm:self-stretch flex items-center justify-center">
                             <m.div
-                                whileHover={{ scale: 1.05, rotate: 1.5 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={() => setShowAvatarModal(true)}
-                                className="w-28 h-28 lg:w-32 lg:h-32 aspect-square shrink-0 rounded-2xl cursor-pointer overflow-hidden relative flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
+                                className="w-32 h-32 sm:w-auto sm:h-full aspect-square shrink-0 rounded-3xl cursor-pointer overflow-hidden relative flex items-center justify-center bg-[#2d5016]/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 shadow-sm hover:shadow-md transition-all min-h-[140px] max-h-[170px]"
                             >
                                 {getAvatarSrc(avatarUrl) ? (
                                     <img 
                                         src={getAvatarSrc(avatarUrl)} 
                                         alt="Avatar" 
-                                        className="w-full h-full aspect-square object-cover rounded-2xl" 
+                                        className="w-full h-full aspect-square object-cover" 
                                     />
                                 ) : (
-                                    <div className="w-full h-full aspect-square flex items-center justify-center bg-card/30 p-2">
-                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full aspect-square object-contain drop-shadow-md" />
+                                    <div className="w-full h-full aspect-square flex items-center justify-center p-4">
+                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full aspect-square object-contain drop-shadow-sm" />
                                     </div>
                                 )}
 
                                 {/* Hover Camera Badge */}
-                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white rounded-2xl">
-                                    <Camera size={22} className="drop-shadow-sm" />
-                                    <span className="text-[10px] font-black uppercase tracking-wider">Đổi ảnh</span>
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
+                                    <Camera size={20} className="drop-shadow-sm" />
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider">Đổi ảnh</span>
                                 </div>
                             </m.div>
                             <input 
@@ -917,37 +1056,89 @@ export default function Dashboard() {
                             />
                         </div>
  
-                        {/* Greeting Message */}
-                        <div className="flex-1">
-                            <h2 className="text-4xl lg:text-5xl xl:text-6xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight mb-2 drop-shadow-none">
-                                {greeting.text}
-                            </h2>
-                            <p className="text-base lg:text-lg text-[#8b6f47] dark:text-[#d4a574] font-black flex items-center justify-center sm:justify-start gap-2.5 tracking-wide">
-                                <Wheat size={18} className="text-[#2d5016] dark:text-emerald-400" />
-                                {greeting.desc}
+                        {/* Greeting Message & Agency Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                            {/* Agency / Store Info Badge Header */}
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#2d5016]/20 dark:border-emerald-500/30 text-[10px] font-black text-[#2d5016] dark:text-emerald-300 shadow-2xs tracking-wide">
+                                    <Leaf size={11} className="text-[#2d5016] dark:text-emerald-400" />
+                                    <span className="uppercase tracking-wider font-extrabold">{shopInfo.shop_name || 'Lyang Nghĩa'}</span>
+                                </span>
+                                {shopInfo.shop_phone && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 border border-border text-[9.5px] font-bold text-muted-foreground">
+                                        Hotline: <strong className="text-foreground/80">{shopInfo.shop_phone}</strong>
+                                    </span>
+                                )}
+                                {shopInfo.shop_address && (
+                                    <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 border border-border text-[9.5px] font-medium text-muted-foreground truncate max-w-[220px]" title={shopInfo.shop_address}>
+                                        <MapPin size={9} className="shrink-0 text-muted-foreground" />
+                                        <span className="truncate">{shopInfo.shop_address}</span>
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Greeting Title (Editable on Click) */}
+                            <div 
+                                className="group/greet inline-flex items-center justify-center sm:justify-start gap-2.5 cursor-pointer w-fit max-w-full my-1" 
+                                onClick={() => {
+                                    setTempGreetingTitle(customGreetingTitle || greeting.text);
+                                    setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
+                                    setShowGreetingModal(true);
+                                }} 
+                                title="Bấm để chỉnh sửa lời chào"
+                            >
+                                <h2 className="text-3xl sm:text-4xl lg:text-[42px] xl:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none transition-colors group-hover/greet:text-[#3d6820] dark:group-hover/greet:text-emerald-300">
+                                    {customGreetingTitle || greeting.text}
+                                </h2>
+                                <Edit size={16} className="text-muted-foreground/40 group-hover/greet:text-primary transition-all shrink-0" />
+                            </div>
+
+                            {/* Greeting Subtitle */}
+                            <p 
+                                className="text-sm sm:text-base text-[#8b6f47] dark:text-[#d4a574] font-bold flex items-center justify-center sm:justify-start gap-2 tracking-normal cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => {
+                                    setTempGreetingTitle(customGreetingTitle || greeting.text);
+                                    setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
+                                    setShowGreetingModal(true);
+                                }}
+                                title="Bấm để chỉnh sửa thông điệp"
+                            >
+                                <Wheat size={16} className="text-[#2d5016] dark:text-emerald-400 shrink-0 opacity-80" />
+                                <span className="truncate">{customGreetingSubtitle || greeting.desc}</span>
                             </p>
-                            <div className="flex items-center gap-2 mt-3">
+
+                            {/* Action Buttons Row */}
+                            <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+                                {/* Appearance Customizer Button */}
                                 <button
                                     onClick={() => setShowWallpaperSettings(true)}
-                                    className="px-3 py-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 hover:bg-[#2d5016] hover:text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border border-[#2d5016]/20 cursor-pointer"
+                                    className={cn(
+                                        "w-8 h-8 rounded-full border active:scale-90 hover:scale-110 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs",
+                                        (appWallpaper.image || cardGlassEnabled || cardGlowEnabled)
+                                            ? "bg-[#2d5016] text-white border-[#2d5016] dark:bg-emerald-600 dark:border-emerald-500 shadow-xs"
+                                            : "bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 border-[#2d5016]/20 dark:border-emerald-500/30 hover:bg-[#2d5016] hover:text-white"
+                                    )}
+                                    title="Tùy chỉnh Giao diện: Hình nền, Kính mờ & Viền Glow"
                                 >
-                                    <Paintbrush size={14} /> Hình Nền
+                                    <Sparkles size={14} className={(appWallpaper.image || cardGlassEnabled || cardGlowEnabled) ? "text-amber-300" : "text-[#2d5016] dark:text-emerald-400"} />
                                 </button>
+
+                                {/* Ẩn/Hiện Chỉ Số Button */}
                                 <button
                                     onClick={() => setHideStats(prev => {
                                         const next = !prev;
                                         localStorage.setItem('hide_dashboard_stats', String(next));
                                         return next;
                                     })}
-                                    className="p-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 hover:bg-[#2d5016] hover:text-white rounded-xl transition-all flex items-center justify-center border border-[#2d5016]/20 cursor-pointer overflow-hidden"
-                                    title={hideStats ? "Hiện chỉ số" : "Ẩn chỉ số"}
+                                    className="w-8 h-8 rounded-full bg-[#8b6f47]/10 dark:bg-white/5 text-[#8b6f47] dark:text-muted-foreground hover:text-foreground border border-[#8b6f47]/20 dark:border-white/10 hover:border-primary/40 hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs"
+                                    title={hideStats ? "Hiện số liệu" : "Ẩn số liệu"}
                                 >
                                     <AnimatePresence mode="wait">
                                         <m.div
                                             key={hideStats ? "hidden" : "visible"}
-                                            initial={{ opacity: 0, rotate: -45, scale: 0.8 }}
-                                            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                                            exit={{ opacity: 0, rotate: 45, scale: 0.8 }}
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
                                             transition={{ duration: 0.15 }}
                                             className="flex items-center justify-center"
                                         >
@@ -960,31 +1151,18 @@ export default function Dashboard() {
                     </div>
                 </m.div>
 
-                {/* 2. Top Right Box: Filters & Info - Integrated Panorama Widgets */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-6 flex flex-col justify-between gap-3.5">
+                {/* 2. Top Right Box: Filters & Info - Integrated Panorama Widgets - Span 5 (40% on desktop) */}
+                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-5 flex flex-col justify-center gap-3 py-1">
                     {/* Top Row: Integrated Clock & Weather Strip */}
-                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                    <div 
+                        className={cn(
+                            "relative overflow-hidden rounded-[2rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-md"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         {/* Clock Widget with Watermark */}
-                        <div className="relative p-5 flex flex-col justify-center overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
-                            <div className="absolute -right-3 -bottom-3 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
-                                <Clock size={90} strokeWidth={1.8} />
-                            </div>
-                            <div className="relative z-10 flex flex-col">
-                                <div className="text-4xl lg:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums leading-none mb-2">
-                                    {new Date().toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                <div className="flex items-center gap-2 text-[#8b6f47] dark:text-[#d4a574] font-black text-[9.5px] uppercase tracking-wider">
-                                    <Calendar size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
-                                    <span className="truncate">
-                                        {new Date().toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                        <span className="mx-1.5 opacity-40">•</span>
-                                        <span className="text-[#2d5016] dark:text-emerald-400">
-                                            ÂL {Lunar.fromDate(new Date()).getDay()}/{Lunar.fromDate(new Date()).getMonth()}
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        <ClockWidget />
 
                         {/* Weather Widget with Watermark */}
                         <div 
@@ -1032,52 +1210,104 @@ export default function Dashboard() {
                     </div>
 
                     {/* Filter & IP Row - Seamless Integrated Strip */}
-                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl px-5 py-3 rounded-[1.8rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] flex flex-wrap lg:flex-nowrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider flex items-center gap-1 shrink-0">
+                    <div 
+                        className={cn(
+                            "relative overflow-hidden px-5 py-3 rounded-[1.8rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_8px_25px_rgba(139,111,71,0.05)] dark:shadow-[0_8px_25px_rgba(0,0,0,0.3)] flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-md"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider flex items-center gap-1.5 shrink-0">
                                 <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
-                                Lọc:
+                                Lọc ngày:
                             </span>
-                            <div className="flex flex-wrap gap-1.5">
-                                <CustomSelect
-                                    className="min-w-[75px]"
-                                    value={filters.day}
-                                    onChange={(e) => handleFilterChange({ target: { name: 'day', value: e.target.value } })}
-                                    options={[
-                                        { value: "", label: "Ngày" },
-                                        ...[...Array(31)].map((_, i) => {
-                                            const val = (i + 1).toString().padStart(2, '0');
-                                            return { value: val, label: String(i + 1) };
-                                        })
-                                    ]}
-                                />
-                                <CustomSelect
-                                    className="min-w-[85px]"
-                                    value={filters.month}
-                                    onChange={(e) => handleFilterChange({ target: { name: 'month', value: e.target.value } })}
-                                    options={[
-                                        { value: "", label: "Tháng" },
-                                        ...[...Array(12)].map((_, i) => {
-                                            const val = (i + 1).toString().padStart(2, '0');
-                                            return { value: val, label: `Th.${i + 1}` };
-                                        })
-                                    ]}
-                                />
-                                <CustomSelect
-                                    className="min-w-[78px]"
-                                    value={filters.year}
-                                    onChange={(e) => handleFilterChange({ target: { name: 'year', value: e.target.value } })}
-                                    options={[
-                                        { value: "", label: "Năm" },
-                                        ...[2024, 2025, 2026, 2027, 2028].map(y => ({ value: String(y), label: String(y) }))
-                                    ]}
+
+                            {/* Elegant Custom Date Picker */}
+                            <div className="w-[150px] sm:w-[170px]">
+                                <CustomDatePicker
+                                    value={`${filters.year}-${filters.month}-${filters.day}`}
+                                    onChange={(val) => {
+                                        if (val && typeof val === 'string' && val.includes('-')) {
+                                            const [y, m, d] = val.split('-');
+                                            setFilters({ year: y, month: m, day: d });
+                                        } else if (val && val.target && val.target.value) {
+                                            const [y, m, d] = val.target.value.split('-');
+                                            setFilters({ year: y, month: m, day: d });
+                                        }
+                                    }}
+                                    inputClassName="!bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47]/[0.12] dark:!bg-white/[0.06] dark:hover:!bg-white/[0.1] !border-[#8b6f47]/25 dark:!border-white/15 rounded-2xl hover:!border-[#2d5016]/50 shadow-none text-xs font-bold text-[#2d5016] dark:text-emerald-300 transition-all"
+                                    placeholder="Chọn ngày..."
                                 />
                             </div>
+
+                            {/* Quick Day Presets (Hôm nay / Hôm qua) */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const now = new Date();
+                                        setFilters({
+                                            year: now.getFullYear().toString(),
+                                            month: (now.getMonth() + 1).toString().padStart(2, '0'),
+                                            day: now.getDate().toString().padStart(2, '0')
+                                        });
+                                    }}
+                                    className={cn(
+                                        "px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
+                                        (() => {
+                                            const now = new Date();
+                                            const isToday = filters.year === now.getFullYear().toString() &&
+                                                filters.month === (now.getMonth() + 1).toString().padStart(2, '0') &&
+                                                filters.day === now.getDate().toString().padStart(2, '0');
+                                            return isToday
+                                                ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm shadow-[#2d5016]/30 dark:bg-emerald-600 dark:border-emerald-500"
+                                                : "bg-[#2d5016]/5 dark:bg-white/5 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 dark:border-white/10 hover:bg-[#2d5016]/15 hover:border-[#2d5016]/40";
+                                        })()
+                                    )}
+                                >
+                                    Hôm nay
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const yest = new Date();
+                                        yest.setDate(yest.getDate() - 1);
+                                        setFilters({
+                                            year: yest.getFullYear().toString(),
+                                            month: (yest.getMonth() + 1).toString().padStart(2, '0'),
+                                            day: yest.getDate().toString().padStart(2, '0')
+                                        });
+                                    }}
+                                    className={cn(
+                                        "px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
+                                        (() => {
+                                            const yest = new Date();
+                                            yest.setDate(yest.getDate() - 1);
+                                            const isYest = filters.year === yest.getFullYear().toString() &&
+                                                filters.month === (yest.getMonth() + 1).toString().padStart(2, '0') &&
+                                                filters.day === yest.getDate().toString().padStart(2, '0');
+                                            return isYest
+                                                ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm shadow-[#2d5016]/30 dark:bg-emerald-600 dark:border-emerald-500"
+                                                : "bg-[#2d5016]/5 dark:bg-white/5 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 dark:border-white/10 hover:bg-[#2d5016]/15 hover:border-[#2d5016]/40";
+                                        })()
+                                    )}
+                                >
+                                    Hôm qua
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Modern Glowing IP Badge */}
                         {remoteInfo && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-xl text-[9.5px] font-black text-[#2d5016] dark:text-emerald-400 border border-[#2d5016]/20 shrink-0">
-                                <Activity size={12} />
-                                {remoteInfo.ip}:{remoteInfo.port || (window.location.port || '3579')}
+                            <div className="group relative flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-[#2d5016]/15 to-[#2d5016]/8 dark:from-emerald-950/40 dark:to-emerald-900/20 rounded-2xl text-[10px] font-black text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/30 dark:border-emerald-500/30 shadow-[0_2px_10px_rgba(45,80,22,0.08)] shrink-0 hover:border-[#2d5016] dark:hover:border-emerald-400 transition-all">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-xs"></span>
+                                </span>
+                                <div className="flex items-center gap-1.5 font-mono">
+                                    <span className="text-[#8b6f47] dark:text-emerald-400/70 uppercase text-[9px] tracking-wider font-sans font-extrabold">IP Mạng:</span>
+                                    <span className="font-bold tracking-tight">{remoteInfo.ip}:{remoteInfo.port || (window.location.port || '3579')}</span>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1085,7 +1315,13 @@ export default function Dashboard() {
 
                 {/* 3. Main Stats - Modern Integrated Panorama Strip Layout with Watermark Icons */}
                 <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div className="relative overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)]">
+                    <div 
+                        className={cn(
+                            "relative overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         {/* 4 Primary Key Indicators Row */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
                             
@@ -1309,7 +1545,13 @@ export default function Dashboard() {
 
                 {/* 5. Charts - Seamless Panorama Strip with Watermark Backgrounds */}
                 <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div className="grid grid-cols-1 xl:grid-cols-12 overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y xl:divide-y-0 xl:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                    <div 
+                        className={cn(
+                            "grid grid-cols-1 xl:grid-cols-12 overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y xl:divide-y-0 xl:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         
                         {/* 5.1 Bar Chart Span 8 */}
                         <div className="xl:col-span-8 p-6 lg:p-8 relative overflow-hidden group">
@@ -1377,7 +1619,13 @@ export default function Dashboard() {
 
                 {/* 6. Debt Lists - Seamless Panorama Dual Panel with Watermark Icons */}
                 <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 overflow-hidden bg-white/40 dark:bg-black/30 backdrop-blur-xl rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y lg:divide-y-0 lg:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                    <div 
+                        className={cn(
+                            "grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y lg:divide-y-0 lg:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         
                         {/* 6.1 Khách hàng nợ */}
                         <div className="p-6 lg:p-8 relative overflow-hidden group">
@@ -1581,16 +1829,17 @@ export default function Dashboard() {
                                 initial={{ scale: 0.95, opacity: 0, y: 10 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                                className="bg-card w-full max-w-md rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
+                                className="bg-card w-full max-w-lg rounded-2xl border border-border flex flex-col relative z-10 overflow-hidden shadow-2xl"
                             >
-                                <div className="p-5 flex items-center justify-between border-b border-border bg-card">
+                                {/* Modal Header */}
+                                <div className="p-4 sm:p-5 flex items-center justify-between border-b border-border bg-card">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
-                                            <Paintbrush className="text-primary" size={20} />
+                                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 text-primary">
+                                            <Sparkles size={20} />
                                         </div>
                                         <div>
-                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Hình Nền</h3>
-                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Tùy chỉnh giao diện</p>
+                                            <h3 className="text-base font-bold text-foreground uppercase tracking-wide leading-tight">Tùy Chỉnh Giao Diện</h3>
+                                            <p className="text-muted-foreground text-[10px] font-medium uppercase tracking-widest mt-0.5">Hình nền & Hiệu ứng thẻ</p>
                                         </div>
                                     </div>
                                     <button
@@ -1600,209 +1849,746 @@ export default function Dashboard() {
                                         <X size={16} strokeWidth={2.5} />
                                     </button>
                                 </div>
-                                <div className="p-6 flex flex-col gap-5 overflow-y-auto max-h-[70vh] bg-card/50">
-                                    {/* Preview & Upload */}
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Ảnh Nền Của Bạn</label>
-                                        
-                                        {appWallpaper.image ? (
-                                            <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border group bg-black/5 dark:bg-white/5">
-                                                <img 
-                                                    src={appWallpaper.image} 
-                                                    alt="Preview" 
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                                    <label className="p-2 bg-white/20 hover:bg-white/40 rounded-lg cursor-pointer text-white backdrop-blur-md transition-colors">
-                                                        <ImageIcon size={20} />
+
+                                {/* Tabs Navigation */}
+                                <div className="px-5 pt-3 pb-2 border-b border-border/70 bg-card/60">
+                                    <div className="flex p-1 bg-black/[0.04] dark:bg-white/[0.04] rounded-xl border border-border/60 gap-1">
+                                        {[
+                                            { id: 'wallpaper', label: 'Hình Nền', icon: ImageIcon },
+                                            { id: 'glass', label: 'Kính Mờ Thẻ', icon: Layers },
+                                            { id: 'glow', label: 'Viền Glow Thẻ', icon: Sparkles }
+                                        ].map((t) => {
+                                            const Icon = t.icon;
+                                            const isSelected = cardSettingsTab === t.id;
+                                            return (
+                                                <button
+                                                    key={t.id}
+                                                    type="button"
+                                                    onClick={() => setCardSettingsTab(t.id)}
+                                                    className={cn(
+                                                        "flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                                                        isSelected
+                                                            ? "bg-[#2d5016] text-white dark:bg-emerald-600 shadow-xs"
+                                                            : "text-foreground/70 hover:text-foreground hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                                                    )}
+                                                >
+                                                    <Icon size={14} className={isSelected ? "text-white" : "text-muted-foreground"} />
+                                                    <span className="truncate">{t.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Tab Contents */}
+                                <div className="p-5 flex flex-col gap-5 overflow-y-auto max-h-[65vh] bg-card/40">
+                                    {/* TAB 1: WALLPAPER */}
+                                    {cardSettingsTab === 'wallpaper' && (
+                                        <div className="space-y-4">
+                                            {/* Preview & Upload */}
+                                            <div className="space-y-3">
+                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Ảnh Nền Hiện Tại</label>
+                                                {appWallpaper.image ? (
+                                                    <div className="relative w-full h-36 rounded-xl overflow-hidden border border-border group bg-black/5 dark:bg-white/5">
+                                                        <img 
+                                                            src={appWallpaper.image} 
+                                                            alt="Preview" 
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                                            <label className="p-2 bg-white/20 hover:bg-white/40 rounded-lg cursor-pointer text-white backdrop-blur-md transition-colors">
+                                                                <ImageIcon size={18} />
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="hidden"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files[0];
+                                                                        if (file) compressAndSetWallpaper(file);
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                            <button 
+                                                                onClick={() => setAppWallpaper(prev => ({ ...prev, image: null }))}
+                                                                className="p-2 bg-red-500/80 hover:bg-red-500 rounded-lg text-white backdrop-blur-md transition-colors cursor-pointer"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <label className="flex flex-col items-center justify-center w-full h-32 bg-background/50 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-primary/5 hover:border-primary/30 transition-colors">
+                                                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-1.5">
+                                                            <ImageIcon size={20} />
+                                                        </div>
+                                                        <span className="text-xs font-semibold text-foreground/70">Nhấp để tải ảnh lên từ máy</span>
+                                                        <span className="text-[10px] text-muted-foreground mt-0.5">Hỗ trợ JPG, PNG (Tối đa 4MB)</span>
                                                         <input
                                                             type="file"
                                                             accept="image/*"
                                                             className="hidden"
                                                             onChange={(e) => {
                                                                 const file = e.target.files[0];
-                                                                if (file) {
-                                                                    compressAndSetWallpaper(file);
-                                                                }
+                                                                if (file) compressAndSetWallpaper(file);
                                                             }}
                                                         />
                                                     </label>
-                                                    <button 
-                                                        onClick={() => setAppWallpaper(prev => ({ ...prev, image: null }))}
-                                                        className="p-2 bg-red-500/80 hover:bg-red-500 rounded-lg text-white backdrop-blur-md transition-colors cursor-pointer"
-                                                    >
-                                                        <Trash2 size={20} />
-                                                    </button>
+                                                )}
+
+                                                {/* Brand Default Wallpaper Preset Gallery */}
+                                                <div className="space-y-2 pt-2 border-t border-border/60">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
+                                                            <Sparkles size={14} className="text-amber-500" />
+                                                            Bộ sưu tập hình nền LyangPOS
+                                                        </label>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-border/60">
+                                                        {WALLPAPER_PRESETS.map((preset) => (
+                                                            <button
+                                                                key={preset.id}
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const response = await fetch(preset.path);
+                                                                        const blob = await response.blob();
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => {
+                                                                            const base64 = reader.result;
+                                                                            setAppWallpaper(prev => ({
+                                                                                ...prev,
+                                                                                image: base64,
+                                                                                size: 'cover',
+                                                                                position: 'center',
+                                                                                opacity: 90,
+                                                                                blur: 0,
+                                                                                glassBlur: 8,
+                                                                                glassOpacity: 15
+                                                                            }));
+                                                                        };
+                                                                        reader.readAsDataURL(blob);
+                                                                    } catch (err) {
+                                                                        console.error('Error loading preset wallpaper:', err);
+                                                                    }
+                                                                }}
+                                                                className="group/preset relative flex flex-col items-center gap-1 p-1 rounded-xl border border-border/80 hover:border-primary bg-card/60 hover:bg-primary/5 transition-all cursor-pointer shadow-2xs hover:scale-[1.03] active:scale-95 text-left"
+                                                                title={preset.desc}
+                                                            >
+                                                                <div className="w-full h-14 rounded-lg overflow-hidden border border-border/60 relative">
+                                                                    <img 
+                                                                        src={preset.path} 
+                                                                        alt={preset.name} 
+                                                                        className="w-full h-full object-cover group-hover/preset:scale-110 transition-transform duration-300"
+                                                                    />
+                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-1">
+                                                                        <span className="text-[7.5px] font-black text-white uppercase tracking-wider truncate">Chọn</span>
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-[9px] font-bold text-foreground truncate w-full text-center leading-tight">
+                                                                    {preset.name}
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <label className="flex flex-col items-center justify-center w-full h-40 bg-background/50 border-2 border-dashed border-border rounded-xl cursor-pointer hover:bg-primary/5 hover:border-primary/30 transition-colors">
-                                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2">
-                                                    <ImageIcon size={24} />
-                                                </div>
-                                                <span className="text-sm font-semibold text-foreground/70">Nhấp để tải ảnh lên</span>
-                                                <span className="text-xs text-muted-foreground mt-1">Hỗ trợ JPG, PNG (Tối đa 4MB)</span>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files[0];
-                                                        if (file) {
-                                                            compressAndSetWallpaper(file);
-                                                        }
-                                                    }}
-                                                />
-                                            </label>
-                                        )}
-                                        
-                                        {/* Brand Default Wallpaper Preset Gallery */}
-                                        <div className="space-y-2 pt-2 border-t border-border/60">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
-                                                    <Sparkles size={14} className="text-amber-500" />
-                                                    Bộ sưu tập hình nền LyangPOS
-                                                </label>
-                                            </div>
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-1 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-border/60">
-                                                {WALLPAPER_PRESETS.map((preset) => (
-                                                    <button
-                                                        key={preset.id}
-                                                        type="button"
-                                                        onClick={async () => {
-                                                            try {
-                                                                const response = await fetch(preset.path);
-                                                                const blob = await response.blob();
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => {
-                                                                    const base64 = reader.result;
-                                                                    setAppWallpaper(prev => ({
-                                                                        ...prev,
-                                                                        image: base64,
-                                                                        size: 'cover',
-                                                                        position: 'center',
-                                                                        opacity: 90,
-                                                                        blur: 0,
-                                                                        glassBlur: 8,
-                                                                        glassOpacity: 15
-                                                                    }));
-                                                                };
-                                                                reader.readAsDataURL(blob);
-                                                            } catch (err) {
-                                                                console.error('Error loading preset wallpaper:', err);
-                                                            }
+
+                                            {/* Size & Position */}
+                                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/60">
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Kích Thước</label>
+                                                    <CustomSelect
+                                                        className="w-full"
+                                                        value={appWallpaper.size || "cover"}
+                                                        onChange={(e) => {
+                                                            const val = e?.target ? e.target.value : e;
+                                                            setAppWallpaper(prev => ({ ...prev, size: val }));
                                                         }}
-                                                        className="group/preset relative flex flex-col items-center gap-1 p-1 rounded-xl border border-border/80 hover:border-primary bg-card/60 hover:bg-primary/5 transition-all cursor-pointer shadow-2xs hover:scale-[1.03] active:scale-95 text-left"
-                                                        title={preset.desc}
+                                                        options={[
+                                                            { value: "cover", label: "Vừa khít (Cover)" },
+                                                            { value: "contain", label: "Thu gọn (Contain)" },
+                                                            { value: "auto", label: "Tự động (Auto)" },
+                                                            { value: "100% 100%", label: "Kéo giãn (100%)" }
+                                                        ]}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Vị Trí</label>
+                                                    <CustomSelect
+                                                        className="w-full"
+                                                        value={appWallpaper.position || "center"}
+                                                        onChange={(e) => {
+                                                            const val = e?.target ? e.target.value : e;
+                                                            setAppWallpaper(prev => ({ ...prev, position: val }));
+                                                        }}
+                                                        options={[
+                                                            { value: "center", label: "Giữa (Center)" },
+                                                            { value: "top", label: "Trên (Top)" },
+                                                            { value: "bottom", label: "Dưới (Bottom)" },
+                                                            { value: "left", label: "Trái (Left)" },
+                                                            { value: "right", label: "Phải (Right)" }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Sliders: Blur & Opacity */}
+                                            <div className="space-y-3 pt-2">
+                                                <div className="space-y-1.5">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Mờ Nền (Blur)</label>
+                                                        <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.blur || 0}px</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="50"
+                                                        value={appWallpaper.blur || 0}
+                                                        onChange={(e) => setAppWallpaper(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
+                                                        className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-1.5">
+                                                    <div className="flex justify-between items-center">
+                                                        <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Đậm Nền (Opacity)</label>
+                                                        <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.opacity ?? 100}%</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        value={appWallpaper.opacity ?? 100}
+                                                        onChange={(e) => setAppWallpaper(prev => ({ ...prev, opacity: parseInt(e.target.value) }))}
+                                                        className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Glass Overlay on Wallpaper */}
+                                            <div className="space-y-3 pt-3 border-t border-border/60">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <label className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
+                                                            <Layers size={14} className="text-emerald-500" />
+                                                            Lớp Phủ Kính Hình Nền
+                                                        </label>
+                                                        <p className="text-[10px] text-muted-foreground font-medium">Hiệu ứng kính mờ che hình nền toàn trang</p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        role="switch"
+                                                        aria-checked={appWallpaper.glassEnabled !== false}
+                                                        onClick={() => setAppWallpaper(prev => ({ ...prev, glassEnabled: prev.glassEnabled === false ? true : false }))}
+                                                        className={cn(
+                                                            "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-inner",
+                                                            (appWallpaper.glassEnabled !== false)
+                                                                ? "bg-[#2d5016] dark:bg-emerald-600"
+                                                                : "bg-[#8b6f47]/30 dark:bg-white/20"
+                                                        )}
                                                     >
-                                                        <div className="w-full h-16 rounded-lg overflow-hidden border border-border/60 relative">
-                                                            <img 
-                                                                src={preset.path} 
-                                                                alt={preset.name} 
-                                                                className="w-full h-full object-cover group-hover/preset:scale-110 transition-transform duration-300"
-                                                            />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-1">
-                                                                <span className="text-[7.5px] font-black text-white uppercase tracking-wider truncate">Chọn</span>
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-[9px] font-bold text-foreground truncate w-full text-center leading-tight">
-                                                            {preset.name}
-                                                        </span>
+                                                        <span
+                                                            className={cn(
+                                                                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                                                (appWallpaper.glassEnabled !== false) ? "translate-x-5" : "translate-x-0"
+                                                            )}
+                                                        />
                                                     </button>
-                                                ))}
+                                                </div>
+
+                                                {(appWallpaper.glassEnabled !== false) && (
+                                                    <div className="space-y-3 pl-1 pt-1">
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Nhòe Kính</label>
+                                                                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.glassBlur !== undefined ? appWallpaper.glassBlur : 10}px</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="50"
+                                                                value={appWallpaper.glassBlur !== undefined ? appWallpaper.glassBlur : 10}
+                                                                onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassBlur: parseInt(e.target.value) }))}
+                                                                className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Đậm Kính</label>
+                                                                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.glassOpacity !== undefined ? appWallpaper.glassOpacity : 20}%</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="100"
+                                                                value={appWallpaper.glassOpacity !== undefined ? appWallpaper.glassOpacity : 20}
+                                                                onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassOpacity: parseInt(e.target.value) }))}
+                                                                className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Wallpaper Color Filter Presets */}
+                                            <div className="space-y-3 pt-3 border-t border-border/60">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-black text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Sparkles size={14} className="text-amber-500" />
+                                                        Bộ Lọc Màu Hình Nền
+                                                    </label>
+                                                    {(appWallpaper.filterPreset || appWallpaper.brightness !== 100 || appWallpaper.contrast !== 100 || appWallpaper.saturate !== 100 || appWallpaper.sepia > 0 || appWallpaper.tintColor) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setAppWallpaper(prev => ({
+                                                                ...prev,
+                                                                filterPreset: 'normal',
+                                                                brightness: 100,
+                                                                contrast: 100,
+                                                                saturate: 100,
+                                                                sepia: 0,
+                                                                hueRotate: 0,
+                                                                grayscale: 0,
+                                                                invert: 0,
+                                                                tintColor: '',
+                                                                tintOpacity: 20
+                                                            }))}
+                                                            className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
+                                                        >
+                                                            Đặt lại màu gốc
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-4 gap-1.5">
+                                                    {[
+                                                        { id: 'normal', label: 'Gốc', filter: { brightness: 100, contrast: 100, saturate: 100, sepia: 0, hueRotate: 0, grayscale: 0, tintColor: '' } },
+                                                        { id: 'warm', label: 'Ấm Áp', filter: { brightness: 102, contrast: 105, saturate: 120, sepia: 25, hueRotate: 0, grayscale: 0, tintColor: '#ffedd5', tintOpacity: 15 } },
+                                                        { id: 'cool', label: 'Tươi Mát', filter: { brightness: 100, contrast: 105, saturate: 115, sepia: 0, hueRotate: 180, grayscale: 0, tintColor: '#e0f2fe', tintOpacity: 15 } },
+                                                        { id: 'vintage', label: 'Vintage', filter: { brightness: 95, contrast: 90, saturate: 85, sepia: 50, hueRotate: 0, grayscale: 0, tintColor: '#fef3c7', tintOpacity: 25 } },
+                                                        { id: 'nature', label: 'Xanh Lá', filter: { brightness: 100, contrast: 110, saturate: 130, sepia: 0, hueRotate: 85, grayscale: 0, tintColor: '#dcfce7', tintOpacity: 20 } },
+                                                        { id: 'dramatic', label: 'Tương Phản', filter: { brightness: 105, contrast: 135, saturate: 125, sepia: 0, hueRotate: 0, grayscale: 0, tintColor: '' } },
+                                                        { id: 'mono', label: 'Đen Trắng', filter: { brightness: 100, contrast: 120, saturate: 0, sepia: 0, hueRotate: 0, grayscale: 100, tintColor: '' } },
+                                                        { id: 'cinema', label: 'Điện Ảnh', filter: { brightness: 90, contrast: 125, saturate: 110, sepia: 15, hueRotate: 0, grayscale: 0, tintColor: '#1e1b4b', tintOpacity: 20, tintBlendMode: 'color-burn' } }
+                                                    ].map(preset => {
+                                                        const isCurrent = appWallpaper.filterPreset === preset.id || (!appWallpaper.filterPreset && preset.id === 'normal');
+                                                        return (
+                                                            <button
+                                                                key={preset.id}
+                                                                type="button"
+                                                                onClick={() => setAppWallpaper(prev => ({
+                                                                    ...prev,
+                                                                    filterPreset: preset.id,
+                                                                    ...preset.filter
+                                                                }))}
+                                                                className={cn(
+                                                                    "py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all border text-center cursor-pointer",
+                                                                    isCurrent 
+                                                                        ? "bg-[#2d5016] text-white border-[#2d5016] dark:bg-emerald-600 dark:border-emerald-500 shadow-xs" 
+                                                                        : "bg-black/[0.03] dark:bg-white/[0.05] border-border/80 text-foreground/80 hover:border-[#2d5016]/50"
+                                                                )}
+                                                            >
+                                                                {preset.label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Tint Overlay Color Picker */}
+                                                <div className="space-y-2 pt-2 border-t border-border/40">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Phủ Màu Tint (Color Overlay)</span>
+                                                        {appWallpaper.tintColor && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAppWallpaper(prev => ({ ...prev, tintColor: '' }))}
+                                                                className="text-[10px] text-rose-500 hover:underline cursor-pointer"
+                                                            >
+                                                                Xóa phủ màu
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="color"
+                                                            value={appWallpaper.tintColor || "#2d5016"}
+                                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, tintColor: e.target.value }))}
+                                                            className="w-10 h-9 rounded-lg border border-border cursor-pointer p-0.5 bg-transparent"
+                                                        />
+                                                        <div className="flex-1 flex items-center gap-2">
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="90"
+                                                                value={appWallpaper.tintOpacity !== undefined ? appWallpaper.tintOpacity : 20}
+                                                                onChange={(e) => setAppWallpaper(prev => ({ ...prev, tintOpacity: parseInt(e.target.value) }))}
+                                                                className="flex-1 accent-[#2d5016] dark:accent-emerald-500"
+                                                                disabled={!appWallpaper.tintColor}
+                                                            />
+                                                            <span className="text-xs font-bold text-primary min-w-[36px] text-right">
+                                                                {appWallpaper.tintColor ? `${appWallpaper.tintOpacity ?? 20}%` : '0%'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Kích Thước</label>
-                                        <CustomSelect
-                                            className="w-full"
-                                            value={appWallpaper.size || "cover"}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, size: e.target.value }))}
-                                            options={[
-                                                { value: "cover", label: "Vừa khít (Cover)" },
-                                                { value: "contain", label: "Thu gọn (Contain)" },
-                                                { value: "auto", label: "Tự động (Auto)" },
-                                                { value: "100% 100%", label: "Kéo giãn (100% 100%)" }
-                                            ]}
-                                        />
-                                    </div>
+                                    )}
 
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Vị Trí</label>
-                                        <CustomSelect
-                                            className="w-full"
-                                            value={appWallpaper.position || "center"}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, position: e.target.value }))}
-                                            options={[
-                                                { value: "center", label: "Giữa (Center)" },
-                                                { value: "top", label: "Trên (Top)" },
-                                                { value: "bottom", label: "Dưới (Bottom)" },
-                                                { value: "left", label: "Trái (Left)" },
-                                                { value: "right", label: "Phải (Right)" }
-                                            ]}
-                                        />
-                                    </div>
+                                    {/* TAB 2: CARD GLASS */}
+                                    {cardSettingsTab === 'glass' && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border/80">
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Layers size={14} className="text-emerald-500" />
+                                                        Bật Hiệu Ứng Kính Mờ Thẻ
+                                                    </label>
+                                                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Xuyên thấu hình nền phía sau các thẻ thống kê</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={cardGlassEnabled}
+                                                    onClick={toggleCardGlass}
+                                                    className={cn(
+                                                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-inner",
+                                                        cardGlassEnabled
+                                                            ? "bg-[#2d5016] dark:bg-emerald-600"
+                                                            : "bg-[#8b6f47]/30 dark:bg-white/20"
+                                                    )}
+                                                >
+                                                    <span
+                                                        className={cn(
+                                                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                                            cardGlassEnabled ? "translate-x-5" : "translate-x-0"
+                                                        )}
+                                                    />
+                                                </button>
+                                            </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Độ Mờ (Blur)</label>
-                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.blur || 0}px</span>
+                                            {cardGlassEnabled && (
+                                                <div className="space-y-4 pt-1">
+                                                    {/* Quick Presets */}
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Chế độ độ mờ nhanh</label>
+                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                            {[
+                                                                { label: 'Siêu Trong', opacity: 15, blur: 8 },
+                                                                { label: 'Chuẩn Lyang', opacity: 40, blur: 16 },
+                                                                { label: 'Kính Đậm', opacity: 70, blur: 24 },
+                                                                { label: 'Đặc', opacity: 100, blur: 0 }
+                                                            ].map(p => {
+                                                                const isSel = cardGlassOpacity === p.opacity;
+                                                                return (
+                                                                    <button
+                                                                        key={p.label}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            updateCardGlassOpacity(p.opacity);
+                                                                            updateCardGlassBlur(p.blur);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "py-2 px-2 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer",
+                                                                            isSel
+                                                                                ? "bg-[#2d5016] text-white border-[#2d5016] dark:bg-emerald-600 dark:border-emerald-500 shadow-xs"
+                                                                                : "bg-black/[0.03] dark:bg-white/[0.05] border-border/80 text-foreground/80 hover:border-[#2d5016]/40"
+                                                                        )}
+                                                                    >
+                                                                        <div className="leading-tight">{p.label}</div>
+                                                                        <div className="text-[10px] opacity-75 font-mono mt-0.5">{p.opacity}%</div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 pt-2 border-t border-border/60">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Đậm Thẻ (Opacity)</label>
+                                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cardGlassOpacity}%</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="100"
+                                                            value={cardGlassOpacity}
+                                                            onChange={(e) => updateCardGlassOpacity(parseInt(e.target.value))}
+                                                            className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                        />
+                                                        <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
+                                                            <span>0% (Trong suốt hoàn toàn)</span>
+                                                            <span>100% (Đặc không xuyên thấu)</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 pt-2 border-t border-border/60">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Nhòe Kính Thẻ (Blur)</label>
+                                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cardGlassBlur}px</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="40"
+                                                            value={cardGlassBlur}
+                                                            onChange={(e) => updateCardGlassBlur(parseInt(e.target.value))}
+                                                            className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                        />
+                                                        <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
+                                                            <span>0px (Rõ nét)</span>
+                                                            <span>40px (Mờ sương)</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
+                                    )}
+
+                                    {/* TAB 3: CARD GLOW */}
+                                    {cardSettingsTab === 'glow' && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border/80">
+                                                <div>
+                                                    <label className="text-xs font-bold text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Sparkles size={14} className="text-amber-500" />
+                                                        Bật Viền Sáng Card (Border Glow)
+                                                    </label>
+                                                    <p className="text-[10px] text-muted-foreground font-medium mt-0.5">Hiệu ứng viền phát sáng nhẹ quanh các thẻ</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={cardGlowEnabled}
+                                                    onClick={toggleCardGlow}
+                                                    className={cn(
+                                                        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-inner",
+                                                        cardGlowEnabled
+                                                            ? "bg-[#2d5016] dark:bg-emerald-600"
+                                                            : "bg-[#8b6f47]/30 dark:bg-white/20"
+                                                    )}
+                                                >
+                                                    <span
+                                                        className={cn(
+                                                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                                            cardGlowEnabled ? "translate-x-5" : "translate-x-0"
+                                                        )}
+                                                    />
+                                                </button>
+                                            </div>
+
+                                            {cardGlowEnabled && (
+                                                <div className="space-y-4 pt-1">
+                                                    {/* Color Presets */}
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center text-xs font-bold text-foreground/80 uppercase tracking-wider">
+                                                            <span>Màu Sắc Viền Glow</span>
+                                                            <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cardGlowColor}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-wrap p-2 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-border/60">
+                                                            {[
+                                                                { color: '#10b981', title: 'Xanh Ngọc' },
+                                                                { color: '#2d5016', title: 'Lyang POS' },
+                                                                { color: '#f59e0b', title: 'Vàng Kim' },
+                                                                { color: '#06b6d4', title: 'Lam Neon' },
+                                                                { color: '#a855f7', title: 'Tím Neon' },
+                                                                { color: '#f43f5e', title: 'Hồng Đỏ' },
+                                                                { color: '#ffffff', title: 'Pha Lê' }
+                                                            ].map(preset => {
+                                                                const isSel = cardGlowColor.toLowerCase() === preset.color.toLowerCase();
+                                                                return (
+                                                                    <button
+                                                                        key={preset.color}
+                                                                        type="button"
+                                                                        onClick={() => updateCardGlowColor(preset.color)}
+                                                                        title={preset.title}
+                                                                        style={{ backgroundColor: preset.color }}
+                                                                        className={cn(
+                                                                            "w-7 h-7 rounded-full border-2 transition-all cursor-pointer shadow-xs",
+                                                                            isSel ? "scale-115 border-foreground shadow-md ring-2 ring-primary/40" : "border-white/50 dark:border-black/50 opacity-80 hover:opacity-100"
+                                                                        )}
+                                                                    />
+                                                                );
+                                                            })}
+                                                            <div className="h-6 w-[1px] bg-border mx-1" />
+                                                            <input
+                                                                type="color"
+                                                                value={cardGlowColor}
+                                                                onChange={(e) => updateCardGlowColor(e.target.value)}
+                                                                className="w-8 h-7 rounded-lg border border-border cursor-pointer p-0 bg-transparent"
+                                                                title="Chọn màu tùy biến"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Sliders: Radius & Opacity */}
+                                                    <div className="space-y-2 pt-2 border-t border-border/60">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Lan Tỏa Glow (Radius)</label>
+                                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cardGlowSize}px</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="4"
+                                                            max="40"
+                                                            value={cardGlowSize}
+                                                            onChange={(e) => updateCardGlowSize(parseInt(e.target.value))}
+                                                            className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2 pt-2 border-t border-border/60">
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Rực Sáng Glow (Opacity)</label>
+                                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cardGlowOpacity}%</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="10"
+                                                            max="100"
+                                                            value={cardGlowOpacity}
+                                                            onChange={(e) => updateCardGlowOpacity(parseInt(e.target.value))}
+                                                            className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </m.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </Portal>
+
+            {/* Custom Greeting & Motto Edit Modal */}
+            <Portal>
+                <AnimatePresence>
+                    {showGreetingModal && (
+                        <div 
+                            className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setShowGreetingModal(false)}
+                        >
+                            <m.div
+                                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                                className="w-full max-w-md bg-[#faf7f0] dark:bg-[#181c15] border-2 border-[#8b6f47]/30 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 text-left"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between pb-3 border-b border-[#8b6f47]/20 dark:border-white/10">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="p-2 rounded-2xl bg-[#2d5016]/15 text-[#2d5016] dark:bg-emerald-500/20 dark:text-emerald-300">
+                                            <Sparkles size={18} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wide">Tùy Chỉnh Lời Chào</h3>
+                                            <p className="text-[11px] font-bold text-[#8b6f47] dark:text-[#d4a574]">Cá nhân hóa thông điệp mở đầu ngày mới</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowGreetingModal(false)}
+                                        className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider">
+                                            Tiêu Đề Lời Chào (Ví dụ: Chào buổi sáng, Xin chào sếp Nghĩa)
+                                        </label>
                                         <input
-                                            type="range"
-                                            min="0"
-                                            max="50"
-                                            value={appWallpaper.blur || 0}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
-                                            className="w-full accent-primary"
+                                            type="text"
+                                            value={tempGreetingTitle}
+                                            onChange={(e) => setTempGreetingTitle(e.target.value)}
+                                            placeholder={greeting.text}
+                                            className="w-full px-4 py-2.5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-white/15 bg-white/80 dark:bg-black/30 text-foreground font-bold text-sm focus:border-[#2d5016] dark:focus:border-emerald-500 outline-none transition-all"
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Độ Đậm (Opacity)</label>
-                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.opacity ?? 100}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={appWallpaper.opacity ?? 100}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, opacity: parseInt(e.target.value) }))}
-                                            className="w-full accent-primary"
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider">
+                                            Thông Điệp / Câu Nói Động Lực (Motto)
+                                        </label>
+                                        <textarea
+                                            rows={2}
+                                            value={tempGreetingSubtitle}
+                                            onChange={(e) => setTempGreetingSubtitle(e.target.value)}
+                                            placeholder={greeting.desc}
+                                            className="w-full px-4 py-2.5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-white/15 bg-white/80 dark:bg-black/30 text-foreground font-bold text-sm focus:border-[#2d5016] dark:focus:border-emerald-500 outline-none transition-all resize-none"
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Độ Nhòe Kính (Glass Blur)</label>
-                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.glassBlur !== undefined ? appWallpaper.glassBlur : 10}px</span>
+                                    {/* Preset Recommendations */}
+                                    <div className="space-y-1.5">
+                                        <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">Gợi ý mẫu:</span>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            {[
+                                                { t: 'Đại Lợi Phát Tài', s: 'Buôn may bán đắt, vạn sự hanh thông!' },
+                                                { t: 'Chào mừng trở lại', s: 'Hôm nay sẽ là một ngày bùng nổ doanh số!' },
+                                                { t: 'Lyang Farm & Cafe', s: 'Nông sản hữu cơ - Tươi ngon mỗi ngày' },
+                                                { t: 'Tươi Vui Mỗi Ngày', s: 'Trao chất lượng, nhận trọn niềm tin' }
+                                            ].map(item => (
+                                                <button
+                                                    key={item.t}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setTempGreetingTitle(item.t);
+                                                        setTempGreetingSubtitle(item.s);
+                                                    }}
+                                                    className="p-2 rounded-xl text-left bg-[#8b6f47]/5 hover:bg-[#2d5016]/10 dark:bg-white/5 dark:hover:bg-white/10 border border-[#8b6f47]/15 dark:border-white/10 transition-all cursor-pointer"
+                                                >
+                                                    <div className="text-[11px] font-black text-[#2d5016] dark:text-emerald-300 truncate">{item.t}</div>
+                                                    <div className="text-[9.5px] text-muted-foreground truncate">{item.s}</div>
+                                                </button>
+                                            ))}
                                         </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="50"
-                                            value={appWallpaper.glassBlur !== undefined ? appWallpaper.glassBlur : 10}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassBlur: parseInt(e.target.value) }))}
-                                            className="w-full accent-primary"
-                                        />
                                     </div>
+                                </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-sm font-bold text-foreground/80 uppercase tracking-wider">Độ Đậm Kính (Glass Opacity)</label>
-                                            <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{appWallpaper.glassOpacity !== undefined ? appWallpaper.glassOpacity : 20}%</span>
-                                        </div>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="100"
-                                            value={appWallpaper.glassOpacity !== undefined ? appWallpaper.glassOpacity : 20}
-                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassOpacity: parseInt(e.target.value) }))}
-                                            className="w-full accent-primary"
-                                        />
+                                <div className="flex items-center justify-between pt-3 border-t border-[#8b6f47]/20 dark:border-white/10">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setCustomGreetingTitle('');
+                                            setCustomGreetingSubtitle('');
+                                            localStorage.removeItem('dashboard_custom_greeting_title');
+                                            localStorage.removeItem('dashboard_custom_greeting_subtitle');
+                                            setShowGreetingModal(false);
+                                            setToast({ message: 'Đã đặt lại lời chào theo khung giờ mặc định', type: 'info' });
+                                        }}
+                                        className="px-3.5 py-2 rounded-2xl text-xs font-black text-[#8b6f47] dark:text-[#d4a574] hover:bg-[#8b6f47]/10 transition-all cursor-pointer"
+                                    >
+                                        Mặc định theo giờ
+                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowGreetingModal(false)}
+                                            className="px-4 py-2 rounded-2xl text-xs font-black text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                        >
+                                            Hủy
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCustomGreetingTitle(tempGreetingTitle);
+                                                setCustomGreetingSubtitle(tempGreetingSubtitle);
+                                                localStorage.setItem('dashboard_custom_greeting_title', tempGreetingTitle);
+                                                localStorage.setItem('dashboard_custom_greeting_subtitle', tempGreetingSubtitle);
+                                                setShowGreetingModal(false);
+                                                setToast({ message: 'Đã lưu lời chào & khẩu hiệu mới!', type: 'success' });
+                                            }}
+                                            className="px-5 py-2 rounded-2xl text-xs font-black bg-[#2d5016] text-white hover:bg-[#3d6820] shadow-md transition-all cursor-pointer"
+                                        >
+                                            Lưu thay đổi
+                                        </button>
                                     </div>
                                 </div>
                             </m.div>

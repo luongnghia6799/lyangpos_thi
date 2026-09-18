@@ -2163,7 +2163,7 @@ const POSLite = () => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-normal font-mono text-base uppercase leading-tight truncate" style={{ color: "var(--lite-text)" }}>{item.name}</span>
                       {partnerPurchases && partnerPurchases[item.product_id] && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black border border-indigo-700 dark:border-indigo-500 bg-indigo-600 dark:bg-indigo-600 text-white shadow-xs" title={`Giá mua trước: ${formatNumber(partnerPurchases[item.product_id].last_price)}đ`}>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black border border-indigo-700 dark:border-indigo-500 bg-indigo-600 dark:bg-indigo-600 text-white shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Giá mua trước: ${formatNumber(partnerPurchases[item.product_id].last_price)}đ`}>
                           <Clock size={10} className="shrink-0 text-white" />
                           Đã mua: {formatRelativePurchaseDate(partnerPurchases[item.product_id].last_date)}
                         </span>

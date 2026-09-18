@@ -251,7 +251,22 @@ pub async fn get_history_active_filters(
         }
     }).filter(|s| !s.trim().is_empty());
 
+    let start_date_str = params.get("start_date").and_then(|v| v.as_str()).map(|s| s.trim()).filter(|s| !s.is_empty());
+    let end_date_str = params.get("end_date").and_then(|v| v.as_str()).map(|s| s.trim()).filter(|s| !s.is_empty());
+
     let mut date_cond = String::new();
+    if let Some(s) = start_date_str {
+        date_cond.push_str(&format!(" AND o.date >= '{s}'"));
+    }
+    if let Some(e) = end_date_str {
+        let end_val = if e.len() <= 10 {
+            format!("{e}T23:59:59")
+        } else {
+            e.to_string()
+        };
+        date_cond.push_str(&format!(" AND o.date <= '{end_val}'"));
+    }
+
     if let Some(y) = year_str {
         date_cond.push_str(&format!(" AND strftime('%Y', o.date) = '{y}'"));
     }

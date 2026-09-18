@@ -57,7 +57,11 @@
     // Handle click outside to close
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+            if (
+                containerRef.current && 
+                !containerRef.current.contains(event.target) &&
+                !event.target.closest?.('.custom-select-dropdown')
+            ) {
                 setIsOpen(false);
             }
         };
@@ -73,11 +77,21 @@
     const handleSelect = (optionValue) => {
         if (disabled) return;
         if (typeof onChange === 'function') {
-            // Check if consumer expects raw value or event object
+            const simulatedEvent = {
+                target: { value: optionValue, name: '' },
+                currentTarget: { value: optionValue },
+                value: optionValue
+            };
+            // Call with simulated event where value property is also the raw string
+            // so both onChange(val) -> val.target.value or onChange(val) -> val (as primitive/object) work
             try {
-                onChange(optionValue);
+                onChange(simulatedEvent);
             } catch (err) {
-                // fallback if consumer tried e.target.value
+                try {
+                    onChange(optionValue);
+                } catch (e2) {
+                    console.error("Error in CustomSelect onChange:", e2);
+                }
             }
         }
         setIsOpen(false);

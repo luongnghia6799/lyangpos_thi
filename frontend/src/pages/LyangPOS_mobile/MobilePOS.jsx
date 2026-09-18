@@ -709,7 +709,7 @@ export default function MobilePOS() {
                                                         <span className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">Tặng</span>
                                                     )}
                                                     {partnerPurchases && partnerPurchases[item.product_id || item.id] && (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10.5px] font-black shadow-xs" title={`Giá mua gần nhất: ${formatNumber(partnerPurchases[item.product_id || item.id].last_price)}đ`}>
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10.5px] font-black shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Giá mua gần nhất: ${formatNumber(partnerPurchases[item.product_id || item.id].last_price)}đ`}>
                                                             <Clock size={10} className="shrink-0 text-white" />
                                                             Đã mua: {formatRelativePurchaseDate(partnerPurchases[item.product_id || item.id].last_date)}
                                                         </span>

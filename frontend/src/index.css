@@ -498,6 +498,9 @@ body {
   display: inline-block;
   white-space: nowrap;
   will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .group\/search-row:hover .animate-marquee-on-hover.is-overflowing,
@@ -1617,3 +1620,6 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
   border-color: rgba(var(--primary-rgb, 74, 222, 128), 0.3) !important;
   background-color: rgba(var(--primary-rgb, 74, 222, 128), 0.12) !important;
 }
+
+
+

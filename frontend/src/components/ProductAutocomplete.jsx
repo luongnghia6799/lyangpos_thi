@@ -133,10 +133,13 @@ const ProductAutocomplete = React.forwardRef(({
             <AnimatePresence>
                 {isOpen && filteredOptions.length > 0 && (
                     <m.div
-                        initial={{ opacity: 0, y: 5, scale: 0.98 }}
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 5, scale: 0.98 }}
-                        transition={{ duration: 0.1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                        transition={{
+                            duration: 0.12,
+                            ease: "easeOut"
+                        }}
                         className="absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border overflow-hidden shadow-2xl border-amber-300/50 dark:border-white/10 w-full min-w-[500px] backdrop-blur-[24px] backdrop-saturate-150"
                         style={{ backgroundColor: 'color-mix(in srgb, var(--bg-color, #faf8f3) 90%, transparent)' }}
                     >

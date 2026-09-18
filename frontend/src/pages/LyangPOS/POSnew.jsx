@@ -614,6 +614,7 @@ function POSPage({
     [soundThemeTyping, setSoundThemeTyping] = i.useState(() => localStorage.getItem("pos_sound_theme_typing") || "mechanical"),
     [soundThemeError, setSoundThemeError] = i.useState(() => localStorage.getItem("pos_sound_theme_error") || "buzz_low"),
     [showHotkeysGuide, setShowHotkeysGuide] = i.useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true"),
+    [showEmptyCartGuide, setShowEmptyCartGuide] = i.useState(() => localStorage.getItem("pos_show_empty_cart_guide") !== "false"),
     [showMascotCustomizer, setShowMascotCustomizer] = i.useState(false),
     [mascotWatermarkVisible, setMascotWatermarkVisible] = i.useState(() => localStorage.getItem("pos_mascot_watermark_visible") !== "false"),
     [mascotWatermarkPos, setMascotWatermarkPos] = i.useState(() => localStorage.getItem("pos_mascot_watermark_pos") || "bottom-right"),
@@ -1122,6 +1123,14 @@ function POSPage({
     xs = i.useRef(null),
     hs = i.useRef(null),
     Ea = i.useRef(null),
+    [cartColorConfig, setCartColorConfig] = i.useState(() => {
+      try {
+        const saved = localStorage.getItem("pos_cart_color_config");
+        return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
+      } catch {
+        return DEFAULT_CART_COLOR_CONFIG;
+      }
+    }),
     [productSearchCoords, setProductSearchCoords] = i.useState({ top: 0, left: 0, width: 700 }),
     [hr, qa] = i.useState([]),
     [q, br] = i.useState(null),
@@ -1146,7 +1155,7 @@ function POSPage({
       gr(!1), Wa("");
     };
   i.useLayoutEffect(() => {
-    if (Z && !m?.product && Li) {
+    if (Z && !m?.product) {
       const updateCoords = () => {
         if (se.current) {
           const rect = se.current.getBoundingClientRect();
@@ -1167,7 +1176,7 @@ function POSPage({
         window.removeEventListener("scroll", updateCoords, true);
       };
     }
-  }, [Z, m?.product, Li]);
+  }, [Z, m?.product]);
   i.useEffect(() => {
     if (!Zt) return;
     const t = a => {
@@ -1291,26 +1300,41 @@ function POSPage({
             h = s.secondary_qty !== void 0 && s.secondary_qty !== null ? s.secondary_qty : l / u,
             b = u > 1 || s.secondary_qty ? Number(h) % 1 === 0 ? Number(h) : Number(h).toFixed(3) : "N/A",
             S = s.id || s.product_id || `remote_${n}_${s.name || s.product_name}`;
-          return <x.tr key={S} initial={{
+          return <x.tr key={S} layout={!0} initial={{
             opacity: 0,
-            x: -6
+            x: -20,
+            scale: 0.98
           }} animate={{
             opacity: 1,
-            x: 0
+            x: 0,
+            scale: 1
           }} exit={{
             opacity: 0,
-            x: 10,
+            x: 30,
+            scale: 0.95,
             transition: {
-              duration: 0.12
+              duration: 0.2
             }
           }} transition={{
-            duration: 0.15,
-            ease: "easeOut"
+            type: "spring",
+            stiffness: 350,
+            damping: 25
           }} className="border-b border-slate-200 dark:border-white/5 hover:bg-primary/5 dark:hover:bg-slate-800/20 transition-colors group"><td className="py-2 px-4 text-center text-slate-400 font-black text-[11px] group-hover:text-emerald-500 transition-colors tabular-nums">{n + 1}</td><td className="py-2 px-4 text-center"><button onClick={w => {
                 w.stopPropagation();
                 const O = (k?.cart || []).filter((U, L) => L !== n);
                 Ra(O);
-              }} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all" title="Xóa dòng"><Comp_pa size={18} /></button></td><td className="py-2 px-2 relative"><div className="w-full h-auto py-2.5 px-4 text-[17px] font-black uppercase tracking-tight text-emerald-900 dark:text-emerald-300 leading-relaxed truncate">{s.name || s.product_name}{(s.code || s.product_code || s.sku) && <span className="ml-2 text-xs font-black tabular-nums text-slate-400 normal-case">({s.code || s.product_code || s.sku})</span>}</div></td><td className="py-2 px-4 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(s.unit || s.product_unit || "Cái")}</div></td><td className="py-2 px-2 w-32">{s.secondary_unit ? <div className="flex items-center justify-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574]"><input type="text" className="w-16 bg-transparent text-center border-0 outline-none p-0 focus:ring-0 focus:border-0 font-black text-base text-primary dark:text-[#d4a574]" value={b} onFocus={w => w.target.select()} onKeyDown={w => {
+              }} className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all" title="Xóa dòng"><Comp_pa size={18} /></button></td>            <td className="py-2 px-2 relative">
+              <div 
+                style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} 
+                className={c(
+                  "w-full h-auto py-2.5 px-4 text-[17px] font-black uppercase tracking-tight leading-relaxed truncate",
+                  (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
+                )}
+              >
+                {s.name || s.product_name}
+                {(s.code || s.product_code || s.sku) && <span className="ml-2 text-xs font-black tabular-nums text-slate-400 normal-case">({s.code || s.product_code || s.sku})</span>}
+              </div>
+            </td><td className="py-2 px-4 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(s.unit || s.product_unit || "Cái")}</div></td><td className="py-2 px-2 w-32">{s.secondary_unit ? <div className="flex items-center justify-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl font-black text-base text-primary dark:text-[#d4a574]"><input type="text" className="w-16 bg-transparent text-center border-0 outline-none p-0 focus:ring-0 focus:border-0 font-black text-base text-primary dark:text-[#d4a574]" value={b} onFocus={w => w.target.select()} onKeyDown={w => {
                   w.key === "Enter" && (w.preventDefault(), se.current?.focus());
                 }} onChange={w => {
                   const O = parseFloat(w.target.value) || 0,
@@ -1343,7 +1367,7 @@ function POSPage({
               }} /></td><td className="py-2 px-4 text-right"><div className="font-black text-lg text-emerald-600 dark:text-emerald-400 tabular-nums">{z(o)}đ</div></td><td className="w-8" /></x.tr>;
         });
       return [a, ...r];
-    }, [q, k, g]),
+    }, [q, k, g, cartColorConfig]),
     [Xi, Oa] = i.useState(!1),
     [Ji, fr] = i.useState(null),
     [gs, La] = i.useState(!1),
@@ -1388,15 +1412,7 @@ function POSPage({
       const t = localStorage.getItem("pos_transparent_cart_table");
       return t === null ? true : t === "true";
     }),
-    [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false),
-    [cartColorConfig, setCartColorConfig] = i.useState(() => {
-      try {
-        const saved = localStorage.getItem("pos_cart_color_config");
-        return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
-      } catch {
-        return DEFAULT_CART_COLOR_CONFIG;
-      }
-    });
+    [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false);
   i.useEffect(() => {
     localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
   }, [Je]);
@@ -1477,6 +1493,8 @@ function POSPage({
         setTransparentCartTable(data.value === "true");
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_typing_sound_enabled") {
         setTypingSoundEnabled(data.value !== "false");
+      } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_show_empty_cart_guide") {
+        setShowEmptyCartGuide(data.value !== "false");
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_sound_theme_success") {
         setSoundThemeSuccess(data.value);
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_sound_theme_action") {
@@ -1892,7 +1910,7 @@ function POSPage({
         Ds(), Wt();
         return;
       }
-      yn(!0);
+      Ds(), yn(!0);
       try {
         const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
         r.data.items && r.data.items.length > 0 ? (Ka(r.data.items[0]), Vr(a)) : G({
@@ -2882,7 +2900,15 @@ function POSPage({
             backdrop-filter: blur(var(--bg-transparent-blur)) !important;
             border-radius: var(--radius-pos) !important;
           }
-        `}</style><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><div className="flex items-center"><P mode="wait" initial={false}><x.div key={le?.id || le?.display_id || Q || (Ce > 0 ? `page-${Ce}` : "draft")} initial={{ opacity: 0, y: -4, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 4, scale: 0.96 }} transition={{ duration: 0.22, ease: "easeOut" }}><button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 cursor-pointer text-left">{(() => {
+        `}</style><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><P mode="popLayout" initial={!1}><x.div key={le?.id || Ce || "draft"} initial={{
+                    opacity: 0
+                  }} animate={{
+                    opacity: 1
+                  }} exit={{
+                    opacity: 0
+                  }} transition={{
+                    duration: 0.2
+                  }} className="flex items-center"><button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 cursor-pointer text-left">{(() => {
                     const originalDateStr = le?.date ? le.date.slice(0, 10) : '';
                     let isDateModified = false;
                     if (customOrderDate) {
@@ -2913,7 +2939,7 @@ function POSPage({
                     }
                     return (
                       <>
-                        <div className={c("w-2 h-2 rounded-full shrink-0", isDateModified ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20" : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
+                        <div className={c("w-2 h-2 rounded-full shrink-0", isDateModified ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
                         <div className="flex flex-col justify-center leading-none min-w-0">
                           <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>#{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}</span>
                           {(() => {
@@ -2935,7 +2961,7 @@ function POSPage({
                         </div>
                       </>
                     );
-                  })()}</button></x.div></P><Ws>{isOrderDatePickerOpen && (<Fn><div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" onClick={() => setIsOrderDatePickerOpen(false)}><x.div initial={{ opacity: 0, scale: 0.9, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ type: "spring", damping: 25, stiffness: 400 }} className="bg-white dark:bg-slate-900 border-2 border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4" onClick={t => t.stopPropagation()}><div className="flex items-center justify-between pb-3 border-b border-border"><div className="flex items-center gap-2"><Ao size={16} className="text-[#2d5016] dark:text-[#4ade80]" /><span className="text-xs font-black uppercase tracking-wider text-[#2d5016] dark:text-white">Chọn ngày hóa đơn</span></div><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"><Xn size={16} /></button></div><div className="space-y-2"><label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ngày giao dịch:</label><CustomDatePicker value={customOrderDate || (le?.date ? le.date.slice(0, 10) : new Date().toISOString().slice(0, 10))} onChange={t => { setCustomOrderDate(t.target.value); }} /></div><div className="flex items-center justify-between pt-2"><button type="button" onClick={() => { setCustomOrderDate(""); setIsOrderDatePickerOpen(false); }} className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">Đặt lại hôm nay</button><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="px-4 py-1.5 rounded-xl text-xs font-black bg-[#2d5016] text-white hover:bg-[#3d6820] transition-colors shadow-xs cursor-pointer">Xác nhận</button></div></x.div></div></Fn>)}</Ws></div></div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
+                  })()}</button><Ws>{isOrderDatePickerOpen && (<Fn><div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" onClick={() => setIsOrderDatePickerOpen(false)}><x.div initial={{ opacity: 0, scale: 0.9, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} transition={{ type: "spring", damping: 25, stiffness: 400 }} className="bg-white dark:bg-slate-900 border-2 border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4" onClick={t => t.stopPropagation()}><div className="flex items-center justify-between pb-3 border-b border-border"><div className="flex items-center gap-2"><Ao size={16} className="text-[#2d5016] dark:text-[#4ade80]" /><span className="text-xs font-black uppercase tracking-wider text-[#2d5016] dark:text-white">Chọn ngày hóa đơn</span></div><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"><Xn size={16} /></button></div><div className="space-y-2"><label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Ngày giao dịch:</label><CustomDatePicker value={customOrderDate || (le?.date ? le.date.slice(0, 10) : new Date().toISOString().slice(0, 10))} onChange={t => { setCustomOrderDate(t.target.value); }} /></div><div className="flex items-center justify-between pt-2"><button type="button" onClick={() => { setCustomOrderDate(""); setIsOrderDatePickerOpen(false); }} className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">Đặt lại hôm nay</button><button type="button" onClick={() => setIsOrderDatePickerOpen(false)} className="px-4 py-1.5 rounded-xl text-xs font-black bg-[#2d5016] text-white hover:bg-[#3d6820] transition-colors shadow-xs cursor-pointer">Xác nhận</button></div></x.div></div></Fn>)}</Ws></x.div></P></div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
                       rotate: -8
                     }} animate={{
@@ -3161,11 +3187,9 @@ function POSPage({
 
                       <button onClick={() => {
                         Ct(!1), setShowCartColorCustomizer(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Palette size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màu giỏ hàng & Viền</span></button><button onClick={() => {
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Palette size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Tùy chỉnh giao diện giỏ hàng</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">màu sắc, viền, mờ kính, mascot</span></div></div><div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold bg-emerald-500/10 px-2 py-0.5 rounded-md">Mở</div></button><button onClick={() => {
                         Ct(!1), fs(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
-                        Ct(!1), setShowMascotCustomizer(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Palette size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Tùy biến Mascot in chìm</span></button><button onClick={() => {
                         Ct(!1), ba(!0);
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button><button onClick={() => {
                         const t = !ga;
@@ -3201,28 +3225,6 @@ function POSPage({
                           }), a.close();
                         } catch {}
                       }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
-                        const t = !transparentCartTable;
-                        setTransparentCartTable(t), localStorage.setItem("pos_transparent_cart_table", t ? "true" : "false");
-                        try {
-                          const a = new BroadcastChannel("pos_data_sync");
-                          a.postMessage({
-                            type: "UI_SETTING_UPDATED",
-                            key: "pos_transparent_cart_table",
-                            value: t ? "true" : "false"
-                          }), a.close();
-                        } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Lớp phủ mờ giỏ hàng</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{transparentCartTable ? "bật: lớp kính mờ nổi bật" : "tắt: trong suốt trùng màu nền"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", transparentCartTable ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
-                        const t = !showLastPurchaseBadge;
-                        setShowLastPurchaseBadge(t), localStorage.setItem("pos_show_last_purchase_badge", t ? "true" : "false");
-                        try {
-                          const a = new BroadcastChannel("pos_data_sync");
-                          a.postMessage({
-                            type: "UI_SETTING_UPDATED",
-                            key: "pos_show_last_purchase_badge",
-                            value: t ? "true" : "false"
-                          }), a.close();
-                        } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ao size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Badge ngày mua gần nhất</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{showLastPurchaseBadge ? "bật: hiện ngày mua của khách" : "tắt: ẩn badge ngày mua"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", showLastPurchaseBadge ? "bg-indigo-600 border-indigo-600 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
                         Ct(!1), Ci();
                       }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
@@ -3384,24 +3386,24 @@ function POSPage({
                             }} onClick={() => jn(t)} className="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-white px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all border border-amber-500/10 active:scale-95">MỞ LẠI</x.button></div></div></x.div>)}</P>}</div><div className="p-5 border-t border-white/10"><button onClick={() => St(!1)} className="w-full py-3.5 rounded-xl border border-white/10 text-white/30 font-black uppercase text-[9px] hover:bg-white/5 hover:text-white transition-all tracking-[0.3em] active:scale-[0.98]">Đóng</button></div></x.div></div></Ee>}</P><div className="flex-1 flex gap-3 px-4 pb-4 print:hidden min-h-0"><x.div initial={!1} animate={{
               width: Ze === "bottom" ? "100%" : ka ? "calc(100% - 370px)" : "calc(100% - 100px)"
             }} transition={{
-              duration: 0.22,
-              ease: "easeOut"
+              type: "spring",
+              stiffness: 300,
+              damping: 30
             }} className="flex flex-col min-h-0 flex-1"><div 
-              className={c("flex-1 overflow-hidden relative transition-all duration-500 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+              className={c("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
               style={{
                 border: cartColorConfig.enableBorder === false ? 'none' : undefined,
                 borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                 boxShadow: getCartBoxShadow(cartColorConfig)
               }}
-            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.94 }} transition={{ duration: 0.2, ease: "easeOut" }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P mode="wait" initial={false}>{!fn && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
+            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
-                initial={{ opacity: 0, scale: 0.97, y: 6 }}
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97, y: -6 }}
-                transition={{ duration: 0.22, ease: "easeOut" }}
-                id="pos-empty-cart-overlay"
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: "spring", stiffness: 350, damping: 28 }}
                 className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
               >
                 <div className="flex flex-col items-center justify-center max-w-4xl w-full mx-auto pointer-events-auto">
@@ -3414,11 +3416,14 @@ function POSPage({
                     className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
                   >
                     <div className="relative shrink-0">
-                      <img
+                      <x.img
                         src="/assets/images/user_mascot.png"
                         alt="Lyang Mascot"
                         className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
                         draggable="false"
+                        initial={{ scale: 0.8, rotate: -6 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       />
                     </div>
                     <div className="flex flex-col justify-center">
@@ -3436,10 +3441,10 @@ function POSPage({
                     {showHotkeysGuide && (
                       <x.div
                         key="hotkeys-guide-panel"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
                         className="w-full overflow-hidden"
                       >
                         <div className="w-full pt-1">
@@ -3576,7 +3581,7 @@ function POSPage({
                           }} /><col style={{
                             width: "5%"
                           }} /></colgroup><thead 
-                            className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
+                            className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-150"
                             style={{
                               backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
                             }}
@@ -3592,7 +3597,7 @@ function POSPage({
                                     G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
                                   }
                                 }
-                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }} title="Bấm để uncheck toàn bộ / soạn lại"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span></th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400 animate-pulse" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
+                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }} title="Bấm để uncheck toàn bộ / soạn lại"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span></th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={t => {
@@ -3608,7 +3613,7 @@ function POSPage({
                                       });
                                     }}
                                     className={c(
-                                      "relative overflow-hidden flex items-center gap-2 px-3 py-1 rounded-full cursor-pointer transition-all duration-300 select-none shadow-xs border backdrop-blur-md group/gom-nhom",
+                                      "relative overflow-hidden flex items-center gap-2 px-3 py-1 rounded-full cursor-pointer transition-colors duration-150 select-none shadow-xs border group/gom-nhom",
                                       J.ui_enable_smart_sorting === "true"
                                         ? "bg-[#2d5016]/12 hover:bg-[#2d5016]/20 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 border-[#2d5016]/40 dark:border-emerald-400/40 text-[#2d5016] dark:text-emerald-300 shadow-[0_0_12px_rgba(45,80,22,0.12)] dark:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                                         : "bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.12] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
@@ -3626,7 +3631,7 @@ function POSPage({
                                     <span className="text-[9px] font-black uppercase tracking-wider leading-none relative z-10 pt-0.5">GOM NHÓM</span>
                                     <div
                                       className={c(
-                                        "relative z-10 w-6 h-3.5 rounded-full transition-colors duration-200 p-0.5 flex items-center shadow-inner",
+                                        "relative z-10 w-6 h-3.5 rounded-full transition-colors duration-300 p-0.5 flex items-center shadow-inner",
                                         J.ui_enable_smart_sorting === "true"
                                           ? "bg-[#2d5016] dark:bg-emerald-500 justify-end"
                                           : "bg-[#8b6f47]/25 dark:bg-white/20 justify-start"
@@ -3635,18 +3640,21 @@ function POSPage({
                                         backgroundColor: cartColorConfig.accentColor
                                       } : undefined}
                                     >
-                                      <div
-                                        className={c(
-                                          "w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform duration-200 ease-out",
-                                          J.ui_enable_smart_sorting === "true" ? "translate-x-0" : "translate-x-0"
-                                        )}
+                                      <x.div
+                                        layout={!0}
+                                        transition={{
+                                          type: "spring",
+                                          stiffness: 600,
+                                          damping: 35
+                                        }}
+                                        className="w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                       />
                                     </div>
-                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-all hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }} onDoubleClick={() => {
+                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("bg-[#8b6f47]/[0.035] dark:bg-[#d4a574]/[0.03] sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 hover:bg-[#8b6f47]/[0.06] dark:hover:bg-[#d4a574]/[0.06] shadow-[0_4px_20px_rgba(139,111,71,0.08),0_0_15px_rgba(139,111,71,0.05)] dark:shadow-[0_4px_20px_rgba(212,165,116,0.1),0_0_15px_rgba(212,165,116,0.06)] group/working-row", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }} onDoubleClick={() => {
                             m.product && (Vt(m.product), vt(!0));
                           }}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
-                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-2.5 px-1 text-center cursor-pointer select-none group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 group-hover/speaker-td:animate-pulse transition-all duration-200 shadow-xs"><Nd size={15} strokeWidth={2.5} /></div></td><td onClick={t => {
+                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-2.5 px-1 text-center cursor-pointer select-none group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs"><Nd size={15} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td onClick={t => {
                                 t.stopPropagation();
                                 if (ve && ve.length > 0) {
                                   const anyPacked = ve.some(item => item.isPacked);
@@ -3658,7 +3666,7 @@ function POSPage({
                                     G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
                                   }
                                 }
-                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs hover:bg-primary/25 active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-all focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
+                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs hover:bg-primary/25 active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-11 pr-14 bg-white/40 dark:bg-black/20 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-white/60 dark:focus:bg-black/30 placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
@@ -3769,9 +3777,7 @@ function POSPage({
                                         }
                                       }
                                     }} onFocus={t => {
-                                      t.target.select(), os(!0);
-                                    }} onBlur={() => {
-                                      setTimeout(() => os(!1), 200);
+                                      t.target.select();
                                     }} ref={se} />{m.product && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5"><div className="flex items-center gap-2 relative z-[200]"><div onClick={t => {
                                       t.stopPropagation();
                                       const a = t.currentTarget.getBoundingClientRect();
@@ -3790,15 +3796,18 @@ function POSPage({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && Li && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
+                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
-                                  y: -5
+                                  y: 8,
+                                  scale: 0.96
                                 }} animate={{
                                   opacity: 1,
-                                  y: 0
+                                  y: 0,
+                                  scale: 1
                                 }} exit={{
                                   opacity: 0,
-                                  y: -5
+                                  y: 8,
+                                  scale: 0.96
                                 }} transition={{
                                   duration: 0.15
                                 }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
@@ -3822,7 +3831,7 @@ function POSPage({
                                               color: a === De ? Mt.accent : Mt.main,
                                               fontSize: a === De ? "18px" : "16px",
                                               paddingLeft: a === De ? "12px" : "0px"
-                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
+                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
                                             r.stopPropagation();
                                             const s = r.currentTarget.getBoundingClientRect();
                                             Xt(t), za({
@@ -3831,7 +3840,7 @@ function POSPage({
                                               left: s.left,
                                               right: s.right
                                             }), Dt(!0);
-                                          }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", t.stock <= 0 ? "bg-rose-600 text-white" : t.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white", a === De ? "border-white/90 shadow-sm" : "border-white/20 dark:border-white/20")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", t.stock < 10 && t.stock > 0 ? "bg-slate-950/30" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className={c("shrink-0", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")} /><span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.accounting_stock || 0}</span></div></>}</div>{t.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-300")}>{t.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", a === De ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}{t.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: a === De ? Mt.accentMuted : Mt.muted }} title={t.active_ingredient}>• {t.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
+                                          }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", t.stock <= 0 ? "bg-rose-600 text-white" : t.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", t.stock < 10 && t.stock > 0 ? "bg-slate-950/30" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className={c("shrink-0", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")} /><span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.accounting_stock || 0}</span></div></>}</div>{t.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", a === De ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300")}>{t.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", a === De ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}{t.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: a === De ? Mt.accentMuted : Mt.muted }} title={t.active_ingredient}>• {t.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
                                               color: a === De ? Mt.accent : Mt.main
                                             }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
                                       dn(Z), ur(!0);
@@ -3856,7 +3865,7 @@ function POSPage({
                                     } else if (t.key === "Enter") {
                                       t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price);
                                     }
-                                  }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                  }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -3891,7 +3900,7 @@ function POSPage({
                                       quantity: t.quantity * -1,
                                       secondary_qty: t.secondary_qty * -1
                                     })), Pt.current?.focus();
-                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#fbf9f4]/95 dark:border-b-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#fbf9f4]/95 dark:border-b-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && !(m.product && (m.price < m.product.cost_price || m.price < (m.product.latest_cost_price || 0)))) ? cartColorConfig.cartValuesColor : undefined }} className={c("w-full h-10 text-center bg-white/40 dark:bg-black/20 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-white/60 dark:focus:bg-black/30 focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
                                     He({
                                       ...m,
@@ -3900,38 +3909,38 @@ function POSPage({
                                   }} onKeyDown={t => {
                                     t.key === "Enter" ? (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
                                   }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
-                                      opacity: 0
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
                                     }} animate={{
-                                      opacity: 1
-                                    }} exit={{
-                                      opacity: 0
-                                    }} transition={{
-                                      duration: 0.12
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
                                     }} className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
-                                      opacity: 0
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
                                     }} animate={{
-                                      opacity: 1
-                                    }} exit={{
-                                      opacity: 0
-                                    }} transition={{
-                                      duration: 0.12
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
                                     }} className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
-                                      opacity: 0
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
                                     }} animate={{
-                                      opacity: 1
-                                    }} exit={{
-                                      opacity: 0
-                                    }} transition={{
-                                      duration: 0.12
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
                                     }} className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
-                                      opacity: 0
+                                      opacity: 0,
+                                      scale: 0.8,
+                                      y: -5
                                     }} animate={{
-                                      opacity: 1
-                                    }} exit={{
-                                      opacity: 0
-                                    }} transition={{
-                                      duration: 0.12
-                                    }} className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+                                      opacity: 1,
+                                      scale: 1,
+                                      y: 0
+                                    }} className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -3941,7 +3950,7 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{g === "remote_inspect" ? (Qi || []) : null}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={`cart-row-${a}`} layout={!0} initial={{
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
                               opacity: 0,
                               x: -20
                             }} animate={{
@@ -3956,20 +3965,10 @@ function POSPage({
                                 duration: 0.2,
                                 ease: "easeIn"
                               }
-                            }} whileHover={{
-                              scale: 1.008,
-                              y: -3,
-                              transition: {
-                                duration: 0.2,
-                                ease: "easeOut"
-                              }
                             }} transition={{
-                              duration: 0.3,
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 25,
-                              delay: a * 0.02
-                            }} id={`cart-row-${a}`} className={c("relative transition-all duration-300 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked ? "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.06]" : (Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent"))} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
+                              duration: 0.22,
+                              ease: "easeOut"
+                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {
@@ -3983,13 +3982,13 @@ function POSPage({
                                 S === "qty_first" 
                                   ? speakAudioSequence([qty, alias]) 
                                   : speakAudioSequence([alias, qty]);
-                              }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div className={c("w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs transition-all duration-200", t.isPacked ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/20 shadow-xs" : "text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95")}>{a + 1}</div></td><td className="py-2 px-2 text-center"><x.button whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} onClick={r => {
+                              }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95 transition-all duration-200">{a + 1}</div></td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), xl(a);
-                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-300 border-2 cursor-pointer shadow-xs", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/30 shadow-md ring-2 ring-emerald-500/20" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10")}><x.div initial={false} animate={{ scale: t.isPacked ? 1 : 0.85, rotate: t.isPacked ? 0 : -10 }} transition={{ type: "spring", stiffness: 500, damping: 25 }}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></x.div></x.button></td><td className="py-2 px-2 relative"><div className="relative group/search-row" onDoubleClick={r => {
+                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative"><div className="relative group/search-row" onDoubleClick={r => {
                                   r.preventDefault();
                                   const s = T.find(n => n.id === t.product_id);
                                   s && (Vt(s), vt(!0));
-                                }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", "text-emerald-900 dark:text-emerald-300 placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
+                                }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300", "placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
                                     ct(a), ls(t.product_name), Ca(0), r.target.select(), r.target.scrollIntoView({
                                       block: "nearest",
                                       behavior: "smooth"
@@ -4126,7 +4125,7 @@ function POSPage({
                                   }} onDoubleClick={() => {
                                     const r = T.find(s => s.id === t.product_id);
                                     r && (Vt(r), vt(!0));
-                                  }} className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><Ps text={t.product_name} className="text-[17px] font-black tracking-tight leading-snug text-emerald-900 dark:text-emerald-300" title={t.product_name} />{t.is_combo && <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>}</div>{t.ai_scanned && <div className="mt-1 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI Tự khớp: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
+                                  }} className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><Ps text={t.product_name} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} className={c("text-[17px] font-black tracking-tight leading-snug", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title={t.product_name} />{t.is_combo && <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>}</div>{t.ai_scanned && <div className="mt-1 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI Tự khớp: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
                                         r.stopPropagation();
                                         const s = [...y],
                                           n = s.findIndex(l => l.cartId === t.cartId);
@@ -4148,15 +4147,18 @@ function POSPage({
                                           right: n.right
                                         }), Dt(!0);
                                       }
-                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}<P>{Tt === a && zt && <x.div initial={{
+                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}<P>{Tt === a && zt && <x.div initial={{
                                       opacity: 0,
-                                      y: -5
+                                      y: 8,
+                                      scale: 0.96
                                     }} animate={{
                                       opacity: 1,
-                                      y: 0
+                                      y: 0,
+                                      scale: 1
                                     }} exit={{
                                       opacity: 0,
-                                      y: -5
+                                      y: 8,
+                                      scale: 0.96
                                     }} transition={{
                                       duration: 0.15
                                     }} className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[1000]" style={{
@@ -4189,18 +4191,15 @@ function POSPage({
                                             cost_price: r.cost_price,
                                             latest_cost_price: r.latest_cost_price,
                                             stock: r.stock,
-                                            accounting_stock: r.accounting_stock,
                                             is_combo: r.is_combo,
-                                            secondary_qty: d / (r.multiplier || 1),
                                             active_ingredient: r.active_ingredient,
-                                            latest_audit: r.latest_audit,
-                                            latest_stock_entry: r.latest_stock_entry
-                                          }, delete n[l]?.ai_scanned), H(n), ct(null);
+                                            is_manual_price: !1
+                                          }), H(n), ct(null), ls("");
                                         }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={r.name} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
-                                                color: s === It ? Mt.accent : Mt.main,
-                                                fontSize: s === It ? "18px" : "16px",
-                                                paddingLeft: s === It ? "12px" : "0px"
-                                              }} /></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={n => {
+                                              color: s === It ? Mt.accent : Mt.main,
+                                              fontSize: s === It ? "18px" : "16px",
+                                              paddingLeft: s === It ? "12px" : "0px"
+                                            }} /></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={n => {
                                                 n.stopPropagation();
                                                 const l = n.currentTarget.getBoundingClientRect();
                                                 Xt(r), za({
@@ -4209,9 +4208,9 @@ function POSPage({
                                                   left: l.left,
                                                   right: l.right
                                                 }), Dt(!0);
-                                              }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? s === It ? "bg-rose-600 text-white border-white/50 shadow-lg font-black" : "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : r.stock < 10 ? s === It ? "bg-amber-500 text-slate-950 border-white/50 shadow-lg font-black" : "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : s === It ? "bg-[#2d5016] text-white border-white/50 shadow-lg font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className={s === It ? "text-white shrink-0" : "text-white shrink-0"} /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className={s === It ? "text-slate-950 shrink-0" : "text-amber-950 dark:text-slate-950 shrink-0"} /> : <Qa size={12} strokeWidth={2.8} className={s === It ? "text-white shrink-0" : "text-white shrink-0"} />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div>{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-slate-900/5 dark:bg-white/10 border-black/5 dark:border-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2 py-0.5 rounded-md border transition-colors", s === It ? "bg-white/20 border-white/30 text-white" : "bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:border-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}{r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
+                                              }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div>{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}{r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
                                               color: s === It ? Mt.accent : Mt.main
-                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></x.div>}</P>{t.active_ingredient && <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700"><div className="text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div><div className="text-xs font-bold leading-relaxed">{t.active_ingredient}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
+                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></x.div>}</P>{t.active_ingredient && <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700"><div className="text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div><div className="text-xs font-bold leading-relaxed">{t.active_ingredient}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
@@ -4221,7 +4220,7 @@ function POSPage({
                                       const s = a - 1;
                                       s >= 0 && document.getElementById(`qty-sec-${s}`)?.focus();
                                     }
-                                  }} id={`qty-sec-${a}`} /><span className="text-[10px] font-black text-gray-400 uppercase pr-2">{Ae(t.secondary_unit)}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 group/qty"><div className="relative w-full"><input type="number" className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-[#d4a574] shadow-none transition-all" value={t.quantity} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "quantity", parseFloat(r.target.value) || 0)} ref={r => Bi.current[t.product_id] = r} id={`qty-main-${a}`} onKeyDown={r => {
+                                  }} id={`qty-sec-${a}`} /><span className="text-[10px] font-black text-gray-400 uppercase pr-2">{Ae(t.secondary_unit)}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 group/qty"><div className="relative w-full"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-[#d4a574] shadow-none transition-all" value={t.quantity} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "quantity", parseFloat(r.target.value) || 0)} ref={r => Bi.current[t.product_id] = r} id={`qty-main-${a}`} onKeyDown={r => {
                                     if (r.key === "Enter") r.preventDefault(), se.current?.focus();else if (r.key === "Tab") r.preventDefault(), blockTabPrice ? r.target.select?.() : document.getElementById(`price-${a}`)?.focus();else if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
@@ -4231,7 +4230,7 @@ function POSPage({
                                       const s = a - 1;
                                       s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : Pt.current?.focus();
                                     }
-                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right relative hover:z-[4000] focus-within:z-[4000]"><div className="flex flex-col items-center gap-1 group/price relative z-[10] group-hover/price:z-[4000] group-focus-within/price:z-[4000]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" tabIndex={blockTabPrice ? -1 : 0} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
+                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right relative hover:z-[4000] focus-within:z-[4000]"><div className="flex flex-col items-center gap-1 group/price relative z-[10] group-hover/price:z-[4000] group-focus-within/price:z-[4000]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className="relative w-full"><input type="text" tabIndex={blockTabPrice ? -1 : 0} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && t.price > 0 && !(t.price < t.cost_price || t.price < (t.latest_cost_price || 0))) ? cartColorConfig.cartValuesColor : undefined }} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
                                       const s = parseFloat(r.target.value.replace(/,/g, "")) || 0;
                                       _r(a, "price", s);
                                     }} onKeyDown={r => {
@@ -4248,39 +4247,39 @@ function POSPage({
                                       const r = T.find(n => n.id === t.product_id),
                                         s = t.latest_cost_price || 0;
                                       return t.price < t.cost_price ? <x.div initial={{
-                                        opacity: 0
+                                        opacity: 0,
+                                        scale: 0.8,
+                                        y: -5
                                       }} animate={{
-                                        opacity: 1
-                                      }} exit={{
-                                        opacity: 0
-                                      }} transition={{
-                                        duration: 0.12
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0
                                       }} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div> : s > 0 && t.price < s && t.price >= t.cost_price ? <x.div initial={{
-                                        opacity: 0
+                                        opacity: 0,
+                                        scale: 0.8,
+                                        y: -5
                                       }} animate={{
-                                        opacity: 1
-                                      }} exit={{
-                                        opacity: 0
-                                      }} transition={{
-                                        duration: 0.12
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0
                                       }} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <x.div initial={{
-                                        opacity: 0
+                                        opacity: 0,
+                                        scale: 0.8,
+                                        y: -5
                                       }} animate={{
-                                        opacity: 1
-                                      }} exit={{
-                                        opacity: 0
-                                      }} transition={{
-                                        duration: 0.12
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0
                                       }} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <x.div initial={{
-                                        opacity: 0
+                                        opacity: 0,
+                                        scale: 0.8,
+                                        y: -5
                                       }} animate={{
-                                        opacity: 1
-                                      }} exit={{
-                                        opacity: 0
-                                      }} transition={{
-                                        duration: 0.12
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0
                                       }} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div> : null;
-                                    })()}</P></div></td><td className="py-2 px-4 text-right"><div className={c("font-black text-lg transition-colors", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
+                                    })()}</P></div></td><td className="py-2 px-4 text-right"><div style={{ color: (t.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black text-lg transition-colors", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), bl(a);
                                 }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100" title="Xóa dòng"><Comp_pa size={18} /></button></td></x.tr>)}</P></tbody></table></div></div><P>{ea && <x.div initial={{
                       opacity: 0
@@ -4289,9 +4288,9 @@ function POSPage({
                     }} exit={{
                       opacity: 0,
                       transition: {
-                        duration: 0.15
+                        duration: 0.2
                       }
-                    }} className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl backdrop-blur-xl bg-transparent flex items-center justify-center p-4"><x.div initial={{
+                    }} className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl flex items-center justify-center p-4"><x.div initial={{
                         scale: 0.88,
                         opacity: 0,
                         y: 10
@@ -4300,11 +4299,11 @@ function POSPage({
                         opacity: 1,
                         y: 0
                       }} exit={{
-                        scale: 0.95,
+                        scale: 0.92,
                         opacity: 0,
-                        y: -6,
+                        y: -8,
                         transition: {
-                          duration: 0.12
+                          duration: 0.18
                         }
                       }} transition={{
                         type: "spring",
@@ -4323,17 +4322,16 @@ function POSPage({
                     filter: "blur(10px)"
                   }} animate={{
                     opacity: 1,
-                    y: 0
+                    y: 0,
+                    filter: "blur(0.01px)"
                   }} exit={{
                     opacity: 0,
-                    y: 10,
+                    y: 20,
+                    filter: "blur(10px)",
                     transition: {
-                      duration: 0.12,
+                      duration: 0.15,
                       ease: "easeOut"
                     }
-                  }} transition={{
-                    duration: 0.18,
-                    ease: "easeOut"
                   }} className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"><div className="flex items-center gap-2.5 pointer-events-auto"><div onClick={t => {
                         t.stopPropagation(), p ? setIsHistoryPanelOpen(true) : Xr(!0);
                       }} className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent backdrop-blur-md hover:border-[#8b6f47]/50 dark:hover:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 relative overflow-hidden"><Gn className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" /><div className="flex flex-col max-w-[300px] min-w-[200px] relative z-10"><div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5">Đối tác / Khách hàng</div><div className="flex items-center gap-1.5 mb-1">{g === "remote_inspect" ? <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-md text-[9px] font-black tracking-wider shrink-0 border border-emerald-500/20">MÁY TRẠM</span> : p && <span className="px-1.5 py-0.5 bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 text-[#8b6f47] dark:text-[#d4a574] rounded-md text-[9px] font-black tracking-wider shrink-0 border border-[#8b6f47]/20 dark:border-[#d4a574]/20">ID: {p.id}</span>}<div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate">{g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}</div></div>{Pe && <div className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5">{(Pe.phone || Pe.cccd) && <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal py-0.5">{Pe.phone && <div className="flex items-center gap-1"><Mr size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" /><span className="truncate leading-normal">{Pe.phone}</span></div>}{Pe.cccd && <div className="flex items-center gap-1"><Comp_ca size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" /><span className="truncate leading-normal">{Pe.cccd}</span></div>}</div>}{Pe.address && <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal py-0.5"><Us size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" /><span className="truncate leading-normal">{Pe.address}</span></div>}{(g === "remote_inspect" ? Pe.debt_balance || 0 : (it !== 0 || de !== 0)) && <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15">{(() => {
@@ -4382,30 +4380,34 @@ function POSPage({
                             y: 20
                           }} onClick={t => t.stopPropagation()} className="absolute bottom-full left-0 mb-3 w-[320px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-5 rounded-3xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl z-[100]"><div className="flex justify-between items-center mb-4"><div className="flex items-center gap-2"><Comp_u_t size={16} className="text-emerald-500" /><div className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Thông tin giao hàng</div></div><button onClick={t => {
                                 t.stopPropagation(), qt(null);
-                              }} className="text-muted-foreground hover:text-rose-500 transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><div className="space-y-4"><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Địa chỉ giao hàng</label><textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-white/60 dark:bg-slate-900/60 border border-emerald-500/20 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all resize-none dark:text-white" value={vr} onChange={t => ra(t.target.value)} /></div><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Số điện thoại nhận</label><div className="relative"><Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" /><input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-white/60 dark:bg-slate-900/60 border border-emerald-500/20 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all dark:text-white" value={kr} onChange={t => sa(t.target.value)} /></div></div></div></x.div>}</P></div></div></x.div><x.div key="total-bubble" initial={{
+                              }} className="text-muted-foreground hover:text-rose-500 transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><div className="space-y-4"><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Địa chỉ giao hàng</label><textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-white/60 dark:bg-slate-900/60 border border-emerald-500/20 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all resize-none dark:text-white" value={vr} onChange={t => ra(t.target.value)} /></div><div className="space-y-1"><label className="text-[9px] font-black uppercase text-gray-400 ml-1">Số điện thoại nhận</label><div className="relative"><Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" /><input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-white/60 dark:bg-slate-900/60 border border-emerald-500/20 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all dark:text-white" value={kr} onChange={t => sa(t.target.value)} /></div></div></div></x.div>}</P></div></div></x.div><x.div key="total-bubble" layout={!0} initial={{
                     opacity: 0,
-                    y: 10
+                    y: 20,
+                    filter: "blur(10px)"
                   }} animate={{
                     opacity: 1,
-                    y: 0
+                    y: 0,
+                    filter: "blur(0.01px)"
                   }} exit={{
                     opacity: 0,
-                    y: 10,
+                    y: 20,
+                    filter: "blur(10px)",
                     transition: {
-                      duration: 0.12,
+                      duration: 0.15,
                       ease: "easeOut"
                     }
-                  }} transition={{
-                    duration: 0.18,
-                    ease: "easeOut"
-                  }} className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5">{I === "Cash" && <div className="pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] transition-all duration-300"><div className="w-10 h-10 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-[#2d5016]/20 shrink-0 group-hover/cash-calculator:rotate-12 transition-transform"><Comp_oa size={20} /></div><div className="flex flex-col ml-3"><span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 whitespace-nowrap">Khách đưa (F1)</span><div className="flex items-center gap-2.5"><div className="relative flex items-center min-w-[70px] group/input-wrapper h-full"><span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span><input id="cash-given-compact" ref={xr} type="text" className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} /></div>{V > 0 && <div className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5"><span className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap">Tiền thối</span><span className={c("text-xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span></div>}</div></div></div>}{(p || g === "remote_inspect") && <div className="w-[155px] pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-1 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/payment-toggle relative h-[56px] transition-all duration-300"><div className="absolute inset-y-1 bg-gradient-to-tr from-[#2d5016] to-emerald-600 rounded-xl shadow-md shadow-[#2d5016]/20 z-0 transition-all duration-200 ease-out" style={{
+                  }} className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5">{I === "Cash" && <div className="pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] transition-all duration-300"><div className="w-10 h-10 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-[#2d5016]/20 shrink-0 group-hover/cash-calculator:rotate-12 transition-transform"><Comp_oa size={20} /></div><div className="flex flex-col ml-3"><span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 whitespace-nowrap">Khách đưa (F1)</span><div className="flex items-center gap-2.5"><div className="relative flex items-center min-w-[70px] group/input-wrapper h-full"><span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span><input id="cash-given-compact" ref={xr} type="text" className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} /></div>{V > 0 && <div className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5"><span className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap">Tiền thối</span><span className={c("text-xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span></div>}</div></div></div>}{(p || g === "remote_inspect") && <div className="w-[155px] pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-1 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/payment-toggle relative h-[56px] transition-all duration-300"><x.div layout={!0} className="absolute inset-y-1 bg-gradient-to-tr from-[#2d5016] to-emerald-600 rounded-xl shadow-md shadow-[#2d5016]/20 z-0" style={{
                         width: "calc(50% - 4px)",
                         left: (g === "remote_inspect" ? k?.payment_method || "Cash" : I) === "Cash" ? "4px" : "calc(50%)"
+                      }} transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30
                       }} /><button onClick={t => {
                         t.stopPropagation(), ge("Cash"), re($);
                       }} className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Cash" ? "text-white" : "text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400")}><Comp_oa size={13} className={c(I === "Cash" ? "opacity-100" : "opacity-40")} /><span className="text-[9px] font-black uppercase tracking-wider">Tiền mặt</span></button><button onClick={t => {
                         t.stopPropagation(), ge("Debt"), re(0);
-                      }} className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Debt" ? "text-white" : "text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400")}><Comp_ua size={13} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} /><span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span></button></div>}<div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent backdrop-blur-md hover:border-[#8b6f47]/50 dark:hover:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"><Va className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" /><div className="flex items-center gap-1.5 mb-0.5 z-10 relative"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">Tổng cộng thanh toán</span></div><div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative">{z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}<span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5">đ</span></div>{Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && <div className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative"><Kn size={12} className="text-emerald-600 dark:text-emerald-400" /><span className="text-[10px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span></div>}</div></x.div></>}</P></div></div>{Ze === "bottom" && (() => {
+                      }} className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Debt" ? "text-white" : "text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400")}><Comp_ua size={13} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} /><span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span></button></div>}<div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent backdrop-blur-md hover:border-[#8b6f47]/50 dark:hover:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"><Va className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" /><div className="flex items-center gap-1.5 mb-0.5 z-10 relative"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">Tổng cộng thanh toán</span></div><div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative">{z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}<span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5">đ</span></div>{Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && <div className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative"><Kn size={12} className="text-emerald-600 dark:text-emerald-400" /><span className="text-[10px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span></div>}</div></x.div></>}</P></div></div>{Ze === "bottom" && (() => {
                 const t = k?.total_amount || (k?.cart || []).reduce((S, w) => S + (Number(w.price || w.sale_price) || 0) * (Number(w.quantity) || 1), 0),
                   a = g === "remote_inspect" ? Pe || k?.partner : p,
                   r = g === "remote_inspect" ? k?.partner_name || a?.name || "Khách máy trạm" : p ? p.name : "Khách bán lẻ",
@@ -4438,7 +4440,15 @@ function POSPage({
                           }} animate={{
                             opacity: 1,
                             scale: 1
-                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal border shadow-xs", s > 0 ? "bg-white/20 text-rose-100 border-white/30" : "bg-white/20 text-emerald-100 border-white/30")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><div className="text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)] relative z-10">{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5 opacity-85">đ</span></div></div><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch gap-1"><button onClick={() => ja(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/thuchi backdrop-blur-sm" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
+                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal border shadow-xs", s > 0 ? "bg-white/20 text-rose-100 border-white/30" : "bg-white/20 text-emerald-100 border-white/30")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><x.div key={Math.abs(s || 0)} initial={{
+                          opacity: 0,
+                          y: -3
+                        }} animate={{
+                          opacity: 1,
+                          y: 0
+                        }} transition={{
+                          duration: 0.25
+                        }} className="text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)] relative z-10">{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5 opacity-85">đ</span></x.div></div><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch gap-1"><button onClick={() => ja(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/thuchi backdrop-blur-sm" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4477,7 +4487,35 @@ function POSPage({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.1
-                    }} className="md:col-span-3 h-full p-1.5 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <span className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] leading-normal">Thối lại</span> : <span className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-200 leading-normal", b > h ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : b < h ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>}</div><div className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-200", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-muted-foreground")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><div className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-200", u > l ? "text-amber-700 dark:text-amber-400" : b > 0 ? "text-rose-600 dark:text-rose-400" : b < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>{z(u > l ? Math.max(0, u - l) : Math.abs(b))}<span className="text-[9px] font-normal ml-0.5">đ</span></div></div></div></x.div><x.div initial={{
+                    }} className="md:col-span-3 h-full p-1.5 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <x.span initial={{
+                          opacity: 0,
+                          scale: 0.85
+                        }} animate={{
+                          opacity: 1,
+                          scale: 1
+                        }} className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] leading-normal">Thối lại</x.span> : <x.span key={b > h ? "up" : b < h ? "down" : "same"} initial={{
+                          opacity: 0,
+                          scale: 0.85
+                        }} animate={{
+                          opacity: 1,
+                          scale: 1
+                        }} className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal", b > h ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : b < h ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</x.span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>}</div><x.div key={Math.abs(h)} initial={{
+                            opacity: 0,
+                            scale: 0.95
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.25
+                          }} className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-muted-foreground")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><x.div key={u > l ? Math.max(0, u - l) : Math.abs(b)} initial={{
+                            opacity: 0,
+                            scale: 0.95
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.25
+                          }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", u > l ? "text-amber-700 dark:text-amber-400" : b > 0 ? "text-rose-600 dark:text-rose-400" : b < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>{z(u > l ? Math.max(0, u - l) : Math.abs(b))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div></div></x.div><x.div initial={{
                       opacity: 0,
                       y: 10
                     }} animate={{
@@ -4486,7 +4524,27 @@ function POSPage({
                     }} transition={{
                       duration: 0.3,
                       delay: 0.15
-                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`, boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined } : undefined} title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded-lg text-[7px] font-black tracking-widest">BÍ MẬT</span> : <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-lg bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</span>}</div><div className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></div></div><div className="flex flex-col justify-between gap-1 shrink-0 min-w-[135px] h-full"><div className="flex-1 min-h-[28px] max-h-11 flex items-stretch gap-1 justify-between"><x.button whileTap={{
+                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`, boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined } : undefined} title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded-lg text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
+                            opacity: 0,
+                            scale: 0.8
+                          }} animate={{
+                            opacity: 1,
+                            scale: 1
+                          }} transition={{
+                            duration: 0.2
+                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-lg bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
+                          opacity: 0,
+                          y: -4,
+                          scale: 0.98
+                        }} animate={{
+                          opacity: 1,
+                          y: 0,
+                          scale: 1
+                        }} transition={{
+                          type: "spring",
+                          stiffness: 450,
+                          damping: 25
+                        }} className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></x.div></div><div className="flex flex-col justify-between gap-1 shrink-0 min-w-[135px] h-full"><div className="flex-1 min-h-[28px] max-h-11 flex items-stretch gap-1 justify-between"><x.button whileTap={{
                             scale: 0.95
                           }} disabled={d === 0 || g === "remote_inspect"} onClick={wr} className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm" title="Tạm đơn [F4]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none"><Comp_jt size={28} strokeWidth={1.8} /></div><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" /></x.button><x.button whileTap={{
                             scale: 0.95
@@ -4534,20 +4592,26 @@ function POSPage({
               })()}</x.div>{Ze === "sidebar" && <x.div initial={!1} animate={{
               width: ka ? "360px" : "90px"
             }} transition={{
-              duration: 0.22,
-              ease: "easeOut"
+              type: "spring",
+              stiffness: 300,
+              damping: 30
             }} className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0"><div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0"><P mode="wait">{ka ? <x.div key="expanded-sidebar" initial={{
                     opacity: 0,
-                    x: 10
+                    x: 20,
+                    scale: 0.98
                   }} animate={{
                     opacity: 1,
-                    x: 0
+                    x: 0,
+                    scale: 1
                   }} exit={{
                     opacity: 0,
-                    x: 10
+                    x: 20,
+                    scale: 0.98
                   }} transition={{
-                    duration: 0.18,
-                    ease: "easeOut"
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                    mass: 1
                   }} className="h-full flex flex-col relative bg-transparent border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/20 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50"><x.button whileHover={{
                       scale: 1.15,
                       x: 2
@@ -4620,16 +4684,21 @@ function POSPage({
                           scale: 0.98
                         }} disabled={y.length === 0 || Be} onClick={() => Re(!0)} className="w-full bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-2xl font-black uppercase tracking-widest gap-2.5 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer">{Be ? <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : <><Fa size={24} strokeWidth={2.5} /><span>IN</span></>}</x.button></div></div></x.div> : <x.div key="mini-sidebar" initial={{
                     opacity: 0,
-                    x: -10
+                    x: -20,
+                    scale: 0.95
                   }} animate={{
                     opacity: 1,
-                    x: 0
+                    x: 0,
+                    scale: 1
                   }} exit={{
                     opacity: 0,
-                    x: -10
+                    x: -20,
+                    scale: 0.95
                   }} transition={{
-                    duration: 0.18,
-                    ease: "easeOut"
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                    mass: 1
                   }} className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"><div onClick={() => p && Gr(!sr)} className={c("w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-colors relative cursor-pointer partner-popout-trigger shadow-md shadow-[#8b6f47]/5", p ? "bg-transparent text-[#2d5016] dark:text-emerald-400 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-[#8b6f47]/10" : "bg-transparent text-[#8b6f47]/70 dark:text-[#d4a574]/70 border-[#8b6f47]/25 dark:border-[#d4a574]/25 hover:bg-black/5 dark:hover:bg-white/10")} title={p ? `Khách: ${p.name}` : "Chưa chọn khách"}><Gn size={24} />{p && <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs transition-transform z-20">#{p.id}</div>}{p && <div ref={Wr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-[#fbf8f2] dark:bg-[#1a1e17] shadow-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-slate-100 partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-[#8b6f47]/10 dark:bg-[#d4a574]/10 p-0.5 rounded-xl mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all", Ne === "debt" ? "bg-white dark:bg-slate-800 text-[#2d5016] dark:text-emerald-400 shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574]/70 hover:text-[#2d5016]")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all", Ne === "cash" ? "bg-white dark:bg-slate-800 text-[#2d5016] dark:text-emerald-400 shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574]/70 hover:text-[#2d5016]")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider opacity-85 text-[#8b6f47] dark:text-[#d4a574]"><Un size={14} className="animate-spin text-[#2d5016] dark:text-emerald-400" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
                           const t = Ne === "debt" ? st : nt;
                           t && t.obj && (mr(t.obj), Yt(!0));

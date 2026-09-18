@@ -212,10 +212,12 @@ export default function ReminderModal({ isOpen, onClose }) {
     }
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa nhắc nhở này?')) return;
     try {
       await axios.delete(`/api/reminders/${id}`);
+      setConfirmDeleteId(null);
       fetchReminders();
       queryClient.invalidateQueries({ queryKey: ['reminders'] });
       queryClient.invalidateQueries({ queryKey: ['reminder-counts'] });
@@ -748,28 +750,55 @@ export default function ReminderModal({ isOpen, onClose }) {
                       </div>
 
                       {/* Right Actions */}
-                      <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleTestSound(reminder.sound_theme)}
-                          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-amber-500 transition-colors"
-                          title="Thử chuông"
-                        >
-                          <Play size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(reminder)}
-                          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Sửa"
-                        >
-                          <Clock size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(reminder.id)}
-                          className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-rose-500 transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                      <div className="flex items-center gap-1 shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
+                        {confirmDeleteId === reminder.id ? (
+                          <m.div
+                            initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                            animate={{ opacity: 1, scale: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/70 border border-rose-200 dark:border-rose-900/60 p-1 rounded-xl shadow-xs"
+                          >
+                            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 px-1.5 whitespace-nowrap">
+                              Xóa?
+                            </span>
+                            <button
+                              onClick={() => handleDelete(reminder.id)}
+                              className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors shadow-xs"
+                            >
+                              Xóa
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold transition-colors"
+                            >
+                              Hủy
+                            </button>
+                          </m.div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleTestSound(reminder.sound_theme)}
+                              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-amber-500 transition-colors"
+                              title="Thử chuông"
+                            >
+                              <Play size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleEdit(reminder)}
+                              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-blue-500 transition-colors"
+                              title="Sửa"
+                            >
+                              <Clock size={14} />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(reminder.id)}
+                              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-400 hover:text-rose-500 transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </m.div>
                   );

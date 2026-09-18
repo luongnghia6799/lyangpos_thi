@@ -111,6 +111,8 @@ export default function PartnerProfile() {
     const [filterType, setFilterType] = useState('all'); // all, debt, cash
     const [filterScope, setFilterScope] = useState('all'); // all, latest_payment, payment_range, debt_cycle, custom_date, month, quarter, year
     const [selectedCycleId, setSelectedCycleId] = useState('all');
+    const [startCycleId, setStartCycleId] = useState('all');
+    const [endCycleId, setEndCycleId] = useState('all');
 
     const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
     const [filterMonth, setFilterMonth] = useState((new Date().getMonth() + 1).toString());
@@ -121,9 +123,11 @@ export default function PartnerProfile() {
     const [startPaymentKey, setStartPaymentKey] = useState('');
     const [endPaymentKey, setEndPaymentKey] = useState('');
 
+    const getVal = (v) => (typeof v === 'object' && v !== null && 'target' in v ? v.target.value : v);
+
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedPartner?.id, filterType, selectedCycleId, filterScope, filterYear, filterMonth, filterQuarter, startDate, endDate, startPaymentKey, endPaymentKey]);
+    }, [selectedPartner?.id, filterType, selectedCycleId, startCycleId, endCycleId, filterScope, filterYear, filterMonth, filterQuarter, startDate, endDate, startPaymentKey, endPaymentKey]);
 
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [toast, setToast] = useState(null);
@@ -439,14 +443,40 @@ export default function PartnerProfile() {
             const maxIdx = Math.max(idxA, idxB);
             displayLedger = displayLedger.slice(minIdx, maxIdx + 1);
         }
-    } else if (filterScope === 'debt_cycle' && selectedCycleId !== 'all') {
-        const cycle = debtCycles.find(c => c.id.toString() === selectedCycleId.toString());
-        if (cycle) {
-            const cStart = new Date(cycle.start_date);
-            const cEnd = cycle.end_date ? new Date(cycle.end_date) : new Date();
+    } else if (filterScope === 'debt_cycle') {
+        const activeStart = startCycleId !== 'all' ? startCycleId : (selectedCycleId !== 'all' ? selectedCycleId : 'all');
+        const activeEnd = endCycleId;
+
+        if (activeStart !== 'all' || activeEnd !== 'all') {
+            const cycleA = activeStart !== 'all' ? debtCycles.find(c => c.id.toString() === activeStart.toString()) : null;
+            const cycleB = activeEnd !== 'all' && activeEnd !== 'now' ? debtCycles.find(c => c.id.toString() === activeEnd.toString()) : null;
+
+            let minTime = -Infinity;
+            let maxTime = Infinity;
+
+            if (cycleA && cycleB) {
+                const sA = new Date(cycleA.start_date).getTime();
+                const eA = cycleA.end_date ? new Date(cycleA.end_date).getTime() : Date.now();
+                const sB = new Date(cycleB.start_date).getTime();
+                const eB = cycleB.end_date ? new Date(cycleB.end_date).getTime() : Date.now();
+                minTime = Math.min(sA, sB);
+                maxTime = Math.max(eA, eB);
+            } else if (cycleA) {
+                minTime = new Date(cycleA.start_date).getTime();
+                if (activeEnd === 'now') {
+                    maxTime = Infinity;
+                } else if (cycleA.end_date) {
+                    maxTime = new Date(cycleA.end_date).getTime();
+                } else {
+                    maxTime = Infinity;
+                }
+            } else if (cycleB) {
+                maxTime = cycleB.end_date ? new Date(cycleB.end_date).getTime() : Date.now();
+            }
+
             displayLedger = displayLedger.filter(o => {
-                const d = new Date(o.date);
-                return d >= cStart && d <= cEnd;
+                const t = new Date(o.date).getTime();
+                return t >= minTime && t <= maxTime;
             });
         }
     }
@@ -662,9 +692,10 @@ export default function PartnerProfile() {
                                 <div className="relative">
                                     <CustomSelect
                                          value={['custom_date', 'month', 'quarter', 'year'].includes(filterScope) ? filterScope : ''}
-                                         onChange={(e) => {
-                                             if (e.target.value) {
-                                                 setFilterScope(e.target.value);
+                                         onChange={(val) => {
+                                             const v = getVal(val);
+                                             if (v) {
+                                                 setFilterScope(v);
                                              }
                                          }}
                                          placeholder="📅 Lọc theo thời gian..."
@@ -748,7 +779,7 @@ export default function PartnerProfile() {
                                                              <span className="text-[9px] font-black uppercase text-slate-400">Từ:</span>
                                                              <CustomSelect
                                                                  value={startPaymentKey}
-                                                                 onChange={(e) => setStartPaymentKey(e.target.value)}
+                                                                 onChange={(val) => setStartPaymentKey(getVal(val))}
                                                                  className="min-w-[210px] text-[11px]"
                                                                  options={paymentRecords.map(p => {
                                                                      const key = `${p.type}_${p.id}_${p.date}`;
@@ -763,7 +794,7 @@ export default function PartnerProfile() {
                                                              <span className="text-[9px] font-black uppercase text-slate-400">Đến:</span>
                                                              <CustomSelect
                                                                  value={endPaymentKey}
-                                                                 onChange={(e) => setEndPaymentKey(e.target.value)}
+                                                                 onChange={(val) => setEndPaymentKey(getVal(val))}
                                                                  className="min-w-[210px] text-[11px]"
                                                                  options={[
                                                                      { value: "now", label: "⚡ Hiện tại (Nay)" },
@@ -790,7 +821,7 @@ export default function PartnerProfile() {
                                                      <span className="text-[9px] font-black uppercase text-slate-400">Từ ngày:</span>
                                                      <CustomDatePicker
                                                          value={startDate}
-                                                         onChange={(e) => setStartDate(e.target.value)}
+                                                         onChange={(val) => setStartDate(getVal(val))}
                                                      />
                                                  </div>
                                                  <span className="text-[12px] text-slate-400 font-black">→</span>
@@ -798,7 +829,7 @@ export default function PartnerProfile() {
                                                      <span className="text-[9px] font-black uppercase text-slate-400">Đến ngày:</span>
                                                      <CustomDatePicker
                                                          value={endDate}
-                                                         onChange={(e) => setEndDate(e.target.value)}
+                                                         onChange={(val) => setEndDate(getVal(val))}
                                                      />
                                                  </div>
                                              </div>
@@ -810,7 +841,7 @@ export default function PartnerProfile() {
                                                  <span className="text-[9px] font-black uppercase text-slate-400">Tháng:</span>
                                                  <CustomSelect
                                                      value={filterMonth}
-                                                     onChange={(e) => setFilterMonth(e.target.value)}
+                                                     onChange={(val) => setFilterMonth(getVal(val))}
                                                      className="min-w-[105px] text-[11px]"
                                                      options={[...Array(12)].map((_, i) => ({
                                                          value: (i + 1).toString(),
@@ -821,7 +852,7 @@ export default function PartnerProfile() {
                                                  <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
                                                  <CustomSelect
                                                      value={filterYear}
-                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     onChange={(val) => setFilterYear(getVal(val))}
                                                      className="min-w-[95px] text-[11px]"
                                                      options={[...Array(5)].map((_, i) => {
                                                          const y = new Date().getFullYear() - i;
@@ -837,7 +868,7 @@ export default function PartnerProfile() {
                                                  <span className="text-[9px] font-black uppercase text-slate-400">Quý:</span>
                                                  <CustomSelect
                                                      value={filterQuarter}
-                                                     onChange={(e) => setFilterQuarter(e.target.value)}
+                                                     onChange={(val) => setFilterQuarter(getVal(val))}
                                                      className="min-w-[130px] text-[11px]"
                                                      options={[
                                                          { value: "1", label: "Quý 1 (T1 - T3)" },
@@ -850,7 +881,7 @@ export default function PartnerProfile() {
                                                  <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
                                                  <CustomSelect
                                                      value={filterYear}
-                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     onChange={(val) => setFilterYear(getVal(val))}
                                                      className="min-w-[95px] text-[11px]"
                                                      options={[...Array(5)].map((_, i) => {
                                                          const y = new Date().getFullYear() - i;
@@ -866,7 +897,7 @@ export default function PartnerProfile() {
                                                  <span className="text-[9px] font-black uppercase text-slate-400">Năm:</span>
                                                  <CustomSelect
                                                      value={filterYear}
-                                                     onChange={(e) => setFilterYear(e.target.value)}
+                                                     onChange={(val) => setFilterYear(getVal(val))}
                                                      className="min-w-[95px] text-[11px]"
                                                      options={[...Array(5)].map((_, i) => {
                                                          const y = new Date().getFullYear() - i;
@@ -878,20 +909,50 @@ export default function PartnerProfile() {
 
                                          {/* 6. Theo Chu kỳ nợ */}
                                          {filterScope === 'debt_cycle' && debtCycles.length > 0 && (
-                                             <div className="flex items-center gap-2">
-                                                 <span className="text-[9px] font-black uppercase text-slate-400">Chu kỳ:</span>
-                                                 <CustomSelect
-                                                     value={selectedCycleId}
-                                                     onChange={(e) => setSelectedCycleId(e.target.value)}
-                                                     className="min-w-[180px] text-[11px]"
-                                                     options={[
-                                                         { value: "all", label: "Tất cả chu kỳ" },
-                                                         ...debtCycles.map(c => ({
-                                                             value: c.id.toString(),
-                                                             label: `${c.label} (${c.status})`
-                                                         }))
-                                                     ]}
-                                                 />
+                                             <div className="flex flex-wrap items-center gap-2">
+                                                 <div className="flex items-center gap-1.5">
+                                                     <span className="text-[9px] font-black uppercase text-slate-400">Từ kỳ:</span>
+                                                     <CustomSelect
+                                                         value={startCycleId}
+                                                         onChange={(val) => {
+                                                             const v = getVal(val);
+                                                             setStartCycleId(v);
+                                                             setSelectedCycleId(v);
+                                                             if (endCycleId === 'all' && v !== 'all') {
+                                                                 setEndCycleId(v);
+                                                             }
+                                                         }}
+                                                         className="min-w-[190px] text-[11px]"
+                                                         options={[
+                                                             { value: "all", label: "Tất cả chu kỳ" },
+                                                             ...debtCycles.map(c => ({
+                                                                 value: c.id.toString(),
+                                                                 label: `${c.label} (${c.status})`
+                                                             }))
+                                                         ]}
+                                                     />
+                                                 </div>
+
+                                                 {startCycleId !== 'all' && (
+                                                     <>
+                                                         <span className="text-[12px] text-slate-400 font-black">→</span>
+                                                         <div className="flex items-center gap-1.5">
+                                                             <span className="text-[9px] font-black uppercase text-slate-400">Đến kỳ:</span>
+                                                             <CustomSelect
+                                                                 value={endCycleId}
+                                                                 onChange={(val) => setEndCycleId(getVal(val))}
+                                                                 className="min-w-[190px] text-[11px]"
+                                                                 options={[
+                                                                     { value: "now", label: "⚡ Đến nay (Hiện tại)" },
+                                                                     ...debtCycles.map(c => ({
+                                                                         value: c.id.toString(),
+                                                                         label: `${c.label} (${c.status})`
+                                                                     }))
+                                                                 ]}
+                                                             />
+                                                         </div>
+                                                     </>
+                                                 )}
                                              </div>
                                          )}
                                      </div>

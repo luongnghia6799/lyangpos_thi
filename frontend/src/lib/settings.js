@@ -211,6 +211,7 @@ export const DEFAULT_SETTINGS = {
     invoice_preview_bg_opacity: '0.45',
     invoice_table_name_nowrap: 'false',
     invoice_show_title: 'true',
+    invoice_repeat_header_on_later_pages: 'true',
     invoice_show_page_number: 'false',
     invoice_page_number_position: 'bottom-right', // 'bottom-left', 'bottom-center', 'bottom-right'
     invoice_page_number_format: 'page_total', // 'page_only', 'page_total'

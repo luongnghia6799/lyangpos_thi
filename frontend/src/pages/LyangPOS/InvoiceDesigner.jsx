@@ -201,7 +201,6 @@ const DEFAULT_INVOICE_CONFIG = {
     invoice_preview_bg_opacity: '0.45',
     invoice_table_name_nowrap: 'false',
     invoice_show_title: 'true',
-    invoice_repeat_header_on_later_pages: 'true',
     invoice_show_page_number: 'false',
     invoice_page_number_position: 'bottom-right',
     invoice_page_number_format: 'page_total',
@@ -1028,15 +1027,6 @@ const InvoiceDesigner = () => {
                                     <div className="space-y-3">
                                         <div>
                                             <Toggle
-                                                label="Lặp lại Header ở trang 2 trở đi"
-                                                checked={settings.invoice_repeat_header_on_later_pages === 'true'}
-                                                onChange={(v) => updateSetting('invoice_repeat_header_on_later_pages', v ? 'true' : 'false')}
-                                            />
-                                            <p className="text-[10px] text-slate-400 italic mt-0.5 ml-1">Bật để tự động lặp lại thông tin cửa hàng & tiêu đề ở đầu trang 2 trở đi khi in đơn dài; tắt để tiết kiệm giấy.</p>
-                                        </div>
-
-                                        <div className="pt-2 border-t border-border">
-                                            <Toggle
                                                 label="Đánh số trang (Trang 1/2...)"
                                                 checked={settings.invoice_show_page_number === 'true'}
                                                 onChange={(v) => updateSetting('invoice_show_page_number', v ? 'true' : 'false')}
@@ -1258,8 +1248,7 @@ const InvoiceDesigner = () => {
                                                      updateSetting('pos_width_thank_you', '750');
                                                      updateSetting('invoice_preview_bg_image', 'none');
                                                      updateSetting('invoice_table_name_nowrap', 'false');
-                                                      updateSetting('invoice_show_title', 'true');
-                                                      updateSetting('invoice_repeat_header_on_later_pages', 'true');
+                                                     updateSetting('invoice_show_title', 'true');
                                                      setToast({ message: "Đã đặt lại thiết kế mặc định!", type: "info" });
                                                  }}
                                                  className="w-full py-2 mt-2 bg-transparent text-[#8b6f47] border border-border rounded-xl hover:bg-[#d4a574]/10 transition-all text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-none"

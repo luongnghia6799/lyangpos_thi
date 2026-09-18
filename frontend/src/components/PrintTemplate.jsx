@@ -2386,7 +2386,7 @@ const PrintTemplate = forwardRef(({
                         
                         const printableH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
                         const firstHeaderH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
-                        const otherHeaderH = s.invoice_repeat_header_on_later_pages === 'true' ? firstHeaderH : 35;
+                        const otherHeaderH = 35;
                         const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
 
                         const renderStandardPages = (isForPreview) => {
@@ -2453,7 +2453,7 @@ const PrintTemplate = forwardRef(({
                                         const pageNum = idx + 1;
                                         return (
                                             <div key={`sheet-${idx}`} className="print-page-sheet" style={{ width: '100%', minHeight: isForPreview ? `${pageH_mm}mm` : 'auto', height: isForPreview ? `${pageH_mm}mm` : 'auto', boxSizing: 'border-box', position: 'relative', pageBreakAfter: isLastPage ? 'auto' : 'always', breakAfter: isLastPage ? 'auto' : 'page', marginBottom: (!isLastPage && !isForPreview) ? 0 : undefined, display: 'flex', flexDirection: 'column', backgroundColor: '#fff', boxShadow: isForPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none', borderRadius: isForPreview ? '8px' : '0', padding: isForPreview ? `${paddingMm}mm` : '0', overflow: 'hidden' }}>
-                                                {isFirstPage ? (
+                                                {isFirstPage && (
                                                     <>
                                                         <div style={headerStyle}>
                                                             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>{logoEl}<div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{shopNameEl}{shopInfoEl}</div></div>
@@ -2464,16 +2464,6 @@ const PrintTemplate = forwardRef(({
                                                             {invoiceMetaEl}
                                                         </div>
                                                     </>
-                                                ) : (
-                                                    s.invoice_repeat_header_on_later_pages === 'true' && (
-                                                        <div style={{ ...headerStyle, paddingBottom: '8px', marginBottom: '8px', borderBottom: '1px dashed #cbd5e1' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{s.invoice_shop_name || 'CỬA HÀNG'}</span>
-                                                                <span style={{ fontSize: '11px', color: '#64748b' }}>Hóa đơn: #{data.display_id || data.id} (tiếp theo)</span>
-                                                            </div>
-                                                            <span style={{ fontSize: '10px', color: '#64748b' }}>{data.date ? formatDate(data.date) : ''}</span>
-                                                        </div>
-                                                    )
                                                 )}
                                                 <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>{renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}</div>
                                                 {isLastPage && (

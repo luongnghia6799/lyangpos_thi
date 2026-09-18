@@ -32,7 +32,7 @@ export default function GlobalReminderAlert({ onOpenManager }) {
             alertedIdsRef.current.add(item.id);
             // Trigger sound & TTS for the newest reminder
             playReminderSound(
-              item.sound_theme || 'bell',
+              item.sound_theme || 'tts',
               item.title,
               item.tts_message
             );
@@ -67,7 +67,7 @@ export default function GlobalReminderAlert({ onOpenManager }) {
           if (!alertedIdsRef.current.has(item.id)) {
             alertedIdsRef.current.add(item.id);
             playReminderSound(
-              item.sound_theme || 'bell',
+              item.sound_theme || 'tts',
               item.title,
               item.tts_message
             );
@@ -101,7 +101,7 @@ export default function GlobalReminderAlert({ onOpenManager }) {
         soundIntervalRef.current = setInterval(() => {
           if (activeAlerts.length > 0) {
             const topItem = activeAlerts[0];
-            playReminderSound(topItem?.sound_theme || 'bell', topItem?.title);
+            playReminderSound(topItem?.sound_theme || 'tts', topItem?.title, topItem?.tts_message);
           }
         }, 25000);
       }

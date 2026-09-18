@@ -268,7 +268,7 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
             description TEXT,
             remind_at DATETIME NOT NULL,
             repeat_type VARCHAR(20) DEFAULT 'once',
-            sound_theme VARCHAR(50) DEFAULT 'bell',
+            sound_theme VARCHAR(50) DEFAULT 'tts',
             tts_message TEXT,
             status VARCHAR(20) DEFAULT 'pending',
             priority VARCHAR(20) DEFAULT 'medium',

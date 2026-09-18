@@ -37,13 +37,13 @@ export const playToneFrequency = (ctx, freq, startTime, duration, volume = 0.3, 
 
 /**
  * Play sound based on sound theme profile:
+ * - 'tts' (Voice synthesis announcement - DEFAULT)
  * - 'bell' (Classic 3-tone notification chime)
  * - 'chime' (Elegant cascading crystal chime)
  * - 'urgent' (High-visibility alarm pulse)
  * - 'gentle' (Soft warm harp tone)
- * - 'tts' (Voice synthesis announcement)
  */
-export const playReminderSound = async (theme = 'bell', customTitle = '', customMessage = '') => {
+export const playReminderSound = async (theme = 'tts', customTitle = '', customMessage = '') => {
   // Check if system mute is active
   if (localStorage.getItem('pos_lite_sounds_muted') === 'true') return;
   if (localStorage.getItem('pos_notifications_muted') === 'true') return;

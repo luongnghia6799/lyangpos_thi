@@ -132,8 +132,8 @@ const DEFAULT_INVOICE_CONFIG = {
     invoice_total_line_size: '18',
     invoice_total_line_bold: 'true',
     invoice_total_line_italic: 'false',
-    invoice_total_line_margin_top: '10',
-    invoice_total_line_margin_bottom: '10',
+    invoice_total_line_margin_top: '0',
+    invoice_total_line_margin_bottom: '4',
     // Default Margins (mm)
     invoice_margin_top: '10',
     invoice_margin_bottom: '10',

@@ -119,7 +119,7 @@ pub async fn create_reminder(
 
     let remind_at = parse_datetime(&payload.remind_at)?;
     let repeat_type = payload.repeat_type.unwrap_or_else(|| "once".into());
-    let sound_theme = payload.sound_theme.unwrap_or_else(|| "bell".into());
+    let sound_theme = payload.sound_theme.unwrap_or_else(|| "tts".into());
     let priority = payload.priority.unwrap_or_else(|| "medium".into());
     let color = payload.color.unwrap_or_else(|| "#10b981".into());
     let now = Local::now().naive_local();

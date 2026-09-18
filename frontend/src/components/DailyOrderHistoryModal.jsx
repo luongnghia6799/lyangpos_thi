@@ -4,7 +4,8 @@ import { m, AnimatePresence } from 'framer-motion';
 import {
     History, Clock, Search, X, SquarePen, Trash2, Eye, User, FileText,
     Calendar, RefreshCcw, ShoppingBag, Printer, Package,
-    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    Maximize2, Minimize2
 } from 'lucide-react';
 import Portal from './Portal';
 import CustomDatePicker from './CustomDatePicker';
@@ -44,6 +45,7 @@ export default function DailyOrderHistoryModal({
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('ALL');
     const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
+    const [isMaximized, setIsMaximized] = useState(false);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -194,66 +196,102 @@ export default function DailyOrderHistoryModal({
         return pages;
     }, [currentPage, totalPages]);
 
-    if (!isOpen) return null;
-
     return (
         <Portal>
-            <div
-                className="fixed inset-0 z-[500000] flex items-center justify-center p-3 md:p-6 bg-black/40 backdrop-blur-md overflow-y-auto font-sans no-print"
-                onClick={(e) => e.target === e.currentTarget && onClose()}
-            >
-                <m.div
-                    initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                    className="bg-[#fbf9f4]/95 dark:bg-[#1a1c1e]/95 backdrop-blur-2xl w-full max-w-4xl max-h-[92vh] rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100"
-                >
-                    {/* Header */}
-                    <div className="p-5 flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 bg-transparent shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 rounded-2xl flex items-center justify-center border border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574] shrink-0">
-                                <History size={20} strokeWidth={2.5} />
+            <AnimatePresence>
+                {isOpen && (
+                    <div
+                        className="fixed inset-0 z-[500000] flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden font-sans no-print"
+                    >
+                        {/* Smooth Animated Backdrop */}
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.22 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-md"
+                            onClick={onClose}
+                        />
+
+                        {/* Modal Box with Resize & Close Animation */}
+                        <m.div
+                            layout
+                            initial={{ scale: 0.94, opacity: 0, y: 16 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.94, opacity: 0, y: 16 }}
+                            transition={{
+                                type: "spring",
+                                damping: 28,
+                                stiffness: 320,
+                                layout: { duration: 0.32, ease: [0.16, 1, 0.3, 1] }
+                            }}
+                            className={cn(
+                                "bg-[#fbf9f4]/95 dark:bg-[#1a1c1e]/95 backdrop-blur-2xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 transition-[width,max-width,height,max-height] duration-300 ease-out",
+                                isMaximized
+                                    ? "w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]"
+                                    : "w-full max-w-4xl max-h-[92vh]"
+                            )}
+                        >
+                            {/* Header */}
+                            <div className="p-5 flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 bg-transparent shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 rounded-2xl flex items-center justify-center border border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574] shrink-0">
+                                        <History size={20} strokeWidth={2.5} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-wide leading-tight flex items-center gap-2">
+                                            {type === 'Purchase' ? "Lịch sử nhập hàng trong ngày" : "Lịch sử hóa đơn trong ngày"}
+                                            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 font-black">
+                                                {stats.count} đơn
+                                            </span>
+                                        </h3>
+                                        <p className="text-[#8b6f47]/70 dark:text-[#d4a574]/60 text-[10px] font-bold uppercase tracking-widest mt-0.5">
+                                            {type === 'Purchase' ? "Toàn bộ danh sách đơn nhập hàng & Phân trang tiện lợi" : "Toàn bộ danh sách đơn hàng & Phân trang tiện lợi"}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    {/* Custom Date Picker */}
+                                    <CustomDatePicker
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                    />
+
+                                    {/* Resize / Fullscreen Button */}
+                                    <ActionTooltip text={isMaximized ? "Thu nhỏ (Mặc định)" : "Phóng to toàn màn hình"} position="bottom">
+                                        <button
+                                            onClick={() => setIsMaximized(!isMaximized)}
+                                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 transition-colors active:scale-95"
+                                        >
+                                            {isMaximized ? (
+                                                <Minimize2 size={15} strokeWidth={2.2} />
+                                            ) : (
+                                                <Maximize2 size={15} strokeWidth={2.2} />
+                                            )}
+                                        </button>
+                                    </ActionTooltip>
+
+                                    <ActionTooltip text="Tải lại danh sách" position="bottom">
+                                        <button
+                                            onClick={fetchDailyOrders}
+                                            disabled={loading}
+                                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 transition-colors active:scale-95"
+                                        >
+                                            <RefreshCcw size={15} className={cn(loading && "animate-spin text-primary")} />
+                                        </button>
+                                    </ActionTooltip>
+
+                                    <ActionTooltip text="Đóng (ESC)" position="bottom-left">
+                                        <button
+                                            onClick={onClose}
+                                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-rose-500/15 text-slate-400 hover:text-rose-500 border border-[#8b6f47]/20 dark:border-white/10 transition-colors active:scale-95"
+                                        >
+                                            <X size={16} strokeWidth={2.5} />
+                                        </button>
+                                    </ActionTooltip>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-base font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-wide leading-tight flex items-center gap-2">
-                                    {type === 'Purchase' ? "Lịch sử nhập hàng trong ngày" : "Lịch sử hóa đơn trong ngày"}
-                                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#8b6f47]/10 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 font-black">
-                                        {stats.count} đơn
-                                    </span>
-                                </h3>
-                                <p className="text-[#8b6f47]/70 dark:text-[#d4a574]/60 text-[10px] font-bold uppercase tracking-widest mt-0.5">
-                                    {type === 'Purchase' ? "Toàn bộ danh sách đơn nhập hàng & Phân trang tiện lợi" : "Toàn bộ danh sách đơn hàng & Phân trang tiện lợi"}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            {/* Custom Date Picker */}
-                            <CustomDatePicker
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                            />
-
-                            <ActionTooltip text="Tải lại danh sách" position="bottom">
-                                <button
-                                    onClick={fetchDailyOrders}
-                                    disabled={loading}
-                                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10 transition-colors active:scale-95"
-                                >
-                                    <RefreshCcw size={15} className={cn(loading && "animate-spin text-primary")} />
-                                </button>
-                            </ActionTooltip>
-
-                            <ActionTooltip text="Đóng (ESC)" position="bottom-left">
-                                <button
-                                    onClick={onClose}
-                                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-rose-500/15 text-slate-400 hover:text-rose-500 border border-[#8b6f47]/20 dark:border-white/10 transition-colors active:scale-95"
-                                >
-                                    <X size={16} strokeWidth={2.5} />
-                                </button>
-                            </ActionTooltip>
-                        </div>
-                    </div>
 
                     {/* Summary Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-4 px-5 bg-transparent border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0">
@@ -599,6 +637,8 @@ export default function DailyOrderHistoryModal({
                     </div>
                 </m.div>
             </div>
+                )}
+            </AnimatePresence>
 
             {/* Order Detail Modal */}
             <AnimatePresence>

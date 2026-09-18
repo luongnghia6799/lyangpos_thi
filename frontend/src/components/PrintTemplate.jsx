@@ -1054,6 +1054,7 @@ const PrintTemplate = forwardRef(({
     const summaryRowStyle = {
         display: 'flex',
         justifyContent: 'flex-end',
+        alignItems: 'baseline',
         gap: '15px',
         marginBottom: '4px',
         pageBreakInside: 'avoid'
@@ -1063,7 +1064,8 @@ const PrintTemplate = forwardRef(({
         fontSize: `${s.invoice_total_section_size || '14'}px`,
         fontWeight: '500',
         color: '#000',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        lineHeight: '1.25'
     };
 
     const summaryValueStyle = {
@@ -1071,24 +1073,27 @@ const PrintTemplate = forwardRef(({
         fontWeight: 'bold',
         minWidth: '100px',
         textAlign: 'right',
-        color: '#000'
+        color: '#000',
+        lineHeight: '1.25'
     };
 
     const mainTotalLabelStyle = {
-        fontSize: `${s.invoice_total_line_size || s.invoice_total_section_size}px`,
+        fontSize: `${s.invoice_total_line_size || s.invoice_total_section_size || '14'}px`,
         fontWeight: s.invoice_total_line_bold === 'true' ? '900' : '500',
         fontStyle: s.invoice_total_line_italic === 'true' ? 'italic' : 'normal',
         color: s.invoice_color_total_label || '#000',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'nowrap',
+        lineHeight: '1.25'
     };
 
     const mainTotalValueStyle = {
-        fontSize: `${s.invoice_total_line_size || s.invoice_total_section_size}px`,
+        fontSize: `${s.invoice_total_line_size || s.invoice_total_section_size || '14'}px`,
         fontWeight: s.invoice_total_line_bold === 'true' ? '900' : 'bold',
         fontStyle: s.invoice_total_line_italic === 'true' ? 'italic' : 'normal',
         minWidth: '100px',
         textAlign: 'right',
-        color: s.invoice_color_total_value || '#000'
+        color: s.invoice_color_total_value || '#000',
+        lineHeight: '1.25'
     };
 
     const getInvoiceTitle = () => {
@@ -1767,7 +1772,7 @@ const PrintTemplate = forwardRef(({
                         "Tổng cộng",
                         "invoice_color_total_value",
                         { sizeKey: "invoice_total_line_size", colorKey: "invoice_color_total_value", tab: "table" },
-                        <div style={{ ...summaryRowStyle, marginTop: `${s.invoice_total_line_margin_top || 0}px`, marginBottom: `${s.invoice_total_line_margin_bottom || 10}px` }}>
+                        <div style={{ ...summaryRowStyle, marginTop: `${s.invoice_total_line_margin_top || 0}px`, marginBottom: `${(s.invoice_total_line_margin_bottom !== undefined && s.invoice_total_line_margin_bottom !== '' && s.invoice_total_line_margin_bottom !== '10') ? s.invoice_total_line_margin_bottom : 4}px` }}>
                             <div style={mainTotalLabelStyle}>Tổng cộng:</div>
                             <div style={mainTotalValueStyle}>{formatNumber(safeTotalAmount)}</div>
                         </div>

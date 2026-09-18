@@ -28,11 +28,11 @@ import CustomSelect from './CustomSelect';
 import CustomDateTimePicker from './CustomDateTimePicker';
 
 const SOUND_THEMES = [
+  { id: 'tts', name: 'Đọc Giọng Nói AI (Mặc định)', desc: 'Tự động phát âm Tiếng Việt qua giọng AI' },
   { id: 'bell', name: 'Chuông Ngân', desc: 'Giai điệu 3 nốt thánh thót' },
   { id: 'chime', name: 'Chuông Tinh Thể', desc: 'Âm sắc pha lê trong trẻo' },
   { id: 'urgent', name: 'Báo Động Dồn', desc: 'Âm thanh cảnh báo khẩn cấp' },
   { id: 'gentle', name: 'Êm Ái Nhẹ Nhàng', desc: 'Giai điệu êm dịu thư thái' },
-  { id: 'tts', name: 'Đọc Giọng Nói AI', desc: 'Tự động phát âm Tiếng Việt' },
 ];
 
 const QUICK_PRESETS = [
@@ -68,7 +68,7 @@ export default function ReminderModal({ isOpen, onClose }) {
   const [description, setDescription] = useState('');
   const [remindAt, setRemindAt] = useState('');
   const [repeatType, setRepeatType] = useState('once');
-  const [soundTheme, setSoundTheme] = useState('bell');
+  const [soundTheme, setSoundTheme] = useState('tts');
   const [priority, setPriority] = useState('medium');
   const [color, setColor] = useState('#10b981');
   const [ttsMessage, setTtsMessage] = useState('');
@@ -113,7 +113,7 @@ export default function ReminderModal({ isOpen, onClose }) {
     setDescription('');
     setRemindAt(initDefaultTime());
     setRepeatType('once');
-    setSoundTheme('bell');
+    setSoundTheme('tts');
     setPriority('medium');
     setColor('#10b981');
     setTtsMessage('');

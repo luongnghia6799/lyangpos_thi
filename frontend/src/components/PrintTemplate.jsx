@@ -757,8 +757,8 @@ const PrintTemplate = forwardRef(({
         backgroundImage: (isPreview && s.invoice_preview_bg_image && s.invoice_preview_bg_image !== 'none')
             ? `linear-gradient(rgba(255, 255, 255, ${Math.max(0, Math.min(1, 1 - (parseFloat(s.invoice_preview_bg_opacity !== undefined && s.invoice_preview_bg_opacity !== '' ? s.invoice_preview_bg_opacity : '0.45'))))}), rgba(255, 255, 255, ${Math.max(0, Math.min(1, 1 - (parseFloat(s.invoice_preview_bg_opacity !== undefined && s.invoice_preview_bg_opacity !== '' ? s.invoice_preview_bg_opacity : '0.45'))))})), url("${s.invoice_preview_bg_image.startsWith('data:') || s.invoice_preview_bg_image.startsWith('http') || s.invoice_preview_bg_image.startsWith('/') ? s.invoice_preview_bg_image : '/' + s.invoice_preview_bg_image}")`
             : 'none',
-        backgroundSize: '100% 100%',
-        backgroundPosition: 'center',
+        backgroundSize: (isPreview && height && height !== 'auto') ? `${width} ${height}` : '100% auto',
+        backgroundPosition: 'top center',
         backgroundRepeat: 'no-repeat',
         backgroundBlendMode: 'normal'
     };
@@ -813,15 +813,15 @@ const PrintTemplate = forwardRef(({
                         position: absolute !important;
                     }
                     @page {
-                        size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : (s.paper_size === 'CUSTOM' ? `${width} ${height}` : `${s.paper_size || 'A4'} ${s.invoice_orientation || 'portrait'}`))} !important;
-                        margin: ${isThermal ? '0' : (useDefaultMargins ? '0' : `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm`)} !important;
+                        size: ${s.paper_size === 'K80' ? '80mm auto' : (s.paper_size === 'K58' ? '58mm auto' : (s.paper_size === 'CUSTOM' ? `${width} ${height}` : `${s.paper_size || 'A4'} ${s.invoice_orientation || 'portrait'}`))};
+                        margin: ${isThermal ? '0' : (useDefaultMargins ? '0' : `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm`)};
                         ${s.invoice_show_page_number === 'true' ? `
                         @bottom-${s.invoice_page_number_position === 'bottom-left' ? 'left' : (s.invoice_page_number_position === 'bottom-center' ? 'center' : 'right')} {
-                            content: ${s.invoice_page_number_format === 'page_only' ? '"Trang " counter(page)' : '"Trang " counter(page) " / " counter(pages)'} !important;
-                            font-size: ${s.invoice_page_number_size || 10}px !important;
-                            color: ${s.invoice_page_number_color || '#64748b'} !important;
-                            font-style: italic !important;
-                            font-family: ${fontFamily} !important;
+                            content: ${s.invoice_page_number_format === 'page_only' ? '"Trang " counter(page)' : '"Trang " counter(page) " / " counter(pages)'};
+                            font-size: ${s.invoice_page_number_size || 10}px;
+                            color: ${s.invoice_page_number_color || '#64748b'};
+                            font-style: italic;
+                            font-family: ${fontFamily};
                         }
                         ` : ''}
                     }
@@ -908,6 +908,25 @@ const PrintTemplate = forwardRef(({
                         box-sizing: border-box !important;
                     }
                     .print-section-avoid-break {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .print-repeat-master-table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        border: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    .print-repeat-master-table > thead {
+                        display: table-header-group !important;
+                    }
+                    .print-repeat-master-table > tbody {
+                        display: table-row-group !important;
+                    }
+                    .print-repeat-header-container {
+                        width: 100% !important;
+                        display: block !important;
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
@@ -1288,6 +1307,78 @@ const PrintTemplate = forwardRef(({
         </div>
     );
 
+    const headerSectionEl = (
+        <div style={headerStyle}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
+                {logoEl}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    {shopNameEl}
+                    {shopInfoEl}
+                </div>
+            </div>
+            {titleEl}
+        </div>
+    );
+
+    const infoGridEl = (
+        <div style={infoGridStyle}>
+            <div>
+                {customerNameEl}
+                {customerPhoneEl}
+                {customerAddressEl}
+                {voucherNoteEl}
+            </div>
+            {invoiceMetaEl}
+        </div>
+    );
+
+    const compactRepeatHeaderEl = (
+        <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px dashed #cbd5e1',
+            paddingBottom: '4px',
+            marginBottom: '6px',
+            fontSize: `${Math.max(10, parseInt(s.invoice_customer_info_size || 12) - 1)}px`,
+            color: s.invoice_color_customer_info || '#334155'
+        }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 'bold' }}>{getInvoiceTitle()}</span>
+                <span>•</span>
+                <span>{partnerLabel}: <strong>{data.partner_name || data.partner?.name || (type === 'PartnerLedger' ? data.name : null) || 'Khách lẻ'}</strong></span>
+                {partnerPhoneVal && <span>({partnerPhoneVal})</span>}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                {s.invoice_show_id === 'true' && <span>Mã: <strong>#{data.display_id || data.id || 'Draft'}</strong></span>}
+                {s.invoice_show_date === 'true' && <span>Ngày: {formatInvoiceDate(data.date || Date.now())}</span>}
+            </div>
+        </div>
+    );
+
+    const renderRepeatedHeader = (isFirstPage) => {
+        if (isFirstPage) {
+            return (
+                <>
+                    {headerSectionEl}
+                    {infoGridEl}
+                </>
+            );
+        }
+        if (s.invoice_repeat_header === 'true') {
+            if (s.invoice_repeat_header_mode === 'compact') {
+                return compactRepeatHeaderEl;
+            }
+            return (
+                <>
+                    {headerSectionEl}
+                    {infoGridEl}
+                </>
+            );
+        }
+        return null;
+    };
+
     const renderTable = (itemsList, startIndex = 0, hideFooter = false, side = 'single') => {
         const getShowColSetting = (colKey) => {
             let val = s[colKey];
@@ -1648,6 +1739,13 @@ const PrintTemplate = forwardRef(({
 
     const rightTableX = parseInt(s.pos_table_right_x) || ((parseInt(s.pos_table_x) || 0) + leftTableWidth + 10);
     const rightTableY = parseInt(s.pos_table_right_y) || (parseInt(s.pos_table_y) || 230);
+
+    const freeFooterWidth = isTwoColumns 
+        ? `${(rightTableX + rightTableWidth) - leftTableX}px` 
+        : (s.pos_width_table ? `${parseInt(s.pos_width_table)}px` : '100%');
+    const freeFooterMarginLeft = isTwoColumns 
+        ? `${leftTableX}px` 
+        : `${parseInt(s.pos_table_x) || 0}px`;
 
     const totalSummaryEl = isTwoColumns && (type !== 'Report') && (s.invoice_show_total_items === 'true' || s.invoice_show_total_qty === 'true' || s.invoice_show_total_secondary_qty === 'true') && (
         <div style={{
@@ -2039,6 +2137,34 @@ const PrintTemplate = forwardRef(({
                 {/* Visual Margin Guides for Preview */}
                 {isPreview && (
                     <>
+                        {/* Page 1 Boundary Marker */}
+                        {height && height !== 'auto' && (
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: height,
+                                borderBottom: '2px dashed rgba(220, 38, 38, 0.4)',
+                                pointerEvents: 'none',
+                                zIndex: 11
+                            }}>
+                                <span style={{
+                                    position: 'absolute',
+                                    bottom: '2px',
+                                    right: '6px',
+                                    fontSize: '8.5px',
+                                    color: '#dc2626',
+                                    fontWeight: 'bold',
+                                    backgroundColor: 'rgba(255,255,255,0.85)',
+                                    padding: '1px 5px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(220,38,38,0.2)'
+                                }}>
+                                    Hết trang 1 ({height})
+                                </span>
+                            </div>
+                        )}
                         <div style={{
                             position: 'absolute',
                             top: 0, left: 0, right: 0, bottom: 0,
@@ -2243,7 +2369,7 @@ const PrintTemplate = forwardRef(({
 
                             {/* 3. Footer Area (flows naturally below Table Area) */}
                             {getFooterHeight() > 0 && (
-                                <div style={{ position: 'relative', width: '100%', height: `${getFooterHeight()}px`, marginTop: '15px' }}>
+                                <div style={{ position: 'relative', width: '100%', height: `${getFooterHeight()}px`, marginTop: `${s.invoice_total_section_margin_top !== undefined && s.invoice_total_section_margin_top !== '' ? s.invoice_total_section_margin_top : 4}px` }}>
                                     {notesEl && (
                                         <DraggableBlock xKey="pos_notes_x" yKey="pos_notes_y" wKey="pos_width_notes" yOffset={-500} settings={s} onUpdateSetting={onUpdateSetting} isPreview={isPreview}>
                                             {notesEl}
@@ -2274,112 +2400,264 @@ const PrintTemplate = forwardRef(({
                             )}
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', margin: 0, padding: 0 }}>
-                            {/* 1. Header Area with dynamic height container */}
-                            <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
-                                {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
-                                {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
-                                {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
-                                {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
-                                {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
-                                {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
-                                {customerAddressEl && (
-                                    <DraggableBlock 
-                                        xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
-                                        yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
-                                        wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
-                                        settings={s} 
-                                        isPreview={false}
-                                    >
-                                        {customerAddressEl}
-                                    </DraggableBlock>
-                                )}
-                                {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
-                                {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
-                            </div>
+                        s.invoice_repeat_header === 'true' ? (
+                            <table className="print-repeat-master-table" style={{ width: '100%', borderCollapse: 'collapse', border: 'none', margin: 0, padding: 0 }}>
+                                <thead style={{ display: 'table-header-group' }}>
+                                    <tr>
+                                        <td style={{ border: 'none', padding: 0 }}>
+                                            <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
+                                                {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
+                                                {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
+                                                {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
+                                                {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
+                                                {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
+                                                {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
+                                                {customerAddressEl && (
+                                                    <DraggableBlock 
+                                                        xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
+                                                        yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
+                                                        wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
+                                                        settings={s} 
+                                                        isPreview={false}
+                                                    >
+                                                        {customerAddressEl}
+                                                    </DraggableBlock>
+                                                )}
+                                                {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
+                                                {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ border: 'none', padding: 0 }}>
+                                            {/* 2. Table Area */}
+                                            {isTwoColumns ? (
+                                                <>
+                                                    <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%', alignItems: 'flex-start', position: 'relative' }}>
+                                                        {leftTableEl && (
+                                                            <DraggableBlock 
+                                                                xKey="pos_table_left_x" 
+                                                                yKey="pos_table_y" 
+                                                                wKey="pos_width_table_left" 
+                                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                                positionMode="relative-flow" 
+                                                                settings={{
+                                                                    ...s,
+                                                                    pos_table_left_x: s.pos_table_left_x !== undefined ? s.pos_table_left_x : String(leftTableX),
+                                                                    pos_width_table_left: s.pos_width_table_left !== undefined ? s.pos_width_table_left : String(leftTableWidth)
+                                                                }} 
+                                                                isPreview={false}
+                                                            >
+                                                                {leftTableEl}
+                                                            </DraggableBlock>
+                                                        )}
+                                                        {rightTableEl && (
+                                                            <DraggableBlock 
+                                                                xKey="pos_table_right_x" 
+                                                                yKey="pos_table_y" 
+                                                                wKey="pos_width_table_right" 
+                                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                                positionMode="relative-flow" 
+                                                                settings={{
+                                                                    ...s,
+                                                                    pos_table_right_x: s.pos_table_right_x !== undefined ? s.pos_table_right_x : String(rightTableX),
+                                                                    pos_width_table_right: s.pos_width_table_right !== undefined ? s.pos_width_table_right : String(rightTableWidth)
+                                                                }} 
+                                                                isPreview={false}
+                                                            >
+                                                                {rightTableEl}
+                                                            </DraggableBlock>
+                                                        )}
+                                                    </div>
+                                                    {totalSummaryEl && (
+                                                        <DraggableBlock 
+                                                            xKey="pos_table_summary_x" 
+                                                            yKey="pos_table_summary_y" 
+                                                            wKey="pos_width_table_summary" 
+                                                            yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                            positionMode="relative-flow" 
+                                                            settings={{
+                                                                ...s,
+                                                                pos_table_summary_x: s.pos_table_summary_x !== undefined ? s.pos_table_summary_x : s.pos_table_x,
+                                                                pos_table_summary_y: s.pos_table_summary_y !== undefined ? s.pos_table_summary_y : String(leftTableY - 230 + 100),
+                                                                pos_width_table_summary: s.pos_width_table_summary !== undefined ? s.pos_width_table_summary : s.pos_width_table
+                                                            }} 
+                                                            isPreview={false}
+                                                        >
+                                                            {totalSummaryEl}
+                                                        </DraggableBlock>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                tableEl && (
+                                                    <DraggableBlock xKey="pos_table_x" yKey="pos_table_y" wKey="pos_width_table" yOffset={-(parseInt(s.pos_table_y) || 230)} positionMode="relative-flow" settings={s} isPreview={false}>
+                                                        {tableEl}
+                                                    </DraggableBlock>
+                                                )
+                                            )}
 
-                            {/* 2. Table Area */}
-                            {isTwoColumns ? (
-                                <>
-                                    <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%', alignItems: 'flex-start', position: 'relative' }}>
-                                        {leftTableEl && (
-                                            <DraggableBlock 
-                                                xKey="pos_table_left_x" 
-                                                yKey="pos_table_y" 
-                                                wKey="pos_width_table_left" 
-                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                                positionMode="relative-flow" 
-                                                settings={{
-                                                    ...s,
-                                                    pos_table_left_x: s.pos_table_left_x !== undefined ? s.pos_table_left_x : String(leftTableX),
-                                                    pos_width_table_left: s.pos_width_table_left !== undefined ? s.pos_width_table_left : String(leftTableWidth)
-                                                }} 
-                                                isPreview={false}
-                                            >
-                                                {leftTableEl}
-                                            </DraggableBlock>
-                                        )}
-                                        {rightTableEl && (
-                                            <DraggableBlock 
-                                                xKey="pos_table_right_x" 
-                                                yKey="pos_table_y" 
-                                                wKey="pos_width_table_right" 
-                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                                positionMode="relative-flow" 
-                                                settings={{
-                                                    ...s,
-                                                    pos_table_right_x: s.pos_table_right_x !== undefined ? s.pos_table_right_x : String(rightTableX),
-                                                    pos_width_table_right: s.pos_width_table_right !== undefined ? s.pos_width_table_right : String(rightTableWidth)
-                                                }} 
-                                                isPreview={false}
-                                            >
-                                                {rightTableEl}
-                                            </DraggableBlock>
-                                        )}
-                                    </div>
-                                    {totalSummaryEl && (
+                                            {/* 3. Footer Area */}
+                                            <div className="print-section-avoid-break" style={{ width: freeFooterWidth, marginLeft: freeFooterMarginLeft, marginTop: `${s.invoice_total_section_margin_top !== undefined && s.invoice_total_section_margin_top !== '' ? s.invoice_total_section_margin_top : 4}px`, pageBreakInside: 'avoid', breakInside: 'avoid', boxSizing: 'border-box' }}>
+                                                <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
+                                                                {notesEl}
+                                                            </td>
+                                                            <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
+                                                                {summaryEl}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                                {signaturesEl && (
+                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: '10px' }}>
+                                                        {signaturesEl}
+                                                    </div>
+                                                )}
+                                                {thankYouEl && (
+                                                    <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: '10px' }}>
+                                                        {thankYouEl}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {pageNumberEl && (
+                                                <div style={{ width: freeFooterWidth, marginLeft: freeFooterMarginLeft, boxSizing: 'border-box' }}>
+                                                    {pageNumberEl}
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', margin: 0, padding: 0 }}>
+                                {/* 1. Header Area with dynamic height container */}
+                                <div style={{ position: 'relative', width: '100%', height: `${getHeaderHeight()}px`, overflow: 'visible' }}>
+                                    {logoEl && <DraggableBlock xKey="pos_logo_x" yKey="pos_logo_y" wKey="pos_width_logo" settings={s} isPreview={false}>{logoEl}</DraggableBlock>}
+                                    {shopNameEl && <DraggableBlock xKey="pos_shop_name_x" yKey="pos_shop_name_y" wKey="pos_width_shop_name" settings={s} isPreview={false}>{shopNameEl}</DraggableBlock>}
+                                    {shopInfoEl && <DraggableBlock xKey="pos_shop_info_x" yKey="pos_shop_info_y" wKey="pos_width_shop_info" settings={s} isPreview={false}>{shopInfoEl}</DraggableBlock>}
+                                    {titleEl && <DraggableBlock xKey="pos_title_x" yKey="pos_title_y" wKey="pos_width_title" settings={s} isPreview={false}>{titleEl}</DraggableBlock>}
+                                    {customerNameEl && <DraggableBlock xKey="pos_customer_name_x" yKey="pos_customer_name_y" wKey="pos_width_customer_name" settings={s} isPreview={false}>{customerNameEl}</DraggableBlock>}
+                                    {customerPhoneEl && <DraggableBlock xKey="pos_customer_phone_x" yKey="pos_customer_phone_y" wKey="pos_width_customer_phone" settings={s} isPreview={false}>{customerPhoneEl}</DraggableBlock>}
+                                    {customerAddressEl && (
                                         <DraggableBlock 
-                                            xKey="pos_table_summary_x" 
-                                            yKey="pos_table_summary_y" 
-                                            wKey="pos_width_table_summary" 
-                                            yOffset={-(parseInt(s.pos_table_y) || 230)} 
-                                            positionMode="relative-flow" 
-                                            settings={{
-                                                ...s,
-                                                pos_table_summary_x: s.pos_table_summary_x !== undefined ? s.pos_table_summary_x : s.pos_table_x,
-                                                pos_table_summary_y: s.pos_table_summary_y !== undefined ? s.pos_table_summary_y : String(leftTableY - 230 + 100),
-                                                pos_width_table_summary: s.pos_width_table_summary !== undefined ? s.pos_width_table_summary : s.pos_width_table
-                                            }} 
+                                            xKey={partnerPhoneVal ? "pos_customer_address_x" : "pos_customer_phone_x"} 
+                                            yKey={partnerPhoneVal ? "pos_customer_address_y" : "pos_customer_phone_y"} 
+                                            wKey={partnerPhoneVal ? "pos_width_customer_address" : "pos_width_customer_phone"} 
+                                            settings={s} 
                                             isPreview={false}
                                         >
-                                            {totalSummaryEl}
+                                            {customerAddressEl}
                                         </DraggableBlock>
                                     )}
-                                </>
-                            ) : (
-                                tableEl && (
-                                    <DraggableBlock xKey="pos_table_x" yKey="pos_table_y" wKey="pos_width_table" yOffset={-(parseInt(s.pos_table_y) || 230)} positionMode="relative-flow" settings={s} isPreview={false}>
-                                        {tableEl}
-                                    </DraggableBlock>
-                                )
-                            )}
-
-                            {/* 3. Footer Area */}
-                            {getFooterHeight() > 0 && (
-                                <div style={{ position: 'relative', width: '100%', height: `${getFooterHeight()}px`, marginTop: '15px', overflow: 'visible' }}>
-                                    {notesEl && <DraggableBlock xKey="pos_notes_x" yKey="pos_notes_y" wKey="pos_width_notes" yOffset={-500} settings={s} isPreview={false}>{notesEl}</DraggableBlock>}
-                                    {summaryEl && <DraggableBlock xKey="pos_summary_x" yKey="pos_summary_y" wKey="pos_width_summary" yOffset={-500} settings={s} isPreview={false}>{summaryEl}</DraggableBlock>}
-                                    {signaturesEl && <DraggableBlock xKey="pos_signatures_x" yKey="pos_signatures_y" wKey="pos_width_signatures" yOffset={-500} settings={s} isPreview={false}>{signaturesEl}</DraggableBlock>}
-                                    {thankYouEl && <DraggableBlock xKey="pos_thank_you_x" yKey="pos_thank_you_y" wKey="pos_width_thank_you" yOffset={-500} settings={s} isPreview={false}>{thankYouEl}</DraggableBlock>}
+                                    {voucherNoteEl && <DraggableBlock xKey="pos_customer_info_x" yKey="pos_customer_info_y" wKey="pos_width_customer_info" settings={s} isPreview={false}>{voucherNoteEl}</DraggableBlock>}
+                                    {invoiceMetaEl && <DraggableBlock xKey="pos_invoice_meta_x" yKey="pos_invoice_meta_y" wKey="pos_width_invoice_meta" settings={s} isPreview={false}>{invoiceMetaEl}</DraggableBlock>}
                                 </div>
-                            )}
 
-                            {pageNumberEl && (
-                                <div style={{ width: '100%' }}>
-                                    {pageNumberEl}
+                                {/* 2. Table Area */}
+                                {isTwoColumns ? (
+                                    <>
+                                        <div style={{ display: 'flex', gap: `${s.invoice_column_spacing || 10}px`, width: '100%', alignItems: 'flex-start', position: 'relative' }}>
+                                            {leftTableEl && (
+                                                <DraggableBlock 
+                                                    xKey="pos_table_left_x" 
+                                                    yKey="pos_table_y" 
+                                                    wKey="pos_width_table_left" 
+                                                    yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                    positionMode="relative-flow" 
+                                                    settings={{
+                                                        ...s,
+                                                        pos_table_left_x: s.pos_table_left_x !== undefined ? s.pos_table_left_x : String(leftTableX),
+                                                        pos_width_table_left: s.pos_width_table_left !== undefined ? s.pos_width_table_left : String(leftTableWidth)
+                                                    }} 
+                                                    isPreview={false}
+                                                >
+                                                    {leftTableEl}
+                                                </DraggableBlock>
+                                            )}
+                                            {rightTableEl && (
+                                                <DraggableBlock 
+                                                    xKey="pos_table_right_x" 
+                                                    yKey="pos_table_y" 
+                                                    wKey="pos_width_table_right" 
+                                                    yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                    positionMode="relative-flow" 
+                                                    settings={{
+                                                        ...s,
+                                                        pos_table_right_x: s.pos_table_right_x !== undefined ? s.pos_table_right_x : String(rightTableX),
+                                                        pos_width_table_right: s.pos_width_table_right !== undefined ? s.pos_width_table_right : String(rightTableWidth)
+                                                    }} 
+                                                    isPreview={false}
+                                                >
+                                                    {rightTableEl}
+                                                </DraggableBlock>
+                                            )}
+                                        </div>
+                                        {totalSummaryEl && (
+                                            <DraggableBlock 
+                                                xKey="pos_table_summary_x" 
+                                                yKey="pos_table_summary_y" 
+                                                wKey="pos_width_table_summary" 
+                                                yOffset={-(parseInt(s.pos_table_y) || 230)} 
+                                                positionMode="relative-flow" 
+                                                settings={{
+                                                    ...s,
+                                                    pos_table_summary_x: s.pos_table_summary_x !== undefined ? s.pos_table_summary_x : s.pos_table_x,
+                                                    pos_table_summary_y: s.pos_table_summary_y !== undefined ? s.pos_table_summary_y : String(leftTableY - 230 + 100),
+                                                    pos_width_table_summary: s.pos_width_table_summary !== undefined ? s.pos_width_table_summary : s.pos_width_table
+                                                }} 
+                                                isPreview={false}
+                                            >
+                                                {totalSummaryEl}
+                                            </DraggableBlock>
+                                        )}
+                                    </>
+                                ) : (
+                                    tableEl && (
+                                        <DraggableBlock xKey="pos_table_x" yKey="pos_table_y" wKey="pos_width_table" yOffset={-(parseInt(s.pos_table_y) || 230)} positionMode="relative-flow" settings={s} isPreview={false}>
+                                            {tableEl}
+                                        </DraggableBlock>
+                                    )
+                                )}
+
+                                {/* 3. Footer Area */}
+                                <div className="print-section-avoid-break" style={{ width: freeFooterWidth, marginLeft: freeFooterMarginLeft, marginTop: `${s.invoice_total_section_margin_top !== undefined && s.invoice_total_section_margin_top !== '' ? s.invoice_total_section_margin_top : 4}px`, pageBreakInside: 'avoid', breakInside: 'avoid', boxSizing: 'border-box' }}>
+                                    <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
+                                        <tbody>
+                                            <tr>
+                                                <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
+                                                    {notesEl}
+                                                </td>
+                                                <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
+                                                    {summaryEl}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    {signaturesEl && (
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: '10px' }}>
+                                            {signaturesEl}
+                                        </div>
+                                    )}
+                                    {thankYouEl && (
+                                        <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: '10px' }}>
+                                            {thankYouEl}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+
+                                {/* Page Number */}
+                                {pageNumberEl && (
+                                    <div style={{ width: freeFooterWidth, marginLeft: freeFooterMarginLeft, boxSizing: 'border-box' }}>
+                                        {pageNumberEl}
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )
                 ) : (
                     isPreview ? (() => {
@@ -2391,15 +2669,18 @@ const PrintTemplate = forwardRef(({
                         
                         const printableH = s.paper_size === 'A5' ? 790 : (s.paper_size === 'A6' ? 560 : 1120);
                         const firstHeaderH = (s.invoice_show_logo === 'true' ? 50 : 0) + 70 + (parseInt(s.invoice_header_spacing || 10));
-                        const otherHeaderH = 35;
                         const totalSectionH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
+                        const isRepeatHeader = s.invoice_repeat_header === 'true';
+                        const repeatedHeaderH = isRepeatHeader
+                            ? (s.invoice_repeat_header_mode === 'compact' ? 40 : firstHeaderH)
+                            : 0;
 
                         const renderStandardPages = (isForPreview) => {
                             const size = s.paper_size || 'A4';
                             const pageH_mm = size === 'A5' ? 210 : (size === 'A6' ? 148 : 297);
                             const paddingMm = useDefaultMargins ? 0 : Math.max(mt, ml, mr, mb);
                             const firstPageAvailH = printableH;
-                            const otherPageAvailH = Math.max(200, printableH - otherHeaderH);
+                            const otherPageAvailH = Math.max(100, printableH - repeatedHeaderH);
                             const firstPageCap = Math.max(1, Math.floor((firstPageAvailH - firstHeaderH - totalSectionH) / estRowH));
                             const otherPageCap = Math.max(1, Math.floor(otherPageAvailH / estRowH));
                             const realisticSumH = 260 + (parseInt(s.invoice_total_section_margin_top || 0));
@@ -2408,20 +2689,8 @@ const PrintTemplate = forwardRef(({
                             if (allDetails.length <= firstPageCap) {
                                 return (
                                     <>
-                                        <div style={headerStyle}>
-                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                                {logoEl}
-                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                    {shopNameEl}
-                                                    {shopInfoEl}
-                                                </div>
-                                            </div>
-                                            {titleEl}
-                                        </div>
-                                        <div style={infoGridStyle}>
-                                            <div>{customerNameEl}{customerPhoneEl}{customerAddressEl}{voucherNoteEl}</div>
-                                            {invoiceMetaEl}
-                                        </div>
+                                        {headerSectionEl}
+                                        {infoGridEl}
                                         <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
                                             {renderTable(allDetails, 0, false, 'page-1', false)}
                                         </div>
@@ -2457,19 +2726,8 @@ const PrintTemplate = forwardRef(({
                                         const isLastPage = idx === pages.length - 1;
                                         const pageNum = idx + 1;
                                         return (
-                                            <div key={`sheet-${idx}`} className="print-page-sheet" style={{ width: '100%', minHeight: isForPreview ? `${pageH_mm}mm` : 'auto', height: isForPreview ? `${pageH_mm}mm` : 'auto', boxSizing: 'border-box', position: 'relative', pageBreakAfter: isLastPage ? 'auto' : 'always', breakAfter: isLastPage ? 'auto' : 'page', marginBottom: (!isLastPage && !isForPreview) ? 0 : undefined, display: 'flex', flexDirection: 'column', backgroundColor: '#fff', boxShadow: isForPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none', borderRadius: isForPreview ? '8px' : '0', padding: isForPreview ? `${paddingMm}mm` : '0', overflow: 'hidden' }}>
-                                                {isFirstPage && (
-                                                    <>
-                                                        <div style={headerStyle}>
-                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>{logoEl}<div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{shopNameEl}{shopInfoEl}</div></div>
-                                                            {titleEl}
-                                                        </div>
-                                                        <div style={infoGridStyle}>
-                                                            <div>{customerNameEl}{customerPhoneEl}{customerAddressEl}{voucherNoteEl}</div>
-                                                            {invoiceMetaEl}
-                                                        </div>
-                                                    </>
-                                                )}
+                                            <div key={`sheet-${idx}`} className="print-page-sheet" style={{ width: '100%', minHeight: isForPreview ? `${pageH_mm}mm` : 'auto', height: isForPreview ? `${pageH_mm}mm` : 'auto', boxSizing: 'border-box', position: 'relative', pageBreakAfter: isLastPage ? 'auto' : 'always', breakAfter: isLastPage ? 'auto' : 'page', marginBottom: (!isLastPage && !isForPreview) ? 0 : undefined, display: 'flex', flexDirection: 'column', backgroundColor: '#fff', boxShadow: isForPreview ? '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' : 'none', borderRadius: isForPreview ? '8px' : '0', padding: isForPreview ? (useDefaultMargins ? '4mm' : `${mt + printPaddingTop}mm ${mr}mm ${mb}mm ${ml}mm`) : '0', overflow: 'hidden' }}>
+                                                {renderRepeatedHeader(isFirstPage)}
                                                 <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>{renderTable(p.items, p.startIndex, !isLastPage, `page-${pageNum}`, !isLastPage)}</div>
                                                 {isLastPage && (
                                                     <>
@@ -2493,62 +2751,99 @@ const PrintTemplate = forwardRef(({
 
                         return renderStandardPages(true);
                     })() : (
-                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                            {/* Standard Header */}
-                            <div style={headerStyle}>
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', flex: 1 }}>
-                                    {logoEl}
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        {shopNameEl}
-                                        {shopInfoEl}
-                                    </div>
+                        s.invoice_repeat_header === 'true' ? (
+                            <table className="print-repeat-master-table" style={{ width: '100%', borderCollapse: 'collapse', border: 'none', margin: 0, padding: 0 }}>
+                                <thead style={{ display: 'table-header-group' }}>
+                                    <tr>
+                                        <td style={{ border: 'none', padding: 0 }}>
+                                            <div className="print-repeat-header-container">
+                                                {headerSectionEl}
+                                                {infoGridEl}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ border: 'none', padding: 0 }}>
+                                            {/* Standard Table (Render all rows) */}
+                                            <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                                {renderTable(data.details || [], 0, false, 'single', false)}
+                                            </div>
+
+                                            {/* Summary & Notes Section */}
+                                            <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
+                                                                {notesEl}
+                                                            </td>
+                                                            <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
+                                                                {summaryEl}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {/* Signatures */}
+                                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                {signaturesEl}
+                                            </div>
+
+                                            {/* Thank You */}
+                                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                                {thankYouEl}
+                                            </div>
+
+                                            {/* Page Number */}
+                                            {pageNumberEl}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                {/* Standard Header */}
+                                {headerSectionEl}
+                                {infoGridEl}
+
+                                {/* Standard Table (Render all rows) */}
+                                <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+                                    {renderTable(data.details || [], 0, false, 'single', false)}
                                 </div>
-                                {titleEl}
-                            </div>
-                            <div style={infoGridStyle}>
-                                <div>
-                                    {customerNameEl}
-                                    {customerPhoneEl}
-                                    {customerAddressEl}
-                                    {voucherNoteEl}
+
+                                {/* Summary & Notes Section */}
+                                <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                    <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
+                                        <tbody>
+                                            <tr>
+                                                <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
+                                                    {notesEl}
+                                                </td>
+                                                <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
+                                                    {summaryEl}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                {invoiceMetaEl}
-                            </div>
 
-                            {/* Standard Table (Render all rows) */}
-                            <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
-                                {renderTable(data.details || [], 0, false, 'single', false)}
-                            </div>
+                                {/* Signatures */}
+                                <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                    {signaturesEl}
+                                </div>
 
-                            {/* Summary & Notes Section */}
-                            <div className="print-section-avoid-break" style={{ marginTop: `${s.invoice_total_section_margin_top || 0}px`, width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                <table style={{ width: '100%', border: 'none', borderCollapse: 'collapse', margin: 0, padding: 0 }}>
-                                    <tbody>
-                                        <tr>
-                                            <td style={{ border: 'none', verticalAlign: 'top', padding: '0 15px 0 0', width: '55%' }}>
-                                                {notesEl}
-                                            </td>
-                                            <td style={{ border: 'none', verticalAlign: 'top', padding: 0, width: '45%', textAlign: 'right' }}>
-                                                {summaryEl}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                {/* Thank You */}
+                                <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                    {thankYouEl}
+                                </div>
 
-                            {/* Signatures */}
-                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {signaturesEl}
+                                {/* Page Number */}
+                                {pageNumberEl}
                             </div>
-
-                            {/* Thank You */}
-                            <div className="print-section-avoid-break" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {thankYouEl}
-                            </div>
-
-                            {/* Page Number */}
-                            {pageNumberEl}
-                        </div>
+                        )
                     )
                 )}
 

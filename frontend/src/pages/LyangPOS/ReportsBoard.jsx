@@ -42,6 +42,13 @@ ChartJS.register(
     Filler
 );
 
+const getAppFontFamily = () => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('app_font_family') : null;
+    return saved ? `"${saved}", "Be Vietnam Pro", sans-serif` : '"Be Vietnam Pro", sans-serif';
+};
+
+ChartJS.defaults.font.family = getAppFontFamily();
+
 // Helper to format YYYY-MM-DD in local time
 const formatLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -409,7 +416,7 @@ export default function ReportsBoard() {
 
             {/* Header & Filters */}
             <div className="bg-transparent flex flex-col gap-2 z-30 sticky top-0 backdrop-blur-md pb-2">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-1.5 px-0">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-1.5 px-0">
                     <div>
                         <h1 className="text-3xl md:text-4xl font-black text-primary uppercase flex items-center gap-3 pt-2 pb-0.5 leading-relaxed tracking-tight">
                             <BarChart3 className="text-primary" size={32} />
@@ -421,132 +428,133 @@ export default function ReportsBoard() {
                             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500">Phân tích doanh thu, lợi nhuận, dư nợ đối tác và hiệu suất nhãn hàng</p>
                         </div>
                     </div>
-                    <button onClick={handleExport} className="pos-card bg-transparent border border-border px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 text-sm hover:bg-primary/10 transition-all text-primary active:scale-[0.98] shadow-none">
-                        <Download size={18} /> Xuất Excel
-                    </button>
-                </div>
 
-                <div className="flex flex-wrap items-center gap-3 relative z-50">
-                    {/* Mode-based Filter Bar */}
-                    <div className="flex flex-wrap items-center gap-2 p-1 rounded-2xl bg-transparent border border-border shadow-none">
-                        {/* Mode selector */}
-                        <div className="flex items-center gap-1.5 pl-2 pr-1">
-                            <Calendar size={18} className="text-primary shrink-0" />
-                            <CustomSelect
-                                value={filterMode}
-                                onChange={(val) => setFilterMode(val)}
-                                options={filterModeOptions}
-                                className="min-w-[135px] bg-transparent border-none text-xs font-black text-primary"
-                            />
+                    <div className="flex flex-wrap items-center gap-3 relative z-50">
+                        {/* Mode-based Filter Bar */}
+                        <div className="flex flex-wrap items-center gap-2 p-1 rounded-2xl bg-transparent border border-border shadow-none">
+                            {/* Mode selector */}
+                            <div className="flex items-center gap-1.5 pl-2 pr-1">
+                                <Calendar size={18} className="text-primary shrink-0" />
+                                <CustomSelect
+                                    value={filterMode}
+                                    onChange={(val) => setFilterMode(val)}
+                                    options={filterModeOptions}
+                                    className="min-w-[135px] bg-transparent border-none text-xs font-black text-primary"
+                                />
+                            </div>
+
+                            <div className="w-px h-5 bg-border/60"></div>
+
+                            {/* Contextual control */}
+                            {filterMode === 'day' && (
+                                <div className="flex items-center gap-2">
+                                    <CustomDatePicker
+                                        value={exactDate}
+                                        onChange={(val) => {
+                                            const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                            setExactDate(d || '');
+                                        }}
+                                        className="w-[145px]"
+                                        inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                    />
+                                </div>
+                            )}
+
+                            {filterMode === 'month' && (
+                                <div className="flex items-center gap-1">
+                                    <CustomSelect
+                                        value={selectedMonth}
+                                        onChange={(val) => setSelectedMonth(val)}
+                                        options={monthListOptions}
+                                        placeholder="Chọn tháng..."
+                                        className="min-w-[110px] bg-transparent border-none text-xs font-bold"
+                                    />
+                                    <div className="w-px h-4 bg-border/40"></div>
+                                    <CustomSelect
+                                        value={String(selectedYear)}
+                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        options={yearListOptions}
+                                        placeholder="Năm..."
+                                        className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                                    />
+                                </div>
+                            )}
+
+                            {filterMode === 'quarter' && (
+                                <div className="flex items-center gap-1">
+                                    <CustomSelect
+                                        value={selectedQuarter}
+                                        onChange={(val) => setSelectedQuarter(val)}
+                                        options={quarterListOptions}
+                                        placeholder="Chọn quý..."
+                                        className="min-w-[150px] bg-transparent border-none text-xs font-bold"
+                                    />
+                                    <div className="w-px h-4 bg-border/40"></div>
+                                    <CustomSelect
+                                        value={String(selectedYear)}
+                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        options={yearListOptions}
+                                        placeholder="Năm..."
+                                        className="min-w-[95px] bg-transparent border-none text-xs font-bold"
+                                    />
+                                </div>
+                            )}
+
+                            {filterMode === 'year' && (
+                                <div className="flex items-center gap-2">
+                                    <CustomSelect
+                                        value={String(selectedYear)}
+                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        options={yearListOptions}
+                                        placeholder="Năm..."
+                                        className="min-w-[105px] bg-transparent border-none text-xs font-bold"
+                                    />
+                                </div>
+                            )}
+
+                            {filterMode === 'range' && (
+                                <div className="flex items-center gap-2">
+                                    <CustomDatePicker
+                                        value={customRange.startDate}
+                                        onChange={(val) => {
+                                            const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                            setCustomRange(prev => ({ ...prev, startDate: d || '' }));
+                                        }}
+                                        className="w-[145px]"
+                                        inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                    />
+                                    <span className="text-primary/50 font-bold">→</span>
+                                    <CustomDatePicker
+                                        value={customRange.endDate}
+                                        onChange={(val) => {
+                                            const d = typeof val === 'object' && val?.target ? val.target.value : val;
+                                            setCustomRange(prev => ({ ...prev, endDate: d || '' }));
+                                        }}
+                                        className="w-[145px]"
+                                        inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
+                                    />
+                                </div>
+                            )}
+
+                            {filterMode === 'all' && (
+                                <div className="px-3 py-1.5 text-xs font-black text-primary/80">
+                                    Toàn bộ lịch sử
+                                </div>
+                            )}
                         </div>
 
-                        <div className="w-px h-5 bg-border/60"></div>
+                        <div className="relative">
+                            {searchTerm !== debouncedSearchTerm ? (
+                                <RefreshCw className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary animate-spin" size={16} />
+                            ) : (
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} />
+                            )}
+                            <input type="text" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-transparent border border-border rounded-2xl text-sm font-bold w-52 xl:w-60 outline-none focus:border-primary transition-colors shadow-none" />
+                        </div>
 
-                        {/* Contextual control */}
-                        {filterMode === 'day' && (
-                            <div className="flex items-center gap-2">
-                                <CustomDatePicker
-                                    value={exactDate}
-                                    onChange={(val) => {
-                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
-                                        setExactDate(d || '');
-                                    }}
-                                    className="w-[145px]"
-                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
-                                />
-                            </div>
-                        )}
-
-                        {filterMode === 'month' && (
-                            <div className="flex items-center gap-1">
-                                <CustomSelect
-                                    value={selectedMonth}
-                                    onChange={(val) => setSelectedMonth(val)}
-                                    options={monthListOptions}
-                                    placeholder="Chọn tháng..."
-                                    className="min-w-[110px] bg-transparent border-none text-xs font-bold"
-                                />
-                                <div className="w-px h-4 bg-border/40"></div>
-                                <CustomSelect
-                                    value={String(selectedYear)}
-                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
-                                    options={yearListOptions}
-                                    placeholder="Năm..."
-                                    className="min-w-[95px] bg-transparent border-none text-xs font-bold"
-                                />
-                            </div>
-                        )}
-
-                        {filterMode === 'quarter' && (
-                            <div className="flex items-center gap-1">
-                                <CustomSelect
-                                    value={selectedQuarter}
-                                    onChange={(val) => setSelectedQuarter(val)}
-                                    options={quarterListOptions}
-                                    placeholder="Chọn quý..."
-                                    className="min-w-[150px] bg-transparent border-none text-xs font-bold"
-                                />
-                                <div className="w-px h-4 bg-border/40"></div>
-                                <CustomSelect
-                                    value={String(selectedYear)}
-                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
-                                    options={yearListOptions}
-                                    placeholder="Năm..."
-                                    className="min-w-[95px] bg-transparent border-none text-xs font-bold"
-                                />
-                            </div>
-                        )}
-
-                        {filterMode === 'year' && (
-                            <div className="flex items-center gap-2">
-                                <CustomSelect
-                                    value={String(selectedYear)}
-                                    onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
-                                    options={yearListOptions}
-                                    placeholder="Năm..."
-                                    className="min-w-[105px] bg-transparent border-none text-xs font-bold"
-                                />
-                            </div>
-                        )}
-
-                        {filterMode === 'range' && (
-                            <div className="flex items-center gap-2">
-                                <CustomDatePicker
-                                    value={customRange.startDate}
-                                    onChange={(val) => {
-                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
-                                        setCustomRange(prev => ({ ...prev, startDate: d || '' }));
-                                    }}
-                                    className="w-[145px]"
-                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
-                                />
-                                <span className="text-primary/50 font-bold">→</span>
-                                <CustomDatePicker
-                                    value={customRange.endDate}
-                                    onChange={(val) => {
-                                        const d = typeof val === 'object' && val?.target ? val.target.value : val;
-                                        setCustomRange(prev => ({ ...prev, endDate: d || '' }));
-                                    }}
-                                    className="w-[145px]"
-                                    inputClassName="bg-transparent border-none shadow-none text-xs font-bold text-primary dark:text-white px-2 py-1.5"
-                                />
-                            </div>
-                        )}
-
-                        {filterMode === 'all' && (
-                            <div className="px-3 py-1.5 text-xs font-black text-primary/80">
-                                Toàn bộ lịch sử
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="relative">
-                        {searchTerm !== debouncedSearchTerm ? (
-                            <RefreshCw className="absolute left-3.5 top-1/2 -translate-y-1/2 text-primary animate-spin" size={16} />
-                        ) : (
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" size={16} />
-                        )}
-                        <input type="text" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-transparent border border-border rounded-2xl text-sm font-bold w-64 outline-none focus:border-primary transition-colors shadow-none" />
+                        <button onClick={handleExport} className="pos-card bg-transparent border border-border px-5 py-2.5 rounded-2xl font-bold flex items-center gap-2 text-sm hover:bg-primary/10 transition-all text-primary active:scale-[0.98] shadow-none whitespace-nowrap">
+                            <Download size={18} /> Xuất Excel
+                        </button>
                     </div>
                 </div>
             </div>
@@ -588,7 +596,7 @@ export default function ReportsBoard() {
                                                     legend: {
                                                         display: true,
                                                         labels: {
-                                                            font: { family: 'Outfit, sans-serif', size: 11, weight: 'bold' },
+                                                            font: { family: getAppFontFamily(), size: 11, weight: 'bold' },
                                                             color: '#8b6f47',
                                                             usePointStyle: true,
                                                             pointStyle: 'circle',
@@ -597,8 +605,8 @@ export default function ReportsBoard() {
                                                     },
                                                     tooltip: {
                                                         backgroundColor: 'rgba(45, 80, 22, 0.95)',
-                                                        titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                                                        bodyFont: { family: 'Outfit, sans-serif', size: 14, weight: 'bold' },
+                                                        titleFont: { family: getAppFontFamily(), size: 12, weight: 'bold' },
+                                                        bodyFont: { family: getAppFontFamily(), size: 14, weight: 'bold' },
                                                         padding: 12,
                                                         borderRadius: 12
                                                     }
@@ -606,11 +614,11 @@ export default function ReportsBoard() {
                                                 scales: {
                                                     y: {
                                                         grid: { color: 'rgba(212, 165, 116, 0.08)', borderDash: [5, 5] },
-                                                        ticks: { font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }, color: '#8b6f47' }
+                                                        ticks: { font: { family: getAppFontFamily(), size: 10, weight: 'bold' }, color: '#8b6f47' }
                                                     },
                                                     x: {
                                                         grid: { display: false },
-                                                        ticks: { font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }, color: '#8b6f47' }
+                                                        ticks: { font: { family: getAppFontFamily(), size: 10, weight: 'bold' }, color: '#8b6f47' }
                                                     }
                                                 }
                                             }} />}
@@ -651,8 +659,8 @@ export default function ReportsBoard() {
                                                         legend: { display: false },
                                                         tooltip: {
                                                             backgroundColor: 'rgba(139, 111, 71, 0.95)',
-                                                            titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                                                            bodyFont: { family: 'Outfit, sans-serif', size: 14, weight: 'bold' },
+                                                            titleFont: { family: getAppFontFamily(), size: 12, weight: 'bold' },
+                                                            bodyFont: { family: getAppFontFamily(), size: 14, weight: 'bold' },
                                                             padding: 12,
                                                             borderRadius: 12
                                                         }
@@ -661,11 +669,11 @@ export default function ReportsBoard() {
                                                         y: {
                                                             beginAtZero: true,
                                                             grid: { color: 'rgba(212, 165, 116, 0.08)', borderDash: [5, 5] },
-                                                            ticks: { font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }, color: '#8b6f47' }
+                                                            ticks: { font: { family: getAppFontFamily(), size: 10, weight: 'bold' }, color: '#8b6f47' }
                                                         },
                                                         x: {
                                                             grid: { display: false },
-                                                            ticks: { font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' }, color: '#8b6f47' }
+                                                            ticks: { font: { family: getAppFontFamily(), size: 10, weight: 'bold' }, color: '#8b6f47' }
                                                         }
                                                     }
                                                 }}
@@ -696,7 +704,7 @@ export default function ReportsBoard() {
                                                             legend: {
                                                                 position: 'right',
                                                                 labels: {
-                                                                    font: { family: 'Outfit, sans-serif', size: 10, weight: 'bold' },
+                                                                    font: { family: getAppFontFamily(), size: 10, weight: 'bold' },
                                                                     color: '#8b6f47',
                                                                     usePointStyle: true,
                                                                     pointStyle: 'circle',
@@ -705,8 +713,8 @@ export default function ReportsBoard() {
                                                             },
                                                             tooltip: {
                                                                 backgroundColor: 'rgba(45, 80, 22, 0.95)',
-                                                                titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                                                                bodyFont: { family: 'Outfit, sans-serif', size: 14, weight: 'bold' },
+                                                                titleFont: { family: getAppFontFamily(), size: 12, weight: 'bold' },
+                                                                bodyFont: { family: getAppFontFamily(), size: 14, weight: 'bold' },
                                                                 padding: 12,
                                                                 borderRadius: 12
                                                             }
@@ -822,8 +830,8 @@ export default function ReportsBoard() {
                                                         tooltip: {
                                                             backgroundColor: 'rgba(45, 80, 22, 0.95)',
                                                             padding: 12,
-                                                            titleFont: { family: 'Outfit, sans-serif', size: 12, weight: 'bold' },
-                                                            bodyFont: { family: 'Outfit, sans-serif', size: 14, weight: 'bold' },
+                                                            titleFont: { family: getAppFontFamily(), size: 12, weight: 'bold' },
+                                                            bodyFont: { family: getAppFontFamily(), size: 14, weight: 'bold' },
                                                             borderRadius: 12,
                                                             callbacks: {
                                                                 title: (context) => `Khách hàng: ${context[0].label}`,
@@ -833,7 +841,7 @@ export default function ReportsBoard() {
                                                     },
                                                     scales: {
                                                         x: { grid: { display: false }, ticks: { display: false } },
-                                                        y: { grid: { borderDash: [5, 5], color: 'rgba(212, 165, 116, 0.08)' }, ticks: { font: { family: 'Outfit, sans-serif', size: 8, weight: 'bold' }, color: '#8b6f47', callback: (val) => val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : formatNumber(val) } }
+                                                        y: { grid: { borderDash: [5, 5], color: 'rgba(212, 165, 116, 0.08)' }, ticks: { font: { family: getAppFontFamily(), size: 8, weight: 'bold' }, color: '#8b6f47', callback: (val) => val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : formatNumber(val) } }
                                                     }
                                                 }}
                                             />
@@ -857,6 +865,7 @@ export default function ReportsBoard() {
                                                             <th className="py-4 px-4 text-center border-r border-[#d4a574]/15 last:border-r-0 whitespace-nowrap text-slate-400 dark:text-slate-500 font-black">ĐVT</th>
                                                             <ThSort label="Số Lượng" sortKey="qty" current={sortConfig} onSort={setSortConfig} className="py-4 text-right" />
                                                             <ThSort label="Doanh Thu" sortKey="revenue" current={sortConfig} onSort={setSortConfig} className="py-4 text-right" />
+                                                            <ThSort label="Lợi Nhuận" sortKey="profit" current={sortConfig} onSort={setSortConfig} className="py-4 text-right" />
                                                         </>
                                                     )}
                                                     {activeTab === 'customers' && (
@@ -900,7 +909,8 @@ export default function ReportsBoard() {
                                                         <td className="px-6 py-3.5"><div className="flex justify-between items-center"><div><div className="font-bold text-slate-800 dark:text-white">{row.name}</div><div className="text-xs text-slate-400 font-bold">{row.code}</div></div><button onClick={() => fetchDetailOrders('product', row.id, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-center font-bold text-slate-600 dark:text-slate-400">{row.unit}</td>
                                                         <td className="px-6 py-3.5 text-right font-black text-slate-700 dark:text-slate-300">{formatNumber(row.qty)}</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(row.revenue)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-slate-800 dark:text-slate-200">{formatNumber(row.revenue)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(row.profit)} ₫</td>
                                                     </tr>
                                                 ))}
                                                 {activeTab === 'customers' && partnerReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (

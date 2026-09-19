@@ -654,10 +654,6 @@ body {
     color-scheme: light !important;
   }
 
-  @page {
-    margin: 0;
-  }
-
   /* Force all direct parents to allow expansion ONLY if not marked to hide */
   html,
   body,

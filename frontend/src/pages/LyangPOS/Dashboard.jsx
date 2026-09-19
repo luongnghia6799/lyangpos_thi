@@ -105,6 +105,13 @@ ChartJS.register(
     Filler
 );
 
+const getAppFontFamily = () => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('app_font_family') : null;
+    return saved ? `"${saved}", "Be Vietnam Pro", sans-serif` : '"Be Vietnam Pro", sans-serif';
+};
+
+ChartJS.defaults.font.family = getAppFontFamily();
+
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

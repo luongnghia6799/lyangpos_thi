@@ -150,9 +150,9 @@ const PageMascot = ({ onOpenSettings }) => {
       if (isReactingRef.current || dragStartRef.current.moved || !spriteRef.current) return;
 
       const now = performance.now();
-      // Throttle: max 25 calculations per second (every 40ms) and min movement 12px
-      if (now - lastRun < 40) return;
-      if (Math.hypot(e.clientX - lastX, e.clientY - lastY) < 12) return;
+      // Ultra-efficient throttle: 65ms interval (~15fps) and 18px delta threshold
+      if (now - lastRun < 65) return;
+      if (Math.abs(e.clientX - lastX) < 18 && Math.abs(e.clientY - lastY) < 18) return;
 
       lastRun = now;
       lastX = e.clientX;
@@ -165,9 +165,9 @@ const PageMascot = ({ onOpenSettings }) => {
 
       const dx = e.clientX - centerX;
       const dy = e.clientY - centerY;
-      const dist = Math.hypot(dx, dy);
 
-      if (dist < DEAD_ZONE) {
+      // Fast rectangular deadzone check (avoids Math.hypot & trigonometry)
+      if (Math.abs(dx) < 55 && Math.abs(dy) < 55) {
         if (sectorRef.current !== -1) {
           sectorRef.current = -1;
           spriteRef.current.style.backgroundPosition = '50% 50%';

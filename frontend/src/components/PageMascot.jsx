@@ -1,22 +1,93 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MASCOT_LIST, MASCOT_QUOTES, DEFAULT_MASCOT_CONFIG, playPopSound } from '../lib/mascots';
-import { Settings, Volume2, VolumeX, Sparkles, Move, X, Lock, Unlock, RefreshCw } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Sparkles, X, Lock, Unlock, RotateCcw } from 'lucide-react';
+
+const DIRECTIONS = [
+  'up-left',
+  'up',
+  'up-right',
+  'left',
+  'center',
+  'right',
+  'down-left',
+  'down',
+  'down-right',
+];
+
+const REACTIONS = [
+  'blink',
+  'heart',
+  'sparkle',
+  'surprised',
+  'wink',
+  'bashful',
+  'sleepy',
+  'dizzy',
+  'delighted',
+];
+
+const CLOCKWISE = [
+  'right',
+  'down-right',
+  'down',
+  'down-left',
+  'left',
+  'up-left',
+  'up',
+  'up-right',
+];
+
+const SECTOR = (Math.PI * 2) / CLOCKWISE.length;
+const HYSTERESIS = 0.14;
+const DEAD_ZONE = 60;
+
+const PAYOFFS = ['heart', 'sparkle', 'delighted', 'wink', 'surprised'];
+const BOOP_PAYOFF = 130;
+const BOOP_END = 580;
+const SQUASH_MS = 420;
+const DIZZY_AFTER = 4;
+const DIZZY_WINDOW = 1600;
+const DIZZY_END = 1100;
+
+const SQUASH_KEYFRAMES = [
+  { transform: 'scale(1, 1)', easing: 'ease-in' },
+  { transform: 'scale(1.12, 0.85)', offset: 0.18, easing: 'ease-out' },
+  { transform: 'scale(0.94, 1.08)', offset: 0.45, easing: 'ease-in-out' },
+  { transform: 'scale(1.03, 0.97)', offset: 0.72, easing: 'ease-in-out' },
+  { transform: 'scale(1, 1)' },
+];
+
+function cellStyle(index) {
+  const col = index % 3;
+  const row = Math.floor(index / 3);
+  return {
+    backgroundPosition: `${col * 50}% ${row * 50}%`,
+  };
+}
+
+function wrapAngle(angle) {
+  return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+const layerStyle = {
+  position: 'absolute',
+  inset: 0,
+  backgroundSize: '300% 300%',
+  backgroundRepeat: 'no-repeat',
+  imageRendering: '-webkit-optimize-contrast',
+  willChange: 'background-position, opacity',
+  transition: 'opacity 0.15s ease-out'
+};
 
 const PageMascot = ({ onOpenSettings }) => {
-  // Load config from localStorage
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
-      if (saved) {
-        return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
-      }
-    } catch (e) {
-      // fallback
-    }
+      if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
+    } catch (e) {}
     return DEFAULT_MASCOT_CONFIG;
   });
 
-  // Calculate default position
   const [pos, setPos] = useState(() => {
     if (config.position && typeof config.position.x === 'number' && typeof config.position.y === 'number') {
       return config.position;
@@ -26,31 +97,26 @@ const PageMascot = ({ onOpenSettings }) => {
     return { x: defaultX, y: defaultY };
   });
 
-  const [currentChar, setCurrentChar] = useState(() => {
-    return MASCOT_LIST.find((c) => c.id === config.characterId) || MASCOT_LIST[0];
-  });
-
-  // Direction grid: [col, row] in 3x3 grid (0, 1, 2)
-  const [direction, setDirection] = useState([1, 1]); // [col, row]
-  const [isReacting, setIsReacting] = useState(false);
-  const [reactionFrame, setReactionFrame] = useState(0);
+  const [direction, setDirection] = useState('center');
+  const [reaction, setReaction] = useState(null);
   const [quote, setQuote] = useState('');
   const [showQuote, setShowQuote] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const mascotRef = useRef(null);
+  const containerRef = useRef(null);
+  const squashRef = useRef(null);
+  const timersRef = useRef([]);
+  const boopsRef = useRef({ count: 0, at: 0 });
   const dragStartRef = useRef({ x: 0, y: 0, startPosX: 0, startPosY: 0, moved: false });
   const quoteTimerRef = useRef(null);
-  const reactionTimerRef = useRef(null);
+  const sectorRef = useRef(-1);
+  const posRef = useRef(pos);
+  posRef.current = pos;
 
-  // Sync config character change
-  useEffect(() => {
-    const char = MASCOT_LIST.find((c) => c.id === config.characterId) || MASCOT_LIST[0];
-    setCurrentChar(char);
-  }, [config.characterId]);
+  const currentChar = MASCOT_LIST.find((c) => c.id === config.characterId) || MASCOT_LIST[0];
 
-  // Sync config updates with external trigger (e.g. from modal)
+  // Sync external config updates
   useEffect(() => {
     const handleStorageChange = () => {
       try {
@@ -66,12 +132,10 @@ const PageMascot = ({ onOpenSettings }) => {
     };
 
     window.addEventListener('lyang_mascot_config_updated', handleStorageChange);
-    return () => {
-      window.removeEventListener('lyang_mascot_config_updated', handleStorageChange);
-    };
+    return () => window.removeEventListener('lyang_mascot_config_updated', handleStorageChange);
   }, []);
 
-  // Ensure mascot stays inside screen when resizing
+  // Window resize bounds clamping
   useEffect(() => {
     const handleResize = () => {
       setPos((prev) => {
@@ -83,8 +147,8 @@ const PageMascot = ({ onOpenSettings }) => {
         if (newX !== prev.x || newY !== prev.y) {
           const updated = { x: newX, y: newY };
           try {
-            const current = JSON.parse(localStorage.getItem('lyang_mascot_config') || '{}');
-            localStorage.setItem('lyang_mascot_config', JSON.stringify({ ...current, position: updated }));
+            const cur = JSON.parse(localStorage.getItem('lyang_mascot_config') || '{}');
+            localStorage.setItem('lyang_mascot_config', JSON.stringify({ ...cur, position: updated }));
           } catch (e) {}
           return updated;
         }
@@ -96,120 +160,118 @@ const PageMascot = ({ onOpenSettings }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [config.size]);
 
-  // Mouse tracking calculation for 3x3 direction sheet
+  // High-performance cursor tracking with Hysteresis and Dead-zone damping
   useEffect(() => {
-    if (!config.enabled || isReacting) return;
+    if (!config.enabled) return;
 
-    let rafId = null;
+    let pointer = null;
+    let scheduled = false;
 
-    const handleMouseMove = (e) => {
-      if (isDragging) return;
+    const aim = () => {
+      scheduled = false;
+      if (!containerRef.current || !pointer || isDragging) return;
 
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        if (!mascotRef.current) return;
-        const rect = mascotRef.current.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
+      const currentPos = posRef.current;
+      const size = config.size || 110;
+      const centerX = currentPos.x + size / 2;
+      const centerY = currentPos.y + size / 2;
 
-        const dx = e.clientX - centerX;
-        const dy = e.clientY - centerY;
-        const distance = Math.hypot(dx, dy);
+      const dx = pointer.x - centerX;
+      const dy = pointer.y - centerY;
+      const dist = Math.hypot(dx, dy);
 
-        // Dead-zone: if cursor is right on or near the mascot, look straight ahead
-        const deadZone = (config.size || 110) * 0.35;
-        if (distance < deadZone) {
-          setDirection([1, 1]);
-          return;
+      if (dist < DEAD_ZONE) {
+        if (sectorRef.current !== -1) {
+          sectorRef.current = -1;
+          setDirection('center');
         }
+        return;
+      }
 
-        // Angle in radians (-PI to PI)
-        const angle = Math.atan2(dy, dx);
-        // Normalize angle to 0..2PI
-        const normalizedAngle = angle < 0 ? angle + Math.PI * 2 : angle;
+      const angle = Math.atan2(dy, dx);
+      const currentSector = sectorRef.current;
 
-        // 8 directional sectors (each 45 degrees = PI/4)
-        // 0: Right, 1: Bottom-Right, 2: Bottom, 3: Bottom-Left, 4: Left, 5: Top-Left, 6: Top, 7: Top-Right
-        const sector = Math.round(normalizedAngle / (Math.PI / 4)) % 8;
+      // Hysteresis check: keep current sector until pointer definitely crosses threshold
+      if (
+        currentSector !== -1 &&
+        Math.abs(wrapAngle(angle - currentSector * SECTOR)) < SECTOR / 2 + HYSTERESIS
+      ) {
+        return;
+      }
 
-        let col = 1;
-        let row = 1;
-
-        switch (sector) {
-          case 0: // Right
-            col = 2; row = 1; break;
-          case 1: // Bottom-Right
-            col = 2; row = 2; break;
-          case 2: // Bottom
-            col = 1; row = 2; break;
-          case 3: // Bottom-Left
-            col = 0; row = 2; break;
-          case 4: // Left
-            col = 0; row = 1; break;
-          case 5: // Top-Left
-            col = 0; row = 0; break;
-          case 6: // Top
-            col = 1; row = 0; break;
-          case 7: // Top-Right
-            col = 2; row = 0; break;
-          default:
-            col = 1; row = 1;
-        }
-
-        setDirection([col, row]);
-      });
+      const newSector = (Math.round(angle / SECTOR) + CLOCKWISE.length) % CLOCKWISE.length;
+      if (newSector !== sectorRef.current) {
+        sectorRef.current = newSector;
+        setDirection(CLOCKWISE[newSector]);
+      }
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    const onPointerMove = (e) => {
+      pointer = { x: e.clientX, y: e.clientY };
+      if (!scheduled) {
+        scheduled = true;
+        requestAnimationFrame(aim);
+      }
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('pointermove', onPointerMove);
     };
-  }, [config.enabled, config.size, isReacting, isDragging]);
+  }, [config.enabled, config.size, isDragging]);
 
-  // Trigger poke / reaction animation
-  const triggerReaction = useCallback(() => {
-    if (isReacting) return;
-    setIsReacting(true);
+  // Clean up timers
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(window.clearTimeout);
+      if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current);
+    };
+  }, []);
+
+  // Interactive Boop / Reaction logic
+  const handleBoop = () => {
+    timersRef.current.forEach(window.clearTimeout);
+    timersRef.current = [];
 
     if (config.soundEnabled) {
       playPopSound();
     }
 
-    // Show funny/motivational quote
     if (config.showQuotes) {
       const randomQuote = MASCOT_QUOTES[Math.floor(Math.random() * MASCOT_QUOTES.length)];
       setQuote(randomQuote);
       setShowQuote(true);
-
       if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current);
-      quoteTimerRef.current = setTimeout(() => {
-        setShowQuote(false);
-      }, 4000);
+      quoteTimerRef.current = setTimeout(() => setShowQuote(false), 4000);
     }
 
-    // Cycle through reaction frames (3x3 grid = 9 frames)
-    // Plays animated expressive sequence
-    const frames = [0, 1, 2, 4, 7, 8, 5, 3, 1, 0];
-    let frameIndex = 0;
+    const later = (ms, next) => {
+      timersRef.current.push(window.setTimeout(() => setReaction(next), ms));
+    };
 
-    if (reactionTimerRef.current) clearInterval(reactionTimerRef.current);
+    const now = Date.now();
+    const boops = boopsRef.current;
+    boops.count = now - boops.at < DIZZY_WINDOW ? boops.count + 1 : 1;
+    boops.at = now;
 
-    reactionTimerRef.current = setInterval(() => {
-      frameIndex++;
-      if (frameIndex >= frames.length) {
-        clearInterval(reactionTimerRef.current);
-        setIsReacting(false);
-        setReactionFrame(0);
-      } else {
-        setReactionFrame(frames[frameIndex]);
-      }
-    }, 85);
-  }, [isReacting, config.soundEnabled, config.showQuotes]);
+    if (boops.count >= DIZZY_AFTER) {
+      boops.count = 0;
+      setReaction('dizzy');
+      later(DIZZY_END, null);
+    } else {
+      setReaction('blink');
+      later(BOOP_PAYOFF, PAYOFFS[(boops.count - 1) % PAYOFFS.length]);
+      later(BOOP_END, null);
+    }
+
+    // Squash & Stretch spring bounce animation
+    if (squashRef.current) {
+      squashRef.current.animate(SQUASH_KEYFRAMES, { duration: SQUASH_MS, easing: 'linear' });
+    }
+  };
 
   // Dragging logic
   const handlePointerDown = (e) => {
-    // Only primary mouse button or touch
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     if (config.locked) return;
 
@@ -225,7 +287,7 @@ const PageMascot = ({ onOpenSettings }) => {
       const dx = moveEvent.clientX - dragStartRef.current.x;
       const dy = moveEvent.clientY - dragStartRef.current.y;
 
-      if (!dragStartRef.current.moved && Math.hypot(dx, dy) > 5) {
+      if (!dragStartRef.current.moved && Math.hypot(dx, dy) > 6) {
         dragStartRef.current.moved = true;
         setIsDragging(true);
       }
@@ -244,7 +306,6 @@ const PageMascot = ({ onOpenSettings }) => {
 
       if (dragStartRef.current.moved) {
         setIsDragging(false);
-        // Persist position
         setPos((latestPos) => {
           try {
             const current = JSON.parse(localStorage.getItem('lyang_mascot_config') || '{}');
@@ -261,51 +322,38 @@ const PageMascot = ({ onOpenSettings }) => {
   };
 
   const handleClick = (e) => {
-    // If was dragging, do not trigger reaction
     if (dragStartRef.current.moved) {
       dragStartRef.current.moved = false;
       return;
     }
-    triggerReaction();
+    handleBoop();
   };
 
   const handleContextMenu = (e) => {
     e.preventDefault();
-    if (onOpenSettings) {
-      onOpenSettings();
-    }
+    if (onOpenSettings) onOpenSettings();
   };
 
   if (!config.enabled) return null;
 
   const size = config.size || 110;
-
-  // Background position for 3x3 sheet
-  // Col: 0 -> 0%, 1 -> 50%, 2 -> 100%
-  // Row: 0 -> 0%, 1 -> 50%, 2 -> 100%
-  let bgPos = '50% 50%';
-  let currentSheet = currentChar.directions;
-
-  if (isReacting) {
-    currentSheet = currentChar.reactions;
-    const rCol = reactionFrame % 3;
-    const rRow = Math.floor(reactionFrame / 3);
-    bgPos = `${rCol * 50}% ${rRow * 50}%`;
-  } else {
-    bgPos = `${direction[0] * 50}% ${direction[1] * 50}%`;
-  }
+  const dirIndex = DIRECTIONS.indexOf(direction);
+  const reactIndex = REACTIONS.indexOf(reaction || 'blink');
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: 'fixed',
         left: `${pos.x}px`,
         top: `${pos.y}px`,
+        width: `${size}px`,
+        height: `${size}px`,
         zIndex: 99999,
         touchAction: 'none',
         userSelect: 'none'
       }}
-      className="group transition-transform select-none"
+      className="group select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onContextMenu={handleContextMenu}
@@ -323,7 +371,7 @@ const PageMascot = ({ onOpenSettings }) => {
 
       {/* Hover Action Badges */}
       <div
-        className={`absolute -top-3 -right-2 flex items-center gap-1 transition-opacity duration-200 ${
+        className={`absolute -top-3 -right-2 flex items-center gap-1 transition-all duration-200 z-20 ${
           isHovered && !isDragging ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
@@ -334,7 +382,7 @@ const PageMascot = ({ onOpenSettings }) => {
             if (onOpenSettings) onOpenSettings();
           }}
           title="Cài đặt Mascot (Chuột phải)"
-          className="w-6 h-6 rounded-full bg-slate-900/85 hover:bg-slate-900 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
+          className="w-6 h-6 rounded-full bg-slate-900/90 hover:bg-slate-950 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
         >
           <Settings size={12} />
         </button>
@@ -348,39 +396,72 @@ const PageMascot = ({ onOpenSettings }) => {
             localStorage.setItem('lyang_mascot_config', JSON.stringify(updated));
           }}
           title={config.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-          className="w-6 h-6 rounded-full bg-slate-900/85 hover:bg-slate-900 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
+          className="w-6 h-6 rounded-full bg-slate-900/90 hover:bg-slate-950 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
         >
           {config.soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} className="text-red-400" />}
         </button>
       </div>
 
-      {/* Mascot Sprite Avatar */}
-      <div
-        ref={mascotRef}
+      {/* Mascot Button & Dual Preloaded Sprite Sheets */}
+      <button
+        type="button"
         onPointerDown={handlePointerDown}
         onClick={handleClick}
         style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          backgroundImage: `url("${currentSheet}")`,
-          backgroundSize: '300% 300%',
-          backgroundPosition: bgPos,
-          backgroundRepeat: 'no-repeat',
-          opacity: config.opacity ?? 1,
+          position: 'relative',
+          display: 'block',
+          width: '100%',
+          height: '100%',
+          padding: 0,
+          border: 0,
+          background: 'transparent',
+          appearance: 'none',
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
-          filter: isDragging ? 'drop-shadow(0 15px 25px rgba(0,0,0,0.35))' : 'drop-shadow(0 8px 16px rgba(0,0,0,0.18))',
-          imageRendering: '-webkit-optimize-contrast'
+          userSelect: 'none',
+          opacity: config.opacity ?? 1,
+          filter: isDragging
+            ? 'drop-shadow(0 15px 25px rgba(0,0,0,0.35))'
+            : 'drop-shadow(0 8px 16px rgba(0,0,0,0.18))',
+          outline: 'none'
         }}
-        className={`transition-all duration-75 relative rounded-full ${
-          isReacting ? 'scale-105' : 'hover:scale-102 active:scale-95'
-        }`}
         title={`${currentChar.name} - Kéo thả để di chuyển | Nhấp để chọc | Chuột phải để cài đặt`}
       >
-        {/* Subtle glow indicator during drag */}
+        <span
+          ref={squashRef}
+          style={{
+            position: 'relative',
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            transformOrigin: '50% 78%'
+          }}
+        >
+          {/* Directions Layer */}
+          <span
+            style={{
+              ...layerStyle,
+              backgroundImage: `url(${currentChar.directions})`,
+              ...cellStyle(dirIndex >= 0 ? dirIndex : 4),
+              opacity: reaction ? 0 : 1,
+            }}
+          />
+
+          {/* Reactions Layer (Always mounted so images are loaded up-front without flicker) */}
+          <span
+            style={{
+              ...layerStyle,
+              backgroundImage: `url(${currentChar.reactions})`,
+              ...cellStyle(reactIndex >= 0 ? reactIndex : 0),
+              opacity: reaction ? 1 : 0,
+            }}
+          />
+        </span>
+
+        {/* Drag glowing ring indicator */}
         {isDragging && (
-          <div className="absolute inset-0 rounded-full ring-2 ring-emerald-400 ring-offset-2 ring-offset-transparent animate-pulse" />
+          <div className="absolute inset-0 rounded-full ring-2 ring-emerald-400 ring-offset-2 ring-offset-transparent animate-pulse pointer-events-none" />
         )}
-      </div>
+      </button>
     </div>
   );
 };

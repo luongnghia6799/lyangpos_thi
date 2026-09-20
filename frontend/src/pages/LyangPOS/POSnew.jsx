@@ -4162,9 +4162,7 @@ function POSPage({
                                       scale: 0.96
                                     }} transition={{
                                       duration: 0.15
-                                    }} className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[1000]" style={{
-                                      backgroundColor: Mt.glassBg
-                                    }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div ref={Ea} className="max-h-[480px] overflow-y-auto custom-scrollbar">{Ba.filter(r => {
+                                    }} className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium bg-[#fcfbf9] dark:bg-[#161a22] !z-[1000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden"><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div ref={Ea} className="max-h-[480px] overflow-y-auto custom-scrollbar">{Ba.filter(r => {
                                           const s = zt.toLowerCase(),
                                             n = xt(s);
                                           return r._lowName.includes(s) || r._normName.includes(n) || r._lowCode.includes(s) || r._normCode.includes(n) || r._lowActive.includes(s) || r._normActive.includes(n);

@@ -13,39 +13,27 @@ export const MarqueeText = memo(({
   const containerRef = useRef(null);
   const textRef = useRef(null);
   const [overflowDist, setOverflowDist] = useState(0);
+  const isCurrentlyActive = isActive || active;
 
   useEffect(() => {
-    const checkOverflow = () => {
-      if (containerRef.current && textRef.current) {
-        const containerW = containerRef.current.clientWidth;
-        const textW = textRef.current.scrollWidth;
-        const newDist = textW > containerW + 2 ? textW - containerW : 0;
-        setOverflowDist(prev => (Math.abs(prev - newDist) > 2 ? newDist : prev));
-      }
-    };
-
-    checkOverflow();
-
-    let ro;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => {
-        checkOverflow();
-      });
-      if (containerRef.current) ro.observe(containerRef.current);
-    } else {
-      window.addEventListener('resize', checkOverflow);
+    // Only measure overflow when active or hovered to save 99% CPU/GPU layout recalculations
+    if (!isCurrentlyActive) {
+      if (overflowDist !== 0) setOverflowDist(0);
+      return;
     }
 
-    return () => {
-      if (ro) ro.disconnect();
-      else window.removeEventListener('resize', checkOverflow);
-    };
-  }, [text]);
+    if (containerRef.current && textRef.current) {
+      const containerW = containerRef.current.clientWidth;
+      const textW = textRef.current.scrollWidth;
+      const newDist = textW > containerW + 2 ? textW - containerW : 0;
+      if (newDist !== overflowDist) {
+        setOverflowDist(newDist);
+      }
+    }
+  }, [text, isCurrentlyActive]);
 
-  const isOverflowing = overflowDist > 0;
-  const isCurrentlyActive = isActive || active;
-  // Dynamic duration based on overflow length
-  const duration = Math.max(3, Math.min(12, (overflowDist / 35) + 2));
+  const isOverflowing = isCurrentlyActive && overflowDist > 0;
+  const duration = Math.max(3, Math.min(10, (overflowDist / 35) + 2));
 
   return (
     <div
@@ -59,8 +47,8 @@ export const MarqueeText = memo(({
       <span
         ref={textRef}
         className={`inline-block whitespace-nowrap leading-normal ${
-          isOverflowing ? 'animate-marquee-on-hover is-overflowing' : ''
-        } ${isCurrentlyActive && isOverflowing ? 'is-active' : ''}`}
+          isOverflowing ? 'animate-marquee-on-hover is-overflowing is-active' : ''
+        }`}
         style={
           isOverflowing
             ? {
@@ -77,4 +65,3 @@ export const MarqueeText = memo(({
 });
 
 export default MarqueeText;
-

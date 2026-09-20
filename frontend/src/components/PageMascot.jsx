@@ -38,23 +38,15 @@ const CLOCKWISE = [
 ];
 
 const SECTOR = (Math.PI * 2) / CLOCKWISE.length;
-const HYSTERESIS = 0.15;
-const DEAD_ZONE = 65;
+const HYSTERESIS = 0.16;
+const DEAD_ZONE = 70;
 
 const PAYOFFS = ['heart', 'sparkle', 'delighted', 'wink', 'surprised'];
 const BOOP_PAYOFF = 130;
 const BOOP_END = 580;
-const SQUASH_MS = 400;
 const DIZZY_AFTER = 4;
 const DIZZY_WINDOW = 1600;
 const DIZZY_END = 1100;
-
-const SQUASH_KEYFRAMES = [
-  { transform: 'scale(1, 1)' },
-  { transform: 'scale(1.12, 0.86)', offset: 0.2 },
-  { transform: 'scale(0.95, 1.06)', offset: 0.5 },
-  { transform: 'scale(1, 1)' },
-];
 
 function getCellPos(index) {
   const col = index % 3;
@@ -90,14 +82,13 @@ const PageMascot = ({ onOpenSettings }) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const containerRef = useRef(null);
-  const dirLayerRef = useRef(null);
-  const reactLayerRef = useRef(null);
-  const squashRef = useRef(null);
+  const spriteRef = useRef(null);
   const timersRef = useRef([]);
   const boopsRef = useRef({ count: 0, at: 0 });
   const dragStartRef = useRef({ x: 0, y: 0, startPosX: 0, startPosY: 0, moved: false });
   const quoteTimerRef = useRef(null);
   const sectorRef = useRef(-1);
+  const isReactingRef = useRef(false);
   const posRef = useRef(pos);
   posRef.current = pos;
 
@@ -147,31 +138,39 @@ const PageMascot = ({ onOpenSettings }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [config.size]);
 
-  // ZERO-GPU, ZERO-REACT-RENDER DIRECT DOM POINTER TRACKER
+  // ULTRA LOW POWER (0% GPU) THROTTLED POINTER TRACKING
   useEffect(() => {
     if (!config.enabled) return;
 
-    let pointer = null;
-    let scheduled = false;
+    let lastRun = 0;
+    let lastX = -999;
+    let lastY = -999;
 
-    const updateSpriteDirect = () => {
-      scheduled = false;
-      if (!dirLayerRef.current || !pointer || dragStartRef.current.moved) return;
+    const handlePointerMove = (e) => {
+      if (isReactingRef.current || dragStartRef.current.moved || !spriteRef.current) return;
+
+      const now = performance.now();
+      // Throttle: max 25 calculations per second (every 40ms) and min movement 12px
+      if (now - lastRun < 40) return;
+      if (Math.hypot(e.clientX - lastX, e.clientY - lastY) < 12) return;
+
+      lastRun = now;
+      lastX = e.clientX;
+      lastY = e.clientY;
 
       const currentPos = posRef.current;
       const size = config.size || 110;
       const centerX = currentPos.x + size / 2;
       const centerY = currentPos.y + size / 2;
 
-      const dx = pointer.x - centerX;
-      const dy = pointer.y - centerY;
+      const dx = e.clientX - centerX;
+      const dy = e.clientY - centerY;
       const dist = Math.hypot(dx, dy);
 
       if (dist < DEAD_ZONE) {
         if (sectorRef.current !== -1) {
           sectorRef.current = -1;
-          // Set to center (index 4)
-          dirLayerRef.current.style.backgroundPosition = '50% 50%';
+          spriteRef.current.style.backgroundPosition = '50% 50%';
         }
         return;
       }
@@ -193,23 +192,14 @@ const PageMascot = ({ onOpenSettings }) => {
         const dirName = CLOCKWISE[newSector];
         const dirIdx = DIRECTIONS.indexOf(dirName);
         if (dirIdx >= 0) {
-          // Direct DOM style update = ZERO React re-render overhead!
-          dirLayerRef.current.style.backgroundPosition = getCellPos(dirIdx);
+          spriteRef.current.style.backgroundPosition = getCellPos(dirIdx);
         }
       }
     };
 
-    const onPointerMove = (e) => {
-      pointer = { x: e.clientX, y: e.clientY };
-      if (!scheduled) {
-        scheduled = true;
-        requestAnimationFrame(updateSpriteDirect);
-      }
-    };
-
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
     return () => {
-      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointermove', handlePointerMove);
     };
   }, [config.enabled, config.size]);
 
@@ -239,18 +229,18 @@ const PageMascot = ({ onOpenSettings }) => {
     }
 
     const setReactFrame = (reactionName) => {
-      if (!reactLayerRef.current || !dirLayerRef.current) return;
+      if (!spriteRef.current) return;
       if (!reactionName) {
-        // Return to directions layer
-        reactLayerRef.current.style.opacity = '0';
-        dirLayerRef.current.style.opacity = '1';
+        // Return to directions
+        isReactingRef.current = false;
+        spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+        const dirIdx = sectorRef.current >= 0 ? DIRECTIONS.indexOf(CLOCKWISE[sectorRef.current]) : 4;
+        spriteRef.current.style.backgroundPosition = getCellPos(dirIdx >= 0 ? dirIdx : 4);
       } else {
+        isReactingRef.current = true;
+        spriteRef.current.style.backgroundImage = `url("${currentChar.reactions}")`;
         const rIdx = REACTIONS.indexOf(reactionName);
-        if (rIdx >= 0) {
-          reactLayerRef.current.style.backgroundPosition = getCellPos(rIdx);
-        }
-        reactLayerRef.current.style.opacity = '1';
-        dirLayerRef.current.style.opacity = '0';
+        spriteRef.current.style.backgroundPosition = getCellPos(rIdx >= 0 ? rIdx : 0);
       }
     };
 
@@ -271,10 +261,6 @@ const PageMascot = ({ onOpenSettings }) => {
       setReactFrame('blink');
       later(BOOP_PAYOFF, PAYOFFS[(boops.count - 1) % PAYOFFS.length]);
       later(BOOP_END, null);
-    }
-
-    if (squashRef.current) {
-      squashRef.current.animate(SQUASH_KEYFRAMES, { duration: SQUASH_MS, easing: 'ease-out' });
     }
   };
 
@@ -357,9 +343,7 @@ const PageMascot = ({ onOpenSettings }) => {
         height: `${size}px`,
         zIndex: 99999,
         touchAction: 'none',
-        userSelect: 'none',
-        contain: 'layout style',
-        isolation: 'isolate'
+        userSelect: 'none'
       }}
       className="group select-none"
       onMouseEnter={() => setIsHovered(true)}
@@ -369,7 +353,7 @@ const PageMascot = ({ onOpenSettings }) => {
       {/* Speech Bubble / Quote */}
       {showQuote && quote && (
         <div
-          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 dark:bg-slate-900/95 px-3.5 py-1.5 rounded-2xl shadow-lg border border-amber-200/80 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 animate-in fade-in duration-150 pointer-events-none flex items-center gap-1.5 z-10"
+          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 dark:bg-slate-900/95 px-3.5 py-1.5 rounded-2xl shadow-md border border-amber-200/80 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 pointer-events-none flex items-center gap-1.5 z-10"
           style={{ maxWidth: '280px', whiteSpace: 'normal', textAlign: 'center' }}
         >
           <span>{quote}</span>
@@ -379,8 +363,8 @@ const PageMascot = ({ onOpenSettings }) => {
 
       {/* Hover Action Badges */}
       <div
-        className={`absolute -top-3 -right-2 flex items-center gap-1 transition-all duration-150 z-20 ${
-          isHovered && !isDragging ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
+        className={`absolute -top-3 -right-2 flex items-center gap-1 z-20 ${
+          isHovered && !isDragging ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         <button
@@ -390,7 +374,7 @@ const PageMascot = ({ onOpenSettings }) => {
             if (onOpenSettings) onOpenSettings();
           }}
           title="Cài đặt Mascot (Chuột phải)"
-          className="w-6 h-6 rounded-full bg-slate-900/90 hover:bg-slate-950 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
+          className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
         >
           <Settings size={12} />
         </button>
@@ -404,79 +388,34 @@ const PageMascot = ({ onOpenSettings }) => {
             localStorage.setItem('lyang_mascot_config', JSON.stringify(updated));
           }}
           title={config.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-          className="w-6 h-6 rounded-full bg-slate-900/90 hover:bg-slate-950 text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
+          className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
         >
           {config.soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} className="text-red-400" />}
         </button>
       </div>
 
-      {/* Mascot Button & Dual Preloaded Sprite Sheets (NO GPU Blur Filter!) */}
-      <button
-        type="button"
+      {/* Single Ultra-Lightweight Sprite Element */}
+      <div
+        ref={spriteRef}
         onPointerDown={handlePointerDown}
         onClick={handleClick}
         style={{
-          position: 'relative',
-          display: 'block',
           width: '100%',
           height: '100%',
-          padding: 0,
-          border: 0,
-          background: 'transparent',
-          appearance: 'none',
+          backgroundImage: `url("${currentChar.directions}")`,
+          backgroundSize: '300% 300%',
+          backgroundPosition: '50% 50%',
+          backgroundRepeat: 'no-repeat',
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
-          userSelect: 'none',
-          opacity: config.opacity ?? 1,
-          outline: 'none'
+          opacity: config.opacity ?? 1
         }}
         title={`${currentChar.name} - Kéo thả để di chuyển | Nhấp để chọc | Chuột phải để cài đặt`}
       >
-        <span
-          ref={squashRef}
-          style={{
-            position: 'relative',
-            display: 'block',
-            width: '100%',
-            height: '100%',
-            transformOrigin: '50% 78%'
-          }}
-        >
-          {/* Directions Layer (Direct DOM background-position) */}
-          <span
-            ref={dirLayerRef}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundSize: '300% 300%',
-              backgroundPosition: '50% 50%',
-              backgroundImage: `url("${currentChar.directions}")`,
-              backgroundRepeat: 'no-repeat',
-              opacity: 1,
-              transition: 'opacity 0.1s linear'
-            }}
-          />
-
-          {/* Reactions Layer (Always mounted) */}
-          <span
-            ref={reactLayerRef}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundSize: '300% 300%',
-              backgroundPosition: '0% 0%',
-              backgroundImage: `url("${currentChar.reactions}")`,
-              backgroundRepeat: 'no-repeat',
-              opacity: 0,
-              transition: 'opacity 0.1s linear'
-            }}
-          />
-        </span>
-
-        {/* Drag ring indicator */}
+        {/* Drag indicator border */}
         {isDragging && (
-          <div className="absolute inset-0 rounded-full border-2 border-emerald-400 pointer-events-none" />
+          <div className="w-full h-full rounded-full border-2 border-emerald-400 pointer-events-none" />
         )}
-      </button>
+      </div>
     </div>
   );
 };

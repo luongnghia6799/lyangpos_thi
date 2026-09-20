@@ -357,15 +357,17 @@ input, button, select, textarea, optgroup, option {
 
 .dropdown-premium {
   @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-2 overflow-hidden;
-  background: #faf8f3 !important;
+  background: rgba(250, 248, 243, 0.97) !important;
   border: 1.5px solid rgba(139, 111, 71, 0.25) !important;
-  box-shadow: 0 15px 35px -5px rgba(45, 80, 22, 0.12), 0 5px 15px -3px rgba(139, 111, 71, 0.08) !important;
+  box-shadow: 0 20px 50px -10px rgba(45, 80, 22, 0.12), 0 10px 25px -5px rgba(139, 111, 71, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
 }
 
 .dark .dropdown-premium {
-  background: #11151c !important;
+  background: rgba(15, 23, 42, 0.97) !important;
   border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 20px 45px -5px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .modal-premium {
@@ -384,7 +386,7 @@ input, button, select, textarea, optgroup, option {
 
 
 .dropdown-item {
-  @apply p-3 cursor-pointer transition-colors duration-75 last:border-0 relative;
+  @apply p-3 cursor-pointer transition-all duration-200 last:border-0 relative;
   border-bottom: 1px solid rgba(139, 111, 71, 0.1);
 }
 
@@ -522,8 +524,8 @@ body {
 }
 
 .dark .dropdown-premium {
-  background: #11151c !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(5, 5, 5, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .dark body {

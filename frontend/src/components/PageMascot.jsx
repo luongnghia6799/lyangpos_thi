@@ -94,6 +94,13 @@ const PageMascot = ({ onOpenSettings }) => {
 
   const currentChar = MASCOT_LIST.find((c) => c.id === config.characterId) || MASCOT_LIST[0];
 
+  // Update background sprite immediately when character changes
+  useEffect(() => {
+    if (spriteRef.current && currentChar?.directions && !isReactingRef.current) {
+      spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+    }
+  }, [currentChar]);
+
   // Sync external config updates
   useEffect(() => {
     const handleStorageChange = () => {

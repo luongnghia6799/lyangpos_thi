@@ -6,8 +6,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🧑‍🦱",
     "desc": "Sành điệu & Cá tính",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/afro-directions.webp",
+    "reactions": "/mascots/afro-reactions.webp"
   },
   {
     "id": "astronaut",
@@ -15,8 +15,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👨‍🚀",
     "desc": "Thám hiểm vũ trụ",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/astronaut-directions.webp",
+    "reactions": "/mascots/astronaut-reactions.webp"
   },
   {
     "id": "bald",
@@ -24,8 +24,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👨‍🦲",
     "desc": "Hài hước & Vui vẻ",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/bald-directions.webp",
+    "reactions": "/mascots/bald-reactions.webp"
   },
   {
     "id": "ballerina",
@@ -33,8 +33,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🩰",
     "desc": "Duyên dáng & Uyển chuyển",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/ballerina-directions.webp",
+    "reactions": "/mascots/ballerina-reactions.webp"
   },
   {
     "id": "bear",
@@ -42,8 +42,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐻",
     "desc": "Đáng yêu & Tràn đầy năng lượng",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/bear-directions.webp",
+    "reactions": "/mascots/bear-reactions.webp"
   },
   {
     "id": "beard",
@@ -51,8 +51,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🧔",
     "desc": "Điềm tĩnh & Lịch lãm",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/beard-directions.webp",
+    "reactions": "/mascots/beard-reactions.webp"
   },
   {
     "id": "builder",
@@ -60,8 +60,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👷",
     "desc": "Chăm chỉ & Chuyên nghiệp",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/builder-directions.webp",
+    "reactions": "/mascots/builder-reactions.webp"
   },
   {
     "id": "bunny",
@@ -69,8 +69,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐰",
     "desc": "Dễ thương & Nhanh nhẹn",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/bunny-directions.webp",
+    "reactions": "/mascots/bunny-reactions.webp"
   },
   {
     "id": "cap",
@@ -78,8 +78,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🧢",
     "desc": "Năng động & Trẻ trung",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/cap-directions.webp",
+    "reactions": "/mascots/cap-reactions.webp"
   },
   {
     "id": "cat",
@@ -87,8 +87,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐱",
     "desc": "Lém lỉnh & Chiêu tài lộc",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/cat-directions.webp",
+    "reactions": "/mascots/cat-reactions.webp"
   },
   {
     "id": "chef",
@@ -96,8 +96,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👨‍🍳",
     "desc": "Nấu ăn ngon & Tận tâm",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/chef-directions.webp",
+    "reactions": "/mascots/chef-reactions.webp"
   },
   {
     "id": "clockwork",
@@ -105,8 +105,8 @@ export const MASCOT_LIST = [
     "category": "robot",
     "emoji": "⏰",
     "desc": "Chính xác từng giây",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/clockwork-directions.webp",
+    "reactions": "/mascots/clockwork-reactions.webp"
   },
   {
     "id": "crt",
@@ -114,8 +114,8 @@ export const MASCOT_LIST = [
     "category": "robot",
     "emoji": "🖥️",
     "desc": "Cổ điển & Hoài niệm",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/crt-directions.webp",
+    "reactions": "/mascots/crt-reactions.webp"
   },
   {
     "id": "cube",
@@ -123,8 +123,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "🧊",
     "desc": "Gọn gàng & Độc đáo",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/cube-directions.webp",
+    "reactions": "/mascots/cube-reactions.webp"
   },
   {
     "id": "deer",
@@ -132,8 +132,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦌",
     "desc": "Nhẹ nhàng & Tinh tế",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/deer-directions.webp",
+    "reactions": "/mascots/deer-reactions.webp"
   },
   {
     "id": "dino",
@@ -141,8 +141,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦖",
     "desc": "Tí hon & Hăng say bán hàng",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/dino-directions.webp",
+    "reactions": "/mascots/dino-reactions.webp"
   },
   {
     "id": "drone",
@@ -150,8 +150,8 @@ export const MASCOT_LIST = [
     "category": "robot",
     "emoji": "🛸",
     "desc": "Công nghệ tương lai",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/drone-directions.webp",
+    "reactions": "/mascots/drone-reactions.webp"
   },
   {
     "id": "fox",
@@ -159,8 +159,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦊",
     "desc": "Nhanh nhẹn & Thông minh",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-directions.webp",
+    "reactions": "/mascots/fox-reactions.webp"
   },
   {
     "id": "fox-ink",
@@ -168,8 +168,8 @@ export const MASCOT_LIST = [
     "category": "art",
     "emoji": "🦊",
     "desc": "Phong cách tranh mực tàu",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-ink-directions.webp",
+    "reactions": "/mascots/fox-ink-reactions.webp"
   },
   {
     "id": "fox-paper",
@@ -177,8 +177,8 @@ export const MASCOT_LIST = [
     "category": "art",
     "emoji": "🦊",
     "desc": "Nghệ thuật Origami",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-paper-directions.webp",
+    "reactions": "/mascots/fox-paper-reactions.webp"
   },
   {
     "id": "fox-pixel",
@@ -186,8 +186,8 @@ export const MASCOT_LIST = [
     "category": "art",
     "emoji": "🦊",
     "desc": "Phong cách Game Retro",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-pixel-directions.webp",
+    "reactions": "/mascots/fox-pixel-reactions.webp"
   },
   {
     "id": "fox-riso",
@@ -195,8 +195,8 @@ export const MASCOT_LIST = [
     "category": "art",
     "emoji": "🦊",
     "desc": "Phong cách in ấn nghệ thuật",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-riso-directions.webp",
+    "reactions": "/mascots/fox-riso-reactions.webp"
   },
   {
     "id": "fox-sketch",
@@ -204,8 +204,8 @@ export const MASCOT_LIST = [
     "category": "art",
     "emoji": "🦊",
     "desc": "Nét vẽ chì mộc mạc",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/fox-sketch-directions.webp",
+    "reactions": "/mascots/fox-sketch-reactions.webp"
   },
   {
     "id": "frog",
@@ -213,8 +213,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐸",
     "desc": "Vui tươi & May mắn",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/frog-directions.webp",
+    "reactions": "/mascots/frog-reactions.webp"
   },
   {
     "id": "gearbot",
@@ -222,8 +222,8 @@ export const MASCOT_LIST = [
     "category": "robot",
     "emoji": "🤖",
     "desc": "Trợ lý tính toán siêu tốc",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/gearbot-directions.webp",
+    "reactions": "/mascots/gearbot-reactions.webp"
   },
   {
     "id": "glasses",
@@ -231,8 +231,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👓",
     "desc": "Thông thái & Học thức",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/glasses-directions.webp",
+    "reactions": "/mascots/glasses-reactions.webp"
   },
   {
     "id": "grandpa",
@@ -240,8 +240,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👴",
     "desc": "Kính lão đắc thọ",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/grandpa-directions.webp",
+    "reactions": "/mascots/grandpa-reactions.webp"
   },
   {
     "id": "granny",
@@ -249,8 +249,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👵",
     "desc": "Ấm áp & Phúc hậu",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/granny-directions.webp",
+    "reactions": "/mascots/granny-reactions.webp"
   },
   {
     "id": "hamster",
@@ -258,8 +258,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐹",
     "desc": "Béo tròn & Đáng yêu",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/hamster-directions.webp",
+    "reactions": "/mascots/hamster-reactions.webp"
   },
   {
     "id": "hedgehog",
@@ -267,8 +267,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦔",
     "desc": "Đáng yêu & Cẩn thận",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/hedgehog-directions.webp",
+    "reactions": "/mascots/hedgehog-reactions.webp"
   },
   {
     "id": "hijabi",
@@ -276,8 +276,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🧕",
     "desc": "Nhẹ nhàng & Thùy mị",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/hijabi-directions.webp",
+    "reactions": "/mascots/hijabi-reactions.webp"
   },
   {
     "id": "kamran",
@@ -285,8 +285,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "💻",
     "desc": "Tác giả Page-Mascot",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/kamran-directions.webp",
+    "reactions": "/mascots/kamran-reactions.webp"
   },
   {
     "id": "knight",
@@ -294,8 +294,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🛡️",
     "desc": "Dũng cảm & Kiên cường",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/knight-directions.webp",
+    "reactions": "/mascots/knight-reactions.webp"
   },
   {
     "id": "koala",
@@ -303,8 +303,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐨",
     "desc": "Hiền lành & Thư thái",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/koala-directions.webp",
+    "reactions": "/mascots/koala-reactions.webp"
   },
   {
     "id": "lantern",
@@ -312,8 +312,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "🏮",
     "desc": "Mang lại ánh sáng & May mắn",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/lantern-directions.webp",
+    "reactions": "/mascots/lantern-reactions.webp"
   },
   {
     "id": "mouse",
@@ -321,8 +321,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐭",
     "desc": "Lanh lợi & Nhanh mắt",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/mouse-directions.webp",
+    "reactions": "/mascots/mouse-reactions.webp"
   },
   {
     "id": "nurse",
@@ -330,8 +330,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👩‍⚕️",
     "desc": "Chu đáo & Ân cần",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/nurse-directions.webp",
+    "reactions": "/mascots/nurse-reactions.webp"
   },
   {
     "id": "otter",
@@ -339,8 +339,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦦",
     "desc": "Năng động & Hài hước",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/otter-directions.webp",
+    "reactions": "/mascots/otter-reactions.webp"
   },
   {
     "id": "owl",
@@ -348,8 +348,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦉",
     "desc": "Tỉnh táo ca đêm",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/owl-directions.webp",
+    "reactions": "/mascots/owl-reactions.webp"
   },
   {
     "id": "panda",
@@ -357,8 +357,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐼",
     "desc": "Bình tĩnh & Thịnh vượng",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/panda-directions.webp",
+    "reactions": "/mascots/panda-reactions.webp"
   },
   {
     "id": "penguin",
@@ -366,8 +366,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐧",
     "desc": "Mát mẻ & Siêng năng",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/penguin-directions.webp",
+    "reactions": "/mascots/penguin-reactions.webp"
   },
   {
     "id": "pirate",
@@ -375,8 +375,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🏴‍☠️",
     "desc": "Phiêu lưu & Tìm kho báu",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/pirate-directions.webp",
+    "reactions": "/mascots/pirate-reactions.webp"
   },
   {
     "id": "postbot",
@@ -384,8 +384,8 @@ export const MASCOT_LIST = [
     "category": "robot",
     "emoji": "📬",
     "desc": "Chuyển phát bưu kiện",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/postbot-directions.webp",
+    "reactions": "/mascots/postbot-reactions.webp"
   },
   {
     "id": "pug",
@@ -393,8 +393,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐶",
     "desc": "Mặt hề siêu cute",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/pug-directions.webp",
+    "reactions": "/mascots/pug-reactions.webp"
   },
   {
     "id": "raccoon",
@@ -402,8 +402,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦝",
     "desc": "Tò mò & Khám phá",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/raccoon-directions.webp",
+    "reactions": "/mascots/raccoon-reactions.webp"
   },
   {
     "id": "radio",
@@ -411,8 +411,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "📻",
     "desc": "Âm nhạc & Tin tức",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/radio-directions.webp",
+    "reactions": "/mascots/radio-reactions.webp"
   },
   {
     "id": "redpanda",
@@ -420,8 +420,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦊",
     "desc": "Đáng yêu số 1",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/redpanda-directions.webp",
+    "reactions": "/mascots/redpanda-reactions.webp"
   },
   {
     "id": "rocket",
@@ -429,8 +429,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "🚀",
     "desc": "Doanh số bay cao",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/rocket-directions.webp",
+    "reactions": "/mascots/rocket-reactions.webp"
   },
   {
     "id": "scientist",
@@ -438,8 +438,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🔬",
     "desc": "Sáng tạo & Đột phá",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/scientist-directions.webp",
+    "reactions": "/mascots/scientist-reactions.webp"
   },
   {
     "id": "scout",
@@ -447,8 +447,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🏕️",
     "desc": "Sẵn sàng vượt thử thách",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/scout-directions.webp",
+    "reactions": "/mascots/scout-reactions.webp"
   },
   {
     "id": "sheep",
@@ -456,8 +456,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐑",
     "desc": "Mềm mại & Bình yên",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/sheep-directions.webp",
+    "reactions": "/mascots/sheep-reactions.webp"
   },
   {
     "id": "sikh",
@@ -465,8 +465,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "👳",
     "desc": "Chân thành & Trọng chữ tín",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/sikh-directions.webp",
+    "reactions": "/mascots/sikh-reactions.webp"
   },
   {
     "id": "skater",
@@ -474,8 +474,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🛹",
     "desc": "Cực ngầu & Năng động",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/skater-directions.webp",
+    "reactions": "/mascots/skater-reactions.webp"
   },
   {
     "id": "sloth",
@@ -483,8 +483,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🦥",
     "desc": "Chậm rãi nhưng chắc chắn",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/sloth-directions.webp",
+    "reactions": "/mascots/sloth-reactions.webp"
   },
   {
     "id": "tiger",
@@ -492,8 +492,8 @@ export const MASCOT_LIST = [
     "category": "animal",
     "emoji": "🐯",
     "desc": "Mạnh mẽ & Quyết đoán",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/tiger-directions.webp",
+    "reactions": "/mascots/tiger-reactions.webp"
   },
   {
     "id": "toaster",
@@ -501,8 +501,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "🍞",
     "desc": "Giòn rụm & Nóng hổi",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/toaster-directions.webp",
+    "reactions": "/mascots/toaster-reactions.webp"
   },
   {
     "id": "tv",
@@ -510,8 +510,8 @@ export const MASCOT_LIST = [
     "category": "object",
     "emoji": "📺",
     "desc": "Giải trí đỉnh cao",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/tv-directions.webp",
+    "reactions": "/mascots/tv-reactions.webp"
   },
   {
     "id": "wizard",
@@ -519,8 +519,8 @@ export const MASCOT_LIST = [
     "category": "human",
     "emoji": "🧙",
     "desc": "Phép thuật bán hàng đắt khách",
-    "directions": {},
-    "reactions": {}
+    "directions": "/mascots/wizard-directions.webp",
+    "reactions": "/mascots/wizard-reactions.webp"
   }
 ];
 

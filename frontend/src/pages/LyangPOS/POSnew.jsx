@@ -3799,16 +3799,20 @@ function POSPage({
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
                                 }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
-                                  y: 4
+                                  y: 8,
+                                  scale: 0.96
                                 }} animate={{
                                   opacity: 1,
-                                  y: 0
+                                  y: 0,
+                                  scale: 1
                                 }} exit={{
                                   opacity: 0,
-                                  y: 4
+                                  y: 8,
+                                  scale: 0.96
                                 }} transition={{
-                                  duration: 0.08
-                                }} className="fixed dropdown-premium bg-[#fcfbf9] dark:bg-[#161a22] !z-[400000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden" style={{
+                                  duration: 0.15
+                                }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
+                                  backgroundColor: Mt.glassBg,
                                   top: productSearchCoords.top,
                                   left: productSearchCoords.left,
                                   width: Math.min(productSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (productSearchCoords.left || 0) - 16 : 700),
@@ -3824,9 +3828,11 @@ function POSPage({
                                         secondary_qty: s / (t.multiplier || 1),
                                         name: t.name
                                       }), ae(t.name);
-                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><div className="font-black tracking-tight truncate text-base leading-snug" style={{
-                                              color: a === De ? Mt.accent : Mt.main
-                                            }}>{t.name}</div></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
+                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+                                              color: a === De ? Mt.accent : Mt.main,
+                                              fontSize: a === De ? "18px" : "16px",
+                                              paddingLeft: a === De ? "12px" : "0px"
+                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
                                             r.stopPropagation();
                                             const s = r.currentTarget.getBoundingClientRect();
                                             Xt(t), za({
@@ -4188,9 +4194,11 @@ function POSPage({
                                             active_ingredient: r.active_ingredient,
                                             is_manual_price: !1
                                           }), H(n), ct(null), ls("");
-                                        }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><div className="font-black tracking-tight truncate text-base leading-snug" style={{
-                                              color: s === It ? Mt.accent : Mt.main
-                                            }}>{r.name}</div></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={n => {
+                                        }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={r.name} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+                                              color: s === It ? Mt.accent : Mt.main,
+                                              fontSize: s === It ? "18px" : "16px",
+                                              paddingLeft: s === It ? "12px" : "0px"
+                                            }} /></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={n => {
                                                 n.stopPropagation();
                                                 const l = n.currentTarget.getBoundingClientRect();
                                                 Xt(r), za({

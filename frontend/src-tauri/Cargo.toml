@@ -26,3 +26,11 @@ tauri-plugin-log = "2"
 tauri-plugin-shell = "2"
 tauri-plugin-http = "2"
 tauri-plugin-autostart = "2"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 16
+panic = "abort"
+strip = true
+

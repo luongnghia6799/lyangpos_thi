@@ -4,7 +4,7 @@ import { motion as m, AnimatePresence } from 'framer-motion';
 import { 
     Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, ShoppingCart, Clock, Bell, Image as ImageIcon,
-    SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert
+    SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -145,9 +145,59 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     accentColor: 'default',
     productTextColor: 'default',
     cartValuesColor: 'default',
+    overlayColor: 'default',
+    overlayOpacity: 30,
+    overlayBlur: 12,
     enableBorder: true,
     enableGlow: true,
     enableShadow: true
+};
+
+export const hexToRgba = (hex, alpha = 1) => {
+    if (!hex || hex === 'default') return null;
+    let cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+        cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+    if (cleanHex.length !== 6) return null;
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+export const getCartOverlayStyle = (config, isTransparent) => {
+    if (!isTransparent) {
+        return {
+            backgroundColor: 'transparent',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none'
+        };
+    }
+    const color = config?.overlayColor;
+    const opacity = (config?.overlayOpacity !== undefined && config?.overlayOpacity !== null && config?.overlayOpacity !== '') 
+        ? Number(config.overlayOpacity) 
+        : 30;
+    const blur = (config?.overlayBlur !== undefined && config?.overlayBlur !== null && config?.overlayBlur !== '') 
+        ? Number(config.overlayBlur) 
+        : 12;
+
+    const blurStr = blur > 0 ? `blur(${blur}px)` : 'none';
+
+    if (color && color !== 'default') {
+        const rgba = hexToRgba(color, opacity / 100) || color;
+        return {
+            backgroundColor: rgba,
+            backdropFilter: blurStr,
+            WebkitBackdropFilter: blurStr
+        };
+    }
+
+    return {
+        backgroundColor: `color-mix(in srgb, var(--card, var(--bg-color, #ffffff)) ${opacity}%, transparent)`,
+        backdropFilter: blurStr,
+        WebkitBackdropFilter: blurStr
+    };
 };
 
 export const applyCartThemeToDom = (config) => {
@@ -459,9 +509,10 @@ export default function CartColorCustomizerModal({
                         <div 
                             className={cn(
                                 "w-full rounded-2xl overflow-hidden transition-all duration-300 relative",
-                                transparentCartTable ? "bg-card/40 backdrop-blur-md" : "bg-white/70 dark:bg-slate-900/60"
+                                transparentCartTable && (!currentConfig.overlayColor || currentConfig.overlayColor === 'default') ? "bg-card/40" : (!transparentCartTable ? "bg-white/70 dark:bg-slate-900/60" : "")
                             )}
                             style={{
+                                ...getCartOverlayStyle(currentConfig, transparentCartTable),
                                 border: currentConfig.enableBorder !== false ? `${currentConfig.borderWidth || '1'}px solid ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f4740'}` : 'none',
                                 boxShadow: getCartBoxShadow(currentConfig)
                             }}
@@ -1185,6 +1236,204 @@ export default function CartColorCustomizerModal({
                                         <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
                                     </div>
                                 </div>
+
+                                {/* Custom Overlay Color & Blur Controls when transparentCartTable is active */}
+                                {transparentCartTable && (
+                                    <m.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/25 dark:border-emerald-500/20 shadow-xs space-y-4"
+                                    >
+                                        <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
+                                            <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                                <Paintbrush size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                                Tùy Chỉnh Màu Phủ & Độ Nhòe Kính (Glass Blur & Tint)
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newCfg = {
+                                                        ...currentConfig,
+                                                        overlayColor: 'default',
+                                                        overlayOpacity: 30,
+                                                        overlayBlur: 12
+                                                    };
+                                                    onChangeConfig(newCfg);
+                                                }}
+                                                className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                            >
+                                                <RotateCcw size={11} />
+                                                <span>Mặc định lớp phủ</span>
+                                            </button>
+                                        </div>
+
+                                        {/* 1. Overlay Color */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Droplet size={13} className="text-emerald-500" />
+                                                    Màu sắc lớp phủ (Glass Tint):
+                                                </span>
+                                                <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
+                                                    {currentConfig.overlayColor === 'default' || !currentConfig.overlayColor ? 'Mặc định (Theo theme)' : currentConfig.overlayColor}
+                                                </span>
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onChangeConfig({ ...currentConfig, overlayColor: 'default' })}
+                                                    className={cn(
+                                                        "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
+                                                        (currentConfig.overlayColor === 'default' || !currentConfig.overlayColor)
+                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                                            : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                    )}
+                                                >
+                                                    Mặc định
+                                                </button>
+                                                <div className="relative flex items-center gap-1.5 flex-1">
+                                                    <input
+                                                        type="color"
+                                                        value={(currentConfig.overlayColor && currentConfig.overlayColor !== 'default') ? currentConfig.overlayColor : '#ffffff'}
+                                                        onChange={(e) => onChangeConfig({ ...currentConfig, overlayColor: e.target.value })}
+                                                        className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={(currentConfig.overlayColor && currentConfig.overlayColor !== 'default') ? currentConfig.overlayColor : ''}
+                                                        placeholder="#HEX (vd: #ffffff, #064e3b, #1e293b, #000000)..."
+                                                        onChange={(e) => onChangeConfig({ ...currentConfig, overlayColor: e.target.value })}
+                                                        className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Quick swatches for overlay */}
+                                            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                                                <span className="text-[10px] font-bold text-slate-400 mr-1">Màu gợi ý:</span>
+                                                {[
+                                                    { color: '#ffffff', label: 'Trắng Sáng' },
+                                                    { color: '#000000', label: 'Đen Khói' },
+                                                    { color: '#064e3b', label: 'Xanh Emerald' },
+                                                    { color: '#1e3a10', label: 'Rêu Forest' },
+                                                    { color: '#543b24', label: 'Nâu Gỗ' },
+                                                    { color: '#172554', label: 'Xanh Navy' },
+                                                    { color: '#3b0764', label: 'Tím Huyền' },
+                                                    { color: '#1e293b', label: 'Xám Slate' },
+                                                    { color: '#451a03', label: 'Hổ Phách' }
+                                                ].map((swatch) => (
+                                                    <button
+                                                        key={swatch.color}
+                                                        type="button"
+                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayColor: swatch.color })}
+                                                        className={cn(
+                                                            "w-6 h-6 rounded-lg border shadow-xs transition-transform hover:scale-125 cursor-pointer relative",
+                                                            currentConfig.overlayColor === swatch.color ? "ring-2 ring-emerald-500 scale-110" : "border-black/20 dark:border-white/20"
+                                                        )}
+                                                        style={{ backgroundColor: swatch.color }}
+                                                        title={swatch.label}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Overlay Opacity Slider */}
+                                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Layers size={13} className="text-emerald-500" />
+                                                    Độ đục / Độ đậm lớp phủ (Opacity):
+                                                </span>
+                                                <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-md">
+                                                    {currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}%
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="95"
+                                                    step="5"
+                                                    value={currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}
+                                                    onChange={(e) => onChangeConfig({ ...currentConfig, overlayOpacity: Number(e.target.value) })}
+                                                    className="flex-1 accent-emerald-600 cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-5 gap-1.5 pt-0.5">
+                                                {[
+                                                    { val: 10, label: '10% (Siêu mỏng)' },
+                                                    { val: 25, label: '25% (Nhẹ)' },
+                                                    { val: 40, label: '40% (Vừa)' },
+                                                    { val: 60, label: '60% (Rõ)' },
+                                                    { val: 80, label: '80% (Đậm)' }
+                                                ].map((item) => (
+                                                    <button
+                                                        key={item.val}
+                                                        type="button"
+                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayOpacity: item.val })}
+                                                        className={cn(
+                                                            "py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer text-center truncate px-1",
+                                                            Number(currentConfig.overlayOpacity ?? 30) === item.val
+                                                                ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10 hover:border-black/20"
+                                                        )}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Overlay Blur Strength Slider */}
+                                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Sparkles size={13} className="text-amber-500" />
+                                                    Độ nhòe kính mờ (Backdrop Blur):
+                                                </span>
+                                                <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 dark:bg-amber-500/20 px-2 py-0.5 rounded-md">
+                                                    {currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}px
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="32"
+                                                    step="2"
+                                                    value={currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}
+                                                    onChange={(e) => onChangeConfig({ ...currentConfig, overlayBlur: Number(e.target.value) })}
+                                                    className="flex-1 accent-amber-500 cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-5 gap-1.5 pt-0.5">
+                                                {[
+                                                    { val: 0, label: '0px (Tắt)' },
+                                                    { val: 6, label: '6px (Nhẹ)' },
+                                                    { val: 12, label: '12px (Chuẩn)' },
+                                                    { val: 20, label: '20px (Mạnh)' },
+                                                    { val: 32, label: '32px (Ảo diệu)' }
+                                                ].map((item) => (
+                                                    <button
+                                                        key={item.val}
+                                                        type="button"
+                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayBlur: item.val })}
+                                                        className={cn(
+                                                            "py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer text-center truncate px-1",
+                                                            Number(currentConfig.overlayBlur ?? 12) === item.val
+                                                                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
+                                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10 hover:border-black/20"
+                                                        )}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </m.div>
+                                )}
 
                                 {/* Last Purchase Badge */}
                                 <div 

@@ -2012,8 +2012,9 @@ const InvoiceDesigner = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                <div className="grid grid-cols-2 gap-1.5 pt-1">
                                     <ModernToggle label="Viền bảng" checked={settings.invoice_table_border === 'true'} onChange={(v) => updateSetting('invoice_table_border', v ? 'true' : 'false')} />
+                                    <ModernToggle label="Viền tiêu đề cột" checked={settings.invoice_table_header_border !== 'false'} onChange={(v) => updateSetting('invoice_table_header_border', v ? 'true' : 'false')} />
                                     <ModernToggle label="Viền dòng" checked={settings.invoice_table_border_rows === 'true'} onChange={(v) => updateSetting('invoice_table_border_rows', v ? 'true' : 'false')} />
                                     <ModernToggle label="Viền cột" checked={settings.invoice_table_border_cols === 'true'} onChange={(v) => updateSetting('invoice_table_border_cols', v ? 'true' : 'false')} />
                                 </div>
@@ -2151,7 +2152,7 @@ const InvoiceDesigner = () => {
                                         </div>
                                     )}
 
-                                    <div className="pt-2 border-t border-border">
+                                    <div className="pt-2 border-t border-border space-y-2.5">
                                         <SliderWithInput
                                             label="Khoảng cách trên khối Tổng kết (Margin Top)"
                                             subtitle="Khoảng cách giữa bảng hàng hóa và khối tổng cộng / ghi chú"
@@ -2159,6 +2160,53 @@ const InvoiceDesigner = () => {
                                             onChange={(v) => updateSetting('invoice_total_section_margin_top', v)}
                                             min={0}
                                             max={60}
+                                            unit="px"
+                                        />
+                                        <SliderWithInput
+                                            label="Đệm dòng tiền (Summary Padding)"
+                                            subtitle="Khoảng cách đệm trên/dưới của các dòng tiền (độc lập với bảng)"
+                                            value={settings.invoice_summary_row_padding !== undefined && settings.invoice_summary_row_padding !== '' ? settings.invoice_summary_row_padding : (settings.invoice_row_padding || '4')}
+                                            onChange={(v) => updateSetting('invoice_summary_row_padding', v)}
+                                            min={0}
+                                            max={20}
+                                            unit="px"
+                                            presets={[
+                                                { label: 'Gọn (2px)', value: '2' },
+                                                { label: 'Chuẩn (4px)', value: '4' },
+                                                { label: 'Rộng (8px)', value: '8' }
+                                            ]}
+                                        />
+                                        <SliderWithInput
+                                            label="Giãn dòng tiền (Summary Line Height)"
+                                            subtitle="Độ cao dòng của chữ số và nhãn tổng kết"
+                                            value={settings.invoice_summary_line_height || settings.invoice_table_line_height || '1.15'}
+                                            onChange={(v) => updateSetting('invoice_summary_line_height', v)}
+                                            min={0.8}
+                                            max={2.0}
+                                            step={0.05}
+                                            unit=""
+                                            presets={[
+                                                { label: 'Gọn (1.0)', value: '1.0' },
+                                                { label: 'Chuẩn (1.15)', value: '1.15' },
+                                                { label: 'Thoáng (1.35)', value: '1.35' }
+                                            ]}
+                                        />
+                                        <SliderWithInput
+                                            label="Khoảng cách giữa các dòng tiền (Row Spacing)"
+                                            subtitle="Khoảng cách giữa các dòng Nợ cũ, Thanh toán, Tiền thối..."
+                                            value={settings.invoice_summary_row_spacing ?? '0'}
+                                            onChange={(v) => updateSetting('invoice_summary_row_spacing', v)}
+                                            min={0}
+                                            max={20}
+                                            unit="px"
+                                        />
+                                        <SliderWithInput
+                                            label="Khoảng cách trên dòng Còn lại / Dư nợ"
+                                            subtitle="Khoảng cách từ dòng trên đến đường gạch đôi Còn lại"
+                                            value={settings.invoice_total_balance_margin_top ?? '0'}
+                                            onChange={(v) => updateSetting('invoice_total_balance_margin_top', v)}
+                                            min={0}
+                                            max={30}
                                             unit="px"
                                         />
                                     </div>
@@ -2205,6 +2253,36 @@ const InvoiceDesigner = () => {
                                                 <Italic size={16} />
                                             </button>
                                         </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t border-border space-y-2.5">
+                                        <SliderWithInput
+                                            label="Cỡ chữ các dòng tiền (Nợ cũ, Thanh toán...)"
+                                            subtitle="Áp dụng cho Nợ cũ, Thanh toán, Khách đưa, Tiền thối"
+                                            value={settings.invoice_total_section_size || '14'}
+                                            onChange={(v) => updateSetting('invoice_total_section_size', v)}
+                                            min={9}
+                                            max={28}
+                                            unit="px"
+                                        />
+                                        <SliderWithInput
+                                            label="Cỡ chữ dòng Còn lại / Dư nợ"
+                                            value={settings.invoice_total_balance_size || '18'}
+                                            onChange={(v) => updateSetting('invoice_total_balance_size', v)}
+                                            min={9}
+                                            max={32}
+                                            unit="px"
+                                        />
+                                        <SegmentedControl
+                                            label="Đường gạch trên dòng Còn lại"
+                                            value={settings.invoice_total_balance_border || 'double'}
+                                            onChange={(v) => updateSetting('invoice_total_balance_border', v)}
+                                            options={[
+                                                { id: 'none', label: 'Không gạch' },
+                                                { id: 'double', label: 'Gạch đôi (Mặc định)' },
+                                                { id: 'solid', label: 'Gạch đơn' }
+                                            ]}
+                                        />
                                     </div>
                                 </div>
                             </DesignerSection>

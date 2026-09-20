@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
+const hexToRgba = (hex, alpha = 1) => {
+  if (!hex || hex === 'default') return null;
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(c => c + c).join('');
+  }
+  if (cleanHex.length !== 6) return null;
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const AppWallpaper = () => {
   const [wallpaper, setWallpaper] = useState(() => {
     const saved = localStorage.getItem("pos_cart_wallpaper");
@@ -110,7 +123,9 @@ const AppWallpaper = () => {
             zIndex: -9,
             backdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
             WebkitBackdropFilter: `blur(${wallpaper.glassBlur !== undefined ? wallpaper.glassBlur : 10}px)`,
-            backgroundColor: `color-mix(in srgb, var(--bg-color) ${wallpaper.glassOpacity !== undefined ? wallpaper.glassOpacity : 20}%, transparent)`
+            backgroundColor: (wallpaper.glassColor && wallpaper.glassColor !== 'default')
+              ? (hexToRgba(wallpaper.glassColor, (wallpaper.glassOpacity !== undefined ? wallpaper.glassOpacity : 20) / 100) || wallpaper.glassColor)
+              : `color-mix(in srgb, var(--bg-color, #faf8f3) ${wallpaper.glassOpacity !== undefined ? wallpaper.glassOpacity : 20}%, transparent)`
           }}
         />
       )}

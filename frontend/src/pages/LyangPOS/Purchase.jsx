@@ -26,7 +26,7 @@ import CustomSelect from '../../components/CustomSelect';
 import CustomDatePicker from '../../components/CustomDatePicker';
 import PriceRaiseModal from '../../components/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow } from '../../components/CartColorCustomizerModal';
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from '../../components/CartColorCustomizerModal';
 import QuickAuditPopout from '../../components/QuickAuditPopout';
 import LyangLogo from '../../assets/logo.png';
 
@@ -2545,8 +2545,9 @@ export default function Purchase() {
                         className="flex flex-col min-h-0 flex-1 relative"
                     >
                         <div 
-                            className={cn("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable ? "bg-card/30 dark:bg-card/25 backdrop-blur-md shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]")}
+                            className={cn("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable && (!cartColorConfig?.overlayColor || cartColorConfig.overlayColor === 'default') ? "bg-card/30 dark:bg-card/25 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : (!transparentCartTable ? "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]" : "shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]"))}
                             style={{
+                                ...getCartOverlayStyle(cartColorConfig, transparentCartTable),
                                 border: cartColorConfig.enableBorder === false ? 'none' : undefined,
                                 borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
                                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),

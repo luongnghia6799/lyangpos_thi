@@ -767,8 +767,8 @@ const PrintTemplate = forwardRef(({
     const borderValue = `${borderThickness} ${s.invoice_table_border_style || 'solid'} #000`;
 
     const headerBorderValue = s.invoice_table_header_border === 'true'
-        ? `${s.invoice_table_header_border_width}px solid ${s.invoice_table_header_border_color}`
-        : (s.invoice_table_border_rows === 'true' ? borderValue : 'none');
+        ? `${s.invoice_table_header_border_width || 1}px solid ${s.invoice_table_header_border_color || '#000000'}`
+        : (s.invoice_table_header_border === 'false' ? 'none' : (s.invoice_table_border_rows === 'true' ? borderValue : 'none'));
 
     const isHeaderBadge = s.invoice_table_header_is_badge === 'true';
 
@@ -868,7 +868,7 @@ const PrintTemplate = forwardRef(({
                         break-inside: avoid !important;
                     }
                     .invoice-items-table th {
-                        border-top: ${isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : 'none')} !important;
+                        border-top: ${isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : (s.invoice_table_header_border === 'false' ? 'none' : (s.invoice_table_border === 'true' ? borderValue : 'none')))} !important;
                         border-bottom: ${isHeaderBadge ? badgeHeaderBorder : headerBorderValue} !important;
                         border-right: ${(!isHeaderBadge && s.invoice_table_border_cols === 'true') ? borderValue : 'none'} !important;
                         border-left: ${(!isHeaderBadge && s.invoice_table_border === 'true') ? borderValue : 'none'} !important;
@@ -1010,7 +1010,7 @@ const PrintTemplate = forwardRef(({
         tableLayout: 'auto'
     };
     const thStyle = {
-        borderTop: isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : 'none'),
+        borderTop: isHeaderBadge ? badgeHeaderBorder : (s.invoice_table_header_border === 'true' ? headerBorderValue : (s.invoice_table_header_border === 'false' ? 'none' : (s.invoice_table_border === 'true' ? borderValue : 'none'))),
         borderBottom: isHeaderBadge ? badgeHeaderBorder : headerBorderValue,
         borderRight: (!isHeaderBadge && s.invoice_table_border_cols === 'true') ? borderValue : 'none',
         padding: isHeaderBadge ? `${Math.max(4, Math.floor((parseInt(s.invoice_row_padding || 4) + 4) * 0.8))}px ${s.invoice_row_padding || 4}px` : `${Math.max(4, parseInt(s.invoice_row_padding || 4))}px 4px`,
@@ -1070,13 +1070,31 @@ const PrintTemplate = forwardRef(({
         return style;
     };
 
+    const tableRowPadding = (s.paper_size === 'A6' || s.paper_size === 'K80' || s.paper_size === 'K58') 
+        ? Math.max(1, parseInt(s.invoice_row_padding || 4) - 2) 
+        : parseInt(s.invoice_row_padding || 4);
+
+    const summaryRowPadding = s.invoice_summary_row_padding !== undefined && s.invoice_summary_row_padding !== ''
+        ? parseInt(s.invoice_summary_row_padding)
+        : tableRowPadding;
+
+    const summaryLineHeight = s.invoice_summary_line_height || s.invoice_table_line_height || '1.15';
+    const summaryRowMarginBottom = `${s.invoice_summary_row_spacing !== undefined && s.invoice_summary_row_spacing !== '' ? s.invoice_summary_row_spacing : 0}px`;
+    const balanceMarginTop = `${s.invoice_total_balance_margin_top !== undefined && s.invoice_total_balance_margin_top !== '' ? s.invoice_total_balance_margin_top : 0}px`;
+    const balancePaddingTop = `${s.invoice_total_balance_padding_top !== undefined && s.invoice_total_balance_padding_top !== '' ? s.invoice_total_balance_padding_top : summaryRowPadding}px`;
+
     const summaryRowStyle = {
         display: 'flex',
         justifyContent: 'flex-end',
-        alignItems: 'baseline',
+        alignItems: 'center',
         gap: '15px',
-        marginBottom: '4px',
-        pageBreakInside: 'avoid'
+        paddingTop: `${summaryRowPadding}px`,
+        paddingBottom: `${summaryRowPadding}px`,
+        marginBottom: summaryRowMarginBottom,
+        lineHeight: summaryLineHeight,
+        minHeight: `${parseInt(s.invoice_total_section_size || 13) * parseFloat(summaryLineHeight) + summaryRowPadding * 2}px`,
+        pageBreakInside: 'avoid',
+        boxSizing: 'border-box'
     };
 
     const summaryLabelStyle = {
@@ -1084,7 +1102,7 @@ const PrintTemplate = forwardRef(({
         fontWeight: '500',
         color: '#000',
         whiteSpace: 'nowrap',
-        lineHeight: '1.25'
+        lineHeight: summaryLineHeight
     };
 
     const summaryValueStyle = {
@@ -1093,7 +1111,7 @@ const PrintTemplate = forwardRef(({
         minWidth: '100px',
         textAlign: 'right',
         color: '#000',
-        lineHeight: '1.25'
+        lineHeight: summaryLineHeight
     };
 
     const mainTotalLabelStyle = {
@@ -1102,7 +1120,7 @@ const PrintTemplate = forwardRef(({
         fontStyle: s.invoice_total_line_italic === 'true' ? 'italic' : 'normal',
         color: s.invoice_color_total_label || '#000',
         whiteSpace: 'nowrap',
-        lineHeight: '1.25'
+        lineHeight: summaryLineHeight
     };
 
     const mainTotalValueStyle = {
@@ -1112,7 +1130,7 @@ const PrintTemplate = forwardRef(({
         minWidth: '100px',
         textAlign: 'right',
         color: s.invoice_color_total_value || '#000',
-        lineHeight: '1.25'
+        lineHeight: summaryLineHeight
     };
 
     const getInvoiceTitle = () => {
@@ -1626,16 +1644,10 @@ const PrintTemplate = forwardRef(({
                                                                     whiteSpace: 'nowrap',
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
-                                                                    maxWidth: getColWidthSetting('invoice_col_name') ? `${getColWidthSetting('invoice_col_name')}px` : '200px',
-                                                                    paddingTop: '3px',
-                                                                    paddingBottom: '3px',
-                                                                    marginTop: '-3px',
-                                                                    marginBottom: '-3px'
+                                                                    maxWidth: getColWidthSetting('invoice_col_name') ? `${getColWidthSetting('invoice_col_name')}px` : '200px'
                                                                 } : {
                                                                     wordBreak: 'break-word',
-                                                                    whiteSpace: 'normal',
-                                                                    paddingTop: '2px',
-                                                                    paddingBottom: '2px'
+                                                                    whiteSpace: 'normal'
                                                                 })
                                                             }}>
                                                                 {item.product_name}
@@ -1870,7 +1882,11 @@ const PrintTemplate = forwardRef(({
                         "Tổng cộng",
                         "invoice_color_total_value",
                         { sizeKey: "invoice_total_line_size", colorKey: "invoice_color_total_value", tab: "table" },
-                        <div style={{ ...summaryRowStyle, marginTop: `${s.invoice_total_line_margin_top || 0}px`, marginBottom: `${(s.invoice_total_line_margin_bottom !== undefined && s.invoice_total_line_margin_bottom !== '' && s.invoice_total_line_margin_bottom !== '10') ? s.invoice_total_line_margin_bottom : 4}px` }}>
+                        <div style={{ 
+                            ...summaryRowStyle, 
+                            marginTop: `${s.invoice_total_line_margin_top !== undefined && s.invoice_total_line_margin_top !== '' ? s.invoice_total_line_margin_top : 0}px`, 
+                            marginBottom: `${s.invoice_total_line_margin_bottom !== undefined && s.invoice_total_line_margin_bottom !== '' ? s.invoice_total_line_margin_bottom : summaryRowMarginBottom}` 
+                        }}>
                             <div style={mainTotalLabelStyle}>Tổng cộng:</div>
                             <div style={mainTotalValueStyle}>{formatNumber(safeTotalAmount)}</div>
                         </div>
@@ -1931,25 +1947,37 @@ const PrintTemplate = forwardRef(({
                                 </div>
                             ) : (
                                 <>
-                                    {(showOldDebt !== undefined ? !!showOldDebt : s.invoice_show_old_debt === 'true') && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && safeOldDebt !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && (
+                                    {(showOldDebt !== undefined ? !!showOldDebt : s.invoice_show_old_debt === 'true') && (data.partner_id || data.partner?.id || data.partner || safeOldDebt !== 0) && safeOldDebt !== 0 && !(type === 'Sale' && data.payment_method === 'Cash' && s.invoice_hide_old_debt_on_cash === 'true') && wrap(
+                                        "Nợ cũ",
+                                        "invoice_total_section_size",
+                                        { sizeKey: "invoice_total_section_size", toggleKey: "invoice_show_old_debt", tab: "footer" },
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Nợ cũ:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeOldDebt)}</div>
                                         </div>
                                     )}
-                                    {(showCashGiven !== undefined ? !!showCashGiven : s.invoice_show_cash_given === 'true') && safeCashGiven > 0 && (
+                                    {(showCashGiven !== undefined ? !!showCashGiven : s.invoice_show_cash_given === 'true') && safeCashGiven > 0 && wrap(
+                                        "Khách đưa",
+                                        "invoice_total_section_size",
+                                        { sizeKey: "invoice_total_section_size", toggleKey: "invoice_show_cash_given", tab: "footer" },
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Khách đưa:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeCashGiven)}</div>
                                         </div>
                                     )}
-                                    {(showChange !== undefined ? !!showChange : s.invoice_show_change === 'true') && safeCashGiven > safeTotalAmount && (
+                                    {(showChange !== undefined ? !!showChange : s.invoice_show_change === 'true') && safeCashGiven > safeTotalAmount && wrap(
+                                        "Tiền thối",
+                                        "invoice_total_section_size",
+                                        { sizeKey: "invoice_total_section_size", toggleKey: "invoice_show_change", tab: "footer" },
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Tiền thối:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeCashGiven - safeTotalAmount)}</div>
                                         </div>
                                     )}
-                                    {(showPayment !== undefined ? !!showPayment : s.invoice_show_paid === 'true') && (
+                                    {(showPayment !== undefined ? !!showPayment : s.invoice_show_paid === 'true') && wrap(
+                                        "Thanh toán",
+                                        "invoice_total_section_size",
+                                        { sizeKey: "invoice_total_section_size", toggleKey: "invoice_show_paid", tab: "footer" },
                                         <div style={summaryRowStyle}>
                                             <div style={summaryLabelStyle}>Thanh toán:</div>
                                             <div style={summaryValueStyle}>{formatNumber(safeAmountPaid)}</div>
@@ -1968,9 +1996,14 @@ const PrintTemplate = forwardRef(({
                                                 "Còn lại / Dư nợ",
                                                 "invoice_total_balance_size",
                                                 { sizeKey: "invoice_total_balance_size", toggleKey: "invoice_show_balance", tab: "table" },
-                                                <div style={{ ...summaryRowStyle, marginTop: '5px', borderTop: '1px double #000', paddingTop: '5px' }}>
-                                                    <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size}px`, fontWeight: '900' }}>Còn lại:</div>
-                                                    <div style={{ ...summaryValueStyle, fontSize: `${s.invoice_total_balance_size}px`, fontWeight: '900' }}>
+                                                <div style={{ 
+                                                    ...summaryRowStyle, 
+                                                    marginTop: balanceMarginTop, 
+                                                    borderTop: (s.invoice_total_balance_border === 'false') ? 'none' : (s.invoice_total_balance_border === 'solid' ? '1px solid #000' : (s.invoice_total_balance_border === 'none' ? 'none' : '1px double #000')), 
+                                                    paddingTop: balancePaddingTop 
+                                                }}>
+                                                    <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size || 18}px`, fontWeight: '900' }}>Còn lại:</div>
+                                                    <div style={{ ...summaryValueStyle, fontSize: `${s.invoice_total_balance_size || 18}px`, fontWeight: '900' }}>
                                                         {formatNumber(balance)}
                                                     </div>
                                                 </div>
@@ -2015,7 +2048,7 @@ const PrintTemplate = forwardRef(({
                         const shouldShowRemaining = showRemaining !== undefined ? !!showRemaining : s.invoice_show_balance === 'true';
                         if (shouldShowRemaining && newDebt !== null && (data.partner_id || data.partner_name || data.old_debt !== undefined)) {
                             return (
-                                <div style={{ ...summaryRowStyle, marginTop: '5px', borderTop: '1px double #000', paddingTop: '5px' }}>
+                                <div style={{ ...summaryRowStyle, marginTop: balanceMarginTop, borderTop: '1px double #000', paddingTop: balancePaddingTop }}>
                                     <div style={{ ...summaryLabelStyle, fontSize: `${s.invoice_total_balance_size || 14}px`, fontWeight: '900' }}>
                                         Dư nợ cuối:
                                     </div>

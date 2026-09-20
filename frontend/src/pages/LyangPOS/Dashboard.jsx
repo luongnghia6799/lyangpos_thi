@@ -69,7 +69,8 @@ import {
     Check,
     SlidersHorizontal,
     Sliders,
-    Layers
+    Layers,
+    Droplet
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/Toast';
@@ -2105,6 +2106,76 @@ export default function Dashboard() {
 
                                                 {(appWallpaper.glassEnabled !== false) && (
                                                     <div className="space-y-3 pl-1 pt-1">
+                                                        {/* Color selection for Glass Overlay */}
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1">
+                                                                    <Droplet size={13} className="text-emerald-500" />
+                                                                    Màu Kính Phủ Toàn Trang
+                                                                </label>
+                                                                <span className="text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                                                                    {appWallpaper.glassColor && appWallpaper.glassColor !== 'default' ? appWallpaper.glassColor : 'Mặc định (Theo theme)'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setAppWallpaper(prev => ({ ...prev, glassColor: 'default' }))}
+                                                                    className={cn(
+                                                                        "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
+                                                                        (!appWallpaper.glassColor || appWallpaper.glassColor === 'default')
+                                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                                                            : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                                    )}
+                                                                >
+                                                                    Mặc định
+                                                                </button>
+                                                                <div className="relative flex items-center gap-1.5 flex-1">
+                                                                    <input
+                                                                        type="color"
+                                                                        value={(appWallpaper.glassColor && appWallpaper.glassColor !== 'default') ? appWallpaper.glassColor : '#ffffff'}
+                                                                        onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassColor: e.target.value }))}
+                                                                        className="w-8 h-8 rounded-lg cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={(appWallpaper.glassColor && appWallpaper.glassColor !== 'default') ? appWallpaper.glassColor : ''}
+                                                                        placeholder="#HEX (vd: #ffffff, #000000, #064e3b)..."
+                                                                        onChange={(e) => setAppWallpaper(prev => ({ ...prev, glassColor: e.target.value }))}
+                                                                        className="flex-1 h-8 px-2.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Quick Swatches */}
+                                                            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                                                                <span className="text-[10px] font-bold text-muted-foreground mr-1">Gợi ý:</span>
+                                                                {[
+                                                                    { color: '#ffffff', label: 'Trắng Sáng' },
+                                                                    { color: '#000000', label: 'Đen Khói' },
+                                                                    { color: '#064e3b', label: 'Xanh Emerald' },
+                                                                    { color: '#1e3a10', label: 'Rêu Forest' },
+                                                                    { color: '#543b24', label: 'Nâu Gỗ' },
+                                                                    { color: '#172554', label: 'Xanh Navy' },
+                                                                    { color: '#3b0764', label: 'Tím Huyền' },
+                                                                    { color: '#1e293b', label: 'Xám Slate' },
+                                                                    { color: '#451a03', label: 'Hổ Phách' }
+                                                                ].map((swatch) => (
+                                                                    <button
+                                                                        key={swatch.color}
+                                                                        type="button"
+                                                                        onClick={() => setAppWallpaper(prev => ({ ...prev, glassColor: swatch.color }))}
+                                                                        className={cn(
+                                                                            "w-5 h-5 rounded-md border shadow-xs transition-transform hover:scale-125 cursor-pointer",
+                                                                            appWallpaper.glassColor === swatch.color ? "ring-2 ring-emerald-500 scale-110" : "border-black/20 dark:border-white/20"
+                                                                        )}
+                                                                        style={{ backgroundColor: swatch.color }}
+                                                                        title={swatch.label}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
                                                         <div className="space-y-1.5">
                                                             <div className="flex justify-between items-center">
                                                                 <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Độ Nhòe Kính</label>

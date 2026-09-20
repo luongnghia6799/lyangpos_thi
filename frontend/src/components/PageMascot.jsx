@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MASCOT_LIST, MASCOT_QUOTES, DEFAULT_MASCOT_CONFIG, playPopSound } from '../lib/mascots';
-import { Settings, Volume2, VolumeX, Sparkles, X, Lock, Unlock, RotateCcw } from 'lucide-react';
+import { Settings, Volume2, VolumeX } from 'lucide-react';
 
 const DIRECTIONS = [
   'up-left',
@@ -38,46 +38,33 @@ const CLOCKWISE = [
 ];
 
 const SECTOR = (Math.PI * 2) / CLOCKWISE.length;
-const HYSTERESIS = 0.14;
-const DEAD_ZONE = 60;
+const HYSTERESIS = 0.15;
+const DEAD_ZONE = 65;
 
 const PAYOFFS = ['heart', 'sparkle', 'delighted', 'wink', 'surprised'];
 const BOOP_PAYOFF = 130;
 const BOOP_END = 580;
-const SQUASH_MS = 420;
+const SQUASH_MS = 400;
 const DIZZY_AFTER = 4;
 const DIZZY_WINDOW = 1600;
 const DIZZY_END = 1100;
 
 const SQUASH_KEYFRAMES = [
-  { transform: 'scale(1, 1)', easing: 'ease-in' },
-  { transform: 'scale(1.12, 0.85)', offset: 0.18, easing: 'ease-out' },
-  { transform: 'scale(0.94, 1.08)', offset: 0.45, easing: 'ease-in-out' },
-  { transform: 'scale(1.03, 0.97)', offset: 0.72, easing: 'ease-in-out' },
+  { transform: 'scale(1, 1)' },
+  { transform: 'scale(1.12, 0.86)', offset: 0.2 },
+  { transform: 'scale(0.95, 1.06)', offset: 0.5 },
   { transform: 'scale(1, 1)' },
 ];
 
-function cellStyle(index) {
+function getCellPos(index) {
   const col = index % 3;
   const row = Math.floor(index / 3);
-  return {
-    backgroundPosition: `${col * 50}% ${row * 50}%`,
-  };
+  return `${col * 50}% ${row * 50}%`;
 }
 
 function wrapAngle(angle) {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
-
-const layerStyle = {
-  position: 'absolute',
-  inset: 0,
-  backgroundSize: '300% 300%',
-  backgroundRepeat: 'no-repeat',
-  imageRendering: '-webkit-optimize-contrast',
-  willChange: 'background-position, opacity',
-  transition: 'opacity 0.15s ease-out'
-};
 
 const PageMascot = ({ onOpenSettings }) => {
   const [config, setConfig] = useState(() => {
@@ -97,14 +84,14 @@ const PageMascot = ({ onOpenSettings }) => {
     return { x: defaultX, y: defaultY };
   });
 
-  const [direction, setDirection] = useState('center');
-  const [reaction, setReaction] = useState(null);
   const [quote, setQuote] = useState('');
   const [showQuote, setShowQuote] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const containerRef = useRef(null);
+  const dirLayerRef = useRef(null);
+  const reactLayerRef = useRef(null);
   const squashRef = useRef(null);
   const timersRef = useRef([]);
   const boopsRef = useRef({ count: 0, at: 0 });
@@ -160,16 +147,16 @@ const PageMascot = ({ onOpenSettings }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [config.size]);
 
-  // High-performance cursor tracking with Hysteresis and Dead-zone damping
+  // ZERO-GPU, ZERO-REACT-RENDER DIRECT DOM POINTER TRACKER
   useEffect(() => {
     if (!config.enabled) return;
 
     let pointer = null;
     let scheduled = false;
 
-    const aim = () => {
+    const updateSpriteDirect = () => {
       scheduled = false;
-      if (!containerRef.current || !pointer || isDragging) return;
+      if (!dirLayerRef.current || !pointer || dragStartRef.current.moved) return;
 
       const currentPos = posRef.current;
       const size = config.size || 110;
@@ -183,7 +170,8 @@ const PageMascot = ({ onOpenSettings }) => {
       if (dist < DEAD_ZONE) {
         if (sectorRef.current !== -1) {
           sectorRef.current = -1;
-          setDirection('center');
+          // Set to center (index 4)
+          dirLayerRef.current.style.backgroundPosition = '50% 50%';
         }
         return;
       }
@@ -191,7 +179,7 @@ const PageMascot = ({ onOpenSettings }) => {
       const angle = Math.atan2(dy, dx);
       const currentSector = sectorRef.current;
 
-      // Hysteresis check: keep current sector until pointer definitely crosses threshold
+      // Hysteresis threshold
       if (
         currentSector !== -1 &&
         Math.abs(wrapAngle(angle - currentSector * SECTOR)) < SECTOR / 2 + HYSTERESIS
@@ -202,7 +190,12 @@ const PageMascot = ({ onOpenSettings }) => {
       const newSector = (Math.round(angle / SECTOR) + CLOCKWISE.length) % CLOCKWISE.length;
       if (newSector !== sectorRef.current) {
         sectorRef.current = newSector;
-        setDirection(CLOCKWISE[newSector]);
+        const dirName = CLOCKWISE[newSector];
+        const dirIdx = DIRECTIONS.indexOf(dirName);
+        if (dirIdx >= 0) {
+          // Direct DOM style update = ZERO React re-render overhead!
+          dirLayerRef.current.style.backgroundPosition = getCellPos(dirIdx);
+        }
       }
     };
 
@@ -210,7 +203,7 @@ const PageMascot = ({ onOpenSettings }) => {
       pointer = { x: e.clientX, y: e.clientY };
       if (!scheduled) {
         scheduled = true;
-        requestAnimationFrame(aim);
+        requestAnimationFrame(updateSpriteDirect);
       }
     };
 
@@ -218,7 +211,7 @@ const PageMascot = ({ onOpenSettings }) => {
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
     };
-  }, [config.enabled, config.size, isDragging]);
+  }, [config.enabled, config.size]);
 
   // Clean up timers
   useEffect(() => {
@@ -245,8 +238,24 @@ const PageMascot = ({ onOpenSettings }) => {
       quoteTimerRef.current = setTimeout(() => setShowQuote(false), 4000);
     }
 
+    const setReactFrame = (reactionName) => {
+      if (!reactLayerRef.current || !dirLayerRef.current) return;
+      if (!reactionName) {
+        // Return to directions layer
+        reactLayerRef.current.style.opacity = '0';
+        dirLayerRef.current.style.opacity = '1';
+      } else {
+        const rIdx = REACTIONS.indexOf(reactionName);
+        if (rIdx >= 0) {
+          reactLayerRef.current.style.backgroundPosition = getCellPos(rIdx);
+        }
+        reactLayerRef.current.style.opacity = '1';
+        dirLayerRef.current.style.opacity = '0';
+      }
+    };
+
     const later = (ms, next) => {
-      timersRef.current.push(window.setTimeout(() => setReaction(next), ms));
+      timersRef.current.push(window.setTimeout(() => setReactFrame(next), ms));
     };
 
     const now = Date.now();
@@ -256,17 +265,16 @@ const PageMascot = ({ onOpenSettings }) => {
 
     if (boops.count >= DIZZY_AFTER) {
       boops.count = 0;
-      setReaction('dizzy');
+      setReactFrame('dizzy');
       later(DIZZY_END, null);
     } else {
-      setReaction('blink');
+      setReactFrame('blink');
       later(BOOP_PAYOFF, PAYOFFS[(boops.count - 1) % PAYOFFS.length]);
       later(BOOP_END, null);
     }
 
-    // Squash & Stretch spring bounce animation
     if (squashRef.current) {
-      squashRef.current.animate(SQUASH_KEYFRAMES, { duration: SQUASH_MS, easing: 'linear' });
+      squashRef.current.animate(SQUASH_KEYFRAMES, { duration: SQUASH_MS, easing: 'ease-out' });
     }
   };
 
@@ -287,7 +295,7 @@ const PageMascot = ({ onOpenSettings }) => {
       const dx = moveEvent.clientX - dragStartRef.current.x;
       const dy = moveEvent.clientY - dragStartRef.current.y;
 
-      if (!dragStartRef.current.moved && Math.hypot(dx, dy) > 6) {
+      if (!dragStartRef.current.moved && Math.hypot(dx, dy) > 5) {
         dragStartRef.current.moved = true;
         setIsDragging(true);
       }
@@ -337,8 +345,6 @@ const PageMascot = ({ onOpenSettings }) => {
   if (!config.enabled) return null;
 
   const size = config.size || 110;
-  const dirIndex = DIRECTIONS.indexOf(direction);
-  const reactIndex = REACTIONS.indexOf(reaction || 'blink');
 
   return (
     <div
@@ -351,7 +357,9 @@ const PageMascot = ({ onOpenSettings }) => {
         height: `${size}px`,
         zIndex: 99999,
         touchAction: 'none',
-        userSelect: 'none'
+        userSelect: 'none',
+        contain: 'layout style',
+        isolation: 'isolate'
       }}
       className="group select-none"
       onMouseEnter={() => setIsHovered(true)}
@@ -361,7 +369,7 @@ const PageMascot = ({ onOpenSettings }) => {
       {/* Speech Bubble / Quote */}
       {showQuote && quote && (
         <div
-          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl shadow-xl border border-amber-200/80 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 animate-in fade-in zoom-in-95 duration-200 pointer-events-none flex items-center gap-1.5 z-10"
+          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/95 dark:bg-slate-900/95 px-3.5 py-1.5 rounded-2xl shadow-lg border border-amber-200/80 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 animate-in fade-in duration-150 pointer-events-none flex items-center gap-1.5 z-10"
           style={{ maxWidth: '280px', whiteSpace: 'normal', textAlign: 'center' }}
         >
           <span>{quote}</span>
@@ -371,7 +379,7 @@ const PageMascot = ({ onOpenSettings }) => {
 
       {/* Hover Action Badges */}
       <div
-        className={`absolute -top-3 -right-2 flex items-center gap-1 transition-all duration-200 z-20 ${
+        className={`absolute -top-3 -right-2 flex items-center gap-1 transition-all duration-150 z-20 ${
           isHovered && !isDragging ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'
         }`}
       >
@@ -402,7 +410,7 @@ const PageMascot = ({ onOpenSettings }) => {
         </button>
       </div>
 
-      {/* Mascot Button & Dual Preloaded Sprite Sheets */}
+      {/* Mascot Button & Dual Preloaded Sprite Sheets (NO GPU Blur Filter!) */}
       <button
         type="button"
         onPointerDown={handlePointerDown}
@@ -419,9 +427,6 @@ const PageMascot = ({ onOpenSettings }) => {
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
           opacity: config.opacity ?? 1,
-          filter: isDragging
-            ? 'drop-shadow(0 15px 25px rgba(0,0,0,0.35))'
-            : 'drop-shadow(0 8px 16px rgba(0,0,0,0.18))',
           outline: 'none'
         }}
         title={`${currentChar.name} - Kéo thả để di chuyển | Nhấp để chọc | Chuột phải để cài đặt`}
@@ -436,30 +441,40 @@ const PageMascot = ({ onOpenSettings }) => {
             transformOrigin: '50% 78%'
           }}
         >
-          {/* Directions Layer */}
+          {/* Directions Layer (Direct DOM background-position) */}
           <span
+            ref={dirLayerRef}
             style={{
-              ...layerStyle,
-              backgroundImage: `url(${currentChar.directions})`,
-              ...cellStyle(dirIndex >= 0 ? dirIndex : 4),
-              opacity: reaction ? 0 : 1,
+              position: 'absolute',
+              inset: 0,
+              backgroundSize: '300% 300%',
+              backgroundPosition: '50% 50%',
+              backgroundImage: `url("${currentChar.directions}")`,
+              backgroundRepeat: 'no-repeat',
+              opacity: 1,
+              transition: 'opacity 0.1s linear'
             }}
           />
 
-          {/* Reactions Layer (Always mounted so images are loaded up-front without flicker) */}
+          {/* Reactions Layer (Always mounted) */}
           <span
+            ref={reactLayerRef}
             style={{
-              ...layerStyle,
-              backgroundImage: `url(${currentChar.reactions})`,
-              ...cellStyle(reactIndex >= 0 ? reactIndex : 0),
-              opacity: reaction ? 1 : 0,
+              position: 'absolute',
+              inset: 0,
+              backgroundSize: '300% 300%',
+              backgroundPosition: '0% 0%',
+              backgroundImage: `url("${currentChar.reactions}")`,
+              backgroundRepeat: 'no-repeat',
+              opacity: 0,
+              transition: 'opacity 0.1s linear'
             }}
           />
         </span>
 
-        {/* Drag glowing ring indicator */}
+        {/* Drag ring indicator */}
         {isDragging && (
-          <div className="absolute inset-0 rounded-full ring-2 ring-emerald-400 ring-offset-2 ring-offset-transparent animate-pulse pointer-events-none" />
+          <div className="absolute inset-0 rounded-full border-2 border-emerald-400 pointer-events-none" />
         )}
       </button>
     </div>

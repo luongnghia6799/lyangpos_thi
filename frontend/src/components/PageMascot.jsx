@@ -332,7 +332,9 @@ const PageMascot = ({ onOpenSettings }) => {
 
   const handleContextMenu = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     if (onOpenSettings) onOpenSettings();
+    return false;
   };
 
   if (!config.enabled) return null;
@@ -380,7 +382,6 @@ const PageMascot = ({ onOpenSettings }) => {
             e.stopPropagation();
             if (onOpenSettings) onOpenSettings();
           }}
-          title="Cài đặt Mascot (Chuột phải)"
           className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
         >
           <Settings size={12} />
@@ -394,7 +395,6 @@ const PageMascot = ({ onOpenSettings }) => {
             setConfig(updated);
             localStorage.setItem('lyang_mascot_config', JSON.stringify(updated));
           }}
-          title={config.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
           className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
         >
           {config.soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} className="text-red-400" />}
@@ -406,6 +406,7 @@ const PageMascot = ({ onOpenSettings }) => {
         ref={spriteRef}
         onPointerDown={handlePointerDown}
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
         style={{
           width: '100%',
           height: '100%',
@@ -416,7 +417,6 @@ const PageMascot = ({ onOpenSettings }) => {
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
           opacity: config.opacity ?? 1
         }}
-        title={`${currentChar.name} - Kéo thả để di chuyển | Nhấp để chọc | Chuột phải để cài đặt`}
       >
         {/* Drag indicator border */}
         {isDragging && (

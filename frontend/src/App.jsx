@@ -13,7 +13,7 @@ import CustomCursor from './components/CustomCursor';
 import GlobalReminderAlert from './components/GlobalReminderAlert';
 import ReminderModal from './components/ReminderModal';
 import PageMascot from './components/PageMascot';
-import MascotSettingsModal from './components/MascotSettingsModal';
+import MascotPopover from './components/MascotPopover';
 import { checkIsAdmin } from './lib/auth';
 import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
@@ -703,20 +703,28 @@ function App() {
   }, []);
 
   const [showReminderModal, setShowReminderModal] = useState(false);
-  const [showMascotModal, setShowMascotModal] = useState(false);
+  const [showMascotPopover, setShowMascotPopover] = useState(false);
+  const [mascotPos, setMascotPos] = useState({ x: 800, y: 500 });
+  const [mascotSize, setMascotSize] = useState(110);
 
   useEffect(() => {
     const handleOpenReminderModal = () => {
       setShowReminderModal(true);
     };
-    const handleOpenMascotModal = () => {
-      setShowMascotModal(true);
+    const handleOpenMascotPopover = (e) => {
+      if (e?.detail?.pos) {
+        setMascotPos(e.detail.pos);
+      }
+      if (e?.detail?.size) {
+        setMascotSize(e.detail.size);
+      }
+      setShowMascotPopover(true);
     };
     window.addEventListener('pos_open_reminders', handleOpenReminderModal);
-    window.addEventListener('lyang_open_mascot_settings', handleOpenMascotModal);
+    window.addEventListener('lyang_open_mascot_settings', handleOpenMascotPopover);
     return () => {
       window.removeEventListener('pos_open_reminders', handleOpenReminderModal);
-      window.removeEventListener('lyang_open_mascot_settings', handleOpenMascotModal);
+      window.removeEventListener('lyang_open_mascot_settings', handleOpenMascotPopover);
     };
   }, []);
 
@@ -728,8 +736,23 @@ function App() {
           transition={gpuDisabled ? { type: "just" } : { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
         >
           <CustomCursor />
-          <PageMascot onOpenSettings={() => setShowMascotModal(true)} />
-          <MascotSettingsModal isOpen={showMascotModal} onClose={() => setShowMascotModal(false)} />
+          <PageMascot
+            onOpenSettings={({ pos, size }) => {
+              if (pos) setMascotPos(pos);
+              if (size) setMascotSize(size);
+              setShowMascotPopover((prev) => !prev);
+            }}
+            onPosChange={(newPos, newSize) => {
+              setMascotPos(newPos);
+              if (newSize) setMascotSize(newSize);
+            }}
+          />
+          <MascotPopover
+            isOpen={showMascotPopover}
+            onClose={() => setShowMascotPopover(false)}
+            mascotPos={mascotPos}
+            mascotSize={mascotSize}
+          />
           <Router>
             <TitleBarColorSync />
             <Toaster position="top-center" reverseOrder={false} />

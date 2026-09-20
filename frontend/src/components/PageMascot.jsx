@@ -58,7 +58,7 @@ function wrapAngle(angle) {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
-const PageMascot = ({ onOpenSettings }) => {
+const PageMascot = ({ onOpenSettings, onPosChange }) => {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
@@ -120,6 +120,11 @@ const PageMascot = ({ onOpenSettings }) => {
     return () => window.removeEventListener('lyang_mascot_config_updated', handleStorageChange);
   }, []);
 
+  // Notify parent of initial pos
+  useEffect(() => {
+    if (onPosChange) onPosChange(pos, config.size || 110);
+  }, [pos, config.size]);
+
   // Window resize bounds clamping
   useEffect(() => {
     const handleResize = () => {
@@ -135,6 +140,7 @@ const PageMascot = ({ onOpenSettings }) => {
             const cur = JSON.parse(localStorage.getItem('lyang_mascot_config') || '{}');
             localStorage.setItem('lyang_mascot_config', JSON.stringify({ ...cur, position: updated }));
           } catch (e) {}
+          if (onPosChange) onPosChange(updated, size);
           return updated;
         }
         return prev;
@@ -333,7 +339,7 @@ const PageMascot = ({ onOpenSettings }) => {
   const handleContextMenu = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onOpenSettings) onOpenSettings();
+    if (onOpenSettings) onOpenSettings({ pos, size: config.size || 110 });
     return false;
   };
 
@@ -380,7 +386,7 @@ const PageMascot = ({ onOpenSettings }) => {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (onOpenSettings) onOpenSettings();
+            if (onOpenSettings) onOpenSettings({ pos, size: config.size || 110 });
           }}
           className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
         >

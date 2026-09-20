@@ -12,6 +12,8 @@ import LoadingOverlay from './components/LoadingOverlay';
 import CustomCursor from './components/CustomCursor';
 import GlobalReminderAlert from './components/GlobalReminderAlert';
 import ReminderModal from './components/ReminderModal';
+import PageMascot from './components/PageMascot';
+import MascotSettingsModal from './components/MascotSettingsModal';
 import { checkIsAdmin } from './lib/auth';
 import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
@@ -701,14 +703,20 @@ function App() {
   }, []);
 
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showMascotModal, setShowMascotModal] = useState(false);
 
   useEffect(() => {
     const handleOpenReminderModal = () => {
       setShowReminderModal(true);
     };
+    const handleOpenMascotModal = () => {
+      setShowMascotModal(true);
+    };
     window.addEventListener('pos_open_reminders', handleOpenReminderModal);
+    window.addEventListener('lyang_open_mascot_settings', handleOpenMascotModal);
     return () => {
       window.removeEventListener('pos_open_reminders', handleOpenReminderModal);
+      window.removeEventListener('lyang_open_mascot_settings', handleOpenMascotModal);
     };
   }, []);
 
@@ -720,6 +728,8 @@ function App() {
           transition={gpuDisabled ? { type: "just" } : { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
         >
           <CustomCursor />
+          <PageMascot onOpenSettings={() => setShowMascotModal(true)} />
+          <MascotSettingsModal isOpen={showMascotModal} onClose={() => setShowMascotModal(false)} />
           <Router>
             <TitleBarColorSync />
             <Toaster position="top-center" reverseOrder={false} />

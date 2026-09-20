@@ -1381,6 +1381,25 @@ export default function Settings() {
                                                                 <Sparkles size={18} />
                                                             </div>
                                                             <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot Toàn Trang (Page Mascot)</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Dõi theo chuột, kéo thả tự do & tương tác cảm xúc</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => window.dispatchEvent(new CustomEvent('lyang_open_mascot_settings'))}
+                                                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer"
+                                                        >
+                                                            Tùy chỉnh Mascot
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Sparkles size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
                                                                 <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot chào mừng</div>
                                                                 <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Nhân vật chào mừng trên Bảng tin</div>
                                                             </div>

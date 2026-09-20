@@ -3799,20 +3799,16 @@ function POSPage({
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
                                 }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><P>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{
                                   opacity: 0,
-                                  y: 8,
-                                  scale: 0.96
+                                  y: 4
                                 }} animate={{
                                   opacity: 1,
-                                  y: 0,
-                                  scale: 1
+                                  y: 0
                                 }} exit={{
                                   opacity: 0,
-                                  y: 8,
-                                  scale: 0.96
+                                  y: 4
                                 }} transition={{
-                                  duration: 0.15
-                                }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
-                                  backgroundColor: Mt.glassBg,
+                                  duration: 0.08
+                                }} className="fixed dropdown-premium bg-[#fcfbf9] dark:bg-[#161a22] !z-[400000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden" style={{
                                   top: productSearchCoords.top,
                                   left: productSearchCoords.left,
                                   width: Math.min(productSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (productSearchCoords.left || 0) - 16 : 700),

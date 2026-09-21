@@ -1,4 +1,5 @@
 pub mod accounting;
+pub mod ai;
 pub mod auth;
 pub mod backup;
 pub mod bank;
@@ -17,4 +18,5 @@ pub mod system;
 pub mod tts;
 pub mod voucher;
 pub mod ws;
+
 

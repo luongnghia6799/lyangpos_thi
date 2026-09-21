@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MASCOT_LIST, MASCOT_QUOTES, DEFAULT_MASCOT_CONFIG, playPopSound } from '../lib/mascots';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
 
 const DIRECTIONS = [
   'up-left',
@@ -58,7 +57,7 @@ function wrapAngle(angle) {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
-const PageMascot = ({ onOpenSettings, onPosChange }) => {
+const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
@@ -319,6 +318,7 @@ const PageMascot = ({ onOpenSettings, onPosChange }) => {
             const updated = { ...current, position: latestPos };
             localStorage.setItem('lyang_mascot_config', JSON.stringify(updated));
           } catch (e) {}
+          if (onPosChange) onPosChange(latestPos, config.size || 110);
           return latestPos;
         });
       }
@@ -334,6 +334,11 @@ const PageMascot = ({ onOpenSettings, onPosChange }) => {
       return;
     }
     handleBoop();
+    if (onOpenAiConsultant) {
+      onOpenAiConsultant({ pos, size: config.size || 110 });
+    } else {
+      window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { pos, size: config.size || 110 } }));
+    }
   };
 
   const handleContextMenu = (e) => {
@@ -375,37 +380,6 @@ const PageMascot = ({ onOpenSettings, onPosChange }) => {
           <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white dark:bg-slate-900 rotate-45 border-r border-b border-amber-200/80 dark:border-slate-700" />
         </div>
       )}
-
-      {/* Hover Action Badges */}
-      <div
-        className={`absolute -top-3 -right-2 flex items-center gap-1 z-20 ${
-          isHovered && !isDragging ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onOpenSettings) onOpenSettings({ pos, size: config.size || 110 });
-          }}
-          className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
-        >
-          <Settings size={12} />
-        </button>
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const updated = { ...config, soundEnabled: !config.soundEnabled };
-            setConfig(updated);
-            localStorage.setItem('lyang_mascot_config', JSON.stringify(updated));
-          }}
-          className="w-6 h-6 rounded-full bg-slate-900/90 text-white flex items-center justify-center shadow-md hover:scale-110 cursor-pointer"
-        >
-          {config.soundEnabled ? <Volume2 size={12} /> : <VolumeX size={12} className="text-red-400" />}
-        </button>
-      </div>
 
       {/* Single Ultra-Lightweight Sprite Element */}
       <div

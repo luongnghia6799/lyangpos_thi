@@ -1,5 +1,14 @@
-// Danh sach 58 Mascot cho LyangPOS
+// Danh sach 59 Mascot cho LyangPOS
 export const MASCOT_LIST = [
+  {
+    "id": "lyang",
+    "name": "Bé Lyang (Logo)",
+    "category": "human",
+    "emoji": "🌾",
+    "desc": "Linh vật chính thức của LyangPOS",
+    "directions": "/mascots/lyang-directions.webp",
+    "reactions": "/mascots/lyang-reactions.webp"
+  },
   {
     "id": "afro",
     "name": "Chàng Afro",
@@ -548,7 +557,7 @@ export const MASCOT_QUOTES = [
 
 export const DEFAULT_MASCOT_CONFIG = {
   enabled: true,
-  characterId: 'fox',
+  characterId: 'lyang',
   size: 110,
   opacity: 1,
   showQuotes: true,

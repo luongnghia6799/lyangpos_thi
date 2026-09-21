@@ -48,6 +48,8 @@ export default function Settings() {
         shop_bank_account: '',
         shop_bank_user: '',
         gemini_api_key: '',
+        gemini_api_key_2: '',
+        gemini_api_key_3: '',
         brands_directory: '',
         ui_show_doraemon: localStorage.getItem('ui_show_doraemon') || DEFAULT_SETTINGS.ui_show_doraemon,
         ui_show_dashboard_mascot: localStorage.getItem('ui_show_dashboard_mascot') || 'false',
@@ -671,22 +673,66 @@ export default function Settings() {
                                             </div>
 
                                             {/* AI Integration - Gemini API Key */}
-                                            <div className="pt-4 border-t border-[#d4a574]/10 space-y-3">
-                                                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                    <Bot size={13} className="text-emerald-500" /> Tích hợp AI (Gemini)
-                                                </h3>
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Gemini API Key</label>
-                                                    <input
-                                                        name="gemini_api_key"
-                                                        type="password"
-                                                        value={settings.gemini_api_key}
-                                                        onChange={handleChange}
-                                                        placeholder="Nhập AI API Key để quét hóa đơn..."
-                                                        className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all"
-                                                    />
-                                                    <p className="text-[8px] text-gray-400 dark:text-gray-500 italic ml-1">Key này dùng để phân tích hình ảnh hóa đơn nhập hàng tự động bằng mô hình Gemini 2.5 Flash.</p>
+                                            <div className="pt-4 border-t border-[#d4a574]/10 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
+                                                        <Bot size={13} className="text-emerald-500" /> Tích hợp AI (Gemini 3.5 Flash Lite)
+                                                    </h3>
+                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                                        Xoay vòng & Fallback 3 Key
+                                                    </span>
                                                 </div>
+
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
+                                                                🔑 Gemini API Key Chính (Key #1)
+                                                            </label>
+                                                            <span className="text-[8px] font-bold text-emerald-600">Ưu tiên 1</span>
+                                                        </div>
+                                                        <input
+                                                            name="gemini_api_key"
+                                                            type="password"
+                                                            value={settings.gemini_api_key}
+                                                            onChange={handleChange}
+                                                            placeholder="Nhập Gemini API Key chính..."
+                                                            className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
+                                                                🔑 Gemini API Key Dự phòng 2 (Key #2)
+                                                            </label>
+                                                            <input
+                                                                name="gemini_api_key_2"
+                                                                type="password"
+                                                                value={settings.gemini_api_key_2 || ''}
+                                                                onChange={handleChange}
+                                                                placeholder="Nhập Key dự phòng 2..."
+                                                                className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
+                                                                🔑 Gemini API Key Dự phòng 3 (Key #3)
+                                                            </label>
+                                                            <input
+                                                                name="gemini_api_key_3"
+                                                                type="password"
+                                                                value={settings.gemini_api_key_3 || ''}
+                                                                onChange={handleChange}
+                                                                placeholder="Nhập Key dự phòng 3..."
+                                                                className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p className="text-[8px] text-gray-400 dark:text-gray-500 italic ml-1 leading-relaxed">
+                                                    💡 Hệ thống tự động <strong>xoay vòng và kích hoạt key dự phòng</strong> nếu key chính hết hạn ngạch (Rate Limit/Quota), đảm bảo Trợ lý Cố vấn AI và tính năng quét hóa đơn luôn hoạt động liên tục 24/7.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

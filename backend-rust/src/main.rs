@@ -95,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/tauri/save-and-open", post(routes::system::save_and_open_tauri))
         .route("/api/open-external-chrome", post(routes::system::open_external_chrome))
         .route("/api/purchase/scan-invoice", post(routes::system::scan_purchase_invoice))
+        .route("/api/ai/consult", post(routes::ai::consult_ai))
         // Backup, Restore & Reset Database
         .route("/api/backup", get(routes::backup::download_backup))
         .route(

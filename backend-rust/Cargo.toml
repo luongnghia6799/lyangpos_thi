@@ -36,8 +36,8 @@ rust-embed = { version = "8.5", features = ["interpolate-folder-path"] }
 mime_guess = "2.0"
 
 [profile.release]
-opt-level = "s"
-lto = true
+opt-level = "z"
+lto = "thin"
 codegen-units = 1
 panic = "abort"
 strip = true

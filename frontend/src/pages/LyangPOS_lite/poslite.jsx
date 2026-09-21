@@ -779,6 +779,19 @@ const POSLite = () => {
     }, 50);
   }, [filteredProducts, activeIndex, addToCart]);
 
+  useEffect(() => {
+    const handleAddProduct = (e) => {
+      if (!e || !e.detail) return;
+      const { productId, product, quantity } = e.detail;
+      const targetProd = (products && products.find(p => p.id === productId || (product && (p.id === product.id || p.name === product.name)))) || product;
+      if (targetProd) {
+        addToCart(targetProd, quantity || 1);
+      }
+    };
+    window.addEventListener('pos_add_product_by_id', handleAddProduct);
+    return () => window.removeEventListener('pos_add_product_by_id', handleAddProduct);
+  }, [addToCart, products]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {

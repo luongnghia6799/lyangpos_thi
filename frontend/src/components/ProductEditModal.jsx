@@ -7,6 +7,7 @@ import { formatNumber, normalizeUOM, cn } from '../lib/utils';
 import Toast from './Toast';
 import Portal from './Portal';
 import { useQueryClient } from '@tanstack/react-query';
+import ActiveIngredientInput from './ActiveIngredientInput';
 
 const PRIMARY_UNITS_SUGGESTIONS = ['Chai', 'Hộp', 'Viên', 'Gói', 'Tuýp', 'Lọ', 'Bịch', 'Can', 'Ký', 'Cái'];
 const SECONDARY_UNITS_SUGGESTIONS = ['Thùng', 'Lốc', 'Két', 'Kiện', 'Bao', 'Hộp', 'Lít'];
@@ -296,19 +297,22 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
         <Portal>
             <AnimatePresence>
                 {isOpen && (
-                    <div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 overflow-y-auto bg-slate-950/70 backdrop-blur-sm android-webview">
+                    <m.div
+                        key="product-edit-backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[500000] flex items-center justify-center p-4 overflow-y-auto bg-slate-950/70 backdrop-blur-sm android-webview"
+                        onClick={onClose}
+                    >
                         <m.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0"
-                            onClick={onClose}
-                        />
-                        <m.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            key="product-edit-dialog"
+                            initial={{ opacity: 0, scale: 0.94, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                            exit={{ opacity: 0, scale: 0.94, y: 20 }}
+                            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                            onClick={e => e.stopPropagation()}
                             className="bg-card text-foreground w-full max-w-4xl rounded-3xl border border-border shadow-2xl backdrop-blur-xl flex flex-col relative z-10 overflow-hidden max-h-[95vh]"
                         >
                             {/* Header */}
@@ -456,8 +460,11 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                         </select>
                                                     </div>
                                                     <div className="col-span-12">
-                                                        <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-2 ml-1">Hoạt chất & Thành phần</label>
-                                                        <input type="text" className="input-premium w-full p-3 font-bold text-sm border border-border focus:border-primary" value={formData.active_ingredient || ''} onChange={e => setFormData({ ...formData, active_ingredient: e.target.value })} autoComplete="off" />
+                                                        <ActiveIngredientInput
+                                                            value={formData.active_ingredient || ''}
+                                                            onChange={val => setFormData({ ...formData, active_ingredient: val })}
+                                                            existingProducts={allProducts}
+                                                        />
                                                     </div>
                                                 </div>
                                             </m.div>
@@ -629,18 +636,19 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                 </div>
                             </form>
                         </m.div>
-                    </div>
+                    </m.div>
                 )}
-                <AnimatePresence>
-                    {toast && (
-                        <Toast
-                            message={toast.message}
-                            type={toast.type}
-                            onClose={() => setToast(null)}
-                        />
-                    )}
-                </AnimatePresence>
             </AnimatePresence>
-        </Portal >
+
+            <AnimatePresence>
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )}
+            </AnimatePresence>
+        </Portal>
     );
 }

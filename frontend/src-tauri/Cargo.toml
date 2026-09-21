@@ -28,9 +28,9 @@ tauri-plugin-http = "2"
 tauri-plugin-autostart = "2"
 
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = "thin"
-codegen-units = 16
+codegen-units = 1
 panic = "abort"
 strip = true
 

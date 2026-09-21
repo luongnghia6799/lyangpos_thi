@@ -397,12 +397,7 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
           opacity: config.opacity ?? 1
         }}
-      >
-        {/* Drag indicator border */}
-        {isDragging && (
-          <div className="w-full h-full rounded-full border-2 border-emerald-400 pointer-events-none" />
-        )}
-      </div>
+      />
     </div>
   );
 };

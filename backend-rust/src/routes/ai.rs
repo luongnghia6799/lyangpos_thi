@@ -132,7 +132,7 @@ pub async fn consult_ai(
 
     // 4. Xây dựng System Prompt chuyên gia Nông Nghiệp & BVTV với hướng dẫn liều lượng rõ ràng cho từng loại thuốc
     let system_instruction = format!(
-        r#"Bạn là Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
+        r#"Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
 
 QUY TẮC CỐ VẤN & HƯỚNG DẪN LIỀU LƯỢNG (BẮT BUỘC):
 1. **Phân tích bệnh/sâu hại**: Giải đáp chính xác nguyên nhân (nấm, vi khuẩn, virus, rầy, rệp, bọ trĩ, nhện đỏ, sâu cuốn lá, sâu đục thân, đạo ôn, đốm vằn, thán thư, xì mủ, tuyến trùng...), triệu chứng và cơ chế phát sinh.

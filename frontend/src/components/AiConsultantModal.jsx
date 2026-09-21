@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
-    Bot, Sparkles, Send, Trash2, ShoppingCart, 
+    BrainCircuit, Sparkles, Send, Trash2, ShoppingCart, 
     Check, Leaf, X, Copy, 
     CheckCheck, Image as ImageIcon,
-    FlaskConical, Zap, Maximize2, Minimize2
+    FlaskConical, Droplets, Maximize2, Minimize2
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -28,17 +28,44 @@ export default function AiConsultantModal({
     const [messages, setMessages] = useState(() => {
         try {
             const saved = localStorage.getItem('lyang_ai_consult_chat');
-            if (saved) return JSON.parse(saved);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length === 1 && parsed[0].id === 'welcome') {
+                    parsed[0].text = 'Xin chào! Tôi là **LyangAI - Cố Vấn Hoạt Chất & Nông Nghiệp Thông Minh**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc gửi ảnh để tôi tra cứu hoạt chất và đối chiếu thuốc trong kho giúp bạn!';
+                }
+                return parsed;
+            }
         } catch (e) {}
         return [
             {
                 id: 'welcome',
                 role: 'model',
-                text: 'Xin chào! Tôi là **Trợ lý AI Nông Nghiệp & Cố Vấn Hoạt Chất BVTV**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc gửi ảnh để tôi tra cứu hoạt chất và đối chiếu thuốc trong kho giúp bạn!',
+                text: 'Xin chào! Tôi là **LyangAI - Cố Vấn Hoạt Chất & Nông Nghiệp Thông Minh**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc gửi ảnh để tôi tra cứu hoạt chất và đối chiếu thuốc trong kho giúp bạn!',
                 recommended_products: []
             }
         ];
     });
+
+    const [fontSize, setFontSize] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_ai_font_size');
+            if (saved) {
+                const num = parseFloat(saved);
+                if (!isNaN(num) && num >= 11 && num <= 22) return num;
+            }
+        } catch (e) {}
+        return 13;
+    });
+
+    const handleFontSizeChange = (delta) => {
+        setFontSize(prev => {
+            const next = Math.min(22, Math.max(11, Math.round((prev + delta) * 10) / 10));
+            try {
+                localStorage.setItem('lyang_ai_font_size', next.toString());
+            } catch (e) {}
+            return next;
+        });
+    };
 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +75,11 @@ export default function AiConsultantModal({
     const [isExpanded, setIsExpanded] = useState(false);
 
     const popoverRef = useRef(null);
+    const chatFeedRef = useRef(null);
     const chatEndRef = useRef(null);
+    const latestModelMsgRef = useRef(null);
+    const prevMsgLengthRef = useRef(messages.length);
+    const shouldScrollToAiRef = useRef(false);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -152,28 +183,64 @@ export default function AiConsultantModal({
         } catch (e) {}
     }, [messages]);
 
-    // Tự động cuộn xuống cuối
+    // Điều khiển cuộn thông minh:
+    // Khi AI trả lời xong: cuộn đến ĐẦU câu trả lời của AI để người dùng bắt đầu đọc rồi cuộn xuống
+    // Khi người dùng gửi câu hỏi hoặc đang phân tích (loading): cuộn xuống đáy để thấy câu hỏi và loader
     useEffect(() => {
-        if (isOpen) {
-            setTimeout(() => {
+        if (!isOpen) return;
+
+        const isNewAiMessage = shouldScrollToAiRef.current && 
+            messages.length > prevMsgLengthRef.current && 
+            messages[messages.length - 1]?.role === 'model';
+
+        if (isNewAiMessage) {
+            shouldScrollToAiRef.current = false;
+            const timer = setTimeout(() => {
+                if (latestModelMsgRef.current) {
+                    latestModelMsgRef.current.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }
+            }, 60);
+            prevMsgLengthRef.current = messages.length;
+            return () => clearTimeout(timer);
+        } else if (isLoading || (messages.length > prevMsgLengthRef.current && messages[messages.length - 1]?.role === 'user')) {
+            const timer = setTimeout(() => {
                 chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-                inputRef.current?.focus();
-            }, 80);
+            }, 60);
+            prevMsgLengthRef.current = messages.length;
+            return () => clearTimeout(timer);
+        } else {
+            prevMsgLengthRef.current = messages.length;
         }
     }, [isOpen, messages, isLoading]);
+
+    // Khi mở modal lần đầu: focus ô nhập, cuộn mượt đến đầu tin nhắn AI mới nhất nếu có
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+                if (messages.length > 1 && latestModelMsgRef.current) {
+                    latestModelMsgRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+                }
+            }, 80);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
 
     const handleClearChat = () => {
         const welcomeMsg = [
             {
                 id: 'welcome',
                 role: 'model',
-                text: 'Xin chào! Tôi là **Trợ lý AI Nông Nghiệp & Cố Vấn Hoạt Chất BVTV**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc gửi ảnh để tôi tra cứu hoạt chất và đối chiếu thuốc trong kho giúp bạn!',
+                text: 'Xin chào! Tôi là **LyangAI - Cố Vấn Hoạt Chất & Nông Nghiệp Thông Minh**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc gửi ảnh để tôi tra cứu hoạt chất và đối chiếu thuốc trong kho giúp bạn!',
                 recommended_products: []
             }
         ];
         setMessages(welcomeMsg);
         localStorage.setItem('lyang_ai_consult_chat', JSON.stringify(welcomeMsg));
-        toast.success('Đã xóa lịch sử trò chuyện AI');
+        toast.success('Đã xóa lịch sử trò chuyện LyangAI');
     };
 
     const handleCopy = (text, idx) => {
@@ -252,7 +319,7 @@ export default function AiConsultantModal({
             productKB += '(Không thể đọc danh mục sản phẩm từ server)\n';
         }
 
-        const systemInstruction = `Bạn là Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) của cửa hàng LyangPOS.
+        const systemInstruction = `Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) của cửa hàng LyangPOS.
 Nhiệm vụ của bạn:
 1. Giải đáp thắc mắc về bệnh hại, sâu bọ, rầy, rệp, bọ trĩ, nấm khuẩn (đạo ôn, thán thư, xì mủ, đốm vằn, rỉ sắt, lem lép hạt...).
 2. Phân tích nguyên nhân khoa học và ĐỀ XUẤT CHUẨN XÁC CÁC NHÓM HOẠT CHẤT (Active Ingredients) đặc trị (ví dụ: Difenoconazole, Hexaconazole, Azoxystrobin, Tricyclazole, Isoprothiolane, Metalaxyl, Mancozeb, Validamycin, Emamectin benzoate, Abamectin, Chlorantraniliprole, Thiamethoxam...).
@@ -428,6 +495,7 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
         setMessages(newMessages);
         setInput('');
         setSelectedImages([]);
+        shouldScrollToAiRef.current = true;
         setIsLoading(true);
 
         try {
@@ -489,13 +557,43 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
         if (onAddToCart) {
             onAddToCart(prod);
         } else {
+            // 1. Dispatch sự kiện để POS (POSnew hoặc poslite) trực tiếp thêm vào giỏ hàng đang mở
             const event = new CustomEvent('pos_add_product_by_id', { 
-                detail: { productId: prod.id, product: prod } 
+                detail: { productId: prod.id, product: prod, quantity: 1 } 
             });
             window.dispatchEvent(event);
+
+            // 2. Đồng thời đồng bộ vào pos_cart trong localStorage đề phòng trường hợp POS chưa nạp
+            try {
+                const currentCartStr = localStorage.getItem('pos_cart');
+                let cartList = [];
+                if (currentCartStr) {
+                    try { cartList = JSON.parse(currentCartStr); } catch (e) {}
+                }
+                if (!Array.isArray(cartList)) cartList = [];
+
+                const existing = cartList.find(item => item.product_id === prod.id);
+                if (existing) {
+                    existing.quantity = (existing.quantity || 1) + 1;
+                } else {
+                    cartList.unshift({
+                        product_id: prod.id,
+                        product_name: prod.name,
+                        unit: prod.unit || 'Cái',
+                        price: prod.sale_price || 0,
+                        sale_price: prod.sale_price || 0,
+                        quantity: 1,
+                        stock: prod.stock || 0,
+                        active_ingredient: prod.active_ingredient || '',
+                        cartId: Math.random().toString(36).substr(2, 9)
+                    });
+                }
+                localStorage.setItem('pos_cart', JSON.stringify(cartList));
+                window.dispatchEvent(new CustomEvent('pos_cart_updated', { detail: { cart: cartList } }));
+            } catch (err) {}
         }
         setAddedProducts(prev => ({ ...prev, [prod.id]: true }));
-        toast.success(`Đã thêm "${prod.name}" vào giỏ hàng!`);
+        toast.success(`Đã thêm "${prod.name}" vào đơn hàng!`);
         setTimeout(() => {
             setAddedProducts(prev => ({ ...prev, [prod.id]: false }));
         }, 1800);
@@ -506,28 +604,83 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
         if (!text) return null;
         const lines = text.split('\n');
         return lines.map((line, lineIdx) => {
+            const trimmed = line.trim();
+            if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+                return <hr key={lineIdx} className="my-2.5 border-stone-200/80 dark:border-white/10" />;
+            }
             if (line.startsWith('### ')) {
-                return <h4 key={lineIdx} className="text-xs font-black mt-2 mb-1 flex items-center gap-1.5 text-[#2d5016] dark:text-[#d4a574]"><Leaf size={13} />{line.replace('### ', '')}</h4>;
+                return (
+                    <h4 
+                        key={lineIdx} 
+                        style={{ fontSize: `${Math.round(fontSize * 1.08)}px` }}
+                        className="font-black mt-2 mb-1 flex items-center gap-1.5 text-emerald-800 dark:text-emerald-400"
+                    >
+                        <Leaf size={Math.max(12, Math.round(fontSize * 0.95))} />
+                        {line.replace('### ', '')}
+                    </h4>
+                );
             }
             if (line.startsWith('## ')) {
-                return <h3 key={lineIdx} className="text-sm font-black mt-2.5 mb-1 text-[#2d5016] dark:text-[#d4a574]">{line.replace('## ', '')}</h3>;
+                return (
+                    <h3 
+                        key={lineIdx} 
+                        style={{ fontSize: `${Math.round(fontSize * 1.2)}px` }}
+                        className="font-black mt-2.5 mb-1 text-emerald-800 dark:text-emerald-400"
+                    >
+                        {line.replace('## ', '')}
+                    </h3>
+                );
             }
             if (line.startsWith('# ')) {
-                return <h2 key={lineIdx} className="text-base font-black mt-2.5 mb-1 text-[#2d5016] dark:text-[#d4a574]">{line.replace('# ', '')}</h2>;
-            }
-            if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-                const clean = line.trim().substring(2);
                 return (
-                    <li key={lineIdx} className="ml-3.5 list-disc text-[11.5px] leading-relaxed py-0.5 opacity-90">
+                    <h2 
+                        key={lineIdx} 
+                        style={{ fontSize: `${Math.round(fontSize * 1.35)}px` }}
+                        className="font-black mt-2.5 mb-1 text-emerald-800 dark:text-emerald-400"
+                    >
+                        {line.replace('# ', '')}
+                    </h2>
+                );
+            }
+            // Match numbered items like "1. ", "2. ", "3. Nguyên tắc..."
+            const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+            if (numMatch) {
+                return (
+                    <div 
+                        key={lineIdx} 
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                        className="py-0.5 flex items-start gap-1.5"
+                    >
+                        <span className="font-black text-emerald-700 dark:text-emerald-400 shrink-0 select-none">
+                            {numMatch[1]}.
+                        </span>
+                        <div className="flex-1">
+                            {renderBoldSpans(numMatch[2])}
+                        </div>
+                    </div>
+                );
+            }
+            if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                const clean = trimmed.substring(2);
+                return (
+                    <li 
+                        key={lineIdx} 
+                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                        className="ml-3.5 list-disc py-0.5 text-stone-700 dark:text-stone-300"
+                    >
                         {renderBoldSpans(clean)}
                     </li>
                 );
             }
-            if (!line.trim()) {
+            if (!trimmed) {
                 return <div key={lineIdx} className="h-1.5" />;
             }
             return (
-                <p key={lineIdx} className="text-[11.5px] leading-relaxed py-0.5">
+                <p 
+                    key={lineIdx} 
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                    className="py-0.5 text-stone-800 dark:text-stone-200"
+                >
                     {renderBoldSpans(line)}
                 </p>
             );
@@ -538,7 +691,11 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
         const parts = text.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, idx) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={idx} className="font-black text-[#2d5016] dark:text-[#d4a574]">{part.slice(2, -2)}</strong>;
+                return (
+                    <strong key={idx} className="font-black text-emerald-900 dark:text-emerald-300">
+                        {part.slice(2, -2)}
+                    </strong>
+                );
             }
             return part;
         });
@@ -577,47 +734,68 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                         height: popoverStyle.height,
                         zIndex: 100000,
                         transformOrigin: `${popoverStyle.originX} ${popoverStyle.originY}`,
-                        willChange: 'transform, opacity',
-                        backgroundColor: 'var(--card-bg, #fbf8f2)',
-                        color: 'var(--text-main, #2d261e)'
+                        '--ai-font-size': `${fontSize}px`
                     }}
-                    className="border border-[#2d5016]/25 dark:border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden select-none"
+                    className="bg-white dark:bg-[#07130e] text-stone-900 dark:text-stone-100 border border-emerald-800/20 dark:border-emerald-500/25 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/10"
                     onClick={(e) => e.stopPropagation()}
                 >
-                    {/* Header with Theme Background */}
+                    {/* Header with Theme Botanical Gradient */}
                     <div 
                         style={{ 
-                            backgroundColor: 'var(--primary-color, #2d5016)',
-                            color: '#ffffff'
+                            background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #205c26 50%, #2b7a33 100%))'
                         }}
-                        className="px-4 py-3 flex items-center justify-between shadow-xs shrink-0 select-none"
+                        className="px-4 py-3 flex items-center justify-between border-b border-white/10 text-white shadow-sm shrink-0 select-none relative overflow-hidden"
                     >
+                        {/* Shimmer line */}
+                        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+
                         <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center border border-white/25 shadow-xs relative">
-                                <Bot size={18} className="text-white" />
-                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border border-emerald-800" />
+                            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center border border-white/25 shadow-xs relative">
+                                <BrainCircuit size={17} className="text-white" />
+                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#163d18] shadow-xs" />
                             </div>
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <h3 className="font-black text-xs uppercase tracking-wide text-white">
-                                        Cố Vấn Hoạt Chất AI
-                                    </h3>
-                                    <span className="bg-white/20 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
-                                        <Sparkles size={9} /> Gemini
-                                    </span>
-                                </div>
-                                <p className="text-[10px] text-white/80 font-medium">
-                                    Tra cứu sâu bệnh & đối chiếu kho thuốc
-                                </p>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-black text-sm tracking-wide text-white flex items-center gap-1.5 drop-shadow-xs">
+                                    LYANGAI
+                                </h3>
+                                <span className="bg-white/20 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 shadow-2xs">
+                                    <Sparkles size={10} className="text-amber-300" /> Gemini
+                                </span>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
+                            {/* Nút chỉnh cỡ chữ (A- và A+) */}
+                            <div 
+                                className="flex items-center bg-black/25 rounded-lg p-0.5 text-white border border-white/15 shadow-inner gap-0.5"
+                                title="Chỉnh kích thước chữ trò chuyện (A- / A+)"
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => handleFontSizeChange(-1)}
+                                    disabled={fontSize <= 11}
+                                    title="Giảm cỡ chữ (A-)"
+                                    className="px-1.5 py-0.5 flex items-center justify-center hover:bg-white/20 active:scale-95 disabled:opacity-30 rounded text-[11px] font-black transition-all"
+                                >
+                                    A-
+                                </button>
+                                <div className="w-[1px] h-3 bg-white/20" />
+                                <button
+                                    type="button"
+                                    onClick={() => handleFontSizeChange(1)}
+                                    disabled={fontSize >= 22}
+                                    title="Tăng cỡ chữ (A+)"
+                                    className="px-1.5 py-0.5 flex items-center justify-center hover:bg-white/20 active:scale-95 disabled:opacity-30 rounded text-[11px] font-black transition-all"
+                                >
+                                    A+
+                                </button>
+                            </div>
+
                             <button
                                 type="button"
                                 onClick={() => setIsExpanded(!isExpanded)}
                                 title={isExpanded ? "Thu nhỏ" : "Phóng to"}
-                                className="p-1.5 hover:bg-white/20 text-white/90 hover:text-white rounded-lg transition-all"
+                                className="p-1.5 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
                             >
                                 {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                             </button>
@@ -625,7 +803,7 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                 type="button"
                                 onClick={handleClearChat}
                                 title="Xóa lịch sử chat"
-                                className="p-1.5 hover:bg-white/20 text-white/90 hover:text-white rounded-lg transition-all"
+                                className="p-1.5 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
                             >
                                 <Trash2 size={14} />
                             </button>
@@ -633,244 +811,194 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                 type="button"
                                 onClick={onClose}
                                 title="Đóng (ESC)"
-                                className="p-1.5 hover:bg-rose-500 hover:text-white text-white/90 rounded-lg transition-all"
+                                className="p-1.5 hover:bg-rose-500 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
                             >
                                 <X size={15} />
                             </button>
                         </div>
                     </div>
 
-                    {/* Quick Suggestion Chips */}
-                    <div 
-                        style={{ 
-                            backgroundColor: 'var(--bg-color, #f4ecd8)',
-                            borderColor: 'rgba(45, 80, 22, 0.12)'
-                        }}
-                        className="px-3 py-2 border-b flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0"
-                    >
-                        <span className="text-[9.5px] font-black uppercase tracking-wider opacity-60 flex items-center gap-0.5 whitespace-nowrap pl-0.5">
-                            <Zap size={11} className="text-amber-500" /> Gợi ý:
-                        </span>
-                        {QUICK_SUGGESTIONS.map((item, idx) => (
-                            <button
-                                key={idx}
-                                type="button"
-                                onClick={() => handleSend(item.query)}
-                                disabled={isLoading}
-                                style={{
-                                    backgroundColor: 'var(--card-bg, #fbf8f2)',
-                                    borderColor: 'rgba(45, 80, 22, 0.15)',
-                                    color: 'var(--text-main, #2d261e)'
-                                }}
-                                className="text-[10.5px] font-bold px-2.5 py-0.8 rounded-full border whitespace-nowrap transition-all shadow-2xs hover:brightness-95 active:scale-95 disabled:opacity-50"
-                            >
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-
                     {/* Chat Messages Feed */}
                     <div 
-                        style={{
-                            backgroundColor: 'var(--bg-color, #f4ecd8)'
-                        }}
-                        className="flex-1 overflow-y-auto p-3.5 space-y-3 custom-scrollbar"
+                        ref={chatFeedRef}
+                        className="flex-1 overflow-y-auto p-3.5 space-y-3.5 custom-scrollbar bg-[#f8faf7] dark:bg-[#07120d] scroll-smooth"
                     >
-                        {messages.map((msg, idx) => (
-                            <div 
-                                key={msg.id || idx}
-                                className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                {msg.role === 'model' && (
-                                    <div 
-                                        style={{ backgroundColor: 'var(--primary-color, #2d5016)' }}
-                                        className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5"
-                                    >
-                                        <Bot size={14} />
-                                    </div>
-                                )}
-
+                        {messages.map((msg, idx) => {
+                            const isLatestModel = idx === messages.length - 1 && msg.role === 'model';
+                            return (
                                 <div 
-                                    style={msg.role === 'user' ? {
-                                        backgroundColor: 'var(--primary-color, #2d5016)',
-                                        color: '#ffffff'
-                                    } : {
-                                        backgroundColor: 'var(--card-bg, #fbf8f2)',
-                                        borderColor: 'rgba(45, 80, 22, 0.15)',
-                                        color: 'var(--text-main, #2d261e)'
-                                    }}
-                                    className={`max-w-[88%] rounded-2xl p-3.5 shadow-2xs relative group ${
-                                        msg.role === 'user' 
-                                            ? 'rounded-tr-xs' 
-                                            : 'border rounded-tl-xs'
-                                    }`}
+                                    key={msg.id || idx}
+                                    ref={isLatestModel ? latestModelMsgRef : null}
+                                    className={`scroll-mt-3 ${msg.role === 'user' ? 'flex justify-end' : 'flex gap-2.5 items-start justify-start'}`}
                                 >
-                                    {/* Nút Copy */}
-                                    {msg.role === 'model' && msg.id !== 'welcome' && (
-                                        <button 
-                                            type="button"
-                                            onClick={() => handleCopy(msg.text, idx)}
-                                            title="Sao chép câu trả lời"
-                                            className="absolute top-2 right-2 p-1 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    {msg.role === 'model' && (
+                                        <div 
+                                            style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
+                                            className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5"
                                         >
-                                            {copiedIndex === idx ? <CheckCheck size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                                        </button>
-                                    )}
-
-                                    {/* User Images */}
-                                    {msg.images && msg.images.length > 0 && (
-                                        <div className="flex gap-1.5 mb-2 flex-wrap">
-                                            {msg.images.map((img, imgIdx) => (
-                                                <img 
-                                                    key={imgIdx} 
-                                                    src={img} 
-                                                    alt="Uploaded crop/leaf" 
-                                                    className="w-16 h-16 object-cover rounded-lg border border-black/10 shadow-2xs"
-                                                />
-                                            ))}
+                                            <BrainCircuit size={14} />
                                         </div>
                                     )}
 
-                                    {/* Content */}
-                                    <div className="space-y-0.5">
-                                        {msg.role === 'user' ? (
-                                            <p className="text-[11.5px] font-bold leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                        ) : (
-                                            <div>{renderFormattedText(msg.text)}</div>
+                                    <div 
+                                        style={msg.role === 'user' ? {
+                                            background: 'var(--button-gradient, linear-gradient(135deg, #1e5225 0%, #2e7535 100%))',
+                                            color: '#ffffff'
+                                        } : undefined}
+                                        className={`relative group transition-colors ${
+                                            msg.role === 'user' 
+                                                ? 'max-w-[85%] rounded-2xl rounded-tr-xs p-3 text-white shadow-sm' 
+                                                : 'max-w-[88%] bg-white dark:bg-[#0e1d17] border border-stone-200/80 dark:border-white/10 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
+                                        }`}
+                                    >
+                                        {/* Nút Copy */}
+                                        {msg.role === 'model' && msg.id !== 'welcome' && (
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleCopy(msg.text, idx)}
+                                                title="Sao chép câu trả lời"
+                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
+                                            </button>
+                                        )}
+
+                                        {/* User Images */}
+                                        {msg.images && msg.images.length > 0 && (
+                                            <div className="flex gap-1.5 mb-2 flex-wrap">
+                                                {msg.images.map((img, imgIdx) => (
+                                                    <img 
+                                                        key={imgIdx} 
+                                                        src={img} 
+                                                        alt="Uploaded crop/leaf" 
+                                                        className="w-16 h-16 object-cover rounded-xl border border-white/20 shadow-xs"
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Content */}
+                                        <div className="space-y-0.5">
+                                            {msg.role === 'user' ? (
+                                                <p 
+                                                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.55 }}
+                                                    className="font-bold whitespace-pre-wrap leading-relaxed"
+                                                >
+                                                    {msg.text}
+                                                </p>
+                                            ) : (
+                                                <div>{renderFormattedText(msg.text)}</div>
+                                            )}
+                                        </div>
+
+                                        {/* Recommended Products Cards */}
+                                        {msg.recommended_products && msg.recommended_products.length > 0 && (
+                                            <div className="mt-3.5 pt-3 border-t border-stone-200/80 dark:border-white/10 space-y-2">
+                                                <div className="flex items-center gap-1.5 text-[10.5px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                                                    <FlaskConical size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                                    <span>Thuốc phù hợp có trong kho:</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {msg.recommended_products.map((prod) => {
+                                                        const inStock = (prod.stock || 0) > 0;
+                                                        const isAdded = addedProducts[prod.id];
+                                                        return (
+                                                            <div 
+                                                                key={prod.id}
+                                                                className="p-3 rounded-xl border border-emerald-600/15 hover:border-emerald-600/35 bg-emerald-50/40 dark:bg-[#14281f] flex flex-col justify-between gap-2 shadow-2xs transition-all"
+                                                            >
+                                                                <div>
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <h5 
+                                                                            style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
+                                                                            className="font-black text-stone-900 dark:text-white leading-snug"
+                                                                        >
+                                                                            {prod.name}
+                                                                        </h5>
+                                                                        <span 
+                                                                            className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
+                                                                                inStock 
+                                                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40' 
+                                                                                    : 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40'
+                                                                            }`}
+                                                                        >
+                                                                            {inStock ? `Còn ${prod.stock} ${prod.unit || ''}` : 'Hết hàng'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {prod.active_ingredient && (
+                                                                        <p 
+                                                                            style={{ fontSize: `${Math.max(11, fontSize - 1.5)}px` }}
+                                                                            className="font-bold italic mt-0.5 text-emerald-700 dark:text-emerald-400 line-clamp-1 flex items-center gap-1.5" 
+                                                                            title={prod.active_ingredient}
+                                                                        >
+                                                                            <FlaskConical size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                            <span>{prod.active_ingredient}</span>
+                                                                        </p>
+                                                                    )}
+                                                                    {prod.dosage && (
+                                                                        <div 
+                                                                            style={{ fontSize: `${Math.max(10.5, fontSize - 1.5)}px` }}
+                                                                            className="mt-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-200 border border-sky-200/70 dark:border-sky-800/40 font-medium flex items-start gap-1.5"
+                                                                        >
+                                                                            <Droplets size={13} className="text-sky-500 shrink-0 mt-0.5" />
+                                                                            <span className="line-clamp-2">{prod.dosage}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex items-center justify-between pt-1.5 border-t border-stone-200/60 dark:border-white/5">
+                                                                    <div 
+                                                                        style={{ fontSize: `${Math.max(12, fontSize)}px` }}
+                                                                        className="font-black text-stone-900 dark:text-white"
+                                                                    >
+                                                                        {Number(prod.sale_price || 0).toLocaleString('vi-VN')} đ
+                                                                        {prod.unit && <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">/{prod.unit}</span>}
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleAddToCartClick(prod)}
+                                                                        disabled={!inStock}
+                                                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all ${
+                                                                            isAdded
+                                                                                ? 'bg-emerald-600 text-white'
+                                                                                : inStock
+                                                                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
+                                                                                    : 'bg-stone-200 dark:bg-white/10 text-stone-400 cursor-not-allowed'
+                                                                        }`}
+                                                                    >
+                                                                        {isAdded ? (
+                                                                            <><Check size={12} strokeWidth={3} /> Đã thêm</>
+                                                                        ) : (
+                                                                            <><ShoppingCart size={12} /> Thêm vào đơn</>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
-
-                                    {/* Recommended Products Cards */}
-                                    {msg.recommended_products && msg.recommended_products.length > 0 && (
-                                        <div 
-                                            style={{ borderColor: 'rgba(45, 80, 22, 0.15)' }}
-                                            className="mt-3 pt-2.5 border-t space-y-1.5"
-                                        >
-                                            <div 
-                                                className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574]"
-                                            >
-                                                <FlaskConical size={12} /> Thuốc phù hợp có trong kho:
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {msg.recommended_products.map((prod) => {
-                                                    const inStock = (prod.stock || 0) > 0;
-                                                    const isAdded = addedProducts[prod.id];
-                                                    return (
-                                                        <div 
-                                                            key={prod.id}
-                                                            style={{
-                                                                backgroundColor: 'var(--bg-color, #f4ecd8)',
-                                                                borderColor: 'rgba(45, 80, 22, 0.15)'
-                                                            }}
-                                                            className="p-2.5 rounded-xl border flex flex-col justify-between gap-1.5 shadow-2xs"
-                                                        >
-                                                            <div>
-                                                                <div className="flex items-start justify-between gap-1">
-                                                                    <h5 className="text-[11.5px] font-black leading-snug">
-                                                                        {prod.name}
-                                                                    </h5>
-                                                                    <span 
-                                                                        style={inStock ? {
-                                                                            backgroundColor: 'rgba(45, 80, 22, 0.15)',
-                                                                            color: 'var(--primary-color, #2d5016)'
-                                                                        } : {
-                                                                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                                                                            color: '#dc2626'
-                                                                        }}
-                                                                        className="text-[9.5px] font-black px-1.5 py-0.2 rounded-md shrink-0"
-                                                                    >
-                                                                        {inStock ? `Còn ${prod.stock} ${prod.unit || ''}` : 'Hết hàng'}
-                                                                    </span>
-                                                                </div>
-                                                                {prod.active_ingredient && (
-                                                                    <p 
-                                                                        className="text-[10px] font-bold italic mt-0.5 line-clamp-1 text-[#2d5016] dark:text-[#d4a574]" 
-                                                                        title={prod.active_ingredient}
-                                                                    >
-                                                                        🧪 {prod.active_ingredient}
-                                                                    </p>
-                                                                )}
-                                                                {prod.dosage && (
-                                                                    <div 
-                                                                        className="mt-1 px-2 py-0.8 rounded-lg bg-[#2d5016]/10 dark:bg-white/10 text-[9.5px] font-semibold text-[#2d5016] dark:text-[#e8d5b5] flex items-center gap-1 border border-[#2d5016]/15 dark:border-white/10"
-                                                                    >
-                                                                        <span>💧</span>
-                                                                        <span className="line-clamp-2">{prod.dosage}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div 
-                                                                style={{ borderColor: 'rgba(45, 80, 22, 0.1)' }}
-                                                                className="flex items-center justify-between pt-1 border-t"
-                                                            >
-                                                                <div className="text-[11.5px] font-black">
-                                                                    {Number(prod.sale_price || 0).toLocaleString('vi-VN')} đ
-                                                                    {prod.unit && <span className="text-[9.5px] font-normal opacity-60">/{prod.unit}</span>}
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleAddToCartClick(prod)}
-                                                                    disabled={!inStock}
-                                                                    style={isAdded ? {
-                                                                        backgroundColor: '#16a34a',
-                                                                        color: '#ffffff'
-                                                                    } : inStock ? {
-                                                                        backgroundColor: 'var(--primary-color, #2d5016)',
-                                                                        color: '#ffffff'
-                                                                    } : {
-                                                                        backgroundColor: 'rgba(0,0,0,0.08)',
-                                                                        color: 'rgba(0,0,0,0.3)'
-                                                                    }}
-                                                                    className="px-2 py-0.8 rounded-lg text-[10.5px] font-black flex items-center gap-1 shadow-2xs active:scale-95 transition-all"
-                                                                >
-                                                                    {isAdded ? (
-                                                                        <><Check size={11} strokeWidth={3} /> Đã thêm</>
-                                                                    ) : (
-                                                                        <><ShoppingCart size={11} /> Thêm vào đơn</>
-                                                                    )}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
-
-                                {msg.role === 'user' && (
-                                    <div 
-                                        style={{ backgroundColor: 'var(--card-bg, #fbf8f2)', borderColor: 'rgba(45, 80, 22, 0.15)' }}
-                                        className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs mt-0.5 font-black text-[11px] opacity-70"
-                                    >
-                                        Tôi
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {isLoading && (
                             <div className="flex gap-2.5 justify-start items-center">
                                 <div 
-                                    style={{ backgroundColor: 'var(--primary-color, #2d5016)' }}
-                                    className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-2xs"
+                                    style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
+                                    className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs"
                                 >
-                                    <Bot size={14} />
+                                    <BrainCircuit size={14} />
                                 </div>
-                                <div 
-                                    style={{
-                                        backgroundColor: 'var(--card-bg, #fbf8f2)',
-                                        borderColor: 'rgba(45, 80, 22, 0.15)'
-                                    }}
-                                    className="border rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-2xs flex items-center gap-2"
-                                >
-                                    <span 
-                                        style={{ backgroundColor: 'var(--primary-color, #2d5016)' }}
-                                        className="w-2 h-2 rounded-full" 
-                                    />
-                                    <p className="text-[11px] font-bold opacity-75">
-                                        AI đang phân tích & tra cứu hoạt chất trong kho...
+                                <div className="bg-white dark:bg-[#0e1d17] border border-emerald-600/20 dark:border-white/10 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-xs flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    <p 
+                                        style={{ fontSize: `${Math.max(11.5, fontSize - 1)}px` }}
+                                        className="font-bold text-emerald-800 dark:text-emerald-300"
+                                    >
+                                        LyangAI đang phân tích & tra cứu hoạt chất trong kho...
                                     </p>
                                 </div>
                             </div>
@@ -881,14 +1009,8 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
 
                     {/* Preview Selected Images */}
                     {selectedImages.length > 0 && (
-                        <div 
-                            style={{ 
-                                backgroundColor: 'var(--bg-color, #f4ecd8)',
-                                borderColor: 'rgba(45, 80, 22, 0.12)'
-                            }}
-                            className="px-3 py-1.5 border-t flex items-center gap-1.5 shrink-0"
-                        >
-                            <span className="text-[9.5px] font-black uppercase opacity-60">Ảnh gửi kèm:</span>
+                        <div className="px-3 py-1.5 border-t border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-[#0b1610] flex items-center gap-1.5 shrink-0">
+                            <span className="text-[9.5px] font-black uppercase text-stone-500 dark:text-stone-400">Ảnh gửi kèm:</span>
                             {selectedImages.map((img, idx) => (
                                 <div key={idx} className="relative group w-10 h-10 rounded-lg overflow-hidden border border-black/10">
                                     <img src={img} alt="Preview" className="w-full h-full object-cover" />
@@ -905,16 +1027,10 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                     )}
 
                     {/* Input Controls */}
-                    <div 
-                        style={{
-                            backgroundColor: 'var(--card-bg, #fbf8f2)',
-                            borderColor: 'rgba(45, 80, 22, 0.15)'
-                        }}
-                        className="p-2.5 border-t shrink-0"
-                    >
+                    <div className="p-2.5 border-t border-stone-200/80 dark:border-white/10 bg-white dark:bg-[#07130e] shrink-0">
                         <form 
                             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                            className="flex items-center gap-1.5"
+                            className="flex items-center gap-2"
                         >
                             <input 
                                 type="file" 
@@ -927,12 +1043,8 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                title="Tải ảnh sâu bệnh/lá cây"
-                                style={{
-                                    backgroundColor: 'var(--bg-color, #f4ecd8)',
-                                    borderColor: 'rgba(45, 80, 22, 0.15)'
-                                }}
-                                className="p-2 rounded-xl border opacity-80 hover:opacity-100 transition-opacity shrink-0"
+                                title="Tải ảnh sâu bệnh / lá cây"
+                                className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-white/10 active:scale-95 transition-all shrink-0"
                             >
                                 <ImageIcon size={16} />
                             </button>
@@ -943,13 +1055,11 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    placeholder="Hỏi sâu bệnh, hoạt chất... (VD: difenconazole, xì mủ)"
+                                    placeholder="Hỏi LyangAI về sâu bệnh, hoạt chất... (VD: difenconazole, xì mủ)"
                                     style={{
-                                        backgroundColor: 'var(--bg-color, #f4ecd8)',
-                                        borderColor: 'rgba(45, 80, 22, 0.15)',
-                                        color: 'var(--text-main, #2d261e)'
+                                        fontSize: `${Math.max(12, Math.min(15, fontSize))}px`
                                     }}
-                                    className="w-full pl-3 pr-3 py-2 border rounded-xl text-xs font-medium outline-none transition-all"
+                                    className="w-full px-3.5 py-2 bg-stone-100/90 dark:bg-white/5 border border-stone-200 dark:border-white/10 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-xl font-medium outline-none focus:bg-white dark:focus:bg-black/30 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                                 />
                             </div>
 
@@ -957,10 +1067,11 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                 type="submit"
                                 disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
                                 style={{
-                                    backgroundColor: 'var(--primary-color, #2d5016)',
-                                    color: '#ffffff'
+                                    background: (!isLoading && (input.trim() || selectedImages.length > 0)) 
+                                        ? 'var(--button-gradient, linear-gradient(135deg, #16a34a 0%, #0d9488 100%))' 
+                                        : undefined
                                 }}
-                                className="px-3.5 py-2 rounded-xl hover:brightness-110 disabled:opacity-50 font-black text-xs flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0"
+                                className="px-4 py-2 rounded-xl bg-stone-300 dark:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all shrink-0"
                             >
                                 <span>Gửi</span>
                                 <Send size={12} />

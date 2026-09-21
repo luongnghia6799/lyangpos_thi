@@ -2886,6 +2886,18 @@ function POSPage({
         a > 50 && a < 85 && qi(a);
       }
     }, [wa]);
+  i.useEffect(() => {
+    const handleAddProduct = (e) => {
+      if (!e || !e.detail) return;
+      const { productId, product, quantity } = e.detail;
+      const targetProd = (T && T.find(p => p.id === productId || (product && (p.id === product.id || p.name === product.name)))) || product;
+      if (targetProd) {
+        ia(targetProd, quantity || 1);
+      }
+    };
+    window.addEventListener('pos_add_product_by_id', handleAddProduct);
+    return () => window.removeEventListener('pos_add_product_by_id', handleAddProduct);
+  }, [ia, T]);
   return i.useEffect(() => (window.addEventListener("mousemove", Cs), window.addEventListener("mouseup", Ns), () => {
     window.removeEventListener("mousemove", Cs), window.removeEventListener("mouseup", Ns);
   }), [Cs, Ns]), <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {

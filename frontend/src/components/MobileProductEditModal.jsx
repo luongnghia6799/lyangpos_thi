@@ -6,6 +6,7 @@ import Toast from './Toast';
 import Portal from './Portal';
 import { formatNumber, normalizeUOM, cn } from '../lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import ActiveIngredientInput from './ActiveIngredientInput';
 
 const PRIMARY_UNITS = ['Chai', 'Hộp', 'Viên', 'Gói', 'Tuýp', 'Lọ', 'Bịch', 'Can', 'Ký', 'Cái'];
 
@@ -197,6 +198,14 @@ export default function MobileProductEditModal({ product, isOpen, onClose, onSav
                                                             <option value="">-- Chưa phân loại --</option>
                                                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                                         </select>
+                                                    </div>
+
+                                                    <div className="space-y-1.5">
+                                                        <ActiveIngredientInput
+                                                            value={formData.active_ingredient || ''}
+                                                            onChange={val => setFormData({ ...formData, active_ingredient: val })}
+                                                            existingProducts={allProducts}
+                                                        />
                                                     </div>
                                                 </div>
                                             </m.div>

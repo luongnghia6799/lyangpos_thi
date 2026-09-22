@@ -296,3 +296,66 @@ export function removeCustomActiveIngredient(name) {
     return filtered;
 }
 
+/**
+ * Cập nhật / đổi tên hoạt chất tự tạo (hoặc lưu tên mới đã sửa)
+ */
+export function updateCustomActiveIngredient(oldName, newName, category = null) {
+    if (!oldName || !newName) return getCustomActiveIngredients();
+    const oldTrimmed = oldName.trim().toLowerCase();
+    const newTrimmed = newName.trim();
+    if (newTrimmed.length < 2) return getCustomActiveIngredients();
+
+    const list = getCustomActiveIngredients();
+    let found = false;
+    const updated = list.map(item => {
+        const currentName = (typeof item === 'string' ? item : item.name).trim();
+        if (currentName.toLowerCase() === oldTrimmed) {
+            found = true;
+            return {
+                ...(typeof item === 'object' ? item : {}),
+                name: newTrimmed,
+                category: category || (typeof item === 'object' && item.category ? item.category : 'custom'),
+                updatedAt: Date.now()
+            };
+        }
+        return item;
+    });
+
+    if (!found) {
+        updated.push({
+            name: newTrimmed,
+            category: category || 'custom',
+            createdAt: Date.now()
+        });
+    }
+
+    const cleaned = sanitizeCustomIngredients(updated);
+    try {
+        localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(cleaned));
+    } catch (e) {
+        console.warn('Error updating custom active ingredient', e);
+    }
+    return cleaned;
+}
+
+/**
+ * Thay thế tên hoạt chất trong chuỗi active_ingredient của sản phẩm
+ * Giữ nguyên hàm lượng nếu có (ví dụ: "Difenoconazolle 150g/l" => "Difenoconazole 150g/l")
+ */
+export function replaceIngredientInProductString(rawString, oldName, newName) {
+    if (!rawString || typeof rawString !== 'string' || !oldName || !newName) return rawString || '';
+    const parts = parseActiveIngredients(rawString);
+    const escapedOld = oldName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(^|\\b)${escapedOld}(\\b|\\s|$)`, 'i');
+
+    const updatedParts = parts.map(part => {
+        if (regex.test(part)) {
+            return part.replace(new RegExp(escapedOld, 'i'), newName.trim());
+        }
+        return part;
+    });
+
+    return stringifyActiveIngredients(updatedParts);
+}
+
+

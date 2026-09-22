@@ -11,9 +11,9 @@ import {
 
 
 import { formatNumber, cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
+import Toast from '../../components/widgets/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import ProductAutocomplete from '../../components/ProductAutocomplete';
+import ProductAutocomplete from '../../components/forms/ProductAutocomplete';
 import { useProductData } from '../../queries/useProductData';
 
 export default function StockConversion() {

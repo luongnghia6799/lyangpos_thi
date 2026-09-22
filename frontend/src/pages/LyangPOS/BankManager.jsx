@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate } from '../../lib/utils';
 import { cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
-import Portal from '../../components/Portal';
+import Portal from '../../components/widgets/Portal';
 
 export default function BankManager() {
     const [accounts, setAccounts] = useState([]);

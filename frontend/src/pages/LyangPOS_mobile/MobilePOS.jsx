@@ -6,14 +6,14 @@ import { formatNumber, normalizeUOM, removeAccents, formatRelativePurchaseDate }
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useProductData } from '../../queries/useProductData';
-import MobileMenu from '../../components/MobileMenu';
-import MobilePartnerSelector from '../../components/MobilePartnerSelector';
-import MobileBarcodeScannerModal from '../../components/MobileBarcodeScannerModal';
-import ConfirmModal from '../../components/ConfirmModal';
-import Portal from '../../components/Portal';
+import MobileMenu from '../../components/mobile/MobileMenu';
+import MobilePartnerSelector from '../../components/mobile/MobilePartnerSelector';
+import MobileBarcodeScannerModal from '../../components/mobile/MobileBarcodeScannerModal';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import Portal from '../../components/widgets/Portal';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { ensureFontLoaded } from '../../lib/googleFonts';
-import PrintTemplate from '../../components/PrintTemplate';
+import PrintTemplate from '../../components/panels/PrintTemplate';
 import useMobileNative from '../../hooks/useMobileNative';
 
 export default function MobilePOS() {
@@ -376,6 +376,19 @@ export default function MobilePOS() {
                 };
                 packingChannelRef.current.postMessage(payload);
                 axios.post('/api/packing/sync', payload).catch(console.error);
+            }
+
+            if (selectedPartner?.id) {
+                const customPriceItems = cart.filter(i => i.product_id).map(i => ({
+                    product_id: i.product_id,
+                    price: i.price
+                }));
+                if (customPriceItems.length > 0) {
+                    axios.post("/api/custom-prices/bulk", {
+                        partner_id: selectedPartner.id,
+                        prices: customPriceItems
+                    }).catch(console.error);
+                }
             }
 
             setPrintData(res.data);

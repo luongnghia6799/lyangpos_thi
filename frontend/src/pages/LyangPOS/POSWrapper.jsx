@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import LoadingOverlay from '../../components/LoadingOverlay';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import { m, AnimatePresence } from 'framer-motion';
 
 const POSnew = lazy(() => import('./POSnew'));

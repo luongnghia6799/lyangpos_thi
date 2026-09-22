@@ -60,8 +60,6 @@ export const DEFAULT_NAV_SECTIONS = [
             { id: 'partner_profile', path: '/partner-profile', label: 'Hồ sơ đối tác', icon: Users, roles: ['admin', 'accountant', 'user'], desc: 'Chi tiết lịch sử mua hàng, công nợ từng đối tác' },
             { id: 'vouchers', path: '/vouchers', label: 'Quỹ tiền', icon: Coins, roles: ['admin', 'accountant', 'user'], desc: 'Sổ quỹ thu - chi, tạm ứng & quản lý ví tiền' },
             { id: 'banking', path: '/banking', label: 'Tài khoản ngân hàng', icon: Landmark, roles: ['admin', 'accountant', 'user'], desc: 'Quản lý số tài khoản và quét mã VietQR' },
-            { id: 'roles', path: '/roles', label: 'Phân quyền', icon: ShieldCheck, roles: ['admin', 'accountant', 'user'], desc: 'Thiết lập quyền hạn nhân viên & tài khoản' },
-            { id: 'invoice_designer', path: '/invoice-designer', label: 'Thiết kế hóa đơn', icon: LayoutTemplate, roles: ['admin', 'accountant', 'user'], desc: 'Tùy chỉnh mẫu in hóa đơn khổ A4, K80' },
             { id: 'customer_care', path: '/customer-care', label: 'Chăm sóc & Quà tặng', icon: Package, roles: ['admin', 'accountant', 'user'], desc: 'Chương trình quà tặng, khuyến mãi & tích điểm' },
         ]
     },
@@ -89,6 +87,8 @@ export const DEFAULT_NAV_SECTIONS = [
         id: 'utilities',
         label: 'Tiện ích & Mở rộng',
         items: [
+            { id: 'roles', path: '/roles', label: 'Phân quyền', icon: ShieldCheck, roles: ['admin', 'accountant', 'user'], desc: 'Thiết lập quyền hạn nhân viên & tài khoản' },
+            { id: 'invoice_designer', path: '/invoice-designer', label: 'Thiết kế hóa đơn', icon: LayoutTemplate, roles: ['admin', 'accountant', 'user'], desc: 'Tùy chỉnh mẫu in hóa đơn khổ A4, K80' },
             { id: 'calculator', path: '/calculator', label: 'Máy tính', icon: Calculator, roles: ['admin', 'accountant', 'user'], desc: 'Bảng tính công thức phân bón & cộng nhẩm' },
             { id: 'typing', path: '/typing', label: 'Luyện gõ phím', icon: Keyboard, roles: ['admin', 'accountant', 'user'], desc: 'Luyện gõ tiếng Việt, từ vựng POS & giải trí' },
             { id: 'gaming', path: '/gaming', label: 'Giải trí', icon: Gamepad2, roles: ['admin', 'accountant', 'user'], desc: 'Trò chơi mini giải tỏa căng thẳng' },

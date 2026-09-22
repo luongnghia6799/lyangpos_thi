@@ -6,11 +6,11 @@ import { formatNumber, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useProductData, usePartnerData } from '../../queries/useProductData';
-import MobileMenu from '../../components/MobileMenu';
-import MobilePartnerSelector from '../../components/MobilePartnerSelector';
-import ConfirmModal from '../../components/ConfirmModal';
-import Portal from '../../components/Portal';
-import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
+import MobileMenu from '../../components/mobile/MobileMenu';
+import MobilePartnerSelector from '../../components/mobile/MobilePartnerSelector';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import Portal from '../../components/widgets/Portal';
+import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
 
 export default function MobilePurchase() {
     const triggerHaptic = (style = 'medium') => {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, Lock, Globe, Store, Moon, ChevronRight, Monitor, Menu, Github, Check, Upload, X } from 'lucide-react';
-import MobileMenu from '../../components/MobileMenu';
+import MobileMenu from '../../components/mobile/MobileMenu';
 import { cn } from '../../lib/utils';
 import axios from 'axios';
 

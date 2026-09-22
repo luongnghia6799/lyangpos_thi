@@ -106,7 +106,11 @@ pub async fn get_products(
         let is_combo = p.is_combo.unwrap_or(false);
 
         // Filter: Active / Inactive
-        if filter_type == "inactive" {
+        if filter_type == "active" {
+            if !is_active {
+                continue;
+            }
+        } else if filter_type == "inactive" {
             if is_active {
                 continue;
             }
@@ -259,6 +263,24 @@ pub async fn get_products(
             if exp_norm.is_empty() || exp_norm == "9999-12-31" || exp_norm <= today_str || exp_norm > near_expiry_str {
                 continue;
             }
+        }
+        if filter_type == "empty_ingredient" {
+            let act = p.active_ingredient.as_deref().unwrap_or("").trim();
+            if !act.is_empty() {
+                continue;
+            }
+        }
+        if filter_type == "empty_brand" {
+            let b = p.brand.as_deref().unwrap_or("").trim();
+            if !b.is_empty() {
+                continue;
+            }
+        }
+        if filter_type == "empty_category" && p.category_id.is_some() {
+            continue;
+        }
+        if filter_type == "empty_price" && sale_price > 0.0 {
+            continue;
         }
 
         let (category_name, category_icon) = if let Some(cat_id) = p.category_id {

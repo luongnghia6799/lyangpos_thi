@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { AnimatePresence, motion as m } from 'framer-motion';
-import CustomSelect from '../../components/CustomSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
 import { 
     Users, ShieldCheck, UserPlus, Trash2, Key, Save, 
     X, AlertCircle, CheckCircle2, Shield, UserCircle,
@@ -10,8 +10,8 @@ import {
     Camera, Upload, Sparkles, Image as ImageIcon, Check
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 import logo from '../../assets/logo.png';
 
 export const USER_AVATAR_PRESETS = [

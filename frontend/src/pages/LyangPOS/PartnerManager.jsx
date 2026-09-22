@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
-import CustomSelect from '../../components/CustomSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
 import { m, AnimatePresence } from 'framer-motion';
 import { Plus, Edit2, Trash2, Search, Phone, MapPin, Tag, X, FileUp, Download, Users, ChevronUp, ChevronDown, ArrowUpDown, Droplets, Sprout, Wheat, CreditCard, FileText, ShoppingCart, Check } from 'lucide-react';
 import { formatNumber, formatDebt } from '../../lib/utils';
 import { cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
-import PartnerEditModal from '../../components/PartnerEditModal';
-import PartnerHistoryModal from '../../components/PartnerHistoryModal';
-import ConfirmModal from '../../components/ConfirmModal';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import Portal from '../../components/Portal';
+import Toast from '../../components/widgets/Toast';
+import PartnerEditModal from '../../components/modals/PartnerEditModal';
+import PartnerHistoryModal from '../../components/modals/PartnerHistoryModal';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
+import Portal from '../../components/widgets/Portal';
+import { downloadPartnerTemplate, exportPartnerList, importPartnersFromExcel } from '../../utils/excelImportExport';
 
 const ThemeCheckbox = ({ checked, indeterminate, onChange, title, className }) => (
     <button
@@ -260,22 +261,24 @@ export default function PartnerManager() {
     const handleImport = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const fData = new FormData();
-        fData.append('file', file);
+        setLoading(true);
         try {
-            const res = await axios.post('/api/partners/import', fData);
-            setToast({ message: res.data.message, type: "success" });
+            const res = await importPartnersFromExcel(file);
+            setToast({ message: res.message, type: "success" });
             fetchPartners();
         } catch (err) {
-            setToast({ message: "Lỗi khi import danh sách đối tác", type: "error" });
+            console.error("Lỗi khi nhập đối tác:", err);
+            setToast({ message: err.message || "Lỗi khi import danh sách đối tác", type: "error" });
+        } finally {
+            setLoading(false);
+            e.target.value = '';
         }
     };
 
     const handleDownloadTemplate = async () => {
         try {
-            const res = await axios.get('/api/partners/template', { responseType: 'blob' });
-            const { saveOrOpenFile } = await import('../../utils/downloadHelper');
-            await saveOrOpenFile(res.data, 'mau_nhap_doi_tac.xlsx');
+            await downloadPartnerTemplate();
+            setToast({ message: "Đã tải file mẫu đối tác thành công!", type: "success" });
         } catch (err) {
             console.error("Template Download Error:", err);
             setToast({ message: "Không thể tải file mẫu nhập đối tác", type: "error" });
@@ -283,13 +286,15 @@ export default function PartnerManager() {
     };
 
     const handleExportList = async () => {
+        setLoading(true);
         try {
-            const res = await axios.get('/api/partners/export', { responseType: 'blob' });
-            const { saveOrOpenFile } = await import('../../utils/downloadHelper');
-            await saveOrOpenFile(res.data, 'danh_sach_doi_tac.xlsx');
+            await exportPartnerList();
+            setToast({ message: "Đã xuất danh sách đối tác thành công!", type: "success" });
         } catch (err) {
             console.error("Export List Error:", err);
             setToast({ message: "Không thể xuất danh sách đối tác", type: "error" });
+        } finally {
+            setLoading(false);
         }
     };
 

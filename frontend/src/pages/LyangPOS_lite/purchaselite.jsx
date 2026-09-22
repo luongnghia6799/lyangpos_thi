@@ -25,21 +25,21 @@ import {
   FileDown,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import LiteClock from "../../components/LiteClock";
+import LiteClock from "../../components/widgets/LiteClock";
 import { useProductData, usePartnerData } from "../../queries/useProductData";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber, formatDate } from "../../lib/utils";
 import { getLiteTheme } from "../../lib/liteTheme";
 import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
 import axios from "axios";
-import PrintTemplate from "../../components/PrintTemplate";
-import ConfirmModal from "../../components/ConfirmModal";
+import PrintTemplate from "../../components/panels/PrintTemplate";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 import { DEFAULT_SETTINGS } from "../../lib/settings";
-import ProductEditModal from "../../components/ProductEditModal";
-import PartnerEditModal from "../../components/PartnerEditModal";
-import QuickDebtModal from "../../components/QuickDebtModal";
-import QuickVoucherModal from "../../components/QuickVoucherModal";
-import PurchaseOrderExportModal from "../../components/PurchaseOrderExportModal";
+import ProductEditModal from "../../components/modals/ProductEditModal";
+import PartnerEditModal from "../../components/modals/PartnerEditModal";
+import QuickDebtModal from "../../components/modals/QuickDebtModal";
+import QuickVoucherModal from "../../components/modals/QuickVoucherModal";
+import PurchaseOrderExportModal from "../../components/modals/PurchaseOrderExportModal";
 import logo from "../../assets/logo.png";
 
 const PurchaseLite = () => {

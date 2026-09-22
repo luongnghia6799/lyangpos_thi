@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import CustomSelect from '../../components/CustomSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
 import {
     Droplets, Wheat, Coins, Leaf, Sprout, BarChart3, Tag, ShoppingBag,
     Calendar, FileText, Search, RefreshCw, Printer, AlertCircle, Package,
@@ -9,10 +9,10 @@ import {
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
-import OrderEditPopup from '../../components/OrderEditPopup';
-import Toast from '../../components/Toast';
-import Portal from '../../components/Portal';
-import CustomDatePicker from '../../components/CustomDatePicker';
+import OrderEditPopup from '../../components/modals/OrderEditPopup';
+import Toast from '../../components/widgets/Toast';
+import Portal from '../../components/widgets/Portal';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
 
 const getTodayStr = (d = new Date()) => {
     const year = d.getFullYear();
@@ -510,13 +510,7 @@ const PartnerLedger = ({ onEditOrder }) => {
         setLoading(false);
     };
 
-    useEffect(() => {
-        if (selectedPartner) {
-            selectPartner(selectedPartner, startDate, endDate, filterType);
-        }
-    }, [startDate, endDate, filterType, selectedPartner?.id]);
-
-    const handleExport = async () => {
+    const handleExportLedger = async () => {
         if (!selectedPartner) return;
         try {
             const params = {
@@ -525,14 +519,48 @@ const PartnerLedger = ({ onEditOrder }) => {
             if (startDate) params.start_date = startDate;
             if (endDate) params.end_date = endDate;
             
-            const res = await axios.get(`/api/partners/${selectedPartner.id}/ledger/export`, { params, responseType: 'blob' });
+            const res = await axios.get(`/api/partners/${selectedPartner.id}/ledger`, { params });
+            const data = res.data;
+            const items = data.timeline || data.items || (Array.isArray(data) ? data : []);
+            
+            const XLSX = await import('xlsx');
+            const rows = items.map((t, idx) => ({
+                "STT": idx + 1,
+                "Thời gian": t.date || '',
+                "Mã phiếu": t.display_id || '',
+                "Loại giao dịch": t.desc || t.sub_type || '',
+                "Phương thức": t.payment_method || '',
+                "Số tiền": Number(t.total_amount) || 0,
+                "Dư nợ sau giao dịch": t.running_balance !== undefined ? Number(t.running_balance) : '',
+                "Người thực hiện": t.user_name || ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 20 },
+                { wch: 16 },
+                { wch: 30 },
+                { wch: 16 },
+                { wch: 16 },
+                { wch: 16 },
+                { wch: 18 }
+            ];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "SoPhuDoiTac");
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
             const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-            await saveOrOpenFile(res.data, `so_phu_${selectedPartner.name || selectedPartner.id}_${todayStr}.xlsx`);
+            await saveOrOpenFile(wbout, `so_phu_${(selectedPartner.name || selectedPartner.id).toString().replace(/\s+/g, '_')}_${todayStr}.xlsx`, true);
         } catch (err) {
             console.error("Export Ledger Error:", err);
         }
     };
+
+    useEffect(() => {
+        if (selectedPartner) {
+            selectPartner(selectedPartner, startDate, endDate, filterType);
+        }
+    }, [startDate, endDate, filterType, selectedPartner?.id]);
 
     return (
         <div className="h-full flex flex-col gap-3">

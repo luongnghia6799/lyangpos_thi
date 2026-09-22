@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import PrintTemplate from "../../components/PrintTemplate";
+import PrintTemplate from "../../components/panels/PrintTemplate";
 import { DEFAULT_SETTINGS } from "../../lib/settings";
 import { ensureFontLoaded } from "../../lib/googleFonts";
 

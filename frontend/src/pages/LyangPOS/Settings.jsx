@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AnimatePresence, m } from 'framer-motion';
-import CustomSelect from '../../components/CustomSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
 import { 
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
@@ -9,12 +9,12 @@ import {
     Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
-import PasswordConfirmModal from '../../components/PasswordConfirmModal';
-import CategoryManager from '../../components/CategoryManager';
-import SidebarManager from '../../components/SidebarManager';
-import GoogleFontPickerModal from '../../components/GoogleFontPickerModal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import PasswordConfirmModal from '../../components/modals/PasswordConfirmModal';
+import CategoryManager from '../../components/panels/CategoryManager';
+import SidebarManager from '../../components/layout/SidebarManager';
+import GoogleFontPickerModal from '../../components/modals/GoogleFontPickerModal';
 import { applyGlobalAppFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { queryClient } from '../../lib/queryClient';

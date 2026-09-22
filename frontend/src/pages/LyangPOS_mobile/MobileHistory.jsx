@@ -20,10 +20,10 @@ import {
   Printer
 } from 'lucide-react';
 import { formatNumber } from '../../lib/utils';
-import MobileMenu from '../../components/MobileMenu';
+import MobileMenu from '../../components/mobile/MobileMenu';
 import { cn } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
-import PrintTemplate from '../../components/PrintTemplate';
+import PrintTemplate from '../../components/panels/PrintTemplate';
 
 export default function MobileHistory() {
   const [orders, setOrders] = useState([]);

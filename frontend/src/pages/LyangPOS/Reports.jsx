@@ -4,11 +4,11 @@ import { m, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, TrendingUp, Users, Package, Truck, Calendar, Download, RefreshCcw, Search, ChevronUp, ChevronDown, ArrowUpDown, Wheat, Droplets, Leaf, Sprout, Coins, BarChart3, X, ExternalLink, PieChart, List, Timer, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatNumber, cn } from '../../lib/utils';
-import OrderEditPopup from '../../components/OrderEditPopup';
-import SearchableSelect from '../../components/SearchableSelect';
-import CustomSelect from '../../components/CustomSelect';
-import CustomDatePicker from '../../components/CustomDatePicker';
-import Portal from '../../components/Portal';
+import OrderEditPopup from '../../components/modals/OrderEditPopup';
+import SearchableSelect from '../../components/forms/SearchableSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
+import Portal from '../../components/widgets/Portal';
 
 const StatCard = ({ label, value, color, icon: Icon }) => (
     <m.div

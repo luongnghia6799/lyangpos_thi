@@ -9,7 +9,7 @@ import {
     Copy,
     CheckCircle2
 } from 'lucide-react';
-import Toast from '../../components/Toast';
+import Toast from '../../components/widgets/Toast';
 
 export default function Calculator() {
     const [inputValue, setInputValue] = useState('');

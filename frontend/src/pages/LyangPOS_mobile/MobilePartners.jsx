@@ -4,10 +4,10 @@ import { m, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Edit2, Trash2, Menu, X, Phone, MapPin, DollarSign } from 'lucide-react';
 import { formatNumber, formatDebt, cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
-import MobileMenu from '../../components/MobileMenu';
-import MobilePartnerEditModal from '../../components/MobilePartnerEditModal';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
+import MobileMenu from '../../components/mobile/MobileMenu';
+import MobilePartnerEditModal from '../../components/mobile/MobilePartnerEditModal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 export default function MobilePartners() {
     const navigate = useNavigate();

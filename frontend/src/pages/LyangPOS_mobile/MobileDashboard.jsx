@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { formatNumber } from '../../lib/utils';
 import { Link, useNavigate } from 'react-router-dom';
-import MobileMenu from '../../components/MobileMenu';
+import MobileMenu from '../../components/mobile/MobileMenu';
 import { checkIsAdmin } from '../../lib/auth';
 import useMobileNative from '../../hooks/useMobileNative';
 

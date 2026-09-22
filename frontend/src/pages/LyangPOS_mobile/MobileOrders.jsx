@@ -3,7 +3,7 @@ import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import { Clock, User, ChevronLeft, Check, Layers, ArrowRight } from 'lucide-react';
 import { formatNumber } from '../../lib/utils';
-import MobileMenu from '../../components/MobileMenu';
+import MobileMenu from '../../components/mobile/MobileMenu';
 import { cn } from '../../lib/utils';
 import useMobileNative from '../../hooks/useMobileNative';
 

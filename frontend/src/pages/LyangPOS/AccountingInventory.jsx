@@ -39,10 +39,10 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
-import QuickAuditPopout from '../../components/QuickAuditPopout';
+import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
-import SearchableSelect from '../../components/SearchableSelect';
+import SearchableSelect from '../../components/forms/SearchableSelect';
 import { createPortal } from 'react-dom';
 import DailyInvoiceTracker from './DailyInvoiceTracker';
 

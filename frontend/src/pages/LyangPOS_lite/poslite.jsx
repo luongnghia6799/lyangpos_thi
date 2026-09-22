@@ -26,22 +26,22 @@ import {
   Clock,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import LiteClock from "../../components/LiteClock";
+import LiteClock from "../../components/widgets/LiteClock";
 import { useProductData, usePartnerData } from "../../queries/useProductData";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber, formatRelativePurchaseDate } from "../../lib/utils";
 import { getLiteTheme } from "../../lib/liteTheme";
 import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
 import axios from "axios";
-import PrintTemplate from "../../components/PrintTemplate";
-import ConfirmModal from "../../components/ConfirmModal";
+import PrintTemplate from "../../components/panels/PrintTemplate";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 import { DEFAULT_SETTINGS } from "../../lib/settings";
-import ProductEditModal from "../../components/ProductEditModal";
-import PartnerEditModal from "../../components/PartnerEditModal";
-import QuickDebtModal from "../../components/QuickDebtModal";
-import QuickVoucherModal from "../../components/QuickVoucherModal";
-import QuickAuditPopout from "../../components/QuickAuditPopout";
-import Portal from "../../components/Portal";
+import ProductEditModal from "../../components/modals/ProductEditModal";
+import PartnerEditModal from "../../components/modals/PartnerEditModal";
+import QuickDebtModal from "../../components/modals/QuickDebtModal";
+import QuickVoucherModal from "../../components/modals/QuickVoucherModal";
+import QuickAuditPopout from "../../components/modals/QuickAuditPopout";
+import Portal from "../../components/widgets/Portal";
 import logo from "../../assets/logo.png";
 
 function hexToHsl(hex) {
@@ -697,6 +697,23 @@ const POSLite = () => {
 
       showToast("LƯU ĐƠN THÀNH CÔNG!");
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+
+      if (selectedPartner?.id) {
+        const customPriceItems = cart.filter(i => i.product_id).map(i => ({
+          product_id: i.product_id,
+          price: i.price
+        }));
+        if (customPriceItems.length > 0) {
+          try {
+            await axios.post("/api/custom-prices/bulk", {
+              partner_id: selectedPartner.id,
+              prices: customPriceItems
+            });
+          } catch (e) {
+            console.error("Failed to save custom prices:", e);
+          }
+        }
+      }
       
       if (shouldPrint) {
         setPrintData(res.data);

@@ -3,18 +3,18 @@ import { KeepAlive } from 'react-activation';
 import { HashRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { LazyMotion, domMax, m, AnimatePresence, MotionConfig } from 'framer-motion';
-import Layout from './components/Layout';
-import PageWrapper from './components/PageWrapper';
+import Layout from './components/layout/Layout';
+import PageWrapper from './components/layout/PageWrapper';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
-import FontLoader from './components/FontLoader';
-import LoadingOverlay from './components/LoadingOverlay';
-import CustomCursor from './components/CustomCursor';
-import GlobalReminderAlert from './components/GlobalReminderAlert';
-import ReminderModal from './components/ReminderModal';
-import PageMascot from './components/PageMascot';
-import MascotPopover from './components/MascotPopover';
-import AiConsultantModal from './components/AiConsultantModal';
+import FontLoader from './components/layout/FontLoader';
+import LoadingOverlay from './components/layout/LoadingOverlay';
+import CustomCursor from './components/layout/CustomCursor';
+import GlobalReminderAlert from './components/modals/GlobalReminderAlert';
+import ReminderModal from './components/modals/ReminderModal';
+import PageMascot from './components/widgets/PageMascot';
+import MascotPopover from './components/widgets/MascotPopover';
+import AiConsultantModal from './components/modals/AiConsultantModal';
 import { checkIsAdmin } from './lib/auth';
 import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
@@ -214,9 +214,9 @@ if (window.__TAURI_INTERNALS__) {
     });
 }
 
-import MobileBottomNav from './components/MobileBottomNav';
-import MobileLayout from './components/MobileLayout';
-import AppWallpaper from './components/AppWallpaper';
+import MobileBottomNav from './components/mobile/MobileBottomNav';
+import MobileLayout from './components/mobile/MobileLayout';
+import AppWallpaper from './components/layout/AppWallpaper';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/LyangPOS/Dashboard'));

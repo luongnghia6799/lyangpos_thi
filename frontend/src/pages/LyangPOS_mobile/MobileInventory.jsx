@@ -5,10 +5,10 @@ import { Search, Plus, Minus, X, Menu, ChevronRight, ClipboardList, Trash2, Arro
 import { formatNumber } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
-import MobileMenu from '../../components/MobileMenu';
-import ConfirmModal from '../../components/ConfirmModal';
-import ProductEditModal from '../../components/ProductEditModal';
-import Toast from '../../components/Toast';
+import MobileMenu from '../../components/mobile/MobileMenu';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import ProductEditModal from '../../components/modals/ProductEditModal';
+import Toast from '../../components/widgets/Toast';
 
 export default function MobileInventory() {
     const triggerHaptic = (style = 'medium') => {

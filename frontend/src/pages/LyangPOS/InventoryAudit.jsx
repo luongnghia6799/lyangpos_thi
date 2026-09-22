@@ -8,10 +8,10 @@ import {
     Calendar, Filter
 } from 'lucide-react';
 import { formatNumber, cn } from '../../lib/utils';
-import ProductEditModal from '../../components/ProductEditModal';
-import Toast from '../../components/Toast';
+import ProductEditModal from '../../components/modals/ProductEditModal';
+import Toast from '../../components/widgets/Toast';
 import { useQueryClient } from '@tanstack/react-query';
-import CategoryIcon from '../../components/CategoryIcon';
+import CategoryIcon from '../../components/widgets/CategoryIcon';
 
 export default function InventoryAudit() {
     const queryClient = useQueryClient();

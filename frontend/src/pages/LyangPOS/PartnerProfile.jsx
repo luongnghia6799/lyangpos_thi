@@ -11,12 +11,12 @@ import {
     FileText
 } from 'lucide-react';
 import { cn, formatNumber, formatDebt, formatDate } from '../../lib/utils';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import Toast from '../../components/Toast';
-import PrintTemplate from '../../components/PrintTemplate';
-import OrderEditPopup from '../../components/OrderEditPopup';
-import CustomDatePicker from '../../components/CustomDatePicker';
-import CustomSelect from '../../components/CustomSelect';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
+import Toast from '../../components/widgets/Toast';
+import PrintTemplate from '../../components/panels/PrintTemplate';
+import OrderEditPopup from '../../components/modals/OrderEditPopup';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
+import CustomSelect from '../../components/forms/CustomSelect';
 
 const translateType = (type) => {
     if (!type) return '';
@@ -231,12 +231,41 @@ export default function PartnerProfile() {
         if (!selectedPartner) return;
         try {
             const { start_date, end_date } = getBackendDateParams();
-            let url = `/api/partners/${selectedPartner.id}/ledger/export?filter_type=${filterType}`;
+            let url = `/api/partners/${selectedPartner.id}/ledger?filter_type=${filterType}`;
             if (start_date) url += `&start_date=${start_date}`;
             if (end_date) url += `&end_date=${end_date}`;
-            const res = await axios.get(url, { responseType: 'blob' });
+            const res = await axios.get(url);
+            const data = res.data;
+            const items = data.timeline || data.items || (Array.isArray(data) ? data : []);
+            
+            const XLSX = await import('xlsx');
+            const rows = items.map((t, idx) => ({
+                "STT": idx + 1,
+                "Thời gian": t.date || '',
+                "Mã chứng từ": t.display_id || '',
+                "Nội dung": t.desc || t.sub_type || '',
+                "Phương thức": t.payment_method || '',
+                "Số tiền": Number(t.total_amount) || 0,
+                "Dư nợ": t.running_balance !== undefined ? Number(t.running_balance) : '',
+                "Nhân viên": t.user_name || ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [
+                { wch: 6 },
+                { wch: 20 },
+                { wch: 16 },
+                { wch: 30 },
+                { wch: 16 },
+                { wch: 16 },
+                { wch: 16 },
+                { wch: 18 }
+            ];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "LichSuDoiTac");
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
-            await saveOrOpenFile(res.data, `lich_su_doi_tac_${selectedPartner.name.replace(/\s+/g, '_')}.xlsx`);
+            await saveOrOpenFile(wbout, `lich_su_doi_tac_${selectedPartner.name.replace(/\s+/g, '_')}.xlsx`, true);
+            setToast({ message: "Đã xuất file lịch sử đối tác thành công!", type: "success" });
         } catch (err) {
             console.error("Export Error:", err);
             setToast({ message: "Không thể xuất file lịch sử đối tác", type: "error" });

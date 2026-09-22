@@ -405,6 +405,43 @@ pub async fn save_custom_price(
     State(pool): State<SqlitePool>,
     Json(payload): Json<CustomPriceDto>,
 ) -> Result<impl IntoResponse, AppError> {
+    if payload.price <= 0.0 {
+        let _ = sqlx::query("DELETE FROM customer_price WHERE partner_id = ? AND product_id = ?")
+            .bind(payload.partner_id)
+            .bind(payload.product_id)
+            .execute(&pool)
+            .await;
+
+        return Ok(Json(json!({
+            "status": "success",
+            "message": "Đã xóa giá riêng thành công",
+            "synced": true
+        })));
+    }
+
+    let default_price: Option<f64> = sqlx::query_scalar(
+        "SELECT CAST(sale_price AS REAL) FROM product WHERE id = ?"
+    )
+    .bind(payload.product_id)
+    .fetch_optional(&pool)
+    .await?;
+
+    let is_synced = default_price.map(|dp| (dp - payload.price).abs() < 0.001).unwrap_or(false);
+
+    if is_synced {
+        let _ = sqlx::query("DELETE FROM customer_price WHERE partner_id = ? AND product_id = ?")
+            .bind(payload.partner_id)
+            .bind(payload.product_id)
+            .execute(&pool)
+            .await;
+
+        return Ok(Json(json!({
+            "status": "success",
+            "message": "Giá trùng giá mặc định - Đã tự động đồng bộ",
+            "synced": true
+        })));
+    }
+
     sqlx::query(
         "INSERT INTO customer_price (partner_id, product_id, price) VALUES (?, ?, ?) \
          ON CONFLICT(partner_id, product_id) DO UPDATE SET price = excluded.price"
@@ -417,7 +454,8 @@ pub async fn save_custom_price(
 
     Ok(Json(json!({
         "status": "success",
-        "message": "Đã lưu giá riêng thành công"
+        "message": "Đã lưu giá riêng thành công",
+        "synced": false
     })))
 }
 
@@ -1083,32 +1121,101 @@ pub async fn save_custom_prices_bulk(
     State(pool): State<SqlitePool>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
+    let mut entries: Vec<(i64, i64, f64)> = Vec::new();
+
     if let Some(arr) = payload.as_array() {
         for item in arr {
             let pid = item.get("partner_id").and_then(|v| v.as_i64());
             let prid = item.get("product_id").and_then(|v| v.as_i64());
-            let price = item.get("price").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let price = item.get("price").and_then(|v| {
+                v.as_f64().or_else(|| v.as_str().and_then(|s| s.replace(',', "").trim().parse::<f64>().ok()))
+            }).unwrap_or(0.0);
             if let (Some(p), Some(pr)) = (pid, prid) {
-                let _ = sqlx::query(
-                    "INSERT INTO customer_price (partner_id, product_id, price) VALUES (?, ?, ?) \
-                     ON CONFLICT(partner_id, product_id) DO UPDATE SET price = excluded.price"
-                )
-                .bind(p)
-                .bind(pr)
-                .bind(price)
-                .execute(&pool)
-                .await;
+                entries.push((p, pr, price));
+            }
+        }
+    } else if let Some(obj) = payload.as_object() {
+        let global_partner_id = obj.get("partner_id").and_then(|v| v.as_i64());
+        let list = obj.get("prices")
+            .or_else(|| obj.get("items"))
+            .and_then(|v| v.as_array());
+
+        if let Some(arr) = list {
+            for item in arr {
+                let pid = item.get("partner_id").and_then(|v| v.as_i64()).or(global_partner_id);
+                let prid = item.get("product_id").and_then(|v| v.as_i64());
+                let price = item.get("price").and_then(|v| {
+                    v.as_f64().or_else(|| v.as_str().and_then(|s| s.replace(',', "").trim().parse::<f64>().ok()))
+                }).unwrap_or(0.0);
+                if let (Some(p), Some(pr)) = (pid, prid) {
+                    entries.push((p, pr, price));
+                }
             }
         }
     }
+
+    for (p, pr, price) in entries {
+        if price <= 0.0 {
+            let _ = sqlx::query("DELETE FROM customer_price WHERE partner_id = ? AND product_id = ?")
+                .bind(p)
+                .bind(pr)
+                .execute(&pool)
+                .await;
+            continue;
+        }
+
+        let default_price: Option<f64> = sqlx::query_scalar(
+            "SELECT CAST(sale_price AS REAL) FROM product WHERE id = ?"
+        )
+        .bind(pr)
+        .fetch_optional(&pool)
+        .await
+        .unwrap_or(None);
+
+        let is_synced = default_price.map(|dp| (dp - price).abs() < 0.001).unwrap_or(false);
+
+        if is_synced {
+            let _ = sqlx::query("DELETE FROM customer_price WHERE partner_id = ? AND product_id = ?")
+                .bind(p)
+                .bind(pr)
+                .execute(&pool)
+                .await;
+        } else {
+            let _ = sqlx::query(
+                "INSERT INTO customer_price (partner_id, product_id, price) VALUES (?, ?, ?) \
+                 ON CONFLICT(partner_id, product_id) DO UPDATE SET price = excluded.price"
+            )
+            .bind(p)
+            .bind(pr)
+            .bind(price)
+            .execute(&pool)
+            .await;
+        }
+    }
+
     Ok(Json(json!({"message": "Đã lưu bảng giá riêng thành công!"})))
 }
 
 pub async fn cleanup_custom_prices(
     State(pool): State<SqlitePool>,
 ) -> Result<impl IntoResponse, AppError> {
-    let _ = sqlx::query("DELETE FROM customer_price WHERE price <= 0").execute(&pool).await;
-    Ok(Json(json!({"message": "Đã dọn dẹp giá riêng!"})))
+    let res = sqlx::query(
+        "DELETE FROM customer_price \
+         WHERE price <= 0 \
+            OR product_id IN ( \
+                SELECT p.id FROM product p \
+                WHERE p.id = customer_price.product_id \
+                  AND CAST(p.sale_price AS REAL) = customer_price.price \
+            )"
+    )
+    .execute(&pool)
+    .await?;
+
+    let deleted_count = res.rows_affected();
+    Ok(Json(json!({
+        "message": "Đã dọn dẹp giá riêng!",
+        "deleted_count": deleted_count
+    })))
 }
 
 pub async fn fix_opening_balance(

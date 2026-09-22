@@ -13,11 +13,11 @@ import {
     ShoppingCart, Package, BookOpen, TrendingUp
 } from 'lucide-react';
 import { cn, formatNumber } from '../../lib/utils';
-import Toast from '../../components/Toast';
+import Toast from '../../components/widgets/Toast';
 import { m, AnimatePresence } from 'framer-motion';
-import PrintTemplate from '../../components/PrintTemplate';
-import ConfirmModal from '../../components/ConfirmModal';
-import GoogleFontPickerModal from '../../components/GoogleFontPickerModal';
+import PrintTemplate from '../../components/panels/PrintTemplate';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import GoogleFontPickerModal from '../../components/modals/GoogleFontPickerModal';
 import { loadGoogleFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 

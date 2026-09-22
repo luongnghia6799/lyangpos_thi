@@ -2,32 +2,32 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence, MotionConfig } from 'framer-motion';
 import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell, Palette } from 'lucide-react';
-import HeavyClock from '../../components/HeavyClock';
+import HeavyClock from '../../components/widgets/HeavyClock';
 import { formatCurrency, formatNumber, formatDebt, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound, playTypingSound } from '../../lib/utils';
 import { useLocation } from 'react-router-dom';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { ensureFontLoaded } from '../../lib/googleFonts';
-import Toast from '../../components/Toast';
-import ProductEditModal from '../../components/ProductEditModal';
-import PartnerEditModal from '../../components/PartnerEditModal';
-import PrintTemplate from '../../components/PrintTemplate';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import Portal from '../../components/Portal';
-import POSHistoryPanel from '../../components/POSHistoryPanel';
-import OrderEditPopup from '../../components/OrderEditPopup';
-import ConfirmModal from '../../components/ConfirmModal';
-import ConsignmentPanel from '../../components/ConsignmentPanel';
-import DailyOrderHistoryModal from '../../components/DailyOrderHistoryModal';
-import PartnerHistoryModal from '../../components/PartnerHistoryModal';
-import MarqueeText from '../../components/MarqueeText';
-import PartnerInfoHoverCard from '../../components/PartnerInfoHoverCard';
-import CustomSelect from '../../components/CustomSelect';
-import CustomDatePicker from '../../components/CustomDatePicker';
-import PriceRaiseModal from '../../components/PriceRaiseModal';
-import PurchaseOrderExportModal from '../../components/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from '../../components/CartColorCustomizerModal';
-import QuickAuditPopout from '../../components/QuickAuditPopout';
+import Toast from '../../components/widgets/Toast';
+import ProductEditModal from '../../components/modals/ProductEditModal';
+import PartnerEditModal from '../../components/modals/PartnerEditModal';
+import PrintTemplate from '../../components/panels/PrintTemplate';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
+import Portal from '../../components/widgets/Portal';
+import POSHistoryPanel from '../../components/panels/POSHistoryPanel';
+import OrderEditPopup from '../../components/modals/OrderEditPopup';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import ConsignmentPanel from '../../components/panels/ConsignmentPanel';
+import DailyOrderHistoryModal from '../../components/modals/DailyOrderHistoryModal';
+import PartnerHistoryModal from '../../components/modals/PartnerHistoryModal';
+import MarqueeText from '../../components/widgets/MarqueeText';
+import PartnerInfoHoverCard from '../../components/widgets/PartnerInfoHoverCard';
+import CustomSelect from '../../components/forms/CustomSelect';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
+import PriceRaiseModal from '../../components/modals/PriceRaiseModal';
+import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from '../../components/modals/CartColorCustomizerModal';
+import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
@@ -3759,9 +3759,19 @@ export default function Purchase() {
                                                                     )}
                                                                     </AnimatePresence>
                                                                         {item.active_ingredient && (
-                                                                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700 uppercase-none">
-                                                                                <div className="text-[10px] font-black uppercase text-emerald-400 mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div>
-                                                                                <div className="text-xs font-bold leading-relaxed">{item.active_ingredient}</div>
+                                                                            <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] min-w-[260px] max-w-[360px] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
+                                                                                <div className="flex items-center gap-1.5 pb-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
+                                                                                    <Sparkles size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
+                                                                                    <span>Hoạt chất / Thành phần</span>
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                                    {item.active_ingredient.split(/[,+]/).map((ing, idx) => (
+                                                                                        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/25">
+                                                                                            {ing.trim()}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                                <div className="absolute -bottom-1.5 left-6 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#141d13] border-r border-b border-[#8b6f47]/30 dark:border-emerald-500/30" />
                                                                             </div>
                                                                         )}
                                                                     </div>

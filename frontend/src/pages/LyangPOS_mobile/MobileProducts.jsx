@@ -3,10 +3,10 @@ import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import { formatNumber, cn } from '../../lib/utils';
-import MobileMenu from '../../components/MobileMenu';
-import MobileProductEditModal from '../../components/MobileProductEditModal';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
+import MobileMenu from '../../components/mobile/MobileMenu';
+import MobileProductEditModal from '../../components/mobile/MobileProductEditModal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 import useMobileNative from '../../hooks/useMobileNative';
 
 export default function MobileProducts() {

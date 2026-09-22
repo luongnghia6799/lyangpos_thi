@@ -31,7 +31,7 @@ import {
     Check
 } from 'lucide-react';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import CustomSelect from '../../components/CustomSelect';
+import CustomSelect from '../../components/forms/CustomSelect';
 import { TypingEngine } from '../../lib/typing/typingEngine';
 import { soundEngine, musicPlayer } from '../../lib/typing/typingAudio';
 import {

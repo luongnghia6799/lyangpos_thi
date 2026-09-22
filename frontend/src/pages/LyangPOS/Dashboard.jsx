@@ -4,8 +4,8 @@ import axios from 'axios';
 import { Lunar } from 'lunar-javascript';
 import { m, AnimatePresence, useReducedMotion, MotionConfig } from 'framer-motion';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import CustomSelect from '../../components/CustomSelect';
-import CustomDatePicker from '../../components/CustomDatePicker';
+import CustomSelect from '../../components/forms/CustomSelect';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -73,9 +73,9 @@ import {
     Droplet
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
-import Toast from '../../components/Toast';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import Portal from '../../components/Portal';
+import Toast from '../../components/widgets/Toast';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
+import Portal from '../../components/widgets/Portal';
 import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
 import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
 import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';

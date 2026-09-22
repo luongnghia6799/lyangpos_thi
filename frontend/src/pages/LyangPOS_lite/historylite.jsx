@@ -22,8 +22,8 @@ import {
 import { formatCurrency, formatNumber, formatDate } from '../../lib/utils';
 import { cn, playPopSound, playSuccessSound } from '../../lib/utils';
 import { useNavigate } from 'react-router-dom';
-import ConfirmModal from '../../components/ConfirmModal';
-import PrintTemplate from '../../components/PrintTemplate';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import PrintTemplate from '../../components/panels/PrintTemplate';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { useQueryClient } from '@tanstack/react-query';
 

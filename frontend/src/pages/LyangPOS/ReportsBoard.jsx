@@ -8,10 +8,10 @@ import {
     Layers, PieChart, Activity, Truck, Coins, Leaf, SprayCan,
     Sprout, Wheat, X, ExternalLink, ArrowUp, ArrowDown
 } from 'lucide-react';
-import Portal from '../../components/Portal';
-import OrderEditPopup from '../../components/OrderEditPopup';
-import CustomDatePicker from '../../components/CustomDatePicker';
-import CustomSelect from '../../components/CustomSelect';
+import Portal from '../../components/widgets/Portal';
+import OrderEditPopup from '../../components/modals/OrderEditPopup';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
+import CustomSelect from '../../components/forms/CustomSelect';
 import { formatCurrency, formatNumber, cn } from '../../lib/utils';
 import * as XLSX from 'xlsx';
 import {

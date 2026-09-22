@@ -32,7 +32,7 @@ import {
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette 
 } from "lucide-react";
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from "../../components/CartColorCustomizerModal";
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from "../../components/modals/CartColorCustomizerModal";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -120,28 +120,28 @@ const Pd = PartnerHistoryModal;
 
 import { DEFAULT_SETTINGS as Gl, DEFAULT_SETTINGS as Tr } from "@/lib/settings";
 import { ensureFontLoaded } from "@/lib/googleFonts";
-import PrintTemplate from "@/components/PrintTemplate";
+import PrintTemplate from "@/components/panels/PrintTemplate";
 const Ul = PrintTemplate;
 const Mn = PrintTemplate;
-import PartnerEditModal from "@/components/PartnerEditModal";
+import PartnerEditModal from "@/components/modals/PartnerEditModal";
 const Fl = PartnerEditModal;
-import PartnerInfoHoverCard from "@/components/PartnerInfoHoverCard";
+import PartnerInfoHoverCard from "@/components/widgets/PartnerInfoHoverCard";
 const Vl = PartnerInfoHoverCard;
-import HeavyClock from "@/components/HeavyClock";
+import HeavyClock from "@/components/widgets/HeavyClock";
 const Ql = HeavyClock;
-import DailyOrderHistoryModal from "@/components/DailyOrderHistoryModal";
+import DailyOrderHistoryModal from "@/components/modals/DailyOrderHistoryModal";
 const Xl = DailyOrderHistoryModal;
-import OrderEditPopup from "@/components/OrderEditPopup";
+import OrderEditPopup from "@/components/modals/OrderEditPopup";
 const OrderEditModal = OrderEditPopup;
-import QuickDebtModal from "@/components/QuickDebtModal";
+import QuickDebtModal from "@/components/modals/QuickDebtModal";
 const Jl = QuickDebtModal;
-import QuickVoucherModal from "@/components/QuickVoucherModal";
+import QuickVoucherModal from "@/components/modals/QuickVoucherModal";
 const Yl = QuickVoucherModal;
-import QuickAuditPopout from "@/components/QuickAuditPopout";
+import QuickAuditPopout from "@/components/modals/QuickAuditPopout";
 const Zl = QuickAuditPopout;
-import CustomSelect from "@/components/CustomSelect";
+import CustomSelect from "@/components/forms/CustomSelect";
 const zn = CustomSelect;
-import MarqueeText from "@/components/MarqueeText";
+import MarqueeText from "@/components/widgets/MarqueeText";
 const Ps = MarqueeText;
 import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } from "@/queries/useProductData";
 const od = eo;
@@ -155,18 +155,18 @@ import {
   playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, 
   playAddToCartSound, formatRelativePurchaseDate 
 } from "@/lib/utils";
-import Portal from "@/components/Portal";
+import Portal from "@/components/widgets/Portal";
 const Fn = Portal;
 const Ee = Portal;
-import CustomDatePicker from "@/components/CustomDatePicker";
-import POSHistoryPanel from "@/components/POSHistoryPanel";
-import PartnerHistoryModal from "@/components/PartnerHistoryModal";
-import ProductEditModal from "@/components/ProductEditModal";
-import Toast from "@/components/Toast";
+import CustomDatePicker from "@/components/forms/CustomDatePicker";
+import POSHistoryPanel from "@/components/panels/POSHistoryPanel";
+import PartnerHistoryModal from "@/components/modals/PartnerHistoryModal";
+import ProductEditModal from "@/components/modals/ProductEditModal";
+import Toast from "@/components/widgets/Toast";
 const jl = Toast;
-import ConfirmModal from "@/components/ConfirmModal";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 const Cl = ConfirmModal;
-import QuickEditModal from "@/components/QuickEditModal";
+import QuickEditModal from "@/components/modals/QuickEditModal";
 const Nl = QuickEditModal;
 import logo from "@/assets/logo.png";
 const kl = logo;
@@ -1806,6 +1806,21 @@ function POSPage({
                 partner_id: p.id,
                 prices: o
               });
+              or(prev => {
+                const next = { ...prev };
+                o.forEach(item => {
+                  const prod = (T || []).find(x => x.id === item.product_id);
+                  if (prod && Math.abs((prod.sale_price || 0) - item.price) < 0.001) {
+                    delete next[item.product_id];
+                  } else if (item.price > 0) {
+                    next[item.product_id] = item.price;
+                  } else {
+                    delete next[item.product_id];
+                  }
+                });
+                return next;
+              });
+              ws(p.id);
             } catch (u) {
               console.error("Failed to save custom prices:", u);
             }
@@ -4221,7 +4236,22 @@ function POSPage({
                                                 }), Dt(!0);
                                               }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div>{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}{r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
                                               color: s === It ? Mt.accent : Mt.main
-                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></x.div>}</P>{t.active_ingredient && <div className="absolute left-0 bottom-full mb-2 hidden group-hover/search-row:block z-[2000] w-64 bg-slate-800 text-white p-3 rounded-xl  animate-in fade-in slide-in-from-bottom-2 duration-200 border border-slate-700"><div className="text-[10px] font-black uppercase text-[#d4a574] mb-1 tracking-widest border-b border-white/10 pb-1">Hoạt chất / Thành phần</div><div className="text-xs font-bold leading-relaxed">{t.active_ingredient}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
+                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></x.div>}</P>{t.active_ingredient && (
+  <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] min-w-[260px] max-w-[360px] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
+    <div className="flex items-center gap-1.5 pb-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
+      <Es size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
+      <span>Hoạt chất / Thành phần</span>
+    </div>
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {t.active_ingredient.split(/[,+]/).map((item, idx) => (
+        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/25">
+          {item.trim()}
+        </span>
+      ))}
+    </div>
+    <div className="absolute -bottom-1.5 left-6 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#141d13] border-r border-b border-[#8b6f47]/30 dark:border-emerald-500/30" />
+  </div>
+)}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10 shadow-none transition-all"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;

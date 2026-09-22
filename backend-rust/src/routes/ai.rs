@@ -21,6 +21,7 @@ pub struct AiConsultRequest {
     pub history: Option<Vec<ChatMessage>>,
     pub images: Option<Vec<String>>,
     pub api_key: Option<String>,
+    pub mode: Option<String>, // "crop_doctor" | "app_analytics" | "general_assistant"
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -35,10 +36,536 @@ pub struct ProductContext {
     pub brand: Option<String>,
 }
 
+async fn build_app_analytics_context(pool: &SqlitePool, user_query: Option<&str>) -> String {
+    let mut ctx = String::from("=== BÁO CÁO & DỮ LIỆU SỐ LIỆU THỜI GIAN THỰC TỪ PHẦN MỀM LYANGPOS ===\n\n");
+
+    let now = chrono::Local::now();
+    let today_str = now.format("%Y-%m-%d").to_string();
+    let month_prefix = now.format("%Y-%m").to_string();
+
+    // 1. Doanh thu, Lợi nhuận & Đơn hàng hôm nay
+    let today_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
+         FROM \"order\" WHERE type = 'Sale' AND date(date) = date(?) AND display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .bind(&today_str)
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0), Some(0.0)));
+
+    let today_orders_count = today_sales.0;
+    let today_rev = today_sales.1.unwrap_or(0.0);
+    let today_paid = today_sales.2.unwrap_or(0.0);
+    let today_debt = today_rev - today_paid;
+
+    // Lợi nhuận hôm nay
+    let today_profit: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
+         FROM order_detail od \
+         JOIN \"order\" o ON od.order_id = o.id \
+         LEFT JOIN product p ON od.product_id = p.id \
+         WHERE o.type = 'Sale' AND date(o.date) = date(?) AND o.display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .bind(&today_str)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    // Doanh thu & Lợi nhuận tháng này
+    let month_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
+         FROM \"order\" WHERE type = 'Sale' AND strftime('%Y-%m', date) = ? AND display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .bind(&month_prefix)
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0), Some(0.0)));
+
+    let month_orders_count = month_sales.0;
+    let month_rev = month_sales.1.unwrap_or(0.0);
+    let month_paid = month_sales.2.unwrap_or(0.0);
+
+    let month_profit: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
+         FROM order_detail od \
+         JOIN \"order\" o ON od.order_id = o.id \
+         LEFT JOIN product p ON od.product_id = p.id \
+         WHERE o.type = 'Sale' AND strftime('%Y-%m', o.date) = ? AND o.display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .bind(&month_prefix)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    // Tổng quan toàn thời gian từ trước đến nay (All-time)
+    let all_time_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
+         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0), Some(0.0)));
+
+    let all_time_profit: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
+         FROM order_detail od \
+         JOIN \"order\" o ON od.order_id = o.id \
+         LEFT JOIN product p ON od.product_id = p.id \
+         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU')"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    let all_time_rev = all_time_sales.1.unwrap_or(0.0);
+    let all_time_profit_margin = if all_time_rev > 0.0 { (all_time_profit / all_time_rev) * 100.0 } else { 0.0 };
+    let month_profit_margin = if month_rev > 0.0 { (month_profit / month_rev) * 100.0 } else { 0.0 };
+
+    ctx.push_str(&format!(
+        "1. TỔNG QUAN DOANH THU & LỢI NHUẬN GỘP:\n\
+         - Hôm nay ({}): {} đơn hàng | Doanh thu: {:.}đ | Lợi nhuận gộp: {:.}đ | Thực thu tiền mặt: {:.}đ | Nợ mới: {:.}đ\n\
+         - Tháng này ({}): {} đơn hàng | Doanh thu: {:.}đ | Lợi nhuận gộp: {:.}đ (Tỷ suất: {:.1}%) | Thực thu: {:.}đ\n\
+         - TỔNG TOÀN THỜI GIAN (LỊCH SỬ TỪ TRƯỚC ĐẾN NAY): {} đơn bán hàng | Tổng doanh thu: {:.}đ | Tổng lợi nhuận gộp: {:.}đ (Tỷ suất: {:.1}%) | Đã thu: {:.}đ\n\n",
+        today_str, today_orders_count, today_rev, today_profit, today_paid, today_debt,
+        month_prefix, month_orders_count, month_rev, month_profit, month_profit_margin, month_paid,
+        all_time_sales.0, all_time_rev, all_time_profit, all_time_profit_margin, all_time_sales.2.unwrap_or(0.0)
+    ));
+
+    // Lịch sử doanh thu 7 ngày gần nhất
+    if let Ok(recent_days) = sqlx::query(
+        "SELECT date(date) as day, COUNT(*) as cnt, \
+                CAST(COALESCE(SUM(total_amount), 0) AS REAL) as rev, \
+                CAST(COALESCE(SUM(amount_paid), 0) AS REAL) as paid \
+         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU') \
+         GROUP BY date(date) ORDER BY date(date) DESC LIMIT 7"
+    )
+    .fetch_all(pool)
+    .await {
+        if !recent_days.is_empty() {
+            ctx.push_str("LỊCH SỬ DOANH THU 7 NGÀY GẦN ĐÂY:\n");
+            for r in recent_days {
+                let day: String = r.try_get("day").unwrap_or_default();
+                let cnt: i64 = r.try_get("cnt").unwrap_or(0);
+                let rev: f64 = r.try_get("rev").unwrap_or(0.0);
+                let paid: f64 = r.try_get("paid").unwrap_or(0.0);
+                ctx.push_str(&format!("  * Ngày {}: {} đơn | Doanh thu: {:.}đ | Đã thu: {:.}đ\n", day, cnt, rev, paid));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // Lịch sử doanh thu các tháng trong quá khứ (12 tháng gần nhất)
+    if let Ok(recent_months) = sqlx::query(
+        "SELECT strftime('%Y-%m', date) as m, COUNT(*) as cnt, \
+                CAST(COALESCE(SUM(total_amount), 0) AS REAL) as rev, \
+                CAST(COALESCE(SUM(amount_paid), 0) AS REAL) as paid \
+         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU') \
+         GROUP BY m ORDER BY m DESC LIMIT 12"
+    )
+    .fetch_all(pool)
+    .await {
+        if !recent_months.is_empty() {
+            ctx.push_str("LỊCH SỬ DOANH THU CÁC THÁNG TRONG QUÁ KHỨ (12 THÁNG GẦN NHẤT):\n");
+            for r in recent_months {
+                let m: String = r.try_get("m").unwrap_or_default();
+                let cnt: i64 = r.try_get("cnt").unwrap_or(0);
+                let rev: f64 = r.try_get("rev").unwrap_or(0.0);
+                let paid: f64 = r.try_get("paid").unwrap_or(0.0);
+                let debt = rev - paid;
+                ctx.push_str(&format!("  * Tháng {}: {} đơn | Doanh thu: {:.}đ | Đã thu: {:.}đ | Nợ: {:.}đ\n", m, cnt, rev, paid, debt));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // TOP SẢN PHẨM MANG LẠI LỢI NHUẬN CAO NHẤT (TOÀN THỜI GIAN)
+    if let Ok(top_profits) = sqlx::query(
+        "SELECT COALESCE(od.product_name_override, p.name) as name, p.unit, \
+                CAST(SUM(od.quantity) AS REAL) as total_qty, \
+                CAST(SUM(od.quantity * od.price) AS REAL) as total_rev, \
+                CAST(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))) AS REAL) as total_profit \
+         FROM order_detail od \
+         JOIN \"order\" o ON od.order_id = o.id \
+         LEFT JOIN product p ON od.product_id = p.id \
+         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
+         GROUP BY od.product_id \
+         ORDER BY total_profit DESC LIMIT 15"
+    )
+    .fetch_all(pool)
+    .await {
+        if !top_profits.is_empty() {
+            ctx.push_str("TOP SẢN PHẨM MANG LẠI LỢI NHUẬN CAO NHẤT (TOÀN THỜI GIAN):\n");
+            for (idx, r) in top_profits.into_iter().enumerate() {
+                let name: String = r.try_get("name").unwrap_or_else(|_| "Sản phẩm".to_string());
+                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
+                let qty: f64 = r.try_get("total_qty").unwrap_or(0.0);
+                let rev: f64 = r.try_get("total_rev").unwrap_or(0.0);
+                let profit: f64 = r.try_get("total_profit").unwrap_or(0.0);
+                let margin = if rev > 0.0 { (profit / rev) * 100.0 } else { 0.0 };
+                ctx.push_str(&format!(
+                    "  {}. {}: Lợi nhuận: {:.}đ (Tỷ suất: {:.1}%) | Đã bán: {} {} | Doanh số: {:.}đ\n",
+                    idx + 1, name, profit, margin, qty, unit, rev
+                ));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // Top 10 sản phẩm bán chạy nhất theo số lượng trong lịch sử
+    if let Ok(top_sellers) = sqlx::query(
+        "SELECT COALESCE(od.product_name_override, p.name) as name, p.unit, \
+                CAST(SUM(od.quantity) AS REAL) as total_qty, \
+                CAST(SUM(od.quantity * od.price) AS REAL) as total_rev, \
+                CAST(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))) AS REAL) as total_profit \
+         FROM order_detail od \
+         JOIN \"order\" o ON od.order_id = o.id \
+         LEFT JOIN product p ON od.product_id = p.id \
+         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
+         GROUP BY od.product_id \
+         ORDER BY total_qty DESC LIMIT 10"
+    )
+    .fetch_all(pool)
+    .await {
+        if !top_sellers.is_empty() {
+            ctx.push_str("TOP 10 SẢN PHẨM BÁN CHẠY NHẤT LỊCH SỬ (THEO SỐ LƯỢNG BÁN):\n");
+            for (idx, r) in top_sellers.into_iter().enumerate() {
+                let name: String = r.try_get("name").unwrap_or_else(|_| "Sản phẩm".to_string());
+                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
+                let qty: f64 = r.try_get("total_qty").unwrap_or(0.0);
+                let rev: f64 = r.try_get("total_rev").unwrap_or(0.0);
+                let profit: f64 = r.try_get("total_profit").unwrap_or(0.0);
+                ctx.push_str(&format!("  {}. {}: Đã bán {} {} | Doanh số: {:.}đ | Lợi nhuận: {:.}đ\n", idx + 1, name, qty, unit, rev, profit));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // 2. Tồn kho & Sản phẩm
+    let total_prods: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM product WHERE is_active = 1")
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
+
+    let out_of_stock: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM product WHERE is_active = 1 AND stock <= 0")
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
+
+    ctx.push_str(&format!(
+        "2. KHO HÀNG & SẢN PHẨM HIỆN TẠI:\n\
+         - Tổng số mặt hàng đang kinh doanh: {}\n\
+         - Số mặt hàng hết tồn kho (≤ 0): {}\n",
+        total_prods, out_of_stock
+    ));
+
+    // Hàng sắp hết kho (stock <= min_stock AND min_stock > 0)
+    if let Ok(low_stocks) = sqlx::query(
+        "SELECT name, stock, min_stock, unit FROM product \
+         WHERE is_active = 1 AND min_stock > 0 AND stock <= min_stock \
+         ORDER BY stock ASC LIMIT 10"
+    )
+    .fetch_all(pool)
+    .await {
+        if !low_stocks.is_empty() {
+            ctx.push_str("- Mặt hàng cảnh báo sắp hết (Tồn ≤ Mức tối thiểu):\n");
+            for r in low_stocks {
+                let name: String = r.try_get("name").unwrap_or_default();
+                let stock: f64 = r.try_get("stock").unwrap_or(0.0);
+                let min_s: f64 = r.try_get("min_stock").unwrap_or(0.0);
+                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
+                ctx.push_str(&format!("  + {}: Tồn {} {} (Mức báo: {})\n", name, stock, unit, min_s));
+            }
+        }
+    }
+
+    // Hàng cận hạn sử dụng
+    if let Ok(exp_rows) = sqlx::query(
+        "SELECT name, expiry_date, stock, unit FROM product \
+         WHERE is_active = 1 AND expiry_date IS NOT NULL AND expiry_date != '' \
+         ORDER BY expiry_date ASC LIMIT 10"
+    )
+    .fetch_all(pool)
+    .await {
+        if !exp_rows.is_empty() {
+            ctx.push_str("- Hạn dùng sản phẩm gần nhất (Hạn dùng/Quá hạn):\n");
+            for r in exp_rows {
+                let name: String = r.try_get("name").unwrap_or_default();
+                let exp: String = r.try_get("expiry_date").unwrap_or_default();
+                let stock: f64 = r.try_get("stock").unwrap_or(0.0);
+                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
+                ctx.push_str(&format!("  + {}: Hạn dùng {} | Tồn: {} {}\n", name, exp, stock, unit));
+            }
+        }
+    }
+    ctx.push('\n');
+
+    // 3. Khách hàng & Công nợ (Phải thu & Phải trả chi tiết)
+    let total_customers: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM partner WHERE is_customer = 1 OR type = 'Customer'"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
+
+    let customer_debt_stats: (i64, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(debt_balance) AS REAL) FROM partner \
+         WHERE (is_customer = 1 OR type = 'Customer') AND debt_balance > 0"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0)));
+
+    let total_customer_debt = customer_debt_stats.1.unwrap_or(0.0);
+    let count_customer_debtors = customer_debt_stats.0;
+
+    let total_suppliers: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM partner WHERE is_supplier = 1 OR type = 'Supplier'"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
+
+    // Công nợ phải trả NCC (debt_balance < 0 là nợ cửa hàng nợ nhà cung cấp)
+    let supplier_debt_stats: (i64, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(ABS(debt_balance)) AS REAL) FROM partner \
+         WHERE (is_supplier = 1 OR type = 'Supplier') AND debt_balance < 0"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0)));
+
+    let total_supplier_debt = supplier_debt_stats.1.unwrap_or(0.0);
+    let count_supplier_debtors = supplier_debt_stats.0;
+
+    ctx.push_str(&format!(
+        "3. ĐỐI TÁC & CÔNG NỢ (PHẢI THU & PHẢI TRẢ CHI TIẾT):\n\
+         - KHÁCH HÀNG (CÔNG NỢ PHẢI THU - KHÁCH NỢ CỬA HÀNG):\n\
+           * Tổng số khách hàng: {}\n\
+           * Số khách hàng hiện đang có nợ: {} khách\n\
+           * TỔNG CÔNG NỢ PHẢI THU TỪ KHÁCH HÀNG: {:.}đ\n\
+         - NHÀ CUNG CẤP (CÔNG NỢ PHẢI TRẢ - CỬA HÀNG NỢ NHÀ CUNG CẤP):\n\
+           * Tổng số nhà cung cấp: {}\n\
+           * Số nhà cung cấp cửa hàng đang nợ: {} nhà cung cấp\n\
+           * TỔNG CÔNG NỢ PHẢI TRẢ NHÀ CUNG CẤP: {:.}đ\n\n",
+        total_customers, count_customer_debtors, total_customer_debt,
+        total_suppliers, count_supplier_debtors, total_supplier_debt
+    ));
+
+    // Top khách hàng nợ nhiều nhất (15 khách hàng)
+    if let Ok(debtors) = sqlx::query(
+        "SELECT name, phone, debt_balance FROM partner \
+         WHERE (is_customer = 1 OR type = 'Customer') AND debt_balance > 0 \
+         ORDER BY debt_balance DESC LIMIT 15"
+    )
+    .fetch_all(pool)
+    .await {
+        if !debtors.is_empty() {
+            ctx.push_str("DANH SÁCH TOP KHÁCH HÀNG ĐANG CÓ NỢ CAO NHẤT (CÔNG NỢ PHẢI THU):\n");
+            for (idx, r) in debtors.into_iter().enumerate() {
+                let name: String = r.try_get("name").unwrap_or_default();
+                let phone: String = r.try_get("phone").unwrap_or_else(|_| "".to_string());
+                let debt: f64 = r.try_get("debt_balance").unwrap_or(0.0);
+                let phone_str = if phone.trim().is_empty() { "Chưa có SĐT".to_string() } else { phone.trim().to_string() };
+                ctx.push_str(&format!("  {}. {} (SĐT: {}): {:.}đ\n", idx + 1, name, phone_str, debt));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // Top nhà cung cấp cửa hàng đang nợ nhiều nhất (10 nhà cung cấp)
+    if let Ok(supp_debtors) = sqlx::query(
+        "SELECT name, phone, debt_balance FROM partner \
+         WHERE (is_supplier = 1 OR type = 'Supplier') AND debt_balance < 0 \
+         ORDER BY debt_balance ASC LIMIT 10"
+    )
+    .fetch_all(pool)
+    .await {
+        if !supp_debtors.is_empty() {
+            ctx.push_str("DANH SÁCH TOP NHÀ CUNG CẤP CỬA HÀNG ĐANG NỢ NHIỀU NHẤT (CÔNG NỢ PHẢI TRẢ):\n");
+            for (idx, r) in supp_debtors.into_iter().enumerate() {
+                let name: String = r.try_get("name").unwrap_or_default();
+                let phone: String = r.try_get("phone").unwrap_or_else(|_| "".to_string());
+                let raw_debt: f64 = r.try_get("debt_balance").unwrap_or(0.0);
+                let debt = raw_debt.abs();
+                let phone_str = if phone.trim().is_empty() { "Chưa có SĐT".to_string() } else { phone.trim().to_string() };
+                ctx.push_str(&format!("  {}. {} (SĐT: {}): {:.}đ\n", idx + 1, name, phone_str, debt));
+            }
+            ctx.push('\n');
+        }
+    }
+
+    // 4. Thu chi tiền mặt từ cash_voucher
+    let cash_in_today: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
+         WHERE type = 'Receipt' AND date(date) = date(?)"
+    )
+    .bind(&today_str)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    let cash_out_today: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
+         WHERE type = 'Payment' AND date(date) = date(?)"
+    )
+    .bind(&today_str)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    let cash_in_month: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
+         WHERE type = 'Receipt' AND strftime('%Y-%m', date) = ?"
+    )
+    .bind(&month_prefix)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    let cash_out_month: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
+         WHERE type = 'Payment' AND strftime('%Y-%m', date) = ?"
+    )
+    .bind(&month_prefix)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
+
+    ctx.push_str(&format!(
+        "4. THU CHI TIỀN MẶT NGOÀI ĐƠN HÀNG (PHIẾU THU/CHI):\n\
+         - Hôm nay ({}): Thu ngoài {:.}đ | Chi ngoài {:.}đ\n\
+         - Tháng này ({}): Thu ngoài {:.}đ | Chi ngoài {:.}đ\n\n",
+        today_str, cash_in_today, cash_out_today,
+        month_prefix, cash_in_month, cash_out_month
+    ));
+
+    // 5. Lịch sử nhập hàng (Purchase Orders)
+    let all_time_purchases: (i64, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE type = 'Purchase'"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0)));
+
+    let month_purchases: (i64, Option<f64>) = sqlx::query_as(
+        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE type = 'Purchase' AND strftime('%Y-%m', date) = ?"
+    )
+    .bind(&month_prefix)
+    .fetch_one(pool)
+    .await
+    .unwrap_or((0, Some(0.0)));
+
+    ctx.push_str(&format!(
+        "5. LỊCH SỬ NHẬP HÀNG TỪ NHÀ CUNG CẤP:\n\
+         - Nhập hàng tháng này ({}): {} đơn nhập | Tổng tiền: {:.}đ\n\
+         - Tổng tiền nhập hàng toàn thời gian: {} đơn nhập | {:.}đ\n\n",
+        month_prefix, month_purchases.0, month_purchases.1.unwrap_or(0.0),
+        all_time_purchases.0, all_time_purchases.1.unwrap_or(0.0)
+    ));
+
+    // 6. Tra cứu bổ sung theo câu hỏi người dùng (nếu có hỏi đối tác hoặc sản phẩm cụ thể)
+    if let Some(q) = user_query {
+        let q_clean = q.trim();
+        if !q_clean.is_empty() {
+            let q_norm = crate::utils::remove_accents(q_clean).to_lowercase();
+            if let Ok(partners) = sqlx::query("SELECT id, name, phone, debt_balance, type, is_customer, is_supplier FROM partner LIMIT 1000").fetch_all(pool).await {
+                for p in partners {
+                    let p_name: String = p.try_get("name").unwrap_or_default();
+                    let p_phone: String = p.try_get("phone").unwrap_or_default();
+                    let p_name_norm = crate::utils::remove_accents(&p_name).to_lowercase();
+
+                    let phone_matched = !p_phone.is_empty() && q_clean.contains(&p_phone);
+                    let name_matched = !p_name_norm.is_empty() && p_name_norm.len() >= 3 && q_norm.contains(&p_name_norm);
+
+                    if phone_matched || name_matched {
+                        let p_id: i64 = p.try_get("id").unwrap_or(0);
+                        let p_debt: f64 = p.try_get("debt_balance").unwrap_or(0.0);
+                        let p_type: String = p.try_get("type").unwrap_or_default();
+                        let is_cust: bool = p.try_get("is_customer").unwrap_or(false);
+                        let is_supp: bool = p.try_get("is_supplier").unwrap_or(false);
+                        let role_desc = if is_cust && is_supp {
+                            "Khách hàng & Nhà cung cấp"
+                        } else if is_supp {
+                            "Nhà cung cấp"
+                        } else {
+                            "Khách hàng"
+                        };
+                        let debt_desc = if p_debt > 0.0 {
+                            format!("Khách đang nợ cửa hàng {:.}đ (Phải thu)", p_debt)
+                        } else if p_debt < 0.0 {
+                            format!("Cửa hàng đang nợ đối tác {:.}đ (Phải trả)", p_debt.abs())
+                        } else {
+                            "Đã thanh toán hết nợ (0đ)".to_string()
+                        };
+
+                        ctx.push_str(&format!("★ CHI TIẾT LỊCH SỬ ĐỐI TÁC TRONG CÂU HỎI [{} - SĐT: {}]:\n", p_name, if p_phone.is_empty() { "---" } else { &p_phone }));
+                        ctx.push_str(&format!("  - Phân loại: {} ({}) | Tình trạng công nợ: {}\n", role_desc, p_type, debt_desc));
+
+                        if let Ok(orders) = sqlx::query(
+                            "SELECT id, date, total_amount, amount_paid, display_id FROM \"order\" \
+                             WHERE partner_id = ? ORDER BY date DESC LIMIT 6"
+                        )
+                        .bind(p_id)
+                        .fetch_all(pool)
+                        .await {
+                            if !orders.is_empty() {
+                                ctx.push_str("  - 6 đơn hàng gần nhất của đối tác này:\n");
+                                for ord in orders {
+                                    let o_date: String = ord.try_get("date").unwrap_or_default();
+                                    let o_tot: f64 = ord.try_get("total_amount").unwrap_or(0.0);
+                                    let o_paid: f64 = ord.try_get("amount_paid").unwrap_or(0.0);
+                                    let o_code: String = ord.try_get("display_id").unwrap_or_default();
+                                    ctx.push_str(&format!("    + Đơn [{}] lúc {}: Tổng {:.}đ | Đã trả {:.}đ\n", o_code, o_date, o_tot, o_paid));
+                                }
+                            }
+                        }
+                        ctx.push('\n');
+                        break;
+                    }
+                }
+            }
+
+            // Tra cứu thêm nếu người dùng hỏi về lợi nhuận hoặc doanh số của 1 sản phẩm cụ thể
+            if let Ok(products_found) = sqlx::query(
+                "SELECT p.id, p.name, p.unit, \
+                        CAST(COALESCE(SUM(od.quantity), 0) AS REAL) as total_qty, \
+                        CAST(COALESCE(SUM(od.quantity * od.price), 0) AS REAL) as total_rev, \
+                        CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) as total_profit \
+                 FROM product p \
+                 LEFT JOIN order_detail od ON od.product_id = p.id \
+                 LEFT JOIN \"order\" o ON od.order_id = o.id AND o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
+                 WHERE p.is_active = 1 \
+                 GROUP BY p.id LIMIT 1000"
+            ).fetch_all(pool).await {
+                for prod in products_found {
+                    let prod_name: String = prod.try_get("name").unwrap_or_default();
+                    let prod_name_norm = crate::utils::remove_accents(&prod_name).to_lowercase();
+                    if prod_name_norm.len() >= 3 && q_norm.contains(&prod_name_norm) {
+                        let unit: String = prod.try_get("unit").unwrap_or_else(|_| "cái".to_string());
+                        let qty: f64 = prod.try_get("total_qty").unwrap_or(0.0);
+                        let rev: f64 = prod.try_get("total_rev").unwrap_or(0.0);
+                        let profit: f64 = prod.try_get("total_profit").unwrap_or(0.0);
+                        let margin = if rev > 0.0 { (profit / rev) * 100.0 } else { 0.0 };
+
+                        ctx.push_str(&format!("★ CHI TIẾT SẢN PHẨM TRONG CÂU HỎI [{}]:\n", prod_name));
+                        ctx.push_str(&format!("  - Đã bán: {} {}\n", qty, unit));
+                        ctx.push_str(&format!("  - Tổng doanh thu: {:.}đ\n", rev));
+                        ctx.push_str(&format!("  - Tổng lợi nhuận gộp: {:.}đ (Tỷ suất lợi nhuận: {:.1}%)\n\n", profit, margin));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    ctx
+}
+
 pub async fn consult_ai(
     State(pool): State<SqlitePool>,
     Json(payload): Json<AiConsultRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let raw_mode = payload.mode.as_deref().unwrap_or("crop_doctor");
     let mut api_keys: Vec<String> = Vec::new();
 
     // 1. Thêm key từ payload (nếu có)
@@ -79,76 +606,137 @@ pub async fn consult_ai(
     if api_keys.is_empty() {
         return Ok(Json(json!({
             "error": "missing_api_key",
-            "reply": "⚠️ Bạn chưa cấu hình **Gemini API Key** trong phần Cài Đặt. Vui lòng vào **Cài đặt -> Tích hợp AI** hoặc nhập API Key để sử dụng tính năng Trợ lý AI Cố vấn Sâu bệnh & Hoạt chất.",
+            "reply": "⚠️ Bạn chưa cấu hình **Gemini API Key** trong phần Cài Đặt. Vui lòng vào **Cài đặt -> Tích hợp AI** hoặc nhập API Key để sử dụng tính năng Trợ lý AI.",
             "recommended_products": []
         })));
     }
 
-    // 3. Lấy danh sách sản phẩm trong kho (ưu tiên sản phẩm có hoạt chất & còn tồn kho)
-    let products = match sqlx::query_as::<_, ProductContext>(
-        r#"
-        SELECT id, name, code, unit, 
-               CAST(sale_price AS REAL) as sale_price, 
-               CAST(stock AS REAL) as stock, 
-               active_ingredient, brand
-        FROM product
-        WHERE is_active = 1
-        ORDER BY 
-            CASE WHEN active_ingredient IS NOT NULL AND TRIM(active_ingredient) != '' THEN 0 ELSE 1 END,
-            stock DESC,
-            name ASC
-        LIMIT 1000
-        "#
-    )
-    .fetch_all(&pool)
-    .await
-    {
-        Ok(prods) => prods,
-        Err(e) => {
-            tracing::error!("Lỗi truy vấn danh mục sản phẩm cho AI: {}", e);
-            Vec::new()
+    let mut products: Vec<ProductContext> = Vec::new();
+
+    // Kiểm tra nếu câu hỏi liên quan đến số liệu, công nợ, lợi nhuận, doanh thu...
+    let user_msg_lower = payload.message.to_lowercase();
+    let is_analytics_question = user_msg_lower.contains("nợ")
+        || user_msg_lower.contains("công nợ")
+        || user_msg_lower.contains("lợi nhuận")
+        || user_msg_lower.contains("lãi")
+        || user_msg_lower.contains("lời")
+        || user_msg_lower.contains("doanh thu")
+        || user_msg_lower.contains("đối tác")
+        || user_msg_lower.contains("nhà cung cấp")
+        || user_msg_lower.contains("khách hàng")
+        || user_msg_lower.contains("bán chạy")
+        || user_msg_lower.contains("thu chi")
+        || user_msg_lower.contains("tiền mặt")
+        || user_msg_lower.contains("tồn kho")
+        || user_msg_lower.contains("sắp hết")
+        || user_msg_lower.contains("hết hạn")
+        || user_msg_lower.contains("cận date");
+
+    // Nếu người dùng đang ở tab crop_doctor nhưng hỏi rõ ràng về công nợ, lợi nhuận, doanh thu... thì tự động chuyển sang mode app_analytics!
+    let mode = if raw_mode == "crop_doctor" && is_analytics_question && !user_msg_lower.contains("bệnh") && !user_msg_lower.contains("sâu") && !user_msg_lower.contains("xịt") && !user_msg_lower.contains("phun") && !user_msg_lower.contains("liều") {
+        "app_analytics"
+    } else {
+        raw_mode
+    };
+
+    // 3. Xây dựng System Instruction dựa theo từng Mode
+    let system_instruction = match mode {
+        "app_analytics" => {
+            let analytics_context = build_app_analytics_context(&pool, Some(&payload.message)).await;
+            format!(
+                r#"Bạn là LyangAI - Trợ lý Kế toán & Phân tích Kinh doanh (Business Intelligence Analyst) cao cấp tích hợp trong phần mềm quản lý bán hàng LyangPOS.
+Nhiệm vụ của bạn là giải đáp chính xác, khách quan và trực quan mọi thắc mắc của chủ cửa hàng về tình hình kinh doanh, doanh thu, đơn hàng, công nợ, tồn kho, mặt hàng sắp hết hoặc cận date dựa trên dữ liệu thời gian thực được cung cấp dưới đây.
+
+★★★ DỮ LIỆU THỐNG KÊ THỜI GIAN THỰC TỪ PHẦN MỀM:
+{}
+
+★★★ QUY TẮC TRẢ LỜI:
+1. Trả lời dựa trên các con số thực tế được thống kê ở trên. Khi người dùng hỏi số liệu cụ thể (doanh thu hôm nay, ai nợ nhiều nhất, hàng nào sắp hết, sản phẩm nào lợi nhuận nhất...), hãy nêu rõ con số kèm định dạng tiền tệ VNĐ (ví dụ: 1.500.000đ).
+2. Định dạng câu trả lời bằng Markdown sinh động: dùng biểu tượng emoji (📊, 💰, ⚠️, 📦, 💳), in đậm số liệu quan trọng, trình bày gạch đầu dòng rõ ràng.
+3. Nếu người dùng hỏi lời khuyên kinh doanh (ví dụ: "Có nên nhập thêm hàng X không?", "Làm sao giảm công nợ?"), hãy đưa ra phân tích sắc bén, lời khuyên thực tế phù hợp với quy mô cửa hàng vật tư / bán lẻ.
+4. Ở chế độ này KHÔNG bắt buộc xuất khối recommended_products trừ khi người dùng hỏi về sản phẩm cụ thể.
+"#,
+                analytics_context
+            )
         },
-    };
-
-    // Trích xuất danh sách các hoạt chất thực tế đang có sẵn trong kho
-    let mut unique_actives: Vec<String> = Vec::new();
-    for p in &products {
-        if let Some(ref act) = p.active_ingredient {
-            let trimmed = act.trim();
-            if !trimmed.is_empty() && !unique_actives.iter().any(|x| x.eq_ignore_ascii_case(trimmed)) {
-                unique_actives.push(trimmed.to_string());
+        "general_assistant" => {
+            let mut prompt = r#"Bạn là LyangAI - Trợ lý AI Đa Năng Thông Minh (tương tự như Google Gemini / ChatGPT) tích hợp trong hệ thống phần mềm LyangPOS.
+Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và thực hiện MỌI YÊU CẦU:
+- Soạn thảo văn bản, tin nhắn Zalo/SMS gửi khách hàng, thông báo khuyến mãi, lời chúc mừng, email giao dịch.
+- Giải đáp kiến thức khoa học, kỹ thuật nông nghiệp nói chung, canh tác cây trồng, phân bón, đất đai, thời tiết.
+- Tính toán, phân tích, lập kế hoạch công việc, mẹo vặt cuộc sống và quản lý cửa hàng.
+- Trả lời tự nhiên, thông minh, súc tích, chuyên nghiệp với định dạng Markdown rõ ràng, bắt mắt.
+- Không bị gò bó vào danh mục thuốc hay số liệu nội bộ cửa hàng, trừ khi người dùng chủ động yêu cầu.
+"#.to_string();
+            if is_analytics_question {
+                let analytics_context = build_app_analytics_context(&pool, Some(&payload.message)).await;
+                prompt.push_str(&format!("\n\n★★★ DỮ LIỆU SỐ LIỆU KINH DOANH THỜI GIAN THỰC ĐỂ TRẢ LỜI CÂU HỎI:\n{}\n", analytics_context));
             }
-        }
-    }
-    let store_actives_str = if unique_actives.is_empty() {
-        String::from("(Chưa có dữ liệu hoạt chất trong kho)")
-    } else {
-        unique_actives.join(", ")
-    };
+            prompt
+        },
+        _ => {
+            // Mode 1: Cố vấn thuốc BVTV & Cây trồng (Mặc định)
+            products = match sqlx::query_as::<_, ProductContext>(
+                r#"
+                SELECT id, name, code, unit, 
+                       CAST(sale_price AS REAL) as sale_price, 
+                       CAST(stock AS REAL) as stock, 
+                       active_ingredient, brand
+                FROM product
+                WHERE is_active = 1
+                ORDER BY 
+                    CASE WHEN active_ingredient IS NOT NULL AND TRIM(active_ingredient) != '' THEN 0 ELSE 1 END,
+                    stock DESC,
+                    name ASC
+                LIMIT 1000
+                "#
+            )
+            .fetch_all(&pool)
+            .await
+            {
+                Ok(prods) => prods,
+                Err(e) => {
+                    tracing::error!("Lỗi truy vấn danh mục sản phẩm cho AI: {}", e);
+                    Vec::new()
+                },
+            };
 
-    // Tạo chuỗi Knowledge Base từ danh mục sản phẩm
-    let mut product_kb = String::from("DANH MỤC SẢN PHẨM & HOẠT CHẤT ĐANG KINH DOANH TẠI CỬA HÀNG:\n");
-    if products.is_empty() {
-        product_kb.push_str("(Hiện chưa có sản phẩm nào trong cơ sở dữ liệu)\n");
-    } else {
-        for p in &products {
-            let active = p.active_ingredient.as_deref().unwrap_or("Chưa có");
-            let brand = p.brand.as_deref().unwrap_or("");
-            let unit = p.unit.as_deref().unwrap_or("");
-            let price = p.sale_price.unwrap_or(0.0);
-            let stock = p.stock.unwrap_or(0.0);
-            let code = p.code.as_deref().unwrap_or("");
+            let mut unique_actives: Vec<String> = Vec::new();
+            for p in &products {
+                if let Some(ref act) = p.active_ingredient {
+                    let trimmed = act.trim();
+                    if !trimmed.is_empty() && !unique_actives.iter().any(|x| x.eq_ignore_ascii_case(trimmed)) {
+                        unique_actives.push(trimmed.to_string());
+                    }
+                }
+            }
+            let store_actives_str = if unique_actives.is_empty() {
+                String::from("(Chưa có dữ liệu hoạt chất trong kho)")
+            } else {
+                unique_actives.join(", ")
+            };
 
-            product_kb.push_str(&format!(
-                "- [ID:{}] Tên: {} | Mã: {} | Hoạt chất: {} | Đơn vị: {} | Giá: {:.}đ | Tồn kho: {} | Hãng: {}\n",
-                p.id, p.name, code, active, unit, price, stock, brand
-            ));
-        }
-    }
+            let mut product_kb = String::from("DANH MỤC SẢN PHẨM & HOẠT CHẤT ĐANG KINH DOANH TẠI CỬA HÀNG:\n");
+            if products.is_empty() {
+                product_kb.push_str("(Hiện chưa có sản phẩm nào trong cơ sở dữ liệu)\n");
+            } else {
+                for p in &products {
+                    let active = p.active_ingredient.as_deref().unwrap_or("Chưa có");
+                    let brand = p.brand.as_deref().unwrap_or("");
+                    let unit = p.unit.as_deref().unwrap_or("");
+                    let price = p.sale_price.unwrap_or(0.0);
+                    let stock = p.stock.unwrap_or(0.0);
+                    let code = p.code.as_deref().unwrap_or("");
 
-    // 4. Xây dựng System Prompt chuyên gia Nông Nghiệp & BVTV với hướng dẫn liều lượng rõ ràng cho từng loại thuốc
-    let system_instruction = format!(
-        r#"Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
+                    product_kb.push_str(&format!(
+                        "- [ID:{}] Tên: {} | Mã: {} | Hoạt chất: {} | Đơn vị: {} | Giá: {:.}đ | Tồn kho: {} | Hãng: {}\n",
+                        p.id, p.name, code, active, unit, price, stock, brand
+                    ));
+                }
+            }
+
+            let mut base_prompt = format!(
+                r#"Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
 
 ★★★ NGUYÊN TẮC CỐ VẤN TỐI THƯỢNG (BẮT BUỘC TUÂN THỦ):
 1. **ƯU TIÊN TUYỆT ĐỐI CÁC HOẠT CHẤT & SẢN PHẨM ĐANG CÓ SẴN TRONG KHO**:
@@ -174,7 +762,7 @@ pub async fn consult_ai(
 {}
 
 QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
-Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 1 đến 8 sản phẩm phù hợp nhất có trong danh mục kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau (tuyệt đối không được bỏ qua):
+Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 1 đến 8 sản phẩm phù hợp nhất có trong danh mục kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau:
 ```recommended_products
 [
   {{
@@ -188,14 +776,27 @@ QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
   }}
 ]
 ```
-Nếu tuyệt đối không tìm thấy bất kỳ sản phẩm nào liên quan trong danh mục kho, xuất:
+Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số liệu/kinh doanh/công nợ/lợi nhuận, xuất:
 ```recommended_products
 []
 ```
 "#,
-        store_actives_str,
-        product_kb
-    );
+                store_actives_str,
+                product_kb
+            );
+
+            if is_analytics_question {
+                let analytics_context = build_app_analytics_context(&pool, Some(&payload.message)).await;
+                base_prompt = format!(
+                    "★★★ LƯU Ý ĐẶC BIỆT QUAN TRỌNG: Người dùng đang hỏi về số liệu kinh doanh, công nợ, lợi nhuận hoặc doanh số. BẮT BUỘC trả lời chính xác bằng các con số thực tế trong hệ thống dưới đây trước tiên:\n{}\n\n{}",
+                    analytics_context,
+                    base_prompt
+                );
+            }
+
+            base_prompt
+        }
+    };
 
     // 5. Xây dựng nội dung gửi tới Gemini API
     let mut contents: Vec<serde_json::Value> = Vec::new();

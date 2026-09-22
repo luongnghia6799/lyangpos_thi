@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import CustomSelect from '../../components/CustomSelect';
-import CustomDatePicker from '../../components/CustomDatePicker';
+import CustomSelect from '../../components/forms/CustomSelect';
+import CustomDatePicker from '../../components/forms/CustomDatePicker';
 import { Search, Plus, Wallet, History, FileText, Trash2, ArrowUpRight, ArrowDownLeft, X, Coins, Calendar, User, RefreshCcw, CheckCircle, Printer, Sparkles, ArrowRight, RotateCcw, Check, Banknote, Building2, ShoppingBag, Receipt, ChevronRight, ChevronLeft, Filter, AlertCircle, Eye, CheckSquare, Square, Phone, MapPin } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate, formatDebt } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
-import Toast from '../../components/Toast';
-import ConfirmModal from '../../components/ConfirmModal';
-import Portal from '../../components/Portal';
+import Toast from '../../components/widgets/Toast';
+import ConfirmModal from '../../components/modals/ConfirmModal';
+import Portal from '../../components/widgets/Portal';
 import { usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
-import PartnerEditModal from '../../components/PartnerEditModal';
+import PartnerEditModal from '../../components/modals/PartnerEditModal';
 
 export default function CashVoucher() {
     const { data: partnersData } = usePartnerData();

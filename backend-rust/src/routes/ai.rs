@@ -985,11 +985,11 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         .unwrap_or_else(|_| reqwest::Client::new());
 
     let models = [
+        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
         "gemini-flash-lite-latest",
         "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
     ];
     let mut reply_text = String::new();
     let mut error_msg = String::new();

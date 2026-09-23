@@ -175,10 +175,9 @@ const fetchGeminiAudio = async (text, apiKeys) => {
     const requestBody = {
         contents: [
             {
-                role: 'user',
                 parts: [
                     {
-                        text: `Hãy đọc to và truyền cảm đoạn văn bản sau bằng tiếng Việt rõ ràng:\n${textPrompt}`
+                        text: textPrompt
                     }
                 ]
             }
@@ -195,9 +194,10 @@ const fetchGeminiAudio = async (text, apiKeys) => {
         }
     };
 
+    // Các model TTS chuyên biệt chính thức của Google Gemini
     const models = [
-        'gemini-2.0-flash',
-        'gemini-2.0-flash-exp'
+        'gemini-3.1-flash-tts-preview',
+        'gemini-2.5-flash-preview-tts'
     ];
 
     for (const key of apiKeys) {
@@ -206,18 +206,18 @@ const fetchGeminiAudio = async (text, apiKeys) => {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
                 const res = await axios.post(url, requestBody, {
                     headers: { 'Content-Type': 'application/json' },
-                    timeout: 10000
+                    timeout: 12000
                 });
 
                 const candidate = res.data?.candidates?.[0]?.content?.parts?.[0];
                 if (candidate?.inlineData?.data) {
                     return {
                         data: candidate.inlineData.data,
-                        mimeType: candidate.inlineData.mimeType || 'audio/wav'
+                        mimeType: candidate.inlineData.mimeType || 'audio/l16; rate=24000; channels=1'
                     };
                 }
             } catch (e) {
-                // Thử model hoặc key kế tiếp
+                console.warn(`Thử model TTS ${model} thất bại:`, e.response?.data?.error?.message || e.message);
             }
         }
     }
@@ -237,6 +237,9 @@ const playGeminiPcmAudio = (base64Data, sampleRate = 24000, onEnded) => {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return null;
         const ctx = new AudioContextClass();
+        if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
 
         // 1. Nếu có header WAV RIFF
         if (binary.startsWith('RIFF')) {
@@ -256,8 +259,9 @@ const playGeminiPcmAudio = (base64Data, sampleRate = 24000, onEnded) => {
             return { ctx };
         }
 
-        // 2. Nếu là raw 16-bit PCM 24kHz (định dạng chuẩn Gemini 2.0)
-        const int16Array = new Int16Array(bytes.buffer);
+        // 2. Nếu là raw 16-bit PCM 24kHz (định dạng chuẩn Gemini Audio)
+        const evenLen = len - (len % 2);
+        const int16Array = new Int16Array(bytes.buffer, 0, evenLen / 2);
         const float32Array = new Float32Array(int16Array.length);
         for (let i = 0; i < int16Array.length; i++) {
             float32Array[i] = int16Array[i] / 32768.0;
@@ -448,6 +452,7 @@ export default function AiConsultantModal({
                 if (geminiAudio && geminiAudio.data) {
                     setIsLoadingSpeech(false);
                     setIsSpeaking(true);
+                    toast('✨ Đang phát giọng Gemini AI...', { icon: '🤖', duration: 2500 });
                     const sampleRate = geminiAudio.mimeType?.includes('16000') ? 16000 : 24000;
                     const audioHandle = playGeminiPcmAudio(geminiAudio.data, sampleRate, () => {
                         setIsSpeaking(false);
@@ -472,6 +477,8 @@ export default function AiConsultantModal({
             setSpeakingMsgId(null);
             return;
         }
+
+        toast('🔈 Đang phát giọng máy (Web Speech)...', { icon: '🔈', duration: 2000 });
 
         try {
             const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -1071,11 +1078,11 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
         };
 
         const models = [
+            'gemini-3.6-flash',
             'gemini-3.5-flash-lite',
+            'gemini-flash-latest',
             'gemini-flash-lite-latest',
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash'
+            'gemini-2.5-flash'
         ];
         let replyText = '';
         let lastError = '';

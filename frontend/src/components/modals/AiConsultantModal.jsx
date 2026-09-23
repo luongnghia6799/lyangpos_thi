@@ -162,65 +162,42 @@ const cleanTextForTTS = (text) => {
         .trim();
 };
 
-// Gọi Gemini Live Audio Output API để tạo giọng nói AI trực tiếp
-const fetchGeminiAudio = async (text, apiKeys) => {
-    if (!apiKeys || apiKeys.length === 0) return null;
-
+// Phát giọng đọc Edge TTS (Hoài My Neural) hoặc Google TTS chuẩn tiếng Việt, 100% Free, KHÔNG CẦN KEY, KHÔNG GIỚI HẠN
+const fetchEdgeOrGoogleTtsAudio = async (text) => {
     const clean = cleanTextForTTS(text);
     if (!clean) return null;
 
-    // Giới hạn 500 ký tự đầu tiên để API sinh audio tức thì
-    const textPrompt = clean.length > 500 ? clean.slice(0, 500) + '...' : clean;
-
-    const requestBody = {
-        contents: [
-            {
-                parts: [
-                    {
-                        text: textPrompt
-                    }
-                ]
-            }
-        ],
-        generationConfig: {
-            responseModalities: ["AUDIO"],
-            speechConfig: {
-                voiceConfig: {
-                    prebuiltVoiceConfig: {
-                        voiceName: "Aoede" // Giọng nữ ngọt ngào, ấm áp của Gemini
-                    }
-                }
-            }
+    // 1. Thử gọi Microsoft Edge TTS qua backend Rust (/api/tts)
+    try {
+        const res = await axios.get('/api/tts', {
+            params: {
+                text: clean.slice(0, 400),
+                voice: 'edge-vi-female' // Hoài My Neural
+            },
+            responseType: 'blob',
+            timeout: 7000
+        });
+        if (res.data && res.data.size > 200) {
+            return {
+                url: URL.createObjectURL(res.data),
+                isBlob: true,
+                label: 'Edge TTS Hoài My'
+            };
         }
-    };
-
-    // Các model TTS chuyên biệt chính thức của Google Gemini
-    const models = [
-        'gemini-3.1-flash-tts-preview',
-        'gemini-2.5-flash-preview-tts'
-    ];
-
-    for (const key of apiKeys) {
-        for (const model of models) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                const res = await axios.post(url, requestBody, {
-                    headers: { 'Content-Type': 'application/json' },
-                    timeout: 12000
-                });
-
-                const candidate = res.data?.candidates?.[0]?.content?.parts?.[0];
-                if (candidate?.inlineData?.data) {
-                    return {
-                        data: candidate.inlineData.data,
-                        mimeType: candidate.inlineData.mimeType || 'audio/l16; rate=24000; channels=1'
-                    };
-                }
-            } catch (e) {
-                console.warn(`Thử model TTS ${model} thất bại:`, e.response?.data?.error?.message || e.message);
-            }
-        }
+    } catch (e) {
+        // Fallback Google TTS
     }
+
+    // 2. Google Translate TTS (Miễn phí 100%, không cần key, không bao giờ hết quota)
+    try {
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(clean.slice(0, 200))}`;
+        return {
+            url,
+            isBlob: false,
+            label: 'Google TTS'
+        };
+    } catch (e) {}
+
     return null;
 };
 
@@ -377,11 +354,11 @@ export default function AiConsultantModal({
     const [addedProducts, setAddedProducts] = useState({});
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Text-to-Speech & Gemini Live Audio
+    // Text-to-Speech & Edge TTS
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
     const [speakingMsgId, setSpeakingMsgId] = useState(null);
-    const activeAudioRef = useRef(null);
+    const currentAudioElementRef = useRef(null);
     const [autoSpeak, setAutoSpeak] = useState(() => {
         try {
             return localStorage.getItem('lyang_ai_auto_speak') === 'true';
@@ -396,16 +373,12 @@ export default function AiConsultantModal({
                 window.speechSynthesis.cancel();
             } catch (e) {}
         }
-        if (activeAudioRef.current) {
+        if (currentAudioElementRef.current) {
             try {
-                if (activeAudioRef.current.source) {
-                    activeAudioRef.current.source.stop();
-                }
-                if (activeAudioRef.current.ctx && activeAudioRef.current.ctx.state !== 'closed') {
-                    activeAudioRef.current.ctx.close().catch(() => {});
-                }
+                currentAudioElementRef.current.pause();
+                currentAudioElementRef.current.currentTime = 0;
             } catch (e) {}
-            activeAudioRef.current = null;
+            currentAudioElementRef.current = null;
         }
         setIsSpeaking(false);
         setIsLoadingSpeech(false);
@@ -444,32 +417,47 @@ export default function AiConsultantModal({
         setSpeakingMsgId(msgId);
         setIsLoadingSpeech(true);
 
-        // 1. Thử gọi Gemini Live Audio Output (trực tiếp từ model Gemini bằng API Key)
+        // 1. Thử phát bằng Edge TTS (Hoài My Neural) hoặc Google TTS (100% Free, không lo cạn quota)
         try {
-            const apiKeys = await getGeminiApiKeys();
-            if (apiKeys.length > 0) {
-                const geminiAudio = await fetchGeminiAudio(cleanText, apiKeys);
-                if (geminiAudio && geminiAudio.data) {
+            const ttsResult = await fetchEdgeOrGoogleTtsAudio(cleanText);
+            if (ttsResult && ttsResult.url) {
+                const audio = new Audio(ttsResult.url);
+                currentAudioElementRef.current = audio;
+
+                audio.oncanplay = () => {
                     setIsLoadingSpeech(false);
                     setIsSpeaking(true);
-                    toast('✨ Đang phát giọng Gemini AI...', { icon: '🤖', duration: 2500 });
-                    const sampleRate = geminiAudio.mimeType?.includes('16000') ? 16000 : 24000;
-                    const audioHandle = playGeminiPcmAudio(geminiAudio.data, sampleRate, () => {
-                        setIsSpeaking(false);
-                        setSpeakingMsgId(null);
-                        activeAudioRef.current = null;
-                    });
-                    if (audioHandle) {
-                        activeAudioRef.current = audioHandle;
-                        return;
+                };
+
+                audio.onended = () => {
+                    setIsSpeaking(false);
+                    setSpeakingMsgId(null);
+                    if (ttsResult.isBlob) {
+                        try { URL.revokeObjectURL(ttsResult.url); } catch (e) {}
                     }
-                }
+                    currentAudioElementRef.current = null;
+                };
+
+                audio.onerror = () => {
+                    if (ttsResult.isBlob) {
+                        try { URL.revokeObjectURL(ttsResult.url); } catch (e) {}
+                    }
+                    fallbackToWebSpeech(cleanText);
+                };
+
+                toast(`✨ Đang phát ${ttsResult.label}...`, { icon: '🔊', duration: 2500 });
+                await audio.play();
+                return;
             }
         } catch (e) {
-            console.warn('Gemini audio error, falling back to local TTS:', e);
+            console.warn('Edge TTS playback error, falling back to Web Speech:', e);
         }
 
-        // 2. Fallback sang Web Speech API (Local TTS) nếu Gemini Audio chưa sẵn sàng hoặc ngoại tuyến
+        // 2. Fallback sang Web Speech API (Local Natural Voice) nếu ngoại tuyến
+        fallbackToWebSpeech(cleanText);
+    };
+
+    const fallbackToWebSpeech = (cleanText) => {
         setIsLoadingSpeech(false);
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
             toast.error('Không thể phát giọng nói trên thiết bị này.');
@@ -478,7 +466,7 @@ export default function AiConsultantModal({
             return;
         }
 
-        toast('🔈 Đang phát giọng máy (Web Speech)...', { icon: '🔈', duration: 2000 });
+        toast('🔈 Đang phát giọng Web Speech...', { icon: '🔈', duration: 2000 });
 
         try {
             const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -488,10 +476,12 @@ export default function AiConsultantModal({
 
             const voices = window.speechSynthesis.getVoices();
             const viVoice = voices.find(v => 
+                (v.lang === 'vi-VN' || v.lang?.toLowerCase().startsWith('vi')) &&
+                (v.name.includes('Natural') || v.name.includes('HoaiMy') || v.name.includes('NamMinh') || v.name.includes('Neural'))
+            ) || voices.find(v => 
                 v.lang === 'vi-VN' || 
                 v.lang?.toLowerCase().startsWith('vi') || 
-                v.name?.toLowerCase().includes('vietnam') || 
-                v.name?.toLowerCase().includes('vietnamese')
+                v.name?.toLowerCase().includes('vietnam')
             );
             if (viVoice) {
                 utterance.voice = viVoice;

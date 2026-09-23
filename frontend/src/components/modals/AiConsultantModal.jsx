@@ -162,105 +162,27 @@ const cleanTextForTTS = (text) => {
         .trim();
 };
 
-// Phát giọng đọc Edge TTS (Hoài My Neural) hoặc Google TTS chuẩn tiếng Việt, 100% Free, KHÔNG CẦN KEY, KHÔNG GIỚI HẠN
-const fetchEdgeOrGoogleTtsAudio = async (text) => {
+// Gọi Microsoft Edge TTS (Hoài My Neural) 100% Free, không cần API key, không lo hết quota
+const fetchEdgeTtsAudio = async (text) => {
     const clean = cleanTextForTTS(text);
     if (!clean) return null;
 
-    // 1. Thử gọi Microsoft Edge TTS qua backend Rust (/api/tts)
     try {
         const res = await axios.get('/api/tts', {
             params: {
-                text: clean.slice(0, 400),
+                text: clean.slice(0, 450),
                 voice: 'edge-vi-female' // Hoài My Neural
             },
             responseType: 'blob',
-            timeout: 7000
+            timeout: 8000
         });
         if (res.data && res.data.size > 200) {
-            return {
-                url: URL.createObjectURL(res.data),
-                isBlob: true,
-                label: 'Edge TTS Hoài My'
-            };
+            return URL.createObjectURL(res.data);
         }
     } catch (e) {
-        // Fallback Google TTS
+        console.warn('Edge TTS request error:', e);
     }
-
-    // 2. Google Translate TTS (Miễn phí 100%, không cần key, không bao giờ hết quota)
-    try {
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=vi&client=tw-ob&q=${encodeURIComponent(clean.slice(0, 200))}`;
-        return {
-            url,
-            isBlob: false,
-            label: 'Google TTS'
-        };
-    } catch (e) {}
-
     return null;
-};
-
-// Phát luồng âm thanh PCM 24000Hz hoặc WAV từ Gemini qua Web Audio API
-const playGeminiPcmAudio = (base64Data, sampleRate = 24000, onEnded) => {
-    try {
-        const binary = atob(base64Data);
-        const len = binary.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return null;
-        const ctx = new AudioContextClass();
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-        }
-
-        // 1. Nếu có header WAV RIFF
-        if (binary.startsWith('RIFF')) {
-            ctx.decodeAudioData(bytes.buffer.slice(0), (buf) => {
-                const src = ctx.createBufferSource();
-                src.buffer = buf;
-                src.connect(ctx.destination);
-                src.onended = () => {
-                    try { ctx.close(); } catch (e) {}
-                    if (onEnded) onEnded();
-                };
-                src.start(0);
-            }, () => {
-                try { ctx.close(); } catch (e) {}
-                if (onEnded) onEnded();
-            });
-            return { ctx };
-        }
-
-        // 2. Nếu là raw 16-bit PCM 24kHz (định dạng chuẩn Gemini Audio)
-        const evenLen = len - (len % 2);
-        const int16Array = new Int16Array(bytes.buffer, 0, evenLen / 2);
-        const float32Array = new Float32Array(int16Array.length);
-        for (let i = 0; i < int16Array.length; i++) {
-            float32Array[i] = int16Array[i] / 32768.0;
-        }
-
-        const buffer = ctx.createBuffer(1, float32Array.length, sampleRate);
-        buffer.copyToChannel(float32Array, 0);
-
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.onended = () => {
-            try { ctx.close(); } catch (e) {}
-            if (onEnded) onEnded();
-        };
-        source.start(0);
-        return { ctx, source };
-    } catch (err) {
-        console.warn('Lỗi phát âm thanh PCM Gemini:', err);
-        if (onEnded) onEnded();
-        return null;
-    }
 };
 
 export default function AiConsultantModal({ 
@@ -417,11 +339,11 @@ export default function AiConsultantModal({
         setSpeakingMsgId(msgId);
         setIsLoadingSpeech(true);
 
-        // 1. Thử phát bằng Edge TTS (Hoài My Neural) hoặc Google TTS (100% Free, không lo cạn quota)
+        // 1. Thử phát bằng Edge TTS (Hoài My Neural - 100% Free, không tốn token Gemini)
         try {
-            const ttsResult = await fetchEdgeOrGoogleTtsAudio(cleanText);
-            if (ttsResult && ttsResult.url) {
-                const audio = new Audio(ttsResult.url);
+            const audioUrl = await fetchEdgeTtsAudio(cleanText);
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
                 currentAudioElementRef.current = audio;
 
                 audio.oncanplay = () => {
@@ -432,20 +354,16 @@ export default function AiConsultantModal({
                 audio.onended = () => {
                     setIsSpeaking(false);
                     setSpeakingMsgId(null);
-                    if (ttsResult.isBlob) {
-                        try { URL.revokeObjectURL(ttsResult.url); } catch (e) {}
-                    }
+                    try { URL.revokeObjectURL(audioUrl); } catch (e) {}
                     currentAudioElementRef.current = null;
                 };
 
                 audio.onerror = () => {
-                    if (ttsResult.isBlob) {
-                        try { URL.revokeObjectURL(ttsResult.url); } catch (e) {}
-                    }
+                    try { URL.revokeObjectURL(audioUrl); } catch (e) {}
                     fallbackToWebSpeech(cleanText);
                 };
 
-                toast(`✨ Đang phát ${ttsResult.label}...`, { icon: '🔊', duration: 2500 });
+                toast('✨ Đang phát giọng Edge TTS Hoài My...', { icon: '🔊', duration: 2500 });
                 await audio.play();
                 return;
             }

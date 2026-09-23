@@ -6,7 +6,7 @@ import {
     CheckCheck, Image as ImageIcon,
     FlaskConical, Droplets, Maximize2, Minimize2,
     BarChart3, TrendingUp, Bot, FileText,
-    Volume2, VolumeX, Square, Loader2, SlidersHorizontal
+    Volume2, VolumeX, Square, Loader2, SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -1424,7 +1424,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                         style={{ 
                             background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #205c26 50%, #2b7a33 100%))'
                         }}
-                        className="px-4 py-2.5 flex items-center justify-between border-b border-white/10 text-white shadow-sm shrink-0 select-none relative overflow-hidden"
+                        className="px-4 py-2.5 flex items-center justify-between border-b border-white/10 text-white shadow-sm shrink-0 select-none relative z-30"
                     >
                         {/* Shimmer line */}
                         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
@@ -1476,37 +1476,44 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 </button>
                             </div>
 
-                            {/* Nút bật/tắt tự động đọc giọng nói AI */}
-                            <button
-                                type="button"
-                                onClick={toggleAutoSpeak}
-                                title={autoSpeak ? "Tự động đọc to: Đang BẬT (Bấm để tắt)" : "Tự động đọc to: Đang TẮT (Bấm để bật)"}
-                                className={`p-1.5 rounded-lg active:scale-95 transition-all flex items-center justify-center ${
-                                    autoSpeak 
-                                        ? 'bg-amber-400 text-stone-900 shadow-xs font-bold' 
-                                        : 'hover:bg-white/20 text-white/90 hover:text-white'
-                                }`}
-                            >
-                                {autoSpeak ? <Volume2 size={14} className="animate-pulse" /> : <VolumeX size={14} />}
-                            </button>
-
-                            {/* Cài đặt Giọng đọc & Tốc độ */}
+                            {/* Gộp Cài đặt Giọng đọc & Nút Loa thành 1 cụm thống nhất */}
                             <div className="relative" ref={voiceSettingsRef}>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowVoiceSettings(prev => !prev)}
-                                    title="Cài đặt giọng đọc AI (Giọng & Tốc độ)"
-                                    className={`p-1.5 rounded-lg active:scale-95 transition-all flex items-center gap-1.5 ${
-                                        showVoiceSettings
-                                            ? 'bg-white/30 text-white shadow-xs'
-                                            : 'hover:bg-white/20 text-white/90 hover:text-white'
-                                    }`}
-                                >
-                                    <SlidersHorizontal size={14} />
-                                    <span className="text-[10px] font-black tracking-tight hidden sm:inline-block">
-                                        {ttsVoice === 'edge-vi-male' ? 'Nam' : 'Nữ'} • {ttsRate}x
-                                    </span>
-                                </button>
+                                <div className={`flex items-center rounded-full p-0.5 border shadow-inner transition-all ${
+                                    autoSpeak 
+                                        ? 'bg-amber-400 text-stone-900 border-amber-300 font-bold' 
+                                        : 'bg-black/25 text-white/90 border-white/15'
+                                }`}>
+                                    {/* Icon loa: Click để Bật/Tắt đọc to */}
+                                    <button
+                                        type="button"
+                                        onClick={toggleAutoSpeak}
+                                        title={autoSpeak ? "Tự động đọc to: Đang BẬT (Bấm để tắt)" : "Tự động đọc to: Đang TẮT (Bấm để bật)"}
+                                        className={`p-1.5 rounded-full active:scale-95 transition-all flex items-center justify-center ${
+                                            autoSpeak 
+                                                ? 'bg-amber-500/30 text-stone-900 hover:bg-amber-500/50' 
+                                                : 'hover:bg-white/20 text-white/90 hover:text-white'
+                                        }`}
+                                    >
+                                        {autoSpeak ? <Volume2 size={13} className="animate-pulse" /> : <VolumeX size={13} />}
+                                    </button>
+
+                                    {/* Nhãn Giọng & Tốc độ + Mũi tên: Click để mở Cài đặt */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowVoiceSettings(prev => !prev)}
+                                        title="Cài đặt giọng đọc & tốc độ Edge TTS"
+                                        className={`px-2 py-0.5 rounded-full active:scale-95 transition-all flex items-center gap-1 text-[10.5px] font-black tracking-tight whitespace-nowrap ${
+                                            autoSpeak 
+                                                ? 'hover:bg-amber-500/30 text-stone-900' 
+                                                : 'hover:bg-white/20 text-white/95'
+                                        }`}
+                                    >
+                                        <span>{ttsVoice === 'edge-vi-male' ? 'Nam' : 'Nữ'}</span>
+                                        <span className="opacity-40">•</span>
+                                        <span>{ttsRate}x</span>
+                                        <ChevronDown size={11} className={`transition-transform duration-200 ${showVoiceSettings ? 'rotate-180' : ''}`} />
+                                    </button>
+                                </div>
 
                                 {/* Dropdown Popover */}
                                 <AnimatePresence>
@@ -1525,9 +1532,18 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                         Giọng đọc & Tốc độ
                                                     </span>
                                                 </div>
-                                                <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                                                    Edge TTS Free
-                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleAutoSpeak}
+                                                    title={autoSpeak ? "Tắt tự động đọc" : "Bật tự động đọc"}
+                                                    className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 transition-all ${
+                                                        autoSpeak 
+                                                            ? 'bg-amber-400 text-stone-900 border-amber-300 shadow-2xs' 
+                                                            : 'bg-stone-100 dark:bg-white/10 text-stone-600 dark:text-stone-300 border-stone-200 dark:border-white/10'
+                                                    }`}
+                                                >
+                                                    <span>{autoSpeak ? '🔊 Tự đọc: BẬT' : '🔇 Tự đọc: TẮT'}</span>
+                                                </button>
                                             </div>
 
                                             {/* Chọn Giọng */}

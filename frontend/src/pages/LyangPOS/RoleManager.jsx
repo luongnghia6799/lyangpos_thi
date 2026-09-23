@@ -15,6 +15,7 @@ import ConfirmModal from '../../components/modals/ConfirmModal';
 import logo from '../../assets/logo.png';
 
 export const USER_AVATAR_PRESETS = [
+    { id: 'cheobingo', name: 'Cheobingo', url: '/assets/images/cheobingo.png' },
     { id: 'mascot', name: 'Nông Dân Lyang', url: '/assets/images/user_mascot.png' },
     { id: 'farmer_boy', name: 'Cậu Bé Nông Dân', url: '/assets/images/cute_farmer_boy.png' },
     { id: 'plant_doctor', name: 'Bác Sĩ Cây Trồng', url: '/assets/images/plant_doctor.png' },

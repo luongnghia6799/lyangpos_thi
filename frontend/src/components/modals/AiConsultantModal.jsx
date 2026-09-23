@@ -5,7 +5,8 @@ import {
     Check, Leaf, X, Copy, 
     CheckCheck, Image as ImageIcon,
     FlaskConical, Droplets, Maximize2, Minimize2,
-    BarChart3, TrendingUp, Bot, FileText
+    BarChart3, TrendingUp, Bot, FileText,
+    Volume2, VolumeX, Square
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -71,6 +72,68 @@ const MODES = [
     }
 ];
 
+const ADVANCED_ACTIVE_KEYWORDS = [
+    'spinetoram', 'radiant', 'flupyrimin', 'sulfoxaflor', 'broflanilide', 'incipio',
+    'chlorfenapyr', 'cyantraniliprole', 'benevia', 'minecto', 'chlorantraniliprole', 
+    'virtako', 'prevathon', 'flonicamid', 'teppeki', 'spirotetramat', 'movento', 
+    'spirodiclofen', 'envidor', 'spiromesifen', 'oberon', 'fenpyroximate', 'ortus', 
+    'lufenuron', 'match', 'pyriproxyfen', 'admiral', 'tolfenpyrad', 'afidopyropen', 
+    'metaflumizone', 'flubendiamide', 'takumi', 'diafenthiuron', 'pegasus',
+    'pydiflumetofen', 'miravis', 'fluxapyroxad', 'sercadis', 'fluopyram', 'luna', 
+    'oxathiapiprolin', 'zorvec', 'pyraclostrobin', 'cabrio', 'mandipropamid', 'revus', 
+    'fenamidone', 'metiram', 'polyram', 'boscalid', 'cantus', 'kresoxim', 'cyazofamid',
+    'trifloxystrobin', 'nativo', 'fludioxonil', 'sedaxane', 'dinotefuran', 'clothianidin',
+    'hymexazol', 'tachigaren', 'chitosan', 'ningnanmycin', 'kasugamycin', 'streptomycin'
+];
+
+const isAdvancedActive = (name) => {
+    if (!name || typeof name !== 'string') return false;
+    const lower = name.toLowerCase();
+    return ADVANCED_ACTIVE_KEYWORDS.some(k => lower.includes(k));
+};
+
+const extractActiveIngredients = (raw) => {
+    if (!raw || typeof raw !== 'string') return [];
+    const results = [];
+    raw.split(/[+,;/]+/).forEach(part => {
+        const trimmed = part.trim();
+        if (!trimmed) return;
+        const words = trimmed.split(/\s+/);
+        const cleanWords = [];
+        for (const w of words) {
+            if (/^\d/.test(w)) break;
+            cleanWords.push(w);
+        }
+        const cleanName = (cleanWords.length ? cleanWords.join(' ') : trimmed).trim();
+        if (cleanName && !results.some(x => x.toLowerCase() === cleanName.toLowerCase())) {
+            results.push(cleanName);
+        }
+    });
+    return results;
+};
+
+// Làm sạch văn bản markdown và định dạng câu chữ tự nhiên cho giọng đọc TTS tiếng Việt
+const cleanTextForTTS = (text) => {
+    if (!text || typeof text !== 'string') return '';
+    return text
+        .replace(/```[\s\S]*?```/g, '') // Bỏ block code / block json
+        .replace(/`([^`]+)`/g, '$1')     // Bỏ inline code
+        .replace(/^#+\s+/gm, '')         // Bỏ ký hiệu heading
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // Bỏ in đậm **
+        .replace(/\*([^*]+)\*/g, '$1')   // Bỏ in nghiêng *
+        .replace(/[-*•]\s+/g, ', ')      // Gạch đầu dòng thành dấu phẩy nghỉ nhịp
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Giữ text của link
+        .replace(/https?:\/\/\S+/g, '')  // Bỏ URL thô
+        .replace(/(\d+)\s*k\b/gi, '$1 nghìn')
+        .replace(/(\d+)\s*đ\b/gi, '$1 đồng')
+        .replace(/\bml\b/gi, 'mi li lít')
+        .replace(/\bkg\b/gi, 'ki lô gam')
+        .replace(/\bha\b/gi, 'héc ta')
+        .replace(/\n+/g, '. ')           // Xuống dòng chuyển thành dấu chấm nghỉ
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
 export default function AiConsultantModal({ 
     isOpen, 
     onClose, 
@@ -116,6 +179,7 @@ export default function AiConsultantModal({
 
     const handleSwitchMode = (newModeId) => {
         if (newModeId === activeMode) return;
+        stopSpeech();
         setActiveMode(newModeId);
         try {
             localStorage.setItem('lyang_ai_active_mode', newModeId);
@@ -160,6 +224,115 @@ export default function AiConsultantModal({
     const [copiedIndex, setCopiedIndex] = useState(null);
     const [addedProducts, setAddedProducts] = useState({});
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Text-to-Speech (TTS)
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [speakingMsgId, setSpeakingMsgId] = useState(null);
+    const [autoSpeak, setAutoSpeak] = useState(() => {
+        try {
+            return localStorage.getItem('lyang_ai_auto_speak') === 'true';
+        } catch (e) {
+            return false;
+        }
+    });
+
+    const stopSpeech = () => {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {}
+        }
+        setIsSpeaking(false);
+        setSpeakingMsgId(null);
+    };
+
+    const toggleAutoSpeak = () => {
+        setAutoSpeak(prev => {
+            const next = !prev;
+            try {
+                localStorage.setItem('lyang_ai_auto_speak', next.toString());
+            } catch (e) {}
+            if (!next) {
+                stopSpeech();
+            }
+            toast(next ? '🔊 Đã bật tự động đọc to câu trả lời AI' : '🔇 Đã tắt tự động đọc câu trả lời', {
+                icon: next ? '🔊' : '🔇',
+                duration: 2000
+            });
+            return next;
+        });
+    };
+
+    const handleSpeak = (msgId, text) => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            toast.error('Trình duyệt của bạn chưa hỗ trợ giọng đọc Web Speech API.');
+            return;
+        }
+
+        // Bấm lại đúng tin nhắn đang đọc -> Dừng phát
+        if (speakingMsgId === msgId) {
+            stopSpeech();
+            return;
+        }
+
+        stopSpeech();
+
+        const cleanText = cleanTextForTTS(text);
+        if (!cleanText) return;
+
+        try {
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'vi-VN';
+            utterance.rate = 1.05;
+            utterance.pitch = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const viVoice = voices.find(v => 
+                v.lang === 'vi-VN' || 
+                v.lang?.toLowerCase().startsWith('vi') || 
+                v.name?.toLowerCase().includes('vietnam') || 
+                v.name?.toLowerCase().includes('vietnamese')
+            );
+            if (viVoice) {
+                utterance.voice = viVoice;
+            }
+
+            utterance.onstart = () => {
+                setIsSpeaking(true);
+                setSpeakingMsgId(msgId);
+            };
+
+            utterance.onend = () => {
+                setIsSpeaking(false);
+                setSpeakingMsgId(null);
+            };
+
+            utterance.onerror = (e) => {
+                console.warn('SpeechSynthesis error:', e);
+                setIsSpeaking(false);
+                setSpeakingMsgId(null);
+            };
+
+            window.speechSynthesis.speak(utterance);
+        } catch (e) {
+            console.error('Speech synthesis error:', e);
+            setIsSpeaking(false);
+            setSpeakingMsgId(null);
+        }
+    };
+
+    // Tự động dừng đọc khi tắt modal hoặc unmount
+    useEffect(() => {
+        return () => {
+            stopSpeech();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) {
+            stopSpeech();
+        }
+    }, [isOpen]);
 
     const popoverRef = useRef(null);
     const chatFeedRef = useRef(null);
@@ -325,6 +498,7 @@ export default function AiConsultantModal({
                 recommended_products: []
             }
         ];
+        stopSpeech();
         setMessages(welcomeMsg);
         try {
             localStorage.setItem(`lyang_ai_chat_${activeMode}`, JSON.stringify(welcomeMsg));
@@ -535,7 +709,10 @@ HÃY TRẢ LỜI BẰNG TIẾNG VIỆT TỰ NHIÊN, LỊCH SỰ, RÕ RÀNG VÀ H
         } else {
             // mode === 'crop_doctor'
             let productKB = 'DANH MỤC SẢN PHẨM & HOẠT CHẤT TRONG KHO CỬA HÀNG:\n';
-            let storeActivesStr = '(Chưa có thông tin hoạt chất)';
+            let uniqueAdvancedActives = [];
+            let uniqueCommonActives = [];
+            let allUniqueActives = [];
+
             try {
                 const prodRes = await axios.get('/api/products');
                 productList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.data || []);
@@ -548,75 +725,122 @@ HÃY TRẢ LỜI BẰNG TIẾNG VIỆT TỰ NHIÊN, LỊCH SỰ, RÕ RÀNG VÀ H
                         return (b.stock || 0) - (a.stock || 0);
                     });
 
-                    const uniqueActives = [];
                     productList.forEach(p => {
                         if (p.active_ingredient && p.active_ingredient.trim()) {
-                            const act = p.active_ingredient.trim();
-                            if (!uniqueActives.some(x => x.toLowerCase() === act.toLowerCase())) {
-                                uniqueActives.push(act);
-                            }
+                            const extracted = extractActiveIngredients(p.active_ingredient);
+                            extracted.forEach(item => {
+                                const clean = item.trim();
+                                if (!clean) return;
+                                if (!allUniqueActives.some(x => x.toLowerCase() === clean.toLowerCase())) {
+                                    allUniqueActives.push(clean);
+                                }
+                                if (isAdvancedActive(clean)) {
+                                    if (!uniqueAdvancedActives.some(x => x.toLowerCase() === clean.toLowerCase())) {
+                                        uniqueAdvancedActives.push(clean);
+                                    }
+                                } else {
+                                    if (!uniqueCommonActives.some(x => x.toLowerCase() === clean.toLowerCase())) {
+                                        uniqueCommonActives.push(clean);
+                                    }
+                                }
+                            });
                         }
                     });
-                    if (uniqueActives.length > 0) {
-                        storeActivesStr = uniqueActives.join(', ');
-                    }
+
+                    const advStr = uniqueAdvancedActives.length > 0 ? uniqueAdvancedActives.join(', ') : '(Kho chưa có hoặc chưa điền hoạt chất thế hệ mới)';
+                    const comStr = uniqueCommonActives.length > 0 ? uniqueCommonActives.join(', ') : '(Chưa có hoạt chất phổ thông)';
+                    const allStr = allUniqueActives.length > 0 ? allUniqueActives.join(', ') : '(Chưa có dữ liệu hoạt chất trong kho)';
 
                     productList.slice(0, 500).forEach(p => {
                         const active = p.active_ingredient || 'Chưa có';
                         const unit = p.unit || '';
                         const price = p.sale_price || 0;
                         const stock = p.stock || 0;
-                        productKB += `- [ID:${p.id}] Tên: ${p.name} | Hoạt chất: ${active} | ĐVT: ${unit} | Giá: ${price}đ | Tồn: ${stock}\n`;
+                        const isAdv = isAdvancedActive(p.active_ingredient);
+                        const tag = isAdv ? '[🌟 TẦNG 1: CÔNG NGHỆ MỚI]' : (p.active_ingredient && p.active_ingredient.trim() ? '[🌾 TẦNG 2: PHỔ THÔNG]' : '[CHƯA RÕ HOẠT CHẤT]');
+                        productKB += `- [ID:${p.id}] Tên: ${p.name} | Hoạt chất: ${active} | ĐVT: ${unit} | Giá: ${price}đ | Tồn: ${stock} | Phân loại: ${tag}\n`;
                     });
-                }
-            } catch (e) {
-                productKB += '(Không thể đọc danh mục sản phẩm từ server)\n';
-            }
 
-            systemInstruction = `Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) của cửa hàng LyangPOS.
+                    systemInstruction = `Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) của cửa hàng LyangPOS.
 
-★★★ NGUYÊN TẮC CỐ VẤN TỐI THƯỢNG (BẮT BUỘC TUÂN THỦ):
-1. **ƯU TIÊN TUYỆT ĐỐI CÁC HOẠT CHẤT & SẢN PHẨM ĐANG CÓ SẴN TRONG KHO**:
-   - Mục tiêu sống còn của bạn là **TƯ VẤN VÀ ĐỀ XUẤT ĐƯỢC CÁC SẢN PHẨM ĐANG CÓ HÀNG TRONG KHO CỬA HÀNG**.
-   - BẮT BUỘC quét qua DANH SÁCH HOẠT CHẤT TRONG KHO (mục 2 bên dưới) trước tiên khi nhận câu hỏi của bà con nông dân.
-   - **ĐẶC BIỆT TÍCH CỰC GIỚI THIỆU CÁC HOẠT CHẤT MỚI / THẾ HỆ MỚI / TIÊN TIẾN CÓ TRONG KHO**:
-     Ví dụ: Metaflumizone, Spinetoram, Flupyrimin, Sulfoxaflor, Fluopyram, Pydiflumetofen, Oxathiapiprolin, Chlorfenapyr, Pyriproxyfen, Lufenuron, Fenpyroximate, Flonicamid, Tolfenpyrad, Fluxapyroxad, Mandipropamid, Fenamidone, v.v...
-   - **TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ QUANH QUẨN GỢI Ý CÁC HOẠT CHẤT CŨ TRÊN SÁCH VỞ** (như chỉ chăm chăm nói Difenoconazole, Mancozeb, Thiamethoxam, Abamectin) nếu trong kho cửa hàng đang có các hoạt chất mới hơn, đặc trị mạnh hơn và chưa bị lờn thuốc!
-   - Hãy giải thích rõ cho bà con: vì sao hoạt chất mới trong kho này lại vượt trội (cơ chế diệt trừ mới lạ, bẻ gãy tính kháng thuốc của sâu/bọ/rầy/nấm, hiệu lực kéo dài, mát cây không gây cháy đọt non hoặc rụng bông/trái).
+★★★ CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG BẮT BUỘC (TUÂN THỦ 100%):
+Khi người dùng hỏi về bệnh hại, sâu hại, bọ trĩ, rầy rệp hoặc chăm sóc cây trồng, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ đưa ra các hoạt chất quen thuộc cũ (như chỉ chăm chăm nói Mancozeb, Difenoconazole, Abamectin...).
+BẮT BUỘC bạn phải quét qua TOÀN BỘ DANH SÁCH HOẠT CHẤT TRONG KHO (đặc biệt là NHÓM THẾ HỆ MỚI) và trình bày câu trả lời theo **CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG RÕ RÀNG**:
 
-2. **DANH SÁCH TOÀN BỘ HOẠT CHẤT CỬA HÀNG ĐANG CÓ SẴN TRONG KHO (HÃY ƯU TIÊN CHỌN TRONG ĐÂY ĐẦU TIÊN)**:
-${storeActivesStr}
+---
+### 🌿 CẤU TRÚC BÀI TƯ VẤN BẮT BUỘC:
 
-3. **CÁC BƯỚC CỐ VẤN CHI TIẾT**:
-   - Bước 1: Chuẩn đoán ngắn gọn nguyên nhân gây bệnh/sâu hại.
-   - Bước 2: **Đề xuất ngay các hoạt chất có trong kho cửa hàng** (ưu tiên hoạt chất mới/thế hệ mới nếu có trong kho). Nếu kho không có hoạt chất mới thì mới đề xuất các hoạt chất phổ thông có trong kho.
-   - Bước 3: **Chỉ định chính xác tên thương phẩm của sản phẩm đang có trong kho** chứa hoạt chất đó.
-     Lưu ý: Một số thuốc trong kho có thể chưa được điền cột hoạt chất nhưng tên thương mại đã thể hiện rõ công dụng (Ví dụ: Beam, Tilt Super, Amistar, Flash, Filia, Nativo, Ridomil Gold, Score, Antracol, Topsin...), hãy nhận diện và giới thiệu từ kho!
-   - Bước 4: **HƯỚNG DẪN LIỀU LƯỢNG PHA CỤ THỂ**: Bắt buộc ghi rõ liều pha cho bình 16L, 25L hoặc phuy 200L (Ví dụ: Pha 20-25ml/bình 25L hoặc 1 chai/phuy 200L), thời điểm phun (sáng sớm/chiều mát) và kỹ thuật phun đạt hiệu quả tối đa.
-   - Bước 5: Hướng dẫn luân phiên đổi gốc hoạt chất để chống lờn thuốc và lưu ý phối trộn an toàn.
-   - Bước 6: Định dạng Markdown sinh động, rõ ràng, gạch đầu dòng mạch lạc.
+1. **CHẨN ĐOÁN & NGUYÊN NHÂN CỐT LÕI (Ngắn gọn)**:
+   - Tên bệnh/sâu hại, nguyên nhân (nấm, vi khuẩn, côn trùng chích hút, bọ trĩ kháng thuốc...).
+
+2. **🚀 TẦNG 1: GIẢI PHÁP ĐẶC TRỊ CÔNG NGHỆ MỚI / CHỐNG KHÁNG THUỐC (Ưu tiên số 1 từ kho)**:
+   - **Mục tiêu**: Dập dịch cấp tốc, bẻ gãy tính lờn thuốc của sâu/nấm, bảo vệ đọt non/bông/trái an toàn.
+   - **Hành động bắt buộc**: Bạn PHẢI rà soát trong danh sách [🌟 NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO] để chọn ra hoạt chất đặc trị mạnh nhất có sẵn trong kho.
+     * Ví dụ:
+       - Trừ nấm/bệnh phổ mới (SDHI, Carboxamide, CAA...): Pydiflumetofen (Miravis Duo), Fluxapyroxad (Sercadis), Fluopyram (Luna), Oxathiapiprolin (Zorvec), Pyraclostrobin (Cabrio Top), Mandipropamid (Revus), Metiram (Polyram), Boscalid, Cyazofamid...
+       - Trừ sâu/bọ trĩ/rầy/nhện phổ mới (Spinosyn, Diamide, Pyrrole, Ketoenol, Pyropene...): Spinetoram (Radiant), Flupyrimin, Sulfoxaflor (Transform), Broflanilide (Incipio), Chlorfenapyr, Cyantraniliprole (Benevia), Chlorantraniliprole (Virtako), Flonicamid (Teppeki), Spirotetramat (Movento), Spirodiclofen (Envidor), Fenpyroximate (Ortus), Lufenuron, Pyriproxyfen...
+   - **Phân tích cơ chế vượt trội**: Giải thích vì sao hoạt chất này diệt dứt điểm (tác động vào thụ thể mới lạ, ức chế enzyme tế bào, hiệu lực lưu dẫn kéo dài, tính mát êm cây không làm teo đọt, không rụng hoa, không lem vỏ trái).
+   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
+   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L (Ví dụ: 20-25ml/bình 25L hoặc 1 chai/phuy 200L) và thời điểm phun tốt nhất.
+
+3. **🌾 TẦNG 2: GIẢI PHÁP PHỔ THÔNG / TIẾT KIỆM CHI PHÍ (Giải pháp kinh tế & Phòng ngừa từ kho)**:
+   - **Mục tiêu**: Tiết kiệm chi phí mùa vụ, phun phòng ngừa định kỳ đón đọt/sau mưa khi áp lực sâu bệnh chưa bùng phát nặng.
+   - **Hành động**: Nhặt các sản phẩm chứa hoạt chất kinh điển, giá rẻ hơn có sẵn trong kho (như Mancozeb, Difenoconazole, Azoxystrobin, Hexaconazole, Metalaxyl, Abamectin, Thiamethoxam, Imidacloprid, Validamycin, Carbendazim, Copper Oxychloride...).
+   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
+   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L.
+
+4. **🔄 CHIẾN THUẬT PHỐI TRỘN & LUÂN PHIÊN (Bí kíp nhà nghề)**:
+   - Hướng dẫn luân phiên cữ phun: Cữ 1 dập dịch bằng Tầng 1 (công nghệ mới), cữ 2 (cách 5-7 ngày) đổi sang Tầng 2 hoặc luân chuyển nhóm gốc thuốc khác để sâu bệnh không kịp thích nghi tạo kháng thể.
+   - Nguyên tắc phối trộn an toàn: Thứ tự pha (Bột WP/WG -> Huyền phù SC -> Nhũ dầu EC -> Phân bón lá/Dưỡng), không pha chung với vôi/gốc đồng kiềm mạnh nếu chưa kiểm tra tương thích.
+
+---
+### 📦 DỮ LIỆU ĐỐI CHIẾU TRONG KHO CỬA HÀNG:
+
+🌟 **NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO (BẮT BUỘC DÙNG CHO TẦNG 1 NẾU PHÙ HỢP)**:
+${advStr}
+
+🌾 **NHÓM HOẠT CHẤT PHỔ THÔNG / KINH ĐIỂN TRONG KHO (DÙNG CHO TẦNG 2)**:
+${comStr}
+
+📚 **TOÀN BỘ HOẠT CHẤT CÓ TRONG KHO**:
+${allStr}
 
 ${productKB}
 
-QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT:
-Ở cuối câu trả lời, nếu có gợi ý sản phẩm cụ thể từ danh sách cửa hàng, bạn BẮT BUỘC xuất kèm khối JSON code block:
+QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
+Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 2 đến 6 sản phẩm phù hợp nhất đại diện cho CẢ TẦNG 1 VÀ TẦNG 2 có trong kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau:
 \`\`\`recommended_products
 [
   {
     "id": 123,
-    "name": "Tên sản phẩm",
-    "active_ingredient": "Hoạt chất",
-    "dosage": "Liều dùng: 20-25ml/bình 25L hoặc 1 chai/phuy 200L",
-    "sale_price": 150000,
+    "name": "Tên sản phẩm đúng theo kho",
+    "active_ingredient": "Hoạt chất của sản phẩm",
+    "dosage": "Liều dùng: 20-25ml/bình 25L (hoặc 1 chai/phuy 200L)",
+    "tier": "Tầng 1 (Công nghệ mới)",
+    "sale_price": 185000,
     "unit": "Chai",
     "stock": 15
+  },
+  {
+    "id": 456,
+    "name": "Tên sản phẩm đúng theo kho",
+    "active_ingredient": "Hoạt chất của sản phẩm",
+    "dosage": "Liều dùng: 30ml/bình 25L",
+    "tier": "Tầng 2 (Phổ thông)",
+    "sale_price": 95000,
+    "unit": "Chai",
+    "stock": 30
   }
 ]
 \`\`\`
-Nếu không có sản phẩm phù hợp từ kho, xuất:
+Nếu không có sản phẩm phù hợp trong kho, xuất:
 \`\`\`recommended_products
 []
 \`\`\``;
+                }
+            } catch (e) {
+                productKB += '(Không thể đọc danh mục sản phẩm từ server)\n';
+            }
         }
 
         const contents = [];
@@ -651,7 +875,7 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
             systemInstruction: { parts: [{ text: systemInstruction }] },
             contents: contents,
             generationConfig: {
-                temperature: mode === 'crop_doctor' ? 0.3 : 0.6,
+                temperature: mode === 'crop_doctor' ? 0.4 : (mode === 'app_analytics' ? 0.2 : 0.6),
                 maxOutputTokens: 65536
             }
         };
@@ -813,6 +1037,13 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
             };
 
             setMessages(prev => [...prev, modelMsg]);
+
+            // Tự động phát âm thanh giọng đọc nếu người dùng bật chế độ Auto-Speak
+            if (autoSpeak && modelMsg.text) {
+                setTimeout(() => {
+                    handleSpeak(modelMsg.id, modelMsg.text);
+                }, 300);
+            }
         } catch (err) {
             console.error('Lỗi khi gọi AI consult:', err);
             const errorMsg = {
@@ -1070,6 +1301,20 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                 </button>
                             </div>
 
+                            {/* Nút bật/tắt tự động đọc giọng nói AI */}
+                            <button
+                                type="button"
+                                onClick={toggleAutoSpeak}
+                                title={autoSpeak ? "Tự động đọc to: Đang BẬT (Bấm để tắt)" : "Tự động đọc to: Đang TẮT (Bấm để bật)"}
+                                className={`p-1.5 rounded-lg active:scale-95 transition-all flex items-center justify-center ${
+                                    autoSpeak 
+                                        ? 'bg-amber-400 text-stone-900 shadow-xs font-bold' 
+                                        : 'hover:bg-white/20 text-white/90 hover:text-white'
+                                }`}
+                            >
+                                {autoSpeak ? <Volume2 size={14} className="animate-pulse" /> : <VolumeX size={14} />}
+                            </button>
+
                             <button
                                 type="button"
                                 onClick={() => setIsExpanded(!isExpanded)}
@@ -1154,16 +1399,35 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                                 : 'max-w-[88%] bg-white dark:bg-[#0e1d17] border border-stone-200/80 dark:border-white/10 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
                                         }`}
                                     >
-                                        {/* Nút Copy */}
-                                        {msg.role === 'model' && msg.id !== 'welcome' && (
-                                            <button 
-                                                type="button"
-                                                onClick={() => handleCopy(msg.text, idx)}
-                                                title="Sao chép câu trả lời"
-                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
-                                            </button>
+                                        {/* Nút Loa Nghe đọc & Nút Copy */}
+                                        {msg.role === 'model' && (
+                                            <div className={`absolute top-2.5 right-2.5 flex items-center gap-1 z-10 transition-opacity ${
+                                                speakingMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                            }`}>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleSpeak(msg.id, msg.text)}
+                                                    title={speakingMsgId === msg.id ? "Dừng đọc" : "Nghe đọc to câu trả lời (tiếng Việt)"}
+                                                    className={`p-1.5 rounded-lg transition-all ${
+                                                        speakingMsgId === msg.id 
+                                                            ? 'bg-emerald-600 text-white shadow-xs animate-pulse ring-2 ring-emerald-400/40' 
+                                                            : 'bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-600 dark:text-stone-300'
+                                                    }`}
+                                                >
+                                                    {speakingMsgId === msg.id ? <Square size={12} className="fill-current text-white" /> : <Volume2 size={13} />}
+                                                </button>
+
+                                                {msg.id !== 'welcome' && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => handleCopy(msg.text, idx)}
+                                                        title="Sao chép câu trả lời"
+                                                        className="p-1.5 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 transition-all"
+                                                    >
+                                                        {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
 
                                         {/* User Images */}
@@ -1212,12 +1476,26 @@ Nếu không có sản phẩm phù hợp từ kho, xuất:
                                                             >
                                                                 <div>
                                                                     <div className="flex items-start justify-between gap-2">
-                                                                        <h5 
-                                                                            style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
-                                                                            className="font-black text-stone-900 dark:text-white leading-snug"
-                                                                        >
-                                                                            {prod.name}
-                                                                        </h5>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <h5 
+                                                                                style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
+                                                                                className="font-black text-stone-900 dark:text-white leading-snug"
+                                                                            >
+                                                                                {prod.name}
+                                                                            </h5>
+                                                                            {prod.tier && (
+                                                                                <div className="mt-1">
+                                                                                    <span className={`inline-flex items-center gap-1 text-[9.5px] font-black px-2 py-0.5 rounded-md border ${
+                                                                                        prod.tier.includes('1') || prod.tier.toLowerCase().includes('mới')
+                                                                                            ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30'
+                                                                                            : 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30'
+                                                                                    }`}>
+                                                                                        {prod.tier.includes('1') || prod.tier.toLowerCase().includes('mới') ? '🌟 ' : '🌾 '}
+                                                                                        {prod.tier}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                         <span 
                                                                             className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
                                                                                 inStock 

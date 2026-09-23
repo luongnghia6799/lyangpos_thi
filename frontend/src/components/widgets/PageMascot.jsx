@@ -93,6 +93,18 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
 
   const currentChar = MASCOT_LIST.find((c) => c.id === config.characterId) || MASCOT_LIST[0];
 
+  // Tính toán biên kéo: cho phép phần hiển thị nhân vật chạm sát mép màn hình (bù trừ khoảng đệm trong suốt của sprite)
+  const getBounds = (curSize) => {
+    if (typeof window === 'undefined') return { minX: 0, maxX: 1000, minY: 0, maxY: 1000 };
+    const padX = Math.round(curSize * 0.22);
+    const padY = Math.round(curSize * 0.12);
+    const minX = -padX;
+    const maxX = window.innerWidth - curSize + padX;
+    const minY = -padY;
+    const maxY = window.innerHeight - curSize + padY;
+    return { minX, maxX, minY, maxY };
+  };
+
   // Update background sprite immediately when character changes
   useEffect(() => {
     if (spriteRef.current && currentChar?.directions && !isReactingRef.current) {
@@ -129,10 +141,9 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
     const handleResize = () => {
       setPos((prev) => {
         const size = config.size || 110;
-        const maxX = Math.max(10, window.innerWidth - size - 10);
-        const maxY = Math.max(10, window.innerHeight - size - 10);
-        const newX = Math.min(Math.max(10, prev.x), maxX);
-        const newY = Math.min(Math.max(10, prev.y), maxY);
+        const { minX, maxX, minY, maxY } = getBounds(size);
+        const newX = Math.min(Math.max(minX, prev.x), maxX);
+        const newY = Math.min(Math.max(minY, prev.y), maxY);
         if (newX !== prev.x || newY !== prev.y) {
           const updated = { x: newX, y: newY };
           try {
@@ -276,6 +287,50 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
     }
   };
 
+  // Scroll wheel để phóng to / thu nhỏ Mascot
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const delta = e.deltaY;
+      const step = delta > 0 ? -5 : 5; // Lăn xuống -> thu nhỏ, lăn lên -> phóng to
+
+      setConfig((prevConfig) => {
+        const curSize = prevConfig.size || 110;
+        const nextSize = Math.min(240, Math.max(50, curSize + step));
+        if (nextSize === curSize) return prevConfig;
+
+        const updated = { ...prevConfig, size: nextSize };
+        try {
+          const cur = JSON.parse(localStorage.getItem('lyang_mascot_config') || '{}');
+          localStorage.setItem('lyang_mascot_config', JSON.stringify({ ...cur, size: nextSize }));
+        } catch (err) {}
+
+        // Điều chỉnh lại toạ độ nếu kích thước mới vượt quá viền màn hình
+        setPos((curPos) => {
+          const { minX, maxX, minY, maxY } = getBounds(nextSize);
+          const clampedX = Math.min(Math.max(minX, curPos.x), maxX);
+          const clampedY = Math.min(Math.max(minY, curPos.y), maxY);
+          const updatedPos = { x: clampedX, y: clampedY };
+          if (onPosChange) onPosChange(updatedPos, nextSize);
+          return updatedPos;
+        });
+
+        window.dispatchEvent(new Event('lyang_mascot_config_updated'));
+        return updated;
+      });
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [onPosChange]);
+
   // Dragging logic
   const handlePointerDown = (e) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -300,8 +355,9 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
 
       if (dragStartRef.current.moved) {
         const size = config.size || 110;
-        const newX = Math.min(Math.max(10, dragStartRef.current.startPosX + dx), window.innerWidth - size - 10);
-        const newY = Math.min(Math.max(10, dragStartRef.current.startPosY + dy), window.innerHeight - size - 10);
+        const { minX, maxX, minY, maxY } = getBounds(size);
+        const newX = Math.min(Math.max(minX, dragStartRef.current.startPosX + dx), maxX);
+        const newY = Math.min(Math.max(minY, dragStartRef.current.startPosY + dy), maxY);
         setPos({ x: newX, y: newY });
       }
     };

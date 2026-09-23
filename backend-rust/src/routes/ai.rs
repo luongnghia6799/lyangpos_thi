@@ -561,6 +561,51 @@ async fn build_app_analytics_context(pool: &SqlitePool, user_query: Option<&str>
     ctx
 }
 
+fn is_advanced_active(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    let advanced_keywords = [
+        "spinetoram", "radiant", "flupyrimin", "sulfoxaflor", "broflanilide", "incipio",
+        "chlorfenapyr", "cyantraniliprole", "benevia", "minecto", "chlorantraniliprole", 
+        "virtako", "prevathon", "flonicamid", "teppeki", "spirotetramat", "movento", 
+        "spirodiclofen", "envidor", "spiromesifen", "oberon", "fenpyroximate", "ortus", 
+        "lufenuron", "match", "pyriproxyfen", "admiral", "tolfenpyrad", "afidopyropen", 
+        "metaflumizone", "flubendiamide", "takumi", "diafenthiuron", "pegasus",
+        "pydiflumetofen", "miravis", "fluxapyroxad", "sercadis", "fluopyram", "luna", 
+        "oxathiapiprolin", "zorvec", "pyraclostrobin", "cabrio", "mandipropamid", "revus", 
+        "fenamidone", "metiram", "polyram", "boscalid", "cantus", "kresoxim", "cyazofamid",
+        "trifloxystrobin", "nativo", "fludioxonil", "sedaxane", "dinotefuran", "clothianidin",
+        "hymexazol", "tachigaren", "chitosan", "ningnanmycin", "kasugamycin", "streptomycin"
+    ];
+    advanced_keywords.iter().any(|&k| lower.contains(k))
+}
+
+fn extract_active_ingredients(raw: &str) -> Vec<String> {
+    let mut results = Vec::new();
+    for part in raw.split(|c| c == '+' || c == ',' || c == ';' || c == '/') {
+        let trimmed = part.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let mut clean_words = Vec::new();
+        for word in trimmed.split_whitespace() {
+            if word.chars().next().map_or(false, |c| c.is_ascii_digit()) {
+                break;
+            }
+            clean_words.push(word);
+        }
+        let clean_name = if clean_words.is_empty() {
+            trimmed.to_string()
+        } else {
+            clean_words.join(" ")
+        };
+        let c_trimmed = clean_name.trim();
+        if !c_trimmed.is_empty() && !results.iter().any(|x: &String| x.eq_ignore_ascii_case(c_trimmed)) {
+            results.push(c_trimmed.to_string());
+        }
+    }
+    results
+}
+
 pub async fn consult_ai(
     State(pool): State<SqlitePool>,
     Json(payload): Json<AiConsultRequest>,
@@ -701,19 +746,50 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                 },
             };
 
-            let mut unique_actives: Vec<String> = Vec::new();
+            let mut unique_advanced_actives: Vec<String> = Vec::new();
+            let mut unique_common_actives: Vec<String> = Vec::new();
+            let mut all_unique_actives: Vec<String> = Vec::new();
+
             for p in &products {
                 if let Some(ref act) = p.active_ingredient {
-                    let trimmed = act.trim();
-                    if !trimmed.is_empty() && !unique_actives.iter().any(|x| x.eq_ignore_ascii_case(trimmed)) {
-                        unique_actives.push(trimmed.to_string());
+                    let extracted = extract_active_ingredients(act);
+                    for item in extracted {
+                        let item_clean = item.trim();
+                        if item_clean.is_empty() {
+                            continue;
+                        }
+                        if !all_unique_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
+                            all_unique_actives.push(item_clean.to_string());
+                        }
+                        if is_advanced_active(item_clean) {
+                            if !unique_advanced_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
+                                unique_advanced_actives.push(item_clean.to_string());
+                            }
+                        } else {
+                            if !unique_common_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
+                                unique_common_actives.push(item_clean.to_string());
+                            }
+                        }
                     }
                 }
             }
-            let store_actives_str = if unique_actives.is_empty() {
+
+            let advanced_actives_str = if unique_advanced_actives.is_empty() {
+                String::from("(Kho chưa có hoặc chưa điền hoạt chất thế hệ mới)")
+            } else {
+                unique_advanced_actives.join(", ")
+            };
+
+            let common_actives_str = if unique_common_actives.is_empty() {
+                String::from("(Chưa có hoạt chất phổ thông)")
+            } else {
+                unique_common_actives.join(", ")
+            };
+
+            let store_actives_str = if all_unique_actives.is_empty() {
                 String::from("(Chưa có dữ liệu hoạt chất trong kho)")
             } else {
-                unique_actives.join(", ")
+                all_unique_actives.join(", ")
             };
 
             let mut product_kb = String::from("DANH MỤC SẢN PHẨM & HOẠT CHẤT ĐANG KINH DOANH TẠI CỬA HÀNG:\n");
@@ -728,9 +804,18 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                     let stock = p.stock.unwrap_or(0.0);
                     let code = p.code.as_deref().unwrap_or("");
 
+                    let is_prod_advanced = p.active_ingredient.as_ref().map_or(false, |act| is_advanced_active(act));
+                    let tag_str = if is_prod_advanced {
+                        "[🌟 TẦNG 1: CÔNG NGHỆ MỚI]"
+                    } else if p.active_ingredient.as_ref().map_or(false, |act| !act.trim().is_empty()) {
+                        "[🌾 TẦNG 2: PHỔ THÔNG]"
+                    } else {
+                        "[CHƯA RÕ HOẠT CHẤT]"
+                    };
+
                     product_kb.push_str(&format!(
-                        "- [ID:{}] Tên: {} | Mã: {} | Hoạt chất: {} | Đơn vị: {} | Giá: {:.}đ | Tồn kho: {} | Hãng: {}\n",
-                        p.id, p.name, code, active, unit, price, stock, brand
+                        "- [ID:{}] Tên: {} | Mã: {} | Hoạt chất: {} | Đơn vị: {} | Giá: {:.}đ | Tồn kho: {} | Hãng: {} | Phân loại: {}\n",
+                        p.id, p.name, code, active, unit, price, stock, brand, tag_str
                     ));
                 }
             }
@@ -738,31 +823,52 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
             let mut base_prompt = format!(
                 r#"Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
 
-★★★ NGUYÊN TẮC CỐ VẤN TỐI THƯỢNG (BẮT BUỘC TUÂN THỦ):
-1. **ƯU TIÊN TUYỆT ĐỐI CÁC HOẠT CHẤT & SẢN PHẨM ĐANG CÓ SẴN TRONG KHO**:
-   - Mục tiêu sống còn của bạn là **TƯ VẤN VÀ ĐỀ XUẤT ĐƯỢC CÁC SẢN PHẨM ĐANG CÓ HÀNG TRONG KHO CỬA HÀNG**.
-   - BẮT BUỘC quét qua DANH SÁCH HOẠT CHẤT TRONG KHO (mục 2 bên dưới) trước tiên khi nhận câu hỏi của bà con nông dân.
-   - **ĐẶC BIỆT TÍCH CỰC GIỚI THIỆU CÁC HOẠT CHẤT MỚI / THẾ HỆ MỚI / TIÊN TIẾN CÓ TRONG KHO**:
-     Ví dụ: Metaflumizone, Spinetoram, Flupyrimin, Sulfoxaflor, Fluopyram, Pydiflumetofen, Oxathiapiprolin, Chlorfenapyr, Pyriproxyfen, Lufenuron, Fenpyroximate, Flonicamid, Tolfenpyrad, Fluxapyroxad, Mandipropamid, Fenamidone, v.v...
-   - **TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ QUANH QUẨN GỢI Ý CÁC HOẠT CHẤT CŨ TRÊN SÁCH VỞ** (như chỉ chăm chăm nói Difenoconazole, Mancozeb, Thiamethoxam, Abamectin) nếu trong kho cửa hàng đang có các hoạt chất mới hơn, đặc trị mạnh hơn và chưa bị lờn thuốc!
-   - Hãy giải thích rõ cho bà con: vì sao hoạt chất mới trong kho này lại vượt trội (cơ chế diệt trừ mới lạ, bẻ gãy tính kháng thuốc của sâu/bọ/rầy/nấm, hiệu lực kéo dài, mát cây không gây cháy đọt non hoặc rụng bông/trái).
+★★★ CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG BẮT BUỘC (TUÂN THỦ 100%):
+Khi người dùng hỏi về bệnh hại, sâu hại, bọ trĩ, rầy rệp hoặc chăm sóc cây trồng, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ đưa ra các hoạt chất quen thuộc cũ (như chỉ chăm chăm nói Mancozeb, Difenoconazole, Abamectin...).
+BẮT BUỘC bạn phải quét qua TOÀN BỘ DANH SÁCH HOẠT CHẤT TRONG KHO (đặc biệt là NHÓM THẾ HỆ MỚI) và trình bày câu trả lời theo **CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG RÕ RÀNG**:
 
-2. **DANH SÁCH TOÀN BỘ HOẠT CHẤT CỬA HÀNG ĐANG CÓ SẴN TRONG KHO (HÃY ƯU TIÊN CHỌN TRONG ĐÂY ĐẦU TIÊN)**:
+---
+### 🌿 CẤU TRÚC BÀI TƯ VẤN BẮT BUỘC:
+
+1. **CHẨN ĐOÁN & NGUYÊN NHÂN CỐT LÕI (Ngắn gọn)**:
+   - Tên bệnh/sâu hại, nguyên nhân (nấm, vi khuẩn, côn trùng chích hút, bọ trĩ kháng thuốc...).
+
+2. **🚀 TẦNG 1: GIẢI PHÁP ĐẶC TRỊ CÔNG NGHỆ MỚI / CHỐNG KHÁNG THUỐC (Ưu tiên số 1 từ kho)**:
+   - **Mục tiêu**: Dập dịch cấp tốc, bẻ gãy tính lờn thuốc của sâu/nấm, bảo vệ đọt non/bông/trái an toàn.
+   - **Hành động bắt buộc**: Bạn PHẢI rà soát trong danh sách [🌟 NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO] để chọn ra hoạt chất đặc trị mạnh nhất có sẵn trong kho.
+     * Ví dụ:
+       - Trừ nấm/bệnh phổ mới (SDHI, Carboxamide, CAA...): Pydiflumetofen (Miravis Duo), Fluxapyroxad (Sercadis), Fluopyram (Luna), Oxathiapiprolin (Zorvec), Pyraclostrobin (Cabrio Top), Mandipropamid (Revus), Metiram (Polyram), Boscalid, Cyazofamid...
+       - Trừ sâu/bọ trĩ/rầy/nhện phổ mới (Spinosyn, Diamide, Pyrrole, Ketoenol, Pyropene...): Spinetoram (Radiant), Flupyrimin, Sulfoxaflor (Transform), Broflanilide (Incipio), Chlorfenapyr, Cyantraniliprole (Benevia), Chlorantraniliprole (Virtako), Flonicamid (Teppeki), Spirotetramat (Movento), Spirodiclofen (Envidor), Fenpyroximate (Ortus), Lufenuron, Pyriproxyfen...
+   - **Phân tích cơ chế vượt trội**: Giải thích vì sao hoạt chất này diệt dứt điểm (tác động vào thụ thể mới lạ, ức chế enzyme tế bào, hiệu lực lưu dẫn kéo dài, tính mát êm cây không làm teo đọt, không rụng hoa, không lem vỏ trái).
+   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
+   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L (Ví dụ: 20-25ml/bình 25L hoặc 1 chai/phuy 200L) và thời điểm phun tốt nhất.
+
+3. **🌾 TẦNG 2: GIẢI PHÁP PHỔ THÔNG / TIẾT KIỆM CHI PHÍ (Giải pháp kinh tế & Phòng ngừa từ kho)**:
+   - **Mục tiêu**: Tiết kiệm chi phí mùa vụ, phun phòng ngừa định kỳ đón đọt/sau mưa khi áp lực sâu bệnh chưa bùng phát nặng.
+   - **Hành động**: Nhặt các sản phẩm chứa hoạt chất kinh điển, giá rẻ hơn có sẵn trong kho (như Mancozeb, Difenoconazole, Azoxystrobin, Hexaconazole, Metalaxyl, Abamectin, Thiamethoxam, Imidacloprid, Validamycin, Carbendazim, Copper Oxychloride...).
+   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
+   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L.
+
+4. **🔄 CHIẾN THUẬT PHỐI TRỘN & LUÂN PHIÊN (Bí kíp nhà nghề)**:
+   - Hướng dẫn luân phiên cữ phun: Cữ 1 dập dịch bằng Tầng 1 (công nghệ mới), cữ 2 (cách 5-7 ngày) đổi sang Tầng 2 hoặc luân chuyển nhóm gốc thuốc khác để sâu bệnh không kịp thích nghi tạo kháng thể.
+   - Nguyên tắc phối trộn an toàn: Thứ tự pha (Bột WP/WG -> Huyền phù SC -> Nhũ dầu EC -> Phân bón lá/Dưỡng), không pha chung với vôi/gốc đồng kiềm mạnh nếu chưa kiểm tra tương thích.
+
+---
+### 📦 DỮ LIỆU ĐỐI CHIẾU TRONG KHO CỬA HÀNG:
+
+🌟 **NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO (BẮT BUỘC DÙNG CHO TẦNG 1 NẾU PHÙ HỢP)**:
 {}
 
-3. **CÁC BƯỚC CỐ VẤN CHI TIẾT**:
-   - Bước 1: Chuẩn đoán ngắn gọn nguyên nhân gây bệnh/sâu hại.
-   - Bước 2: **Đề xuất ngay các hoạt chất có trong kho cửa hàng** (ưu tiên hoạt chất mới/thế hệ mới nếu có trong kho). Nếu kho không có hoạt chất mới thì mới đề xuất các hoạt chất phổ thông có trong kho.
-   - Bước 3: **Chỉ định chính xác tên thương phẩm của sản phẩm đang có trong kho** chứa hoạt chất đó.
-     Lưu ý: Một số thuốc trong kho có thể chưa được điền cột hoạt chất nhưng tên thương mại đã thể hiện rõ công dụng (Ví dụ: Beam, Tilt Super, Amistar, Flash, Filia, Nativo, Ridomil Gold, Score, Antracol, Topsin...), hãy nhận diện và giới thiệu từ kho!
-   - Bước 4: **HƯỚNG DẪN LIỀU LƯỢNG PHA CỤ THỂ**: Bắt buộc ghi rõ liều pha cho bình 16L, 25L hoặc phuy 200L (Ví dụ: Pha 20-25ml/bình 25L hoặc 1 chai/phuy 200L), thời điểm phun (sáng sớm/chiều mát) và kỹ thuật phun đạt hiệu quả tối đa.
-   - Bước 5: Hướng dẫn luân phiên đổi gốc hoạt chất để chống lờn thuốc và lưu ý phối trộn an toàn.
-   - Bước 6: Định dạng Markdown sinh động, rõ ràng, gạch đầu dòng mạch lạc.
+🌾 **NHÓM HOẠT CHẤT PHỔ THÔNG / KINH ĐIỂN TRONG KHO (DÙNG CHO TẦNG 2)**:
+{}
+
+📚 **TOÀN BỘ HOẠT CHẤT CÓ TRONG KHO**:
+{}
 
 {}
 
 QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
-Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 1 đến 8 sản phẩm phù hợp nhất có trong danh mục kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau:
+Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 2 đến 6 sản phẩm phù hợp nhất đại diện cho CẢ TẦNG 1 VÀ TẦNG 2 có trong kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau:
 ```recommended_products
 [
   {{
@@ -770,9 +876,20 @@ QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
     "name": "Tên sản phẩm đúng theo kho",
     "active_ingredient": "Hoạt chất của sản phẩm",
     "dosage": "Liều dùng: 20-25ml/bình 25L (hoặc 1 chai/phuy 200L)",
-    "sale_price": 150000,
+    "tier": "Tầng 1 (Công nghệ mới)",
+    "sale_price": 185000,
     "unit": "Chai",
     "stock": 15
+  }},
+  {{
+    "id": 456,
+    "name": "Tên sản phẩm đúng theo kho",
+    "active_ingredient": "Hoạt chất của sản phẩm",
+    "dosage": "Liều dùng: 30ml/bình 25L",
+    "tier": "Tầng 2 (Phổ thông)",
+    "sale_price": 95000,
+    "unit": "Chai",
+    "stock": 30
   }}
 ]
 ```
@@ -781,6 +898,8 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
 []
 ```
 "#,
+                advanced_actives_str,
+                common_actives_str,
                 store_actives_str,
                 product_kb
             );
@@ -855,7 +974,7 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         },
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.3,
+            "temperature": if mode == "app_analytics" { 0.2 } else if mode == "general_assistant" { 0.6 } else { 0.4 },
             "maxOutputTokens": 65536,
         }
     });

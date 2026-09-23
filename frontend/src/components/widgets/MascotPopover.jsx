@@ -284,8 +284,8 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                 </div>
                 <input
                   type="range"
-                  min="60"
-                  max="180"
+                  min="50"
+                  max="240"
                   step="5"
                   value={config.size || 110}
                   onChange={(e) => updateConfig({ ...config, size: Number(e.target.value) })}

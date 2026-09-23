@@ -6,7 +6,7 @@ import {
     CheckCheck, Image as ImageIcon,
     FlaskConical, Droplets, Maximize2, Minimize2,
     BarChart3, TrendingUp, Bot, FileText,
-    Volume2, VolumeX, Square
+    Volume2, VolumeX, Square, Loader2
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -112,6 +112,34 @@ const extractActiveIngredients = (raw) => {
     return results;
 };
 
+// Lấy danh sách Gemini API Keys
+const getGeminiApiKeys = async () => {
+    let apiKeys = [];
+    try {
+        const settingsRes = await axios.get('/api/settings');
+        if (settingsRes.data) {
+            const s = settingsRes.data;
+            ['gemini_api_key', 'gemini_api_key_2', 'gemini_api_key_3'].forEach(k => {
+                if (s[k] && s[k].trim()) {
+                    const parts = s[k].trim().split(/[,;\n]/);
+                    parts.forEach(p => {
+                        const trimmed = p.trim();
+                        if (trimmed && !apiKeys.includes(trimmed)) {
+                            apiKeys.push(trimmed);
+                        }
+                    });
+                }
+            });
+        }
+    } catch (e) {}
+
+    if (apiKeys.length === 0) {
+        const localKey = (localStorage.getItem('gemini_api_key') || '').trim();
+        if (localKey) apiKeys.push(localKey);
+    }
+    return apiKeys;
+};
+
 // Làm sạch văn bản markdown và định dạng câu chữ tự nhiên cho giọng đọc TTS tiếng Việt
 const cleanTextForTTS = (text) => {
     if (!text || typeof text !== 'string') return '';
@@ -132,6 +160,126 @@ const cleanTextForTTS = (text) => {
         .replace(/\n+/g, '. ')           // Xuống dòng chuyển thành dấu chấm nghỉ
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+// Gọi Gemini Live Audio Output API để tạo giọng nói AI trực tiếp
+const fetchGeminiAudio = async (text, apiKeys) => {
+    if (!apiKeys || apiKeys.length === 0) return null;
+
+    const clean = cleanTextForTTS(text);
+    if (!clean) return null;
+
+    // Giới hạn 500 ký tự đầu tiên để API sinh audio tức thì
+    const textPrompt = clean.length > 500 ? clean.slice(0, 500) + '...' : clean;
+
+    const requestBody = {
+        contents: [
+            {
+                role: 'user',
+                parts: [
+                    {
+                        text: `Hãy đọc to và truyền cảm đoạn văn bản sau bằng tiếng Việt rõ ràng:\n${textPrompt}`
+                    }
+                ]
+            }
+        ],
+        generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: {
+                        voiceName: "Aoede" // Giọng nữ ngọt ngào, ấm áp của Gemini
+                    }
+                }
+            }
+        }
+    };
+
+    const models = [
+        'gemini-2.0-flash',
+        'gemini-2.0-flash-exp'
+    ];
+
+    for (const key of apiKeys) {
+        for (const model of models) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+                const res = await axios.post(url, requestBody, {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 10000
+                });
+
+                const candidate = res.data?.candidates?.[0]?.content?.parts?.[0];
+                if (candidate?.inlineData?.data) {
+                    return {
+                        data: candidate.inlineData.data,
+                        mimeType: candidate.inlineData.mimeType || 'audio/wav'
+                    };
+                }
+            } catch (e) {
+                // Thử model hoặc key kế tiếp
+            }
+        }
+    }
+    return null;
+};
+
+// Phát luồng âm thanh PCM 24000Hz hoặc WAV từ Gemini qua Web Audio API
+const playGeminiPcmAudio = (base64Data, sampleRate = 24000, onEnded) => {
+    try {
+        const binary = atob(base64Data);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        const ctx = new AudioContextClass();
+
+        // 1. Nếu có header WAV RIFF
+        if (binary.startsWith('RIFF')) {
+            ctx.decodeAudioData(bytes.buffer.slice(0), (buf) => {
+                const src = ctx.createBufferSource();
+                src.buffer = buf;
+                src.connect(ctx.destination);
+                src.onended = () => {
+                    try { ctx.close(); } catch (e) {}
+                    if (onEnded) onEnded();
+                };
+                src.start(0);
+            }, () => {
+                try { ctx.close(); } catch (e) {}
+                if (onEnded) onEnded();
+            });
+            return { ctx };
+        }
+
+        // 2. Nếu là raw 16-bit PCM 24kHz (định dạng chuẩn Gemini 2.0)
+        const int16Array = new Int16Array(bytes.buffer);
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+            float32Array[i] = int16Array[i] / 32768.0;
+        }
+
+        const buffer = ctx.createBuffer(1, float32Array.length, sampleRate);
+        buffer.copyToChannel(float32Array, 0);
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.onended = () => {
+            try { ctx.close(); } catch (e) {}
+            if (onEnded) onEnded();
+        };
+        source.start(0);
+        return { ctx, source };
+    } catch (err) {
+        console.warn('Lỗi phát âm thanh PCM Gemini:', err);
+        if (onEnded) onEnded();
+        return null;
+    }
 };
 
 export default function AiConsultantModal({ 
@@ -225,9 +373,11 @@ export default function AiConsultantModal({
     const [addedProducts, setAddedProducts] = useState({});
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Text-to-Speech (TTS)
+    // Text-to-Speech & Gemini Live Audio
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isLoadingSpeech, setIsLoadingSpeech] = useState(false);
     const [speakingMsgId, setSpeakingMsgId] = useState(null);
+    const activeAudioRef = useRef(null);
     const [autoSpeak, setAutoSpeak] = useState(() => {
         try {
             return localStorage.getItem('lyang_ai_auto_speak') === 'true';
@@ -242,7 +392,19 @@ export default function AiConsultantModal({
                 window.speechSynthesis.cancel();
             } catch (e) {}
         }
+        if (activeAudioRef.current) {
+            try {
+                if (activeAudioRef.current.source) {
+                    activeAudioRef.current.source.stop();
+                }
+                if (activeAudioRef.current.ctx && activeAudioRef.current.ctx.state !== 'closed') {
+                    activeAudioRef.current.ctx.close().catch(() => {});
+                }
+            } catch (e) {}
+            activeAudioRef.current = null;
+        }
         setIsSpeaking(false);
+        setIsLoadingSpeech(false);
         setSpeakingMsgId(null);
     };
 
@@ -255,7 +417,7 @@ export default function AiConsultantModal({
             if (!next) {
                 stopSpeech();
             }
-            toast(next ? '🔊 Đã bật tự động đọc to câu trả lời AI' : '🔇 Đã tắt tự động đọc câu trả lời', {
+            toast(next ? '🔊 Đã bật tự động phát giọng nói AI' : '🔇 Đã tắt tự động phát giọng nói', {
                 icon: next ? '🔊' : '🔇',
                 duration: 2000
             });
@@ -263,13 +425,8 @@ export default function AiConsultantModal({
         });
     };
 
-    const handleSpeak = (msgId, text) => {
-        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-            toast.error('Trình duyệt của bạn chưa hỗ trợ giọng đọc Web Speech API.');
-            return;
-        }
-
-        // Bấm lại đúng tin nhắn đang đọc -> Dừng phát
+    const handleSpeak = async (msgId, text) => {
+        // Bấm lại đúng tin nhắn đang phát -> Dừng phát
         if (speakingMsgId === msgId) {
             stopSpeech();
             return;
@@ -279,6 +436,42 @@ export default function AiConsultantModal({
 
         const cleanText = cleanTextForTTS(text);
         if (!cleanText) return;
+
+        setSpeakingMsgId(msgId);
+        setIsLoadingSpeech(true);
+
+        // 1. Thử gọi Gemini Live Audio Output (trực tiếp từ model Gemini bằng API Key)
+        try {
+            const apiKeys = await getGeminiApiKeys();
+            if (apiKeys.length > 0) {
+                const geminiAudio = await fetchGeminiAudio(cleanText, apiKeys);
+                if (geminiAudio && geminiAudio.data) {
+                    setIsLoadingSpeech(false);
+                    setIsSpeaking(true);
+                    const sampleRate = geminiAudio.mimeType?.includes('16000') ? 16000 : 24000;
+                    const audioHandle = playGeminiPcmAudio(geminiAudio.data, sampleRate, () => {
+                        setIsSpeaking(false);
+                        setSpeakingMsgId(null);
+                        activeAudioRef.current = null;
+                    });
+                    if (audioHandle) {
+                        activeAudioRef.current = audioHandle;
+                        return;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Gemini audio error, falling back to local TTS:', e);
+        }
+
+        // 2. Fallback sang Web Speech API (Local TTS) nếu Gemini Audio chưa sẵn sàng hoặc ngoại tuyến
+        setIsLoadingSpeech(false);
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            toast.error('Không thể phát giọng nói trên thiết bị này.');
+            setIsSpeaking(false);
+            setSpeakingMsgId(null);
+            return;
+        }
 
         try {
             const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -299,7 +492,6 @@ export default function AiConsultantModal({
 
             utterance.onstart = () => {
                 setIsSpeaking(true);
-                setSpeakingMsgId(msgId);
             };
 
             utterance.onend = () => {
@@ -307,15 +499,13 @@ export default function AiConsultantModal({
                 setSpeakingMsgId(null);
             };
 
-            utterance.onerror = (e) => {
-                console.warn('SpeechSynthesis error:', e);
+            utterance.onerror = () => {
                 setIsSpeaking(false);
                 setSpeakingMsgId(null);
             };
 
             window.speechSynthesis.speak(utterance);
         } catch (e) {
-            console.error('Speech synthesis error:', e);
             setIsSpeaking(false);
             setSpeakingMsgId(null);
         }
@@ -1407,14 +1597,22 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                 <button 
                                                     type="button"
                                                     onClick={() => handleSpeak(msg.id, msg.text)}
-                                                    title={speakingMsgId === msg.id ? "Dừng đọc" : "Nghe đọc to câu trả lời (tiếng Việt)"}
-                                                    className={`p-1.5 rounded-lg transition-all ${
+                                                    title={speakingMsgId === msg.id ? "Dừng giọng nói" : "Phát giọng nói Gemini Live (Tiếng Việt)"}
+                                                    className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
                                                         speakingMsgId === msg.id 
-                                                            ? 'bg-emerald-600 text-white shadow-xs animate-pulse ring-2 ring-emerald-400/40' 
+                                                            ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/40' 
                                                             : 'bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-600 dark:text-stone-300'
                                                     }`}
                                                 >
-                                                    {speakingMsgId === msg.id ? <Square size={12} className="fill-current text-white" /> : <Volume2 size={13} />}
+                                                    {speakingMsgId === msg.id ? (
+                                                        isLoadingSpeech ? (
+                                                            <Loader2 size={13} className="animate-spin text-white" />
+                                                        ) : (
+                                                            <Square size={12} className="fill-current text-white animate-pulse" />
+                                                        )
+                                                    ) : (
+                                                        <Volume2 size={13} />
+                                                    )}
                                                 </button>
 
                                                 {msg.id !== 'welcome' && (

@@ -6,7 +6,7 @@ import {
     CheckCheck, Image as ImageIcon,
     FlaskConical, Droplets, Maximize2, Minimize2,
     BarChart3, TrendingUp, Bot, FileText,
-    Volume2, VolumeX, Square, Loader2
+    Volume2, VolumeX, Square, Loader2, SlidersHorizontal
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -162,8 +162,8 @@ const cleanTextForTTS = (text) => {
         .trim();
 };
 
-// Gọi Microsoft Edge TTS (Hoài My Neural) 100% Free, không cần API key, không lo hết quota
-const fetchEdgeTtsAudio = async (text) => {
+// Gọi Microsoft Edge TTS (Hoài My Neural hoặc Nam Minh Neural) 100% Free, không cần API key
+const fetchEdgeTtsAudio = async (text, voice = 'edge-vi-female', rate = '1.0') => {
     const clean = cleanTextForTTS(text);
     if (!clean) return null;
 
@@ -171,7 +171,8 @@ const fetchEdgeTtsAudio = async (text) => {
         const res = await axios.get('/api/tts', {
             params: {
                 text: clean.slice(0, 450),
-                voice: 'edge-vi-female' // Hoài My Neural
+                voice: voice || 'edge-vi-female',
+                rate: rate || '1.0'
             },
             responseType: 'blob',
             timeout: 8000
@@ -289,6 +290,68 @@ export default function AiConsultantModal({
         }
     });
 
+    // Cài đặt giọng đọc (Hoài My / Nam Minh) & Tốc độ đọc
+    const [ttsVoice, setTtsVoice] = useState(() => {
+        try {
+            return localStorage.getItem('lyang_ai_tts_voice') || 'edge-vi-female';
+        } catch (e) {
+            return 'edge-vi-female';
+        }
+    });
+
+    const [ttsRate, setTtsRate] = useState(() => {
+        try {
+            return localStorage.getItem('lyang_ai_tts_rate') || '1.0';
+        } catch (e) {
+            return '1.0';
+        }
+    });
+
+    const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+    const voiceSettingsRef = useRef(null);
+
+    const handleVoiceChange = (newVoice) => {
+        setTtsVoice(newVoice);
+        try {
+            localStorage.setItem('lyang_ai_tts_voice', newVoice);
+        } catch (e) {}
+        stopSpeech();
+    };
+
+    const handleRateChange = (newRate) => {
+        setTtsRate(newRate);
+        try {
+            localStorage.setItem('lyang_ai_tts_rate', newRate);
+        } catch (e) {}
+        stopSpeech();
+    };
+
+    const handleTestVoice = () => {
+        if (speakingMsgId === 'test_preview') {
+            stopSpeech();
+            return;
+        }
+        const testText = ttsVoice === 'edge-vi-male'
+            ? 'Xin chào, tôi là giọng đọc Nam Minh của LyangAI. Chúc bạn một ngày buôn bán thuận lợi!'
+            : 'Xin chào, tôi là giọng đọc Hoài My của LyangAI. Chúc bạn một ngày buôn bán thuận lợi!';
+        handleSpeak('test_preview', testText);
+    };
+
+    // Đóng dropdown cài đặt giọng đọc khi click bên ngoài
+    useEffect(() => {
+        const handleClickOutsideVoice = (event) => {
+            if (voiceSettingsRef.current && !voiceSettingsRef.current.contains(event.target)) {
+                setShowVoiceSettings(false);
+            }
+        };
+        if (showVoiceSettings) {
+            document.addEventListener('mousedown', handleClickOutsideVoice);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutsideVoice);
+        };
+    }, [showVoiceSettings]);
+
     const stopSpeech = () => {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             try {
@@ -339,9 +402,9 @@ export default function AiConsultantModal({
         setSpeakingMsgId(msgId);
         setIsLoadingSpeech(true);
 
-        // 1. Thử phát bằng Edge TTS (Hoài My Neural - 100% Free, không tốn token Gemini)
+        // 1. Thử phát bằng Edge TTS (Hoài My Neural / Nam Minh Neural - 100% Free)
         try {
-            const audioUrl = await fetchEdgeTtsAudio(cleanText);
+            const audioUrl = await fetchEdgeTtsAudio(cleanText, ttsVoice, ttsRate);
             if (audioUrl) {
                 const audio = new Audio(audioUrl);
                 currentAudioElementRef.current = audio;
@@ -363,7 +426,8 @@ export default function AiConsultantModal({
                     fallbackToWebSpeech(cleanText);
                 };
 
-                toast('✨ Đang phát giọng Edge TTS Hoài My...', { icon: '🔊', duration: 2500 });
+                const voiceLabel = ttsVoice === 'edge-vi-male' ? 'Nam Minh (Nam)' : 'Hoài My (Nữ)';
+                toast(`✨ Đang phát giọng ${voiceLabel} (${ttsRate}x)...`, { icon: '🔊', duration: 2500 });
                 await audio.play();
                 return;
             }
@@ -389,14 +453,20 @@ export default function AiConsultantModal({
         try {
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = 'vi-VN';
-            utterance.rate = 1.05;
+            utterance.rate = parseFloat(ttsRate) || 1.0;
             utterance.pitch = 1.0;
 
+            const isMale = ttsVoice === 'edge-vi-male';
             const voices = window.speechSynthesis.getVoices();
-            const viVoice = voices.find(v => 
-                (v.lang === 'vi-VN' || v.lang?.toLowerCase().startsWith('vi')) &&
-                (v.name.includes('Natural') || v.name.includes('HoaiMy') || v.name.includes('NamMinh') || v.name.includes('Neural'))
-            ) || voices.find(v => 
+            const viVoice = voices.find(v => {
+                const matchLang = (v.lang === 'vi-VN' || v.lang?.toLowerCase().startsWith('vi'));
+                if (!matchLang) return false;
+                if (isMale) {
+                    return v.name.includes('NamMinh') || v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('nam');
+                } else {
+                    return v.name.includes('HoaiMy') || v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('nu');
+                }
+            }) || voices.find(v => 
                 v.lang === 'vi-VN' || 
                 v.lang?.toLowerCase().startsWith('vi') || 
                 v.name?.toLowerCase().includes('vietnam')
@@ -1420,6 +1490,139 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 {autoSpeak ? <Volume2 size={14} className="animate-pulse" /> : <VolumeX size={14} />}
                             </button>
 
+                            {/* Cài đặt Giọng đọc & Tốc độ */}
+                            <div className="relative" ref={voiceSettingsRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowVoiceSettings(prev => !prev)}
+                                    title="Cài đặt giọng đọc AI (Giọng & Tốc độ)"
+                                    className={`p-1.5 rounded-lg active:scale-95 transition-all flex items-center gap-1.5 ${
+                                        showVoiceSettings
+                                            ? 'bg-white/30 text-white shadow-xs'
+                                            : 'hover:bg-white/20 text-white/90 hover:text-white'
+                                    }`}
+                                >
+                                    <SlidersHorizontal size={14} />
+                                    <span className="text-[10px] font-black tracking-tight hidden sm:inline-block">
+                                        {ttsVoice === 'edge-vi-male' ? 'Nam' : 'Nữ'} • {ttsRate}x
+                                    </span>
+                                </button>
+
+                                {/* Dropdown Popover */}
+                                <AnimatePresence>
+                                    {showVoiceSettings && (
+                                        <m.div
+                                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-[#12241b] rounded-2xl shadow-2xl border border-stone-200 dark:border-white/15 p-3.5 z-50 text-stone-800 dark:text-stone-100 select-none backdrop-blur-md"
+                                        >
+                                            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-100 dark:border-white/10">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Volume2 size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                                    <span className="text-xs font-black uppercase tracking-wider text-stone-900 dark:text-white">
+                                                        Giọng đọc & Tốc độ
+                                                    </span>
+                                                </div>
+                                                <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                                                    Edge TTS Free
+                                                </span>
+                                            </div>
+
+                                            {/* Chọn Giọng */}
+                                            <div className="space-y-1.5 mb-3">
+                                                <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 block">
+                                                    Chọn giọng đọc:
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleVoiceChange('edge-vi-female')}
+                                                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                                                            ttsVoice === 'edge-vi-female'
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-black shadow-xs'
+                                                                : 'border-stone-200 dark:border-white/10 hover:bg-stone-50 dark:hover:bg-white/5 font-semibold text-stone-700 dark:text-stone-300'
+                                                        }`}
+                                                    >
+                                                        <span className="text-base">👩</span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11.5px] leading-tight truncate">Hoài My</div>
+                                                            <div className="text-[9.5px] opacity-70">Nữ • Truyền cảm</div>
+                                                        </div>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleVoiceChange('edge-vi-male')}
+                                                        className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
+                                                            ttsVoice === 'edge-vi-male'
+                                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-black shadow-xs'
+                                                                : 'border-stone-200 dark:border-white/10 hover:bg-stone-50 dark:hover:bg-white/5 font-semibold text-stone-700 dark:text-stone-300'
+                                                        }`}
+                                                    >
+                                                        <span className="text-base">👨</span>
+                                                        <div className="min-w-0">
+                                                            <div className="text-[11.5px] leading-tight truncate">Nam Minh</div>
+                                                            <div className="text-[9.5px] opacity-70">Nam • Ấm áp</div>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Chọn Tốc độ */}
+                                            <div className="space-y-1.5 mb-3">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400">
+                                                        Tốc độ đọc:
+                                                    </label>
+                                                    <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">
+                                                        {ttsRate}x
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-5 gap-1">
+                                                    {['0.85', '1.0', '1.15', '1.25', '1.5'].map((r) => (
+                                                        <button
+                                                            key={r}
+                                                            type="button"
+                                                            onClick={() => handleRateChange(r)}
+                                                            className={`py-1 rounded-lg text-[11px] font-black transition-all ${
+                                                                ttsRate === r
+                                                                    ? 'bg-emerald-600 text-white shadow-xs'
+                                                                    : 'bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-700 dark:text-stone-300'
+                                                            }`}
+                                                        >
+                                                            {r}x
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Nút Nghe thử */}
+                                            <div className="pt-2 border-t border-stone-100 dark:border-white/10">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleTestVoice}
+                                                    disabled={isLoadingSpeech}
+                                                    className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 active:scale-98 text-white font-bold text-[11.5px] flex items-center justify-center gap-1.5 shadow-xs transition-all disabled:opacity-50"
+                                                >
+                                                    {speakingMsgId === 'test_preview' ? (
+                                                        <>
+                                                            <Square size={12} className="fill-current text-white animate-pulse" />
+                                                            <span>Dừng nghe thử</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Volume2 size={13} />
+                                                            <span>Nghe thử giọng ({ttsRate}x)</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </m.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
                             <button
                                 type="button"
                                 onClick={() => setIsExpanded(!isExpanded)}
@@ -1512,7 +1715,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                 <button 
                                                     type="button"
                                                     onClick={() => handleSpeak(msg.id, msg.text)}
-                                                    title={speakingMsgId === msg.id ? "Dừng giọng nói" : "Phát giọng nói Gemini Live (Tiếng Việt)"}
+                                                    title={speakingMsgId === msg.id ? "Dừng giọng nói" : "Phát giọng nói AI (Edge TTS)"}
                                                     className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
                                                         speakingMsgId === msg.id 
                                                             ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/40' 

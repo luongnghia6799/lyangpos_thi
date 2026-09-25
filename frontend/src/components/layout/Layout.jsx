@@ -1575,8 +1575,8 @@ export default function Layout({ children }) {
                         backdropFilter: 'blur(20px)'
                      } : undefined}
                      className={cn(
-                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4 transition-[background-color,border-color]",
-                        customSidebarStyle?.enabled ? "" : "bg-[#fcfaf7]/95 dark:bg-[#0c0d10]/95 backdrop-blur-2xl border-r border-[#8b6f47]/15 dark:border-white/10 shadow-2xl shadow-black/10"
+                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4",
+                        customSidebarStyle?.enabled ? "" : "bg-transparent"
                      )}
                  >
 

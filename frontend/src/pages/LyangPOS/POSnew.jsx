@@ -1897,9 +1897,10 @@ function POSPage({
           console.error("Error fetching full order details", e);
         }
       }
-      Gt(orderObj.id), Br(orderObj);
+      Gt(orderObj.id);
+      Br(orderObj);
       const detailsList = orderObj.details || orderObj.items || [];
-      H(detailsList.map(a => {
+      const newCart = detailsList.map(a => {
         const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
@@ -1919,25 +1920,53 @@ function POSPage({
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
         };
-      })), $e(orderObj.note || ""), re(orderObj.amount_paid || 0), Ye(orderObj.cash_given || 0), ge(orderObj.payment_method || "Cash"), qt(orderObj.shipping_status || null), ra(orderObj.shipping_address || ""), sa(orderObj.shipping_phone || ""), setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : ""), orderObj.partner_id ? nr(orderObj.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
+      });
+      H(newCart);
+      $e(orderObj.note || "");
+      re(orderObj.amount_paid || 0);
+      Ye(orderObj.cash_given || 0);
+      ge(orderObj.payment_method || "Cash");
+      qt(orderObj.shipping_status || null);
+      ra(orderObj.shipping_address || "");
+      sa(orderObj.shipping_phone || "");
+      setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : "");
+      if (orderObj.partner_id) {
+        nr(orderObj.partner_id);
+      } else {
+        F(null);
+        nr(null);
+      }
+      Ge("");
+      ae("");
+      Ue(!1);
     },
     na = async t => {
       let a;
       if (t === "prev" ? a = Ce + 1 : a = Math.max(0, Ce - 1), a === 0) {
-        Ds(), Wt();
+        Wt();
         return;
       }
-      Ds(), yn(!0);
       try {
         const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
-        r.data.items && r.data.items.length > 0 ? (Ka(r.data.items[0]), Vr(a)) : G({
-          message: "Không còn hóa đơn nào khác",
-          type: "info"
-        });
+        if (r.data.items && r.data.items.length > 0) {
+          const rawOrder = r.data.items[0];
+          let fullOrder = rawOrder;
+          if ((!rawOrder.details || rawOrder.details.length === 0) && rawOrder.id) {
+            try {
+              const res = await M.get(`/api/orders/${rawOrder.id}`);
+              if (res.data) fullOrder = res.data;
+            } catch (e) {}
+          }
+          await Ka(fullOrder);
+          Vr(a);
+        } else {
+          G({
+            message: "Không còn hóa đơn nào khác",
+            type: "info"
+          });
+        }
       } catch (r) {
         console.error(r);
-      } finally {
-        yn(!1);
       }
     },
     _n = async () => {

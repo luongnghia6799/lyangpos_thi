@@ -1338,7 +1338,7 @@ export default function Purchase() {
             if (targetCartId) {
                 const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
                 if (targetEl) {
-                    targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
                 }
             }
         }, 50);
@@ -2713,8 +2713,8 @@ export default function Purchase() {
                                 )}
                             </AnimatePresence>
                             <div className="w-full h-full relative bg-transparent">
-                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]">
-                                    <div className="w-full transition-colors relative group/decoration pb-[400px]">
+                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] scroll-pt-[90px] scroll-pb-[200px]">
+                                    <div className="w-full transition-colors relative group/decoration pb-[450px]">
                                         {/* Background Decoration Layer */}
                                         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                                             <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">

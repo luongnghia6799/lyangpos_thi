@@ -2497,7 +2497,7 @@ function POSPage({
           isPacked: ee.isPacked || !1
         } : ee);else {
           const ee = Math.random().toString(36).substr(2, 9);
-          Sr = [{
+          Sr = [...b, {
             id: ee,
             cartId: ee,
             product_id: t.id,
@@ -2518,7 +2518,7 @@ function POSPage({
             active_ingredient: t.active_ingredient,
             is_manual_price: U,
             isPacked: !1
-          }, ...b];
+          }];
         }
         Ra(Sr), ae(""), Ft(0), He({
           product: null,
@@ -2547,7 +2547,7 @@ function POSPage({
         secondary_qty: u / (b.multiplier || 1),
         is_manual_price: d || b.is_manual_price,
         isPacked: b.isPacked || !1
-      } : b) : [{
+      } : b) : [...y, {
         product_id: t.id,
         product_name: t.name,
         unit: t.unit,
@@ -2567,7 +2567,7 @@ function POSPage({
         is_manual_price: d,
         isPacked: !1,
         cartId: Math.random().toString(36).substr(2, 9)
-      }, ...y]), playAddToCartSound(soundThemeCartAdd), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
+      }]), playAddToCartSound(soundThemeCartAdd), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
         const b = Za && localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
           S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
         if (window.cartSpeechTimeout && (clearTimeout(window.cartSpeechTimeout), window.cartSpeechTimeout = null), u === 0) ht("Đã xóa");else {
@@ -2787,7 +2787,7 @@ function POSPage({
       a && H(r => r.filter(s => s.cartId !== a.cartId));
     },
     Cn = (t, a) => {
-      t && (H([{
+      t && (H([...y, {
         product_id: null,
         product_name: t,
         unit: "Món",
@@ -2802,7 +2802,7 @@ function POSPage({
         active_ingredient: "",
         isPacked: !1,
         cartId: Math.random().toString(36).substr(2, 9)
-      }, ...y]), La(!1), $a({
+      }]), La(!1), $a({
         name: "",
         price: ""
       }), setTimeout(() => {

@@ -1314,7 +1314,7 @@ export default function Purchase() {
                     : item
             ));
         } else {
-            setCart([{
+            setCart([...cart, {
                 cartId: `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 product_id: product.id,
                 product_name: product.name,
@@ -1326,7 +1326,7 @@ export default function Purchase() {
                 secondary_qty: qtyToAdd / (product.multiplier || 1),
                 stock: product.stock,
                 active_ingredient: product.active_ingredient
-            }, ...cart]);
+            }]);
         }
         setSearchTerm('');
         setActiveIndex(0);
@@ -1364,7 +1364,7 @@ export default function Purchase() {
                 finalCart[existingIdx].quantity += workingItem.quantity;
                 finalCart[existingIdx].secondary_qty += workingItem.secondary_qty;
             } else {
-                finalCart = [{
+                finalCart = [...finalCart, {
                     product_id: workingItem.product.id,
                     product_name: workingItem.product.name,
                     unit: workingItem.product.unit,
@@ -1374,7 +1374,7 @@ export default function Purchase() {
                     stock: workingItem.product.stock,
                     quantity: workingItem.quantity,
                     secondary_qty: workingItem.secondary_qty
-                }, ...finalCart];
+                }];
             }
         }
         if (finalCart.length === 0) return;

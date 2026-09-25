@@ -1079,6 +1079,12 @@ export default function Layout({ children }) {
             }
         };
 
+        let debounceTimer = null;
+        const debouncedBroadcast = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(broadcastState, 300);
+        };
+
         const handleCartUpdate = (e) => {
             if (e && e.detail) {
                 if (e.detail.cart) {
@@ -1116,24 +1122,31 @@ export default function Layout({ children }) {
                     try { localStorage.setItem('pos_active_note', e.detail.note || ''); } catch (err) {}
                 }
             }
-            broadcastState();
-        }
+            debouncedBroadcast();
+        };
+
+        const handleStorageChange = (e) => {
+            if (e.key?.startsWith('pos_') || e.key === 'pos_cart') {
+                debouncedBroadcast();
+            }
+        };
 
         broadcastState();
-        // Poll every 5 seconds, only when tab is visible
+        // Poll every 10 seconds, only when tab is visible
         const interval = setInterval(() => {
             if (!document.hidden) {
                 broadcastState();
             }
-        }, 5000);
+        }, 10000);
 
         window.addEventListener('pos_cart_updated', handleCartUpdate);
-        window.addEventListener('storage', broadcastState);
+        window.addEventListener('storage', handleStorageChange);
 
         return () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
             clearInterval(interval);
             window.removeEventListener('pos_cart_updated', handleCartUpdate);
-            window.removeEventListener('storage', broadcastState);
+            window.removeEventListener('storage', handleStorageChange);
         };
     }, [location.pathname, user]);
 

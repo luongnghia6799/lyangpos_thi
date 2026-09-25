@@ -1459,15 +1459,7 @@ function POSPage({
   i.useEffect(() => {
     localStorage.setItem("pos_print_options", JSON.stringify(Ke));
   }, [Ke]);
-  const nl = In(0),
-    il = In(0);
-  Dn(nl, {
-    stiffness: 50,
-    damping: 20
-  }), Dn(il, {
-    stiffness: 50,
-    damping: 20
-  }), i.useEffect(() => {
+  i.useEffect(() => {
     mt.current = new BroadcastChannel("packing_channel");
     const t = new BroadcastChannel("pos_data_sync");
     const handleSync = async a => {

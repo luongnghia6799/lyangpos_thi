@@ -2736,9 +2736,9 @@ export default function Purchase() {
                                                 <col style={{ width: "4%" }} />
                                             </colgroup>
                                             <thead 
-                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
+                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200 backdrop-blur-md bg-[#fbf9f4]/85 dark:bg-[#1c1916]/85"
                                                 style={{
-                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
+                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : undefined
                                                 }}
                                             >
                                                 <tr className="border-none">
@@ -2779,7 +2779,7 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
+                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer backdrop-blur-md bg-[#fbf9f4]/85 dark:bg-[#1c1916]/85", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
                                                     style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {

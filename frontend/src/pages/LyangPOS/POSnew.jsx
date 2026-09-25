@@ -2608,7 +2608,7 @@ function POSPage({
         if (targetCartId && u !== 0) {
           const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
           if (targetEl) {
-            targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         }
       }, 50);
@@ -3590,7 +3590,7 @@ function POSPage({
                   draggable="false"
                 />
               </div>
-            )}<div className="w-full h-full relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] scroll-pt-[90px] scroll-pb-[200px]"><div className="w-full transition-colors relative pb-[450px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}<div className="w-full h-full relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] scroll-pt-[90px] scroll-pb-[110px]"><div className="w-full transition-colors relative pb-[120px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"

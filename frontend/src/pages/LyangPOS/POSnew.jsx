@@ -1166,24 +1166,34 @@ function POSPage({
     };
   i.useLayoutEffect(() => {
     if (Z && !m?.product) {
+      let rafId = null;
       const updateCoords = () => {
         if (se.current) {
           const rect = se.current.getBoundingClientRect();
           if (rect.width > 0 && rect.bottom > 0) {
-            setProductSearchCoords({
-              top: rect.bottom + 6,
-              left: rect.left,
-              width: Math.max(rect.width, 700)
+            const nextTop = rect.bottom + 6;
+            const nextLeft = rect.left;
+            const nextWidth = Math.max(rect.width, 700);
+            setProductSearchCoords(prev => {
+              if (Math.abs(prev.top - nextTop) < 1 && Math.abs(prev.left - nextLeft) < 1 && Math.abs(prev.width - nextWidth) < 1) {
+                return prev;
+              }
+              return { top: nextTop, left: nextLeft, width: nextWidth };
             });
           }
         }
       };
       updateCoords();
-      window.addEventListener("resize", updateCoords);
-      window.addEventListener("scroll", updateCoords, true);
+      const onScrollOrResize = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(updateCoords);
+      };
+      window.addEventListener("resize", onScrollOrResize);
+      window.addEventListener("scroll", onScrollOrResize, true);
       return () => {
-        window.removeEventListener("resize", updateCoords);
-        window.removeEventListener("scroll", updateCoords, true);
+        if (rafId) cancelAnimationFrame(rafId);
+        window.removeEventListener("resize", onScrollOrResize);
+        window.removeEventListener("scroll", onScrollOrResize, true);
       };
     }
   }, [Z, m?.product]);
@@ -2604,11 +2614,18 @@ function POSPage({
         name: ""
       }), setTimeout(() => {
         const b = se.current;
-        b && (b.focus(), b.select());
+        b && (b.focus({ preventScroll: true }), b.select());
         if (targetCartId && u !== 0) {
           const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
           if (targetEl) {
-            targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            const container = targetEl.closest('.overflow-y-auto') || targetEl.closest('table');
+            if (container) {
+              const elRect = targetEl.getBoundingClientRect();
+              const contRect = container.getBoundingClientRect();
+              if (elRect.top < contRect.top + 80 || elRect.bottom > contRect.bottom) {
+                targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              }
+            }
           }
         }
       }, 50);
@@ -3931,11 +3948,9 @@ function POSPage({
                                   });
                                   se.current?.focus();
                                 }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} initial={{
-                              opacity: 0,
-                              y: 6
+                              opacity: 0
                             }} animate={{
-                              opacity: 1,
-                              y: 0
+                              opacity: 1
                             }} exit={{
                               opacity: 0,
                               x: 20,

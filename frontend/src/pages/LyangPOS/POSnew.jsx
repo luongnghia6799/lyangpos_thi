@@ -2540,6 +2540,7 @@ function POSPage({
         o = y.find(b => (t.id !== null ? b.product_id === t.id : b.product_id === null && b.product_name === t.name) && (d ? b.price === (r !== null ? r : l) : !b.is_manual_price)),
         u = (o ? o.quantity : 0) + s;
       let h = r !== null ? r : l;
+      let targetCartId = o ? o.cartId : Math.random().toString(36).substr(2, 9);
       if (t.bulk_quantity > 0 && u >= t.bulk_quantity && r === null && !d && !hasCustomPrice && (h = t.bulk_price || l), H(o ? u === 0 ? y.filter(b => b.cartId !== o.cartId) : y.map(b => b.cartId === o.cartId ? {
         ...b,
         quantity: u,
@@ -2566,7 +2567,7 @@ function POSPage({
         active_ingredient: t.active_ingredient,
         is_manual_price: d,
         isPacked: !1,
-        cartId: Math.random().toString(36).substr(2, 9)
+        cartId: targetCartId
       }]), playAddToCartSound(soundThemeCartAdd), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
         const b = Za && localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
           S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
@@ -2604,7 +2605,13 @@ function POSPage({
       }), setTimeout(() => {
         const b = se.current;
         b && (b.focus(), b.select());
-      }, 10);
+        if (targetCartId && u !== 0) {
+          const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      }, 50);
     },
     xl = t => {
       const a = ve[t];
@@ -3939,7 +3946,7 @@ function POSPage({
                             }} transition={{
                               duration: 0.18,
                               ease: "easeOut"
-                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
+                            }} id={`cart-row-${a}`} data-cart-id={t.cartId} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
                               r && (Vt(r), vt(!0));
                             }}><td onClick={r => {

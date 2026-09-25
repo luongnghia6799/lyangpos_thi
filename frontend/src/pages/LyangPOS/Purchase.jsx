@@ -1307,6 +1307,7 @@ export default function Purchase() {
         const qtyToAdd = customQty !== null ? customQty : 1;
         const appliedPrice = customPrice !== null ? customPrice : (product.latest_cost_price || product.cost_price);
         const existing = cart.find(item => item.product_id === product.id && item.price === appliedPrice);
+        const targetCartId = existing?.cartId || `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         if (existing) {
             setCart(cart.map(item =>
                 item.product_id === product.id && item.price === appliedPrice
@@ -1315,7 +1316,7 @@ export default function Purchase() {
             ));
         } else {
             setCart([...cart, {
-                cartId: `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                cartId: targetCartId,
                 product_id: product.id,
                 product_name: product.name,
                 unit: product.unit,
@@ -1332,7 +1333,15 @@ export default function Purchase() {
         setActiveIndex(0);
         playTickSound();
         setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
-        setTimeout(() => searchInputRef.current?.focus(), 10);
+        setTimeout(() => {
+            searchInputRef.current?.focus();
+            if (targetCartId) {
+                const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+            }
+        }, 50);
         if (product && product.sale_price > 0 && appliedPrice > product.sale_price) {
             setTimeout(() => checkPriceRaiseAlert([{ product_id: product.id, price: appliedPrice }]), 350);
         }
@@ -3254,6 +3263,7 @@ export default function Purchase() {
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
                                                                         : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                                                                 )}
+                                                                data-cart-id={item.cartId}
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
                                                                 }}

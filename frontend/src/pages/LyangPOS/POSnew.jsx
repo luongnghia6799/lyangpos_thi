@@ -3082,7 +3082,7 @@ function POSPage({
                         damping: 25
                       }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
                           t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
-                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <x.div key="pos-partner-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="absolute top-full left-0 mt-2 dropdown-premium !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
+                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <x.div key="pos-partner-dropdown" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4, transition: { duration: 0.1 } }} transition={{ duration: 0.14, ease: "easeOut" }} className="absolute top-full left-0 mt-2 dropdown-premium backdrop-blur-md !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden will-change-transform" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
                         }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => <x.div key={t.id} data-index={yt ? a : a + 1} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
@@ -3424,10 +3424,10 @@ function POSPage({
             ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8, transition: { duration: 0.12 } }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
                 className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
               >
                 <div className="flex flex-col items-center justify-center max-w-4xl w-full mx-auto pointer-events-auto">
@@ -3440,14 +3440,11 @@ function POSPage({
                     className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
                   >
                     <div className="relative shrink-0">
-                      <x.img
+                      <img
                         src="/assets/images/user_mascot.png"
                         alt="Lyang Mascot"
-                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
+                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-xl select-none pointer-events-none transition-transform duration-200 group-hover:scale-105 will-change-transform"
                         draggable="false"
-                        initial={{ scale: 0.8, rotate: -6 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       />
                     </div>
                     <div className="flex flex-col justify-center">
@@ -3694,16 +3691,6 @@ function POSPage({
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
-                                      if (se.current) {
-                                        const rect = se.current.getBoundingClientRect();
-                                        if (rect.width > 0 && rect.bottom > 0) {
-                                          setProductSearchCoords({
-                                            top: rect.bottom + 6,
-                                            left: rect.left,
-                                            width: Math.max(rect.width, 700)
-                                          });
-                                        }
-                                      }
                                       if (!a || a.trim() === "") {
                                         He({
                                           product: null,
@@ -3802,6 +3789,16 @@ function POSPage({
                                       }
                                     }} onFocus={t => {
                                       t.target.select();
+                                      if (se.current) {
+                                        const rect = se.current.getBoundingClientRect();
+                                        if (rect.width > 0 && rect.bottom > 0) {
+                                          setProductSearchCoords({
+                                            top: rect.bottom + 6,
+                                            left: rect.left,
+                                            width: Math.max(rect.width, 700)
+                                          });
+                                        }
+                                      }
                                     }} ref={se} />{m.product && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5"><div className="flex items-center gap-2 relative z-[200]"><div onClick={t => {
                                       t.stopPropagation();
                                       const a = t.currentTarget.getBoundingClientRect();
@@ -3820,13 +3817,13 @@ function POSPage({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="fixed dropdown-premium backdrop-blur-xl backdrop-saturate-150 !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
+                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4, transition: { duration: 0.1 } }} transition={{ duration: 0.14, ease: "easeOut" }} className="fixed dropdown-premium backdrop-blur-md !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden will-change-transform" style={{
                                   backgroundColor: Mt.glassBg,
                                   top: productSearchCoords.top,
                                   left: productSearchCoords.left,
                                   width: Math.min(productSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (productSearchCoords.left || 0) - 16 : 700),
                                   maxHeight: Math.min(480, typeof window !== "undefined" ? window.innerHeight - (productSearchCoords.top || 0) - 16 : 480)
-                                }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div className="max-h-[480px] overflow-y-auto custom-scrollbar" ref={hs}>{wt.map((t, a) => <div key={t.id} onMouseMove={() => { if (De !== a) Ft(a); }} onMouseDown={r => {
+                                }}><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div className="max-h-[480px] overflow-y-auto custom-scrollbar" ref={hs}>{wt.map((t, a) => <div key={t.id} onMouseEnter={() => { if (De !== a) Ft(a); }} onMouseDown={r => {
                                       r.preventDefault();
                                       const s = m.quantity && m.quantity !== 0 ? m.quantity : 1,
                                         hasCustomPrice = Boolean(p && p.id && R && R[t.id] !== void 0);
@@ -3837,10 +3834,8 @@ function POSPage({
                                         secondary_qty: s / (t.multiplier || 1),
                                         name: t.name
                                       }), ae(t.name);
-                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
-                                              color: a === De ? Mt.accent : Mt.main,
-                                              fontSize: a === De ? "18px" : "16px",
-                                              paddingLeft: a === De ? "12px" : "0px"
+                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={a === De} className="font-black tracking-tight transition-colors duration-150 leading-relaxed text-[16px]" style={{
+                                              color: a === De ? Mt.accent : Mt.main
                                             }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
                                             r.stopPropagation();
                                             const s = r.currentTarget.getBoundingClientRect();

@@ -1079,10 +1079,10 @@ export default function Layout({ children }) {
             }
         };
 
-        let debounceTimer = null;
+        let broadcastTimer = null;
         const debouncedBroadcast = () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(broadcastState, 300);
+            if (broadcastTimer) clearTimeout(broadcastTimer);
+            broadcastTimer = setTimeout(broadcastState, 300);
         };
 
         const handleCartUpdate = (e) => {
@@ -1125,12 +1125,6 @@ export default function Layout({ children }) {
             debouncedBroadcast();
         };
 
-        const handleStorageChange = (e) => {
-            if (e.key?.startsWith('pos_') || e.key === 'pos_cart') {
-                debouncedBroadcast();
-            }
-        };
-
         broadcastState();
         // Poll every 10 seconds, only when tab is visible
         const interval = setInterval(() => {
@@ -1140,13 +1134,11 @@ export default function Layout({ children }) {
         }, 10000);
 
         window.addEventListener('pos_cart_updated', handleCartUpdate);
-        window.addEventListener('storage', handleStorageChange);
 
         return () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
+            if (broadcastTimer) clearTimeout(broadcastTimer);
             clearInterval(interval);
             window.removeEventListener('pos_cart_updated', handleCartUpdate);
-            window.removeEventListener('storage', handleStorageChange);
         };
     }, [location.pathname, user]);
 

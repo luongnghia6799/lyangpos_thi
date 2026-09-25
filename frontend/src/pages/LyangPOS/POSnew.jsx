@@ -1459,7 +1459,15 @@ function POSPage({
   i.useEffect(() => {
     localStorage.setItem("pos_print_options", JSON.stringify(Ke));
   }, [Ke]);
-  i.useEffect(() => {
+  const nl = In(0),
+    il = In(0);
+  Dn(nl, {
+    stiffness: 50,
+    damping: 20
+  }), Dn(il, {
+    stiffness: 50,
+    damping: 20
+  }), i.useEffect(() => {
     mt.current = new BroadcastChannel("packing_channel");
     const t = new BroadcastChannel("pos_data_sync");
     const handleSync = async a => {
@@ -1897,10 +1905,9 @@ function POSPage({
           console.error("Error fetching full order details", e);
         }
       }
-      Gt(orderObj.id);
-      Br(orderObj);
+      Gt(orderObj.id), Br(orderObj);
       const detailsList = orderObj.details || orderObj.items || [];
-      const newCart = detailsList.map(a => {
+      H(detailsList.map(a => {
         const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
@@ -1920,53 +1927,25 @@ function POSPage({
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
         };
-      });
-      H(newCart);
-      $e(orderObj.note || "");
-      re(orderObj.amount_paid || 0);
-      Ye(orderObj.cash_given || 0);
-      ge(orderObj.payment_method || "Cash");
-      qt(orderObj.shipping_status || null);
-      ra(orderObj.shipping_address || "");
-      sa(orderObj.shipping_phone || "");
-      setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : "");
-      if (orderObj.partner_id) {
-        nr(orderObj.partner_id);
-      } else {
-        F(null);
-        nr(null);
-      }
-      Ge("");
-      ae("");
-      Ue(!1);
+      })), $e(orderObj.note || ""), re(orderObj.amount_paid || 0), Ye(orderObj.cash_given || 0), ge(orderObj.payment_method || "Cash"), qt(orderObj.shipping_status || null), ra(orderObj.shipping_address || ""), sa(orderObj.shipping_phone || ""), setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : ""), orderObj.partner_id ? nr(orderObj.partner_id) : (F(null), nr(null)), Ge(""), ae(""), Ue(!1);
     },
     na = async t => {
       let a;
       if (t === "prev" ? a = Ce + 1 : a = Math.max(0, Ce - 1), a === 0) {
-        Wt();
+        Ds(), Wt();
         return;
       }
+      Ds(), yn(!0);
       try {
         const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
-        if (r.data.items && r.data.items.length > 0) {
-          const rawOrder = r.data.items[0];
-          let fullOrder = rawOrder;
-          if ((!rawOrder.details || rawOrder.details.length === 0) && rawOrder.id) {
-            try {
-              const res = await M.get(`/api/orders/${rawOrder.id}`);
-              if (res.data) fullOrder = res.data;
-            } catch (e) {}
-          }
-          await Ka(fullOrder);
-          Vr(a);
-        } else {
-          G({
-            message: "Không còn hóa đơn nào khác",
-            type: "info"
-          });
-        }
+        r.data.items && r.data.items.length > 0 ? (Ka(r.data.items[0]), Vr(a)) : G({
+          message: "Không còn hóa đơn nào khác",
+          type: "info"
+        });
       } catch (r) {
         console.error(r);
+      } finally {
+        yn(!1);
       }
     },
     _n = async () => {
@@ -3939,39 +3918,7 @@ function POSPage({
                                     });
                                   }} onKeyDown={t => {
                                     t.key === "Enter" ? (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
-                                  }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+                                  }} />{m.product && m.price < m.product.cost_price && <div className="animate-in fade-in zoom-in-95 duration-150 bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <div className="animate-in fade-in zoom-in-95 duration-150 bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <div className="animate-in fade-in zoom-in-95 duration-150 bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <div className="animate-in fade-in zoom-in-95 duration-150 px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></div>}</div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -3981,23 +3928,21 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} initial={{
                               opacity: 0,
-                              x: -20
+                              y: 6
                             }} animate={{
                               opacity: 1,
-                              x: 0
+                              y: 0
                             }} exit={{
                               opacity: 0,
-                              x: 50,
-                              scale: 0.95,
-                              backgroundColor: "rgba(0,0,0,0)",
+                              x: 20,
                               transition: {
-                                duration: 0.2,
+                                duration: 0.15,
                                 ease: "easeIn"
                               }
                             }} transition={{
-                              duration: 0.22,
+                              duration: 0.18,
                               ease: "easeOut"
                             }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
                               const r = T.find(s => s.id === t.product_id);
@@ -4276,39 +4221,7 @@ function POSPage({
                                     }} id={`price-${a}`} />{t.price === 0 && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider border border-rose-500/20">HÀNG TẶNG</span></div>}</div><P>{(() => {
                                       const r = T.find(n => n.id === t.product_id),
                                         s = t.latest_cost_price || 0;
-                                      return t.price < t.cost_price ? <x.div initial={{
-                                        opacity: 0,
-                                        scale: 0.8,
-                                        y: -5
-                                      }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div> : s > 0 && t.price < s && t.price >= t.cost_price ? <x.div initial={{
-                                        opacity: 0,
-                                        scale: 0.8,
-                                        y: -5
-                                      }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <x.div initial={{
-                                        opacity: 0,
-                                        scale: 0.8,
-                                        y: -5
-                                      }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <x.div initial={{
-                                        opacity: 0,
-                                        scale: 0.8,
-                                        y: -5
-                                      }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div> : null;
+                                      return t.price < t.cost_price ? <div className="animate-in fade-in zoom-in-95 duration-150 bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></div> : s > 0 && t.price < s && t.price >= t.cost_price ? <div className="animate-in fade-in zoom-in-95 duration-150 bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <div className="animate-in fade-in zoom-in-95 duration-150 bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <div className="animate-in fade-in zoom-in-95 duration-150 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></div> : null;
                                     })()}</P></div></td><td className="py-2 px-4 text-right"><div style={{ color: (t.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={c("font-black text-lg transition-all", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), bl(a);
                                 }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100" title="Xóa dòng"><Comp_pa size={18} /></button></td></x.tr>)}</P></tbody></table></div></div><P>{ea && <x.div initial={{

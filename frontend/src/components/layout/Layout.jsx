@@ -161,70 +161,70 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     return (
-        <m.div className={cn("relative py-0.5", isCollapsed ? "px-0 flex justify-center" : "px-3 py-1")}>
+        <div className={cn("relative py-0.5", isCollapsed ? "px-0 flex justify-center" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1"))}>
             <Link
                 to={path}
                 onClick={onClick}
                 style={linkStyle}
                 className={cn(
-                    "group relative flex items-center transition-all duration-300",
-                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" : "gap-4 px-4 py-3 rounded-2xl",
+                    "group relative flex items-center transition-colors duration-200",
+                    isCollapsed 
+                        ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" 
+                        : (isFlyout ? "gap-3 px-3 py-2.5 rounded-xl" : "gap-4 px-4 py-3 rounded-2xl"),
                     isLite 
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
                             ? "text-white font-black"
                             : isFlyout
-                                ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10"
+                                ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10 font-bold"
                                 : isCustomSidebar 
                                     ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10") 
                                     : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
                 {active && isLite && (
-                    <m.div
-                        layoutId="sidebar-active-pill-lite"
+                    <div
                         style={{
                             background: liteTheme.accent,
                             borderColor: liteTheme.border
                          }}
                         className="absolute inset-0 rounded-2xl z-0 border shadow-inner overflow-hidden"
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                 )}
                 {active && !isLite && (
-                    <m.div
-                        layoutId="sidebar-active-pill"
+                    <div
                         style={hasCustomAccent ? {
                             background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
                             borderColor: `${accentCol}80`
                         } : undefined}
-                        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 z-0 overflow-hidden"
-                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                        className={cn(
+                            "absolute inset-0 bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 z-0 overflow-hidden shadow-sm",
+                            isFlyout ? "rounded-xl" : "rounded-2xl"
+                        )}
                     >
-                        <m.div
-                            layoutId="sidebar-active-indicator"
+                        <div
                             style={hasCustomAccent ? {
                                 backgroundColor: cartColorConfig.headerText !== 'default' 
                                     ? cartColorConfig.headerText 
                                     : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
                             } : undefined}
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20"
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
-                    </m.div>
+                    </div>
                 )}
 
-                <m.div
-                    className="relative z-10 shrink-0"
-                    whileHover={{ scale: 1.15, rotate: [0, -8, 8, 0] }}
-                    transition={{ duration: 0.2 }}
+                <div
+                    className="relative z-10 shrink-0 transition-transform duration-200 group-hover:scale-110"
                 >
-                    <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-white drop-shadow-sm" : "")} />
-                </m.div>
+                    <Icon size={isFlyout ? 18 : 20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} />
+                </div>
 
                 {!isCollapsed && (
-                    <div className="relative z-10 flex-1 min-w-0 sidebar-marquee-container">
-                        <span className="inline-block text-[12px] font-black uppercase tracking-[0.15em] whitespace-nowrap marquee-content">
+                    <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
+                        <span className={cn(
+                            "inline-block font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full",
+                            isFlyout ? "text-[11px]" : "text-[12px]"
+                        )}>
                             {label}
                         </span>
                     </div>
@@ -235,7 +235,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     <div 
                         style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
                         className={cn(
-                            "absolute left-full ml-4 px-3 py-2 text-[11px] font-black rounded-xl opacity-0 translate-x-3 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all z-[1001] whitespace-nowrap shadow-2xl border uppercase tracking-[0.2em] backdrop-blur-md",
+                            "absolute left-full ml-3 px-3 py-2 text-[11px] font-black rounded-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 z-[1001] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
                             isLite ? "" : "bg-[#1c1916] text-[#e8dfd5] border-[#8b6f47]/30"
                         )}
                     >
@@ -243,7 +243,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     </div>
                 )}
             </Link>
-        </m.div>
+        </div>
     );
 };
 
@@ -255,65 +255,42 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     const isSidebarLightText = !isCustomSidebar || customSidebarStyle?.isLightText !== false;
     const [isOpen, setIsOpen] = useState(false);
     const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
-    const [flyoutHeight, setFlyoutHeight] = useState(350);
+    const [flyoutPos, setFlyoutPos] = useState({ top: 100, left: 85 });
     const groupRef = useRef(null);
     const flyoutRef = useRef(null);
-    const timeoutRef = useRef(null);
     const isAnyChildActive = item.children.some(child => isActive(child.path));
 
     useEffect(() => {
         if (isAnyChildActive) setIsOpen(true);
     }, [isAnyChildActive]);
 
-    // Measure height dynamically using ResizeObserver with debounce/threshold
-    useEffect(() => {
-        if (!isFlyoutOpen || !flyoutRef.current) return;
-        
-        const updateHeight = () => {
-            if (flyoutRef.current) {
-                const height = flyoutRef.current.getBoundingClientRect().height;
-                if (height > 0) {
-                    setFlyoutHeight(prev => (Math.abs(prev - height) > 5 ? height : prev));
-                }
-            }
-        };
-
-        updateHeight();
-
-        const observer = new ResizeObserver(() => {
-            updateHeight();
-        });
-        
-        observer.observe(flyoutRef.current);
-        return () => observer.disconnect();
-    }, [isFlyoutOpen]);
-
-    // Handle Click Outside for Flyout
+    // Handle Click Outside for Flyout specific to this group
     useEffect(() => {
         if (!isFlyoutOpen) return;
         const handleClickOutside = (event) => {
-            if (groupRef.current && !groupRef.current.contains(event.target)) {
-                const flyout = document.querySelector('[data-flyout="true"]');
-                if (flyout && flyout.contains(event.target)) return;
-                setIsFlyoutOpen(false);
-            }
+            if (groupRef.current && groupRef.current.contains(event.target)) return;
+            if (flyoutRef.current && flyoutRef.current.contains(event.target)) return;
+            setIsFlyoutOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isFlyoutOpen]);
 
-    const handleMouseEnterHeader = () => {
-        if (!isCollapsed) {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            setIsOpen(true);
+    const calculateFlyoutPos = useCallback(() => {
+        if (!groupRef.current) return { top: 100, left: 85 };
+        const rect = groupRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const estimatedHeight = Math.min(viewportHeight * 0.7, item.children.length * 48 + 80);
+        
+        let top = rect.top;
+        if (top + estimatedHeight > viewportHeight - 16) {
+            top = Math.max(16, viewportHeight - estimatedHeight - 16);
         }
-    };
-
-    const handleMouseLeaveHeader = () => {
-        if (!isCollapsed && !isAnyChildActive) {
-            timeoutRef.current = setTimeout(() => setIsOpen(false), 300);
-        }
-    };
+        return {
+            top: Math.round(top),
+            left: Math.round(rect.right + 6)
+        };
+    }, [item.children.length]);
 
     const handleHeaderClick = (e) => {
         if (e) {
@@ -321,26 +298,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
             e.stopPropagation();
         }
         if (isCollapsed) {
+            if (!isFlyoutOpen) {
+                setFlyoutPos(calculateFlyoutPos());
+            }
             setIsFlyoutOpen(prev => !prev);
         } else {
             setIsOpen(prev => !prev);
         }
-    };
-
-    const getFlyoutPosition = () => {
-        if (!groupRef.current) return { top: 0, left: 80 };
-        const rect = groupRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        
-        let top = rect.top;
-        // Shift upward if bottom overflows viewport bottom boundary
-        if (top + flyoutHeight > viewportHeight) {
-            top = Math.max(10, viewportHeight - flyoutHeight - 16);
-        }
-        return {
-            top: top,
-            left: rect.right - 10
-        };
     };
 
     const cartColorConfig = useCartColorConfig();
@@ -350,33 +314,32 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     return (
         <div
             ref={groupRef}
-            className="flex flex-col gap-1 py-1 relative group/group"
-            onMouseEnter={handleMouseEnterHeader}
-            onMouseLeave={handleMouseLeaveHeader}
+            className="flex flex-col gap-1 py-0.5 relative group/group"
         >
-            <m.button
+            <button
+                type="button"
                 onClick={handleHeaderClick}
                 style={hasCustomAccent && (isAnyChildActive || isFlyoutOpen) ? {
                     background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
                     borderColor: `${accentCol}80`
                 } : undefined}
                 className={cn(
-                    "group relative flex items-center transition-all duration-300 overflow-hidden",
-                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-1 rounded-2xl",
+                    "group relative flex items-center transition-colors duration-200 overflow-hidden cursor-pointer",
+                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-0.5 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40"
+                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-sm"
                             : isCustomSidebar
                                 ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10")
                                 : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
-                <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-white" : "")} />
+                <item.icon size={20} className={cn("shrink-0 transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} />
                 {!isCollapsed && (
                     <>
-                        <div className="flex-1 min-w-0 sidebar-marquee-container">
-                            <span className="inline-block text-[12px] font-black uppercase tracking-[0.15em] whitespace-nowrap marquee-content">
+                        <div className="flex-1 min-w-0 overflow-hidden text-left">
+                            <span className="inline-block text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full">
                                 {item.label}
                             </span>
                         </div>
@@ -395,7 +358,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
                     />
                 )}
-            </m.button>
+            </button>
 
             {/* FLYOUT MENU using Portal */}
             <AnimatePresence>
@@ -403,16 +366,17 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                     <Portal>
                         <m.div
                             ref={flyoutRef}
-                            initial={{ opacity: 0, x: 12, scale: 0.96 }}
+                            initial={{ opacity: 0, x: 8, scale: 0.98 }}
                             animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 8, scale: 0.98 }}
-                            transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                            exit={{ opacity: 0, x: 6, scale: 0.98 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
                             style={{
                                 position: 'fixed',
-                                ...getFlyoutPosition(),
+                                top: flyoutPos.top,
+                                left: flyoutPos.left,
                                 maxHeight: 'calc(100vh - 32px)'
                             }}
-                            className="w-72 pl-4 z-[2000] pointer-events-auto"
+                            className="w-72 z-[2000] pointer-events-auto"
                             data-flyout="true"
                         >
                             <div 
@@ -425,7 +389,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                     "backdrop-blur-2xl rounded-3xl p-3 overflow-hidden shadow-2xl flex flex-col max-h-[70vh] border transition-colors",
                                     isLite 
                                         ? "" 
-                                        : "bg-[#fbf8f2]/95 dark:bg-[#12110f]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/20"
+                                        : "bg-[#fbf8f2]/95 dark:bg-[#141311]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/30"
                                 )}
                             >
                                 {/* Header */}
@@ -433,24 +397,28 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                     "relative z-10 mb-2 px-3.5 py-2.5 rounded-2xl flex items-center justify-between shrink-0 border",
                                     isLite
                                         ? "bg-black/5 dark:bg-white/5 border-transparent"
-                                        : "bg-[#2d5016]/5 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
+                                        : "bg-[#2d5016]/10 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
                                 )}>
-                                    <div>
-                                        <h3 className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
-                                            Danh mục
-                                        </h3>
-                                        <p className="text-[14px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
-                                            {item.label}
-                                        </p>
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-7 h-7 rounded-xl bg-[#2d5016] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                            <item.icon size={15} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
+                                                Danh mục
+                                            </h3>
+                                            <p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
+                                                {item.label}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <m.button
-                                        whileTap={{ scale: 0.9 }}
-                                        whileHover={{ scale: 1.1 }}
+                                    <button
+                                        type="button"
                                         onClick={() => setIsFlyoutOpen(false)}
-                                        className="p-1 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors"
+                                        className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors cursor-pointer"
                                     >
                                         <X size={15} />
-                                    </m.button>
+                                    </button>
                                 </div>
 
                                 {/* Menu Item List with scroll */}
@@ -482,7 +450,8 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden flex flex-col pl-6"
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="overflow-hidden flex flex-col pl-4"
                     >
                         {item.children.map(child => (
                             <NavItemMemo
@@ -1593,8 +1562,8 @@ export default function Layout({ children }) {
                         backdropFilter: 'blur(20px)'
                      } : undefined}
                      className={cn(
-                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4",
-                        customSidebarStyle?.enabled ? "" : "bg-transparent"
+                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4 transition-[background-color,border-color]",
+                        customSidebarStyle?.enabled ? "" : "bg-[#fcfaf7]/95 dark:bg-[#0c0d10]/95 backdrop-blur-2xl border-r border-[#8b6f47]/15 dark:border-white/10 shadow-2xl shadow-black/10"
                      )}
                  >
 

@@ -1732,3 +1732,42 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
 .overflow-y-auto {
   scrollbar-gutter: stable;
 }
+
+/* ========================================================
+   ULTRA-SMOOTH CART ROW ADD / REMOVE ANIMATIONS
+   (Pure natural motion: No background color flash, no jitter)
+   ======================================================== */
+@keyframes cartRowEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cart-row-enter {
+  animation: cartRowEnter 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes cartRowDelete {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.cart-row-removing {
+  animation: cartRowDelete 0.2s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+

@@ -232,6 +232,7 @@ export default function Purchase() {
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [auditProduct, setAuditProduct] = useState(null);
     const [auditCoords, setAuditCoords] = useState(null);
+
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
     const [isPriceRaiseModalOpen, setIsPriceRaiseModalOpen] = useState(false);
@@ -1306,7 +1307,6 @@ export default function Purchase() {
         const qtyToAdd = customQty !== null ? customQty : 1;
         const appliedPrice = customPrice !== null ? customPrice : (product.latest_cost_price || product.cost_price);
         const existing = cart.find(item => item.product_id === product.id && item.price === appliedPrice);
-        const targetCartId = existing?.cartId || `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         if (existing) {
             setCart(cart.map(item =>
                 item.product_id === product.id && item.price === appliedPrice
@@ -1314,8 +1314,8 @@ export default function Purchase() {
                     : item
             ));
         } else {
-            setCart([...cart, {
-                cartId: targetCartId,
+            setCart([{
+                cartId: `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 product_id: product.id,
                 product_name: product.name,
                 unit: product.unit,
@@ -1326,28 +1326,13 @@ export default function Purchase() {
                 secondary_qty: qtyToAdd / (product.multiplier || 1),
                 stock: product.stock,
                 active_ingredient: product.active_ingredient
-            }]);
+            }, ...cart]);
         }
         setSearchTerm('');
         setActiveIndex(0);
         playTickSound();
         setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
-        setTimeout(() => {
-            searchInputRef.current?.focus({ preventScroll: true });
-            if (targetCartId) {
-                const targetEl = document.querySelector(`[data-cart-id="${targetCartId}"]`);
-                if (targetEl) {
-                    const container = targetEl.closest('.overflow-y-auto') || targetEl.closest('table');
-                    if (container) {
-                        const elRect = targetEl.getBoundingClientRect();
-                        const contRect = container.getBoundingClientRect();
-                        if (elRect.top < contRect.top + 80 || elRect.bottom > contRect.bottom) {
-                            targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                        }
-                    }
-                }
-            }
-        }, 50);
+        setTimeout(() => searchInputRef.current?.focus(), 10);
         if (product && product.sale_price > 0 && appliedPrice > product.sale_price) {
             setTimeout(() => checkPriceRaiseAlert([{ product_id: product.id, price: appliedPrice }]), 350);
         }
@@ -1379,7 +1364,7 @@ export default function Purchase() {
                 finalCart[existingIdx].quantity += workingItem.quantity;
                 finalCart[existingIdx].secondary_qty += workingItem.secondary_qty;
             } else {
-                finalCart = [...finalCart, {
+                finalCart = [{
                     product_id: workingItem.product.id,
                     product_name: workingItem.product.name,
                     unit: workingItem.product.unit,
@@ -1389,7 +1374,7 @@ export default function Purchase() {
                     stock: workingItem.product.stock,
                     quantity: workingItem.quantity,
                     secondary_qty: workingItem.secondary_qty
-                }];
+                }, ...finalCart];
             }
         }
         if (finalCart.length === 0) return;
@@ -2719,8 +2704,8 @@ export default function Purchase() {
                                 )}
                             </AnimatePresence>
                             <div className="w-full h-full relative bg-transparent">
-                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] scroll-pt-[90px] scroll-pb-[110px]">
-                                    <div className="w-full transition-colors relative group/decoration pb-[120px]">
+                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]">
+                                    <div className="w-full transition-colors relative group/decoration pb-[400px]">
                                         {/* Background Decoration Layer */}
                                         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                                             <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">
@@ -2742,9 +2727,9 @@ export default function Purchase() {
                                                 <col style={{ width: "4%" }} />
                                             </colgroup>
                                             <thead 
-                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200 backdrop-blur-md bg-[#fbf9f4]/85 dark:bg-[#1c1916]/85"
+                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
                                                 style={{
-                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : undefined
+                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
                                                 }}
                                             >
                                                 <tr className="border-none">
@@ -2785,7 +2770,7 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer backdrop-blur-md bg-[#fbf9f4]/85 dark:bg-[#1c1916]/85", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
+                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
                                                     style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
                                                     onDoubleClick={() => {
                                                         if (workingItem.product) {
@@ -2816,6 +2801,16 @@ export default function Purchase() {
                                                                         playTypingSound();
                                                                         setSearchTerm(val);
                                                                         setActiveIndex(0);
+                                                                        if (searchInputRef.current) {
+                                                                            const rect = searchInputRef.current.getBoundingClientRect();
+                                                                            if (rect.width > 0 && rect.bottom > 0) {
+                                                                                setWorkingSearchCoords({
+                                                                                    top: rect.bottom + 6,
+                                                                                    left: rect.left,
+                                                                                    width: Math.max(rect.width, 600)
+                                                                                });
+                                                                            }
+                                                                        }
                                                                         // if user edits, clear current product to show dropdown
                                                                         if (workingItem.product && val !== workingItem.name) {
                                                                             setWorkingItem({ ...workingItem, product: null, name: val });
@@ -3229,11 +3224,14 @@ export default function Purchase() {
                                                     {!historyLoading && cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
                                                             key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
+                                                            layout="position"
                                                             initial={{
-                                                                opacity: 0
+                                                                opacity: 0,
+                                                                x: -20
                                                             }}
                                                             animate={{
-                                                                opacity: 1
+                                                                opacity: 1,
+                                                                x: 0
                                                             }}
                                                             exit={{
                                                                 opacity: 0,
@@ -3256,7 +3254,6 @@ export default function Purchase() {
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
                                                                         : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                                                                 )}
-                                                                data-cart-id={item.cartId}
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
                                                                 }}

@@ -220,7 +220,7 @@ import AppWallpaper from './components/layout/AppWallpaper';
 
 // Lazy load pages
 const Dashboard = lazy(() => import('./pages/LyangPOS/Dashboard'));
-const POSnew = lazy(() => import('./pages/LyangPOS/POSnew'));
+const POS = lazy(() => import('./pages/LyangPOS/POSnew'));
 const Purchase = lazy(() => import('./pages/LyangPOS/Purchase'));
 const BarcodeGenerator = lazy(() => import('./pages/LyangPOS/BarcodeGenerator'));
 const History = lazy(() => import('./pages/LyangPOS/History'));
@@ -254,7 +254,6 @@ const RoleManager = lazy(() => import('./pages/LyangPOS/RoleManager'));
 const Gaming = lazy(() => import('./pages/LyangPOS/Gaming'));
 const TypingPractice = lazy(() => import('./pages/LyangPOS/TypingPractice'));
 const AccountingInventory = lazy(() => import('./pages/LyangPOS/AccountingInventory'));
-const POSWrapper = lazy(() => import('./pages/LyangPOS/POSWrapper'));
 const POSLite = lazy(() => import('./pages/LyangPOS_lite/poslite'));
 const DashboardLite = lazy(() => import('./pages/LyangPOS_lite/dashboardlite'));
 const PurchaseLite = lazy(() => import('./pages/LyangPOS_lite/purchaselite'));
@@ -458,7 +457,7 @@ const AppLayout = () => {
                 <Route path="/mobile-settings" element={<PageWrapper><MobileSettings /></PageWrapper>} />
                 <Route path="/mobile-inventory" element={<PageWrapper><MobileInventory /></PageWrapper>} />
                 <Route path="/pos" element={
-                  <ProtectedRoute>{isLiteMode ? <PageWrapper><POSLite /></PageWrapper> : <PageWrapper><POSWrapper /></PageWrapper>}</ProtectedRoute>
+                  <ProtectedRoute>{isLiteMode ? <PageWrapper><POSLite /></PageWrapper> : <PageWrapper><POS /></PageWrapper>}</ProtectedRoute>
                 } />
                 <Route path="/purchase" element={
                   <ProtectedRoute>{isLiteMode ? <PageWrapper><PurchaseLite /></PageWrapper> : <PageWrapper><Purchase /></PageWrapper>}</ProtectedRoute>

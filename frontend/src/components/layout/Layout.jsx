@@ -235,8 +235,8 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     <div 
                         style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
                         className={cn(
-                            "absolute left-full ml-3 px-3 py-2 text-[11px] font-black rounded-xl opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 z-[1001] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
-                            isLite ? "" : "bg-[#1c1916] text-[#e8dfd5] border-[#8b6f47]/30"
+                            "fixed left-[76px] px-3 py-2 text-[11px] font-black rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-[9999] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
+                            isLite ? "" : "bg-[#1c1916]/95 text-[#e8dfd5] border-[#8b6f47]/30 shadow-black/40"
                         )}
                     >
                         {label}
@@ -357,6 +357,19 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                         } : undefined}
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
                     />
+                )}
+
+                {/* Tooltip for Collapsed NavGroup (only when flyout is closed) */}
+                {isCollapsed && !isFlyoutOpen && (
+                    <div 
+                        style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
+                        className={cn(
+                            "fixed left-[76px] px-3 py-2 text-[11px] font-black rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-[9999] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
+                            isLite ? "" : "bg-[#1c1916]/95 text-[#e8dfd5] border-[#8b6f47]/30 shadow-black/40"
+                        )}
+                    >
+                        {item.label}
+                    </div>
                 )}
             </button>
 

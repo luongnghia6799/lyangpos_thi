@@ -23,7 +23,14 @@ export default function CustomDatePicker({
     const getParsedDate = (val) => {
         if (!val) return null;
         if (val instanceof Date) return val;
-        const str = String(val).trim();
+        const actualVal = (typeof val === 'object' && val !== null && 'target' in val)
+            ? val.target.value
+            : (typeof val === 'object' && val !== null && 'value' in val)
+                ? val.value
+                : val;
+        if (!actualVal) return null;
+        if (actualVal instanceof Date) return actualVal;
+        const str = String(actualVal).trim();
         if (!str) return null;
         const parts = str.split('-');
         if (parts.length === 3) {
@@ -108,17 +115,38 @@ export default function CustomDatePicker({
 
     const triggerChange = (valStr) => {
         if (typeof onChange === 'function') {
+            const simulatedEvent = {
+                target: { value: valStr, name: '' },
+                currentTarget: { value: valStr },
+                value: valStr
+            };
+            let prefersEvent = false;
             try {
-                onChange(valStr);
-            } catch (err) {
+                const fnStr = Function.prototype.toString.call(onChange);
+                if (fnStr.includes('.target') || fnStr.includes("['target']") || fnStr.includes('["target"]')) {
+                    prefersEvent = true;
+                }
+            } catch (e) {}
+
+            if (prefersEvent) {
                 try {
-                    onChange({
-                        target: { value: valStr, name: '' },
-                        currentTarget: { value: valStr },
-                        value: valStr
-                    });
-                } catch (e2) {
-                    console.error("Error in CustomDatePicker onChange:", e2);
+                    onChange(simulatedEvent);
+                } catch (err) {
+                    try {
+                        onChange(valStr, simulatedEvent);
+                    } catch (e2) {
+                        console.error("Error in CustomDatePicker onChange (fallback):", e2);
+                    }
+                }
+            } else {
+                try {
+                    onChange(valStr, simulatedEvent);
+                } catch (err) {
+                    try {
+                        onChange(simulatedEvent);
+                    } catch (e2) {
+                        console.error("Error in CustomDatePicker onChange (simulated):", e2);
+                    }
                 }
             }
         }

@@ -37,546 +37,266 @@ pub struct ProductContext {
 }
 
 async fn build_app_analytics_context(pool: &SqlitePool, user_query: Option<&str>) -> String {
-    let mut ctx = String::from("=== BÁO CÁO & DỮ LIỆU SỐ LIỆU THỜI GIAN THỰC TỪ PHẦN MỀM LYANGPOS ===\n\n");
+    super::ai_analytics::build_app_analytics_context(pool, user_query).await
+}
 
-    let now = chrono::Local::now();
-    let today_str = now.format("%Y-%m-%d").to_string();
-    let month_prefix = now.format("%Y-%m").to_string();
+#[derive(Debug, Clone)]
+pub struct ActiveIngredientInfo {
+    pub group_id: &'static str,
+    pub group_name: &'static str,
+    pub role_type: &'static str,
+    pub moa_desc: &'static str,
+    pub is_advanced: bool,
+}
 
-    // 1. Doanh thu, Lợi nhuận & Đơn hàng hôm nay
-    let today_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
-         FROM \"order\" WHERE type = 'Sale' AND date(date) = date(?) AND display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .bind(&today_str)
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0), Some(0.0)));
+pub fn classify_active_ingredient(name: &str) -> ActiveIngredientInfo {
+    let lower = name.to_lowercase();
 
-    let today_orders_count = today_sales.0;
-    let today_rev = today_sales.1.unwrap_or(0.0);
-    let today_paid = today_sales.2.unwrap_or(0.0);
-    let today_debt = today_rev - today_paid;
-
-    // Lợi nhuận hôm nay
-    let today_profit: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
-         FROM order_detail od \
-         JOIN \"order\" o ON od.order_id = o.id \
-         LEFT JOIN product p ON od.product_id = p.id \
-         WHERE o.type = 'Sale' AND date(o.date) = date(?) AND o.display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .bind(&today_str)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    // Doanh thu & Lợi nhuận tháng này
-    let month_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
-         FROM \"order\" WHERE type = 'Sale' AND strftime('%Y-%m', date) = ? AND display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .bind(&month_prefix)
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0), Some(0.0)));
-
-    let month_orders_count = month_sales.0;
-    let month_rev = month_sales.1.unwrap_or(0.0);
-    let month_paid = month_sales.2.unwrap_or(0.0);
-
-    let month_profit: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
-         FROM order_detail od \
-         JOIN \"order\" o ON od.order_id = o.id \
-         LEFT JOIN product p ON od.product_id = p.id \
-         WHERE o.type = 'Sale' AND strftime('%Y-%m', o.date) = ? AND o.display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .bind(&month_prefix)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    // Tổng quan toàn thời gian từ trước đến nay (All-time)
-    let all_time_sales: (i64, Option<f64>, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL), CAST(SUM(amount_paid) AS REAL) \
-         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0), Some(0.0)));
-
-    let all_time_profit: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) \
-         FROM order_detail od \
-         JOIN \"order\" o ON od.order_id = o.id \
-         LEFT JOIN product p ON od.product_id = p.id \
-         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU')"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    let all_time_rev = all_time_sales.1.unwrap_or(0.0);
-    let all_time_profit_margin = if all_time_rev > 0.0 { (all_time_profit / all_time_rev) * 100.0 } else { 0.0 };
-    let month_profit_margin = if month_rev > 0.0 { (month_profit / month_rev) * 100.0 } else { 0.0 };
-
-    ctx.push_str(&format!(
-        "1. TỔNG QUAN DOANH THU & LỢI NHUẬN GỘP:\n\
-         - Hôm nay ({}): {} đơn hàng | Doanh thu: {:.}đ | Lợi nhuận gộp: {:.}đ | Thực thu tiền mặt: {:.}đ | Nợ mới: {:.}đ\n\
-         - Tháng này ({}): {} đơn hàng | Doanh thu: {:.}đ | Lợi nhuận gộp: {:.}đ (Tỷ suất: {:.1}%) | Thực thu: {:.}đ\n\
-         - TỔNG TOÀN THỜI GIAN (LỊCH SỬ TỪ TRƯỚC ĐẾN NAY): {} đơn bán hàng | Tổng doanh thu: {:.}đ | Tổng lợi nhuận gộp: {:.}đ (Tỷ suất: {:.1}%) | Đã thu: {:.}đ\n\n",
-        today_str, today_orders_count, today_rev, today_profit, today_paid, today_debt,
-        month_prefix, month_orders_count, month_rev, month_profit, month_profit_margin, month_paid,
-        all_time_sales.0, all_time_rev, all_time_profit, all_time_profit_margin, all_time_sales.2.unwrap_or(0.0)
-    ));
-
-    // Lịch sử doanh thu 7 ngày gần nhất
-    if let Ok(recent_days) = sqlx::query(
-        "SELECT date(date) as day, COUNT(*) as cnt, \
-                CAST(COALESCE(SUM(total_amount), 0) AS REAL) as rev, \
-                CAST(COALESCE(SUM(amount_paid), 0) AS REAL) as paid \
-         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU') \
-         GROUP BY date(date) ORDER BY date(date) DESC LIMIT 7"
-    )
-    .fetch_all(pool)
-    .await {
-        if !recent_days.is_empty() {
-            ctx.push_str("LỊCH SỬ DOANH THU 7 NGÀY GẦN ĐÂY:\n");
-            for r in recent_days {
-                let day: String = r.try_get("day").unwrap_or_default();
-                let cnt: i64 = r.try_get("cnt").unwrap_or(0);
-                let rev: f64 = r.try_get("rev").unwrap_or(0.0);
-                let paid: f64 = r.try_get("paid").unwrap_or(0.0);
-                ctx.push_str(&format!("  * Ngày {}: {} đơn | Doanh thu: {:.}đ | Đã thu: {:.}đ\n", day, cnt, rev, paid));
-            }
-            ctx.push('\n');
-        }
+    // 1. Thuốc trừ vi khuẩn (Thối nhũn, loét, cháy bìa lá, đốm sọc)
+    let bactericide_keys = [
+        "kasugamycin", "kasumin", "streptomycin", "ningnanmycin", "bismerthiazol",
+        "xantocid", "oxolinic", "starner", "oxytetracycline", "bronopol", "nano bac",
+        "nano dong", "chitosan", "thiodiazole copper", "validamycin"
+    ];
+    if bactericide_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "01_BACTERICIDE",
+            group_name: "Đặc Trị Vi Khuẩn Cây Trồng (Thối nhũn, loét cành, cháy bìa lá)",
+            role_type: "Đặc Trị Vi Khuẩn",
+            moa_desc: "Ức chế tổng hợp protein hoặc phá vỡ vách tế bào vi khuẩn. Đặc trị vết loét, thối nhũn, đốm sọc vi khuẩn. Bắt buộc phối hợp với thuốc nấm khi vết bệnh có dấu hiệu nhiễm khuẩn đôi.",
+            is_advanced: lower.contains("kasugamycin") || lower.contains("streptomycin") || lower.contains("ningnanmycin"),
+        };
     }
 
-    // Lịch sử doanh thu các tháng trong quá khứ (12 tháng gần nhất)
-    if let Ok(recent_months) = sqlx::query(
-        "SELECT strftime('%Y-%m', date) as m, COUNT(*) as cnt, \
-                CAST(COALESCE(SUM(total_amount), 0) AS REAL) as rev, \
-                CAST(COALESCE(SUM(amount_paid), 0) AS REAL) as paid \
-         FROM \"order\" WHERE type = 'Sale' AND display_id NOT IN ('NODAU', '#NODAU') \
-         GROUP BY m ORDER BY m DESC LIMIT 12"
-    )
-    .fetch_all(pool)
-    .await {
-        if !recent_months.is_empty() {
-            ctx.push_str("LỊCH SỬ DOANH THU CÁC THÁNG TRONG QUÁ KHỨ (12 THÁNG GẦN NHẤT):\n");
-            for r in recent_months {
-                let m: String = r.try_get("m").unwrap_or_default();
-                let cnt: i64 = r.try_get("cnt").unwrap_or(0);
-                let rev: f64 = r.try_get("rev").unwrap_or(0.0);
-                let paid: f64 = r.try_get("paid").unwrap_or(0.0);
-                let debt = rev - paid;
-                ctx.push_str(&format!("  * Tháng {}: {} đơn | Doanh thu: {:.}đ | Đã thu: {:.}đ | Nợ: {:.}đ\n", m, cnt, rev, paid, debt));
-            }
-            ctx.push('\n');
-        }
+    // 2. Thuốc trừ nấm - SDHI & Công nghệ mới tiên tiến (Thán thư, đốm nâu/đốm trắng, rỉ sắt)
+    let sdhi_keys = [
+        "pydiflumetofen", "miravis", "fluxapyroxad", "sercadis", "fluopyram", "luna",
+        "boscalid", "cantus", "thifluzamide", "isopyrazam", "bixafen", "sedaxane",
+        "benzovindiflupyr", "penflufen"
+    ];
+    if sdhi_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "02_FUNGICIDE_SDHI",
+            group_name: "Trừ Nấm SDHI & Công Nghệ Mới (Đặc trị thán thư, đốm nâu/đốm trắng thanh long)",
+            role_type: "Trừ Nấm SDHI Cao Cấp",
+            moa_desc: "Ức chế enzyme Succinate Dehydrogenase (phức hợp II), dập tắt hoàn toàn hô hấp tế bào nấm. Hiệu lực cực mạnh, lưu dẫn kéo dài, tính mát êm bông không gây teo đọt hay nám trái non.",
+            is_advanced: true,
+        };
     }
 
-    // TOP SẢN PHẨM MANG LẠI LỢI NHUẬN CAO NHẤT (TOÀN THỜI GIAN)
-    if let Ok(top_profits) = sqlx::query(
-        "SELECT COALESCE(od.product_name_override, p.name) as name, p.unit, \
-                CAST(SUM(od.quantity) AS REAL) as total_qty, \
-                CAST(SUM(od.quantity * od.price) AS REAL) as total_rev, \
-                CAST(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))) AS REAL) as total_profit \
-         FROM order_detail od \
-         JOIN \"order\" o ON od.order_id = o.id \
-         LEFT JOIN product p ON od.product_id = p.id \
-         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
-         GROUP BY od.product_id \
-         ORDER BY total_profit DESC LIMIT 15"
-    )
-    .fetch_all(pool)
-    .await {
-        if !top_profits.is_empty() {
-            ctx.push_str("TOP SẢN PHẨM MANG LẠI LỢI NHUẬN CAO NHẤT (TOÀN THỜI GIAN):\n");
-            for (idx, r) in top_profits.into_iter().enumerate() {
-                let name: String = r.try_get("name").unwrap_or_else(|_| "Sản phẩm".to_string());
-                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
-                let qty: f64 = r.try_get("total_qty").unwrap_or(0.0);
-                let rev: f64 = r.try_get("total_rev").unwrap_or(0.0);
-                let profit: f64 = r.try_get("total_profit").unwrap_or(0.0);
-                let margin = if rev > 0.0 { (profit / rev) * 100.0 } else { 0.0 };
-                ctx.push_str(&format!(
-                    "  {}. {}: Lợi nhuận: {:.}đ (Tỷ suất: {:.1}%) | Đã bán: {} {} | Doanh số: {:.}đ\n",
-                    idx + 1, name, profit, margin, qty, unit, rev
-                ));
-            }
-            ctx.push('\n');
-        }
+    // 3. Thuốc trừ nấm - Triazole nội hấp thấm sâu
+    let triazole_keys = [
+        "difenoconazole", "score", "hexaconazole", "anvil", "tebuconazole", "nativo",
+        "propiconazole", "tilt", "epoxiconazole", "tetraconazole", "paclobutrazol",
+        "cyproconazole", "flusilazole", "myclobutanil", "triadimefon"
+    ];
+    if triazole_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "03_FUNGICIDE_TRIAZOLE",
+            group_name: "Trừ Nấm Triazole Nội Hấp Thấm Sâu (Diệt sợi nấm ẩn sâu trong mô cây)",
+            role_type: "Trừ Nấm Nội Hấp",
+            moa_desc: "Ức chế sinh tổng hợp Ergosterol màng tế bào nấm. Lưu dẫn nội hấp mạnh hai chiều, dập dịch thán thư, đốm lá, nấm hồng, lem lép hạt; chặn đứng mầm bệnh đang phát triển.",
+            is_advanced: lower.contains("tebuconazole") || lower.contains("difenoconazole"),
+        };
     }
 
-    // Top 10 sản phẩm bán chạy nhất theo số lượng trong lịch sử
-    if let Ok(top_sellers) = sqlx::query(
-        "SELECT COALESCE(od.product_name_override, p.name) as name, p.unit, \
-                CAST(SUM(od.quantity) AS REAL) as total_qty, \
-                CAST(SUM(od.quantity * od.price) AS REAL) as total_rev, \
-                CAST(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))) AS REAL) as total_profit \
-         FROM order_detail od \
-         JOIN \"order\" o ON od.order_id = o.id \
-         LEFT JOIN product p ON od.product_id = p.id \
-         WHERE o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
-         GROUP BY od.product_id \
-         ORDER BY total_qty DESC LIMIT 10"
-    )
-    .fetch_all(pool)
-    .await {
-        if !top_sellers.is_empty() {
-            ctx.push_str("TOP 10 SẢN PHẨM BÁN CHẠY NHẤT LỊCH SỬ (THEO SỐ LƯỢNG BÁN):\n");
-            for (idx, r) in top_sellers.into_iter().enumerate() {
-                let name: String = r.try_get("name").unwrap_or_else(|_| "Sản phẩm".to_string());
-                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
-                let qty: f64 = r.try_get("total_qty").unwrap_or(0.0);
-                let rev: f64 = r.try_get("total_rev").unwrap_or(0.0);
-                let profit: f64 = r.try_get("total_profit").unwrap_or(0.0);
-                ctx.push_str(&format!("  {}. {}: Đã bán {} {} | Doanh số: {:.}đ | Lợi nhuận: {:.}đ\n", idx + 1, name, qty, unit, rev, profit));
-            }
-            ctx.push('\n');
-        }
+    // 4. Thuốc trừ nấm - Strobilurin kích hoạt xanh lá
+    let strobi_keys = [
+        "azoxystrobin", "amistar", "pyraclostrobin", "cabrio", "trifloxystrobin",
+        "kresoxim", "picoxystrobin", "dimoxystrobin"
+    ];
+    if strobi_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "04_FUNGICIDE_STROBILURIN",
+            group_name: "Trừ Nấm Strobilurin & Kích Hoạt Xanh Lá (Phổ rộng, phòng & trị nấm)",
+            role_type: "Trừ Nấm & Xanh Lá",
+            moa_desc: "Ức chế hô hấp phức hợp III tế bào nấm; ngăn ngừa bào tử nảy mầm đồng thời tạo hiệu ứng xanh lá dày lá (AgCelence), tăng quang hợp giúp cây phục hồi nhanh sau bệnh.",
+            is_advanced: lower.contains("pyraclostrobin") || lower.contains("trifloxystrobin"),
+        };
     }
 
-    // 2. Tồn kho & Sản phẩm
-    let total_prods: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM product WHERE is_active = 1")
-        .fetch_one(pool)
-        .await
-        .unwrap_or(0);
-
-    let out_of_stock: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM product WHERE is_active = 1 AND stock <= 0")
-        .fetch_one(pool)
-        .await
-        .unwrap_or(0);
-
-    ctx.push_str(&format!(
-        "2. KHO HÀNG & SẢN PHẨM HIỆN TẠI:\n\
-         - Tổng số mặt hàng đang kinh doanh: {}\n\
-         - Số mặt hàng hết tồn kho (≤ 0): {}\n",
-        total_prods, out_of_stock
-    ));
-
-    // Hàng sắp hết kho (stock <= min_stock AND min_stock > 0)
-    if let Ok(low_stocks) = sqlx::query(
-        "SELECT name, stock, min_stock, unit FROM product \
-         WHERE is_active = 1 AND min_stock > 0 AND stock <= min_stock \
-         ORDER BY stock ASC LIMIT 10"
-    )
-    .fetch_all(pool)
-    .await {
-        if !low_stocks.is_empty() {
-            ctx.push_str("- Mặt hàng cảnh báo sắp hết (Tồn ≤ Mức tối thiểu):\n");
-            for r in low_stocks {
-                let name: String = r.try_get("name").unwrap_or_default();
-                let stock: f64 = r.try_get("stock").unwrap_or(0.0);
-                let min_s: f64 = r.try_get("min_stock").unwrap_or(0.0);
-                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
-                ctx.push_str(&format!("  + {}: Tồn {} {} (Mức báo: {})\n", name, stock, unit, min_s));
-            }
-        }
+    // 5. Thuốc trừ nấm - Oomycetes (Sương mai, nứt thân xì mủ, thối rễ Phytophthora & Pythium)
+    let oomycetes_keys = [
+        "metalaxyl", "mefenoxam", "ridomil", "dimethomorph", "cymoxanil", "fosetyl",
+        "aliette", "mandipropamid", "revus", "oxathiapiprolin", "zorvec", "cyazofamid",
+        "hymexazol", "tachigaren", "famoxadone", "fenamidone", "propamocarb"
+    ];
+    if oomycetes_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "05_FUNGICIDE_OOMYCETES",
+            group_name: "Đặc Trị Nấm Thủy Sinh Oomycetes (Sương mai, nứt thân xì mủ, thối rễ, Phytophthora)",
+            role_type: "Đặc Trị Nấm Rễ & Xì Mủ",
+            moa_desc: "Chuyên trị nấm thủy sinh gây nứt thân xì mủ, thối rễ, chết nhanh, sương mai; lưu dẫn hai chiều lên ngọn xuống rễ, làm khô nhanh vết loét xì mủ thân cành.",
+            is_advanced: lower.contains("oxathiapiprolin") || lower.contains("mandipropamid") || lower.contains("cyazofamid") || lower.contains("hymexazol"),
+        };
     }
 
-    // Hàng cận hạn sử dụng
-    if let Ok(exp_rows) = sqlx::query(
-        "SELECT name, expiry_date, stock, unit FROM product \
-         WHERE is_active = 1 AND expiry_date IS NOT NULL AND expiry_date != '' \
-         ORDER BY expiry_date ASC LIMIT 10"
-    )
-    .fetch_all(pool)
-    .await {
-        if !exp_rows.is_empty() {
-            ctx.push_str("- Hạn dùng sản phẩm gần nhất (Hạn dùng/Quá hạn):\n");
-            for r in exp_rows {
-                let name: String = r.try_get("name").unwrap_or_default();
-                let exp: String = r.try_get("expiry_date").unwrap_or_default();
-                let stock: f64 = r.try_get("stock").unwrap_or(0.0);
-                let unit: String = r.try_get("unit").unwrap_or_else(|_| "cái".to_string());
-                ctx.push_str(&format!("  + {}: Hạn dùng {} | Tồn: {} {}\n", name, exp, stock, unit));
-            }
-        }
-    }
-    ctx.push('\n');
-
-    // 3. Khách hàng & Công nợ (Phải thu & Phải trả chi tiết)
-    let total_customers: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM partner WHERE is_customer = 1 OR type = 'Customer'"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0);
-
-    let customer_debt_stats: (i64, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(debt_balance) AS REAL) FROM partner \
-         WHERE (is_customer = 1 OR type = 'Customer') AND debt_balance > 0"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0)));
-
-    let total_customer_debt = customer_debt_stats.1.unwrap_or(0.0);
-    let count_customer_debtors = customer_debt_stats.0;
-
-    let total_suppliers: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM partner WHERE is_supplier = 1 OR type = 'Supplier'"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0);
-
-    // Công nợ phải trả NCC (debt_balance < 0 là nợ cửa hàng nợ nhà cung cấp)
-    let supplier_debt_stats: (i64, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(ABS(debt_balance)) AS REAL) FROM partner \
-         WHERE (is_supplier = 1 OR type = 'Supplier') AND debt_balance < 0"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0)));
-
-    let total_supplier_debt = supplier_debt_stats.1.unwrap_or(0.0);
-    let count_supplier_debtors = supplier_debt_stats.0;
-
-    ctx.push_str(&format!(
-        "3. ĐỐI TÁC & CÔNG NỢ (PHẢI THU & PHẢI TRẢ CHI TIẾT):\n\
-         - KHÁCH HÀNG (CÔNG NỢ PHẢI THU - KHÁCH NỢ CỬA HÀNG):\n\
-           * Tổng số khách hàng: {}\n\
-           * Số khách hàng hiện đang có nợ: {} khách\n\
-           * TỔNG CÔNG NỢ PHẢI THU TỪ KHÁCH HÀNG: {:.}đ\n\
-         - NHÀ CUNG CẤP (CÔNG NỢ PHẢI TRẢ - CỬA HÀNG NỢ NHÀ CUNG CẤP):\n\
-           * Tổng số nhà cung cấp: {}\n\
-           * Số nhà cung cấp cửa hàng đang nợ: {} nhà cung cấp\n\
-           * TỔNG CÔNG NỢ PHẢI TRẢ NHÀ CUNG CẤP: {:.}đ\n\n",
-        total_customers, count_customer_debtors, total_customer_debt,
-        total_suppliers, count_supplier_debtors, total_supplier_debt
-    ));
-
-    // Top khách hàng nợ nhiều nhất (15 khách hàng)
-    if let Ok(debtors) = sqlx::query(
-        "SELECT name, phone, debt_balance FROM partner \
-         WHERE (is_customer = 1 OR type = 'Customer') AND debt_balance > 0 \
-         ORDER BY debt_balance DESC LIMIT 15"
-    )
-    .fetch_all(pool)
-    .await {
-        if !debtors.is_empty() {
-            ctx.push_str("DANH SÁCH TOP KHÁCH HÀNG ĐANG CÓ NỢ CAO NHẤT (CÔNG NỢ PHẢI THU):\n");
-            for (idx, r) in debtors.into_iter().enumerate() {
-                let name: String = r.try_get("name").unwrap_or_default();
-                let phone: String = r.try_get("phone").unwrap_or_else(|_| "".to_string());
-                let debt: f64 = r.try_get("debt_balance").unwrap_or(0.0);
-                let phone_str = if phone.trim().is_empty() { "Chưa có SĐT".to_string() } else { phone.trim().to_string() };
-                ctx.push_str(&format!("  {}. {} (SĐT: {}): {:.}đ\n", idx + 1, name, phone_str, debt));
-            }
-            ctx.push('\n');
-        }
+    // 6. Thuốc trừ nấm - Tiếp xúc phòng ngừa phổ rộng
+    let contact_keys = [
+        "mancozeb", "propineb", "antracol", "metiram", "polyram", "chlorothalonil",
+        "daconil", "zineb", "sulfur", "luu huynh", "copper", "dong", "booc-do",
+        "bordeaux", "ziram", "thiram", "captan", "folpet", "cupric"
+    ];
+    if contact_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "06_FUNGICIDE_CONTACT",
+            group_name: "Trừ Nấm Tiếp Xúc Bảo Vệ Phổ Rộng (Áo giáp ngoài, phòng ngừa đa điểm)",
+            role_type: "Trừ Nấm Tiếp Xúc Bề Mặt",
+            moa_desc: "Bám dính bề mặt lá/vỏ trái, ức chế đa điểm enzyme nấm, ngăn ngừa bào tử nảy mầm xâm nhập; không lo lờn thuốc; là nền tảng phối trộn số 1 với thuốc nội hấp.",
+            is_advanced: lower.contains("metiram") || lower.contains("polyram"),
+        };
     }
 
-    // Top nhà cung cấp cửa hàng đang nợ nhiều nhất (10 nhà cung cấp)
-    if let Ok(supp_debtors) = sqlx::query(
-        "SELECT name, phone, debt_balance FROM partner \
-         WHERE (is_supplier = 1 OR type = 'Supplier') AND debt_balance < 0 \
-         ORDER BY debt_balance ASC LIMIT 10"
-    )
-    .fetch_all(pool)
-    .await {
-        if !supp_debtors.is_empty() {
-            ctx.push_str("DANH SÁCH TOP NHÀ CUNG CẤP CỬA HÀNG ĐANG NỢ NHIỀU NHẤT (CÔNG NỢ PHẢI TRẢ):\n");
-            for (idx, r) in supp_debtors.into_iter().enumerate() {
-                let name: String = r.try_get("name").unwrap_or_default();
-                let phone: String = r.try_get("phone").unwrap_or_else(|_| "".to_string());
-                let raw_debt: f64 = r.try_get("debt_balance").unwrap_or(0.0);
-                let debt = raw_debt.abs();
-                let phone_str = if phone.trim().is_empty() { "Chưa có SĐT".to_string() } else { phone.trim().to_string() };
-                ctx.push_str(&format!("  {}. {} (SĐT: {}): {:.}đ\n", idx + 1, name, phone_str, debt));
-            }
-            ctx.push('\n');
-        }
+    // 7. Thuốc trừ sâu - Spinosyn, Pyrrole & Semicarbazone đặc trị kháng thuốc
+    let spinosyn_keys = [
+        "spinetoram", "radiant", "spinosad", "chlorfenapyr", "pirate",
+        "metaflumizone", "takiwa", "alanto", "verismo"
+    ];
+    if spinosyn_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "07_INSECTICIDE_SPINOSYN",
+            group_name: "Đặc Trị Sâu / Bọ Trĩ Kháng Thuốc (Spinosyn, Pyrrole & Semicarbazone - Hạ gục triệt để)",
+            role_type: "Trừ Sâu / Bọ Trĩ Đột Phá",
+            moa_desc: "Tác động thụ thể nicotinic acetylcholine kiểu mới, tách rời phosphoryl hóa hoặc phong bế kênh ion Natri thần kinh; hạ gục cực nhanh bọ trĩ lờn thuốc, sâu xanh, sâu keo, sâu tơ, sâu đục trái.",
+            is_advanced: true,
+        };
     }
 
-    // 4. Thu chi tiền mặt từ cash_voucher
-    let cash_in_today: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
-         WHERE type = 'Receipt' AND date(date) = date(?)"
-    )
-    .bind(&today_str)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    let cash_out_today: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
-         WHERE type = 'Payment' AND date(date) = date(?)"
-    )
-    .bind(&today_str)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    let cash_in_month: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
-         WHERE type = 'Receipt' AND strftime('%Y-%m', date) = ?"
-    )
-    .bind(&month_prefix)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    let cash_out_month: f64 = sqlx::query_scalar(
-        "SELECT CAST(COALESCE(SUM(amount), 0) AS REAL) FROM cash_voucher \
-         WHERE type = 'Payment' AND strftime('%Y-%m', date) = ?"
-    )
-    .bind(&month_prefix)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0.0);
-
-    ctx.push_str(&format!(
-        "4. THU CHI TIỀN MẶT NGOÀI ĐƠN HÀNG (PHIẾU THU/CHI):\n\
-         - Hôm nay ({}): Thu ngoài {:.}đ | Chi ngoài {:.}đ\n\
-         - Tháng này ({}): Thu ngoài {:.}đ | Chi ngoài {:.}đ\n\n",
-        today_str, cash_in_today, cash_out_today,
-        month_prefix, cash_in_month, cash_out_month
-    ));
-
-    // 5. Lịch sử nhập hàng (Purchase Orders)
-    let all_time_purchases: (i64, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE type = 'Purchase'"
-    )
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0)));
-
-    let month_purchases: (i64, Option<f64>) = sqlx::query_as(
-        "SELECT COUNT(*), CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE type = 'Purchase' AND strftime('%Y-%m', date) = ?"
-    )
-    .bind(&month_prefix)
-    .fetch_one(pool)
-    .await
-    .unwrap_or((0, Some(0.0)));
-
-    ctx.push_str(&format!(
-        "5. LỊCH SỬ NHẬP HÀNG TỪ NHÀ CUNG CẤP:\n\
-         - Nhập hàng tháng này ({}): {} đơn nhập | Tổng tiền: {:.}đ\n\
-         - Tổng tiền nhập hàng toàn thời gian: {} đơn nhập | {:.}đ\n\n",
-        month_prefix, month_purchases.0, month_purchases.1.unwrap_or(0.0),
-        all_time_purchases.0, all_time_purchases.1.unwrap_or(0.0)
-    ));
-
-    // 6. Tra cứu bổ sung theo câu hỏi người dùng (nếu có hỏi đối tác hoặc sản phẩm cụ thể)
-    if let Some(q) = user_query {
-        let q_clean = q.trim();
-        if !q_clean.is_empty() {
-            let q_norm = crate::utils::remove_accents(q_clean).to_lowercase();
-            if let Ok(partners) = sqlx::query("SELECT id, name, phone, debt_balance, type, is_customer, is_supplier FROM partner LIMIT 1000").fetch_all(pool).await {
-                for p in partners {
-                    let p_name: String = p.try_get("name").unwrap_or_default();
-                    let p_phone: String = p.try_get("phone").unwrap_or_default();
-                    let p_name_norm = crate::utils::remove_accents(&p_name).to_lowercase();
-
-                    let phone_matched = !p_phone.is_empty() && q_clean.contains(&p_phone);
-                    let name_matched = !p_name_norm.is_empty() && p_name_norm.len() >= 3 && q_norm.contains(&p_name_norm);
-
-                    if phone_matched || name_matched {
-                        let p_id: i64 = p.try_get("id").unwrap_or(0);
-                        let p_debt: f64 = p.try_get("debt_balance").unwrap_or(0.0);
-                        let p_type: String = p.try_get("type").unwrap_or_default();
-                        let is_cust: bool = p.try_get("is_customer").unwrap_or(false);
-                        let is_supp: bool = p.try_get("is_supplier").unwrap_or(false);
-                        let role_desc = if is_cust && is_supp {
-                            "Khách hàng & Nhà cung cấp"
-                        } else if is_supp {
-                            "Nhà cung cấp"
-                        } else {
-                            "Khách hàng"
-                        };
-                        let debt_desc = if p_debt > 0.0 {
-                            format!("Khách đang nợ cửa hàng {:.}đ (Phải thu)", p_debt)
-                        } else if p_debt < 0.0 {
-                            format!("Cửa hàng đang nợ đối tác {:.}đ (Phải trả)", p_debt.abs())
-                        } else {
-                            "Đã thanh toán hết nợ (0đ)".to_string()
-                        };
-
-                        ctx.push_str(&format!("★ CHI TIẾT LỊCH SỬ ĐỐI TÁC TRONG CÂU HỎI [{} - SĐT: {}]:\n", p_name, if p_phone.is_empty() { "---" } else { &p_phone }));
-                        ctx.push_str(&format!("  - Phân loại: {} ({}) | Tình trạng công nợ: {}\n", role_desc, p_type, debt_desc));
-
-                        if let Ok(orders) = sqlx::query(
-                            "SELECT id, date, total_amount, amount_paid, display_id FROM \"order\" \
-                             WHERE partner_id = ? ORDER BY date DESC LIMIT 6"
-                        )
-                        .bind(p_id)
-                        .fetch_all(pool)
-                        .await {
-                            if !orders.is_empty() {
-                                ctx.push_str("  - 6 đơn hàng gần nhất của đối tác này:\n");
-                                for ord in orders {
-                                    let o_date: String = ord.try_get("date").unwrap_or_default();
-                                    let o_tot: f64 = ord.try_get("total_amount").unwrap_or(0.0);
-                                    let o_paid: f64 = ord.try_get("amount_paid").unwrap_or(0.0);
-                                    let o_code: String = ord.try_get("display_id").unwrap_or_default();
-                                    ctx.push_str(&format!("    + Đơn [{}] lúc {}: Tổng {:.}đ | Đã trả {:.}đ\n", o_code, o_date, o_tot, o_paid));
-                                }
-                            }
-                        }
-                        ctx.push('\n');
-                        break;
-                    }
-                }
-            }
-
-            // Tra cứu thêm nếu người dùng hỏi về lợi nhuận hoặc doanh số của 1 sản phẩm cụ thể
-            if let Ok(products_found) = sqlx::query(
-                "SELECT p.id, p.name, p.unit, \
-                        CAST(COALESCE(SUM(od.quantity), 0) AS REAL) as total_qty, \
-                        CAST(COALESCE(SUM(od.quantity * od.price), 0) AS REAL) as total_rev, \
-                        CAST(COALESCE(SUM(od.quantity * (od.price - COALESCE(od.cost_price, p.cost_price, 0))), 0) AS REAL) as total_profit \
-                 FROM product p \
-                 LEFT JOIN order_detail od ON od.product_id = p.id \
-                 LEFT JOIN \"order\" o ON od.order_id = o.id AND o.type = 'Sale' AND o.display_id NOT IN ('NODAU', '#NODAU') \
-                 WHERE p.is_active = 1 \
-                 GROUP BY p.id LIMIT 1000"
-            ).fetch_all(pool).await {
-                for prod in products_found {
-                    let prod_name: String = prod.try_get("name").unwrap_or_default();
-                    let prod_name_norm = crate::utils::remove_accents(&prod_name).to_lowercase();
-                    if prod_name_norm.len() >= 3 && q_norm.contains(&prod_name_norm) {
-                        let unit: String = prod.try_get("unit").unwrap_or_else(|_| "cái".to_string());
-                        let qty: f64 = prod.try_get("total_qty").unwrap_or(0.0);
-                        let rev: f64 = prod.try_get("total_rev").unwrap_or(0.0);
-                        let profit: f64 = prod.try_get("total_profit").unwrap_or(0.0);
-                        let margin = if rev > 0.0 { (profit / rev) * 100.0 } else { 0.0 };
-
-                        ctx.push_str(&format!("★ CHI TIẾT SẢN PHẨM TRONG CÂU HỎI [{}]:\n", prod_name));
-                        ctx.push_str(&format!("  - Đã bán: {} {}\n", qty, unit));
-                        ctx.push_str(&format!("  - Tổng doanh thu: {:.}đ\n", rev));
-                        ctx.push_str(&format!("  - Tổng lợi nhuận gộp: {:.}đ (Tỷ suất lợi nhuận: {:.1}%)\n\n", profit, margin));
-                        break;
-                    }
-                }
-            }
-        }
+    // 8. Thuốc trừ sâu - Diamide thế hệ mới
+    let diamide_keys = [
+        "chlorantraniliprole", "virtako", "prevathon", "cyantraniliprole", "benevia",
+        "minecto", "flubendiamide", "takumi", "broflanilide", "incipio", "tetraniliprole"
+    ];
+    if diamide_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "08_INSECTICIDE_DIAMIDE",
+            group_name: "Trừ Sâu Nhóm Diamide (Lưu dẫn bảo vệ đọt non, tê liệt cơ bắp tức thì)",
+            role_type: "Trừ Sâu Lưu Dẫn Cao Cấp",
+            moa_desc: "Kích hoạt thụ thể Ryanodine làm cạn kiệt Canxi cơ bắp khiến sâu ngừng cắn phá sau vài phút và chết; lưu dẫn kéo dài 14-21 ngày bảo vệ đọt non mới ra.",
+            is_advanced: true,
+        };
     }
 
-    ctx
+    // 9. Thuốc trừ sâu - Ức chế lột xác IGR & Diệt trứng / Sâu non
+    let igr_keys = [
+        "lufenuron", "match", "tebufenozide", "methoxyfenozide", "buprofezin",
+        "applaud", "pyriproxyfen", "admiral", "chromafenozide"
+    ];
+    if igr_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "09_INSECTICIDE_IGR",
+            group_name: "Ức Chế Lột Xác IGR & Diệt Trứng (Cắt đứt vòng đời, chống tái bùng phát)",
+            role_type: "Ức Chế Sinh Trưởng Côn Trùng",
+            moa_desc: "Ức chế tổng hợp Chitin hoặc làm rối loạn hormone lột xác; làm ung trứng, ấu trùng không thể lột xác hóa nhộng; vũ khí phối trộn bắt buộc để dập tắt triệt để gối lứa.",
+            is_advanced: lower.contains("lufenuron") || lower.contains("pyriproxyfen"),
+        };
+    }
+
+    // 10. Thuốc trừ sâu - Tiếp xúc, vị độc, hạ gục nhanh
+    let knockdown_keys = [
+        "emamectin", "abamectin", "cartap", "padan", "cypermethrin", "permethrin",
+        "alpha-cypermethrin", "lambda-cyhalothrin", "deltamethrin", "indoxacarb",
+        "fenvalerate", "profenofos", "fipronil"
+    ];
+    if knockdown_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "10_INSECTICIDE_KNOCKDOWN",
+            group_name: "Trừ Sâu Tiếp Xúc - Vị Độc - Hạ Gục Nhanh (Đòn phối dập dịch tức thì)",
+            role_type: "Trừ Sâu Tiếp Xúc / Vị Độc",
+            moa_desc: "Kích thích giải phóng GABA hoặc phong bế kênh Natri thần kinh; hạ gục nhanh sâu hại sau khi trúng thuốc; rất phù hợp phối chung với thuốc lưu dẫn để vừa hạ nhanh vừa diệt dai.",
+            is_advanced: lower.contains("emamectin") && lower.contains("5%"),
+        };
+    }
+
+    // 11. Bọ trĩ, Rầy, Rệp sáp - Thế hệ mới
+    let sucking_adv_keys = [
+        "flupyrimin", "sulfoxaflor", "transform", "flonicamid", "teppeki",
+        "spirotetramat", "movento", "tolfenpyrad", "afidopyropen", "triflumezopyrim",
+        "diafenthiuron", "pegasus"
+    ];
+    if sucking_adv_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "11_SUCKING_ADVANCED",
+            group_name: "Đặc Trị Bọ Trĩ & Rầy Rệp Thế Hệ Mới (Lưu dẫn hai chiều, bẻ gãy kháng thuốc)",
+            role_type: "Trừ Chích Hút Cao Cấp",
+            moa_desc: "Tác động thụ thể thần kinh chuyên biệt kiểu mới hoặc ức chế sinh tổng hợp Lipid (lưu dẫn 2 chiều cả ngọn lẫn rễ như Movento); đặc trị rầy phấn trắng, rệp sáp, bọ trĩ trốn trong kẽ lá/nụ bông.",
+            is_advanced: true,
+        };
+    }
+
+    // 12. Bọ trĩ, Rầy, Rệp sáp - Neonicotinoid & Nội hấp phổ biến
+    let sucking_neonic_keys = [
+        "thiamethoxam", "imidacloprid", "dinotefuran", "oshin", "acetamiprid",
+        "clothianidin", "nitenpyram", "pymetrozine"
+    ];
+    if sucking_neonic_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "12_SUCKING_NEONIC",
+            group_name: "Trừ Rầy & Bọ Trĩ Neonicotinoid Nội Hấp (Thấm sâu lưu dẫn trong nhựa cây)",
+            role_type: "Trừ Chích Hút Nội Hấp",
+            moa_desc: "Lưu dẫn nội hấp mạnh mẽ qua rễ và lá vào hệ mạch dẫn; làm tê liệt thần kinh trung ương côn trùng chích hút; phối hợp tốt với thuốc hạ gục hoặc dầu khoáng.",
+            is_advanced: lower.contains("dinotefuran") || lower.contains("clothianidin"),
+        };
+    }
+
+    // 13. Thuốc đặc trị nhện đỏ
+    let acaricide_keys = [
+        "spirodiclofen", "envidor", "spiromesifen", "oberon", "fenpyroximate",
+        "ortus", "pyridaben", "propargite", "hexythiazox", "clofentezine",
+        "bifenazate", "fenbutatin"
+    ];
+    if acaricide_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "13_ACARICIDE",
+            group_name: "Đặc Trị Nhện Đỏ & Nhện Gây Hại (Diệt cả nhện trưởng thành, ấu trùng & ung trứng)",
+            role_type: "Đặc Trị Nhện Đỏ",
+            moa_desc: "Ức chế enzyme tổng hợp Lipid hoặc kênh hô hấp tế bào nhện; diệt sạch nhện kháng thuốc gây nám da trái, bạc lá; nên phối hoạt chất diệt nhện lớn với hoạt chất ung trứng.",
+            is_advanced: lower.contains("spirodiclofen") || lower.contains("spiromesifen") || lower.contains("fenpyroximate"),
+        };
+    }
+
+    // 14. Tuyến trùng
+    let nematicide_keys = [
+        "fosthiazate", "benfuracarb", "trichoderma", "paecilomyces"
+    ];
+    if nematicide_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "14_NEMATICIDE",
+            group_name: "Đặc Trị Tuyến Trùng & Nấm Đối Kháng Đất (Bảo vệ rễ, ngừa vàng lá thối rễ)",
+            role_type: "Đặc Trị Tuyến Trùng",
+            moa_desc: "Tiêu diệt và xua đuổi tuyến trùng gây nốt sưng rễ; bảo vệ đầu chóp rễ tơ hút dinh dưỡng.",
+            is_advanced: true,
+        };
+    }
+
+    // 15. Dinh dưỡng, điều hòa sinh trưởng, trợ lực bám dính
+    let nutrition_keys = [
+        "amino", "rong bien", "seaweed", "humic", "fulvic", "bo", "canxi", "kem",
+        "zinc", "ga3", "naa", "brassinolide", "dau khoang", "mineral oil", "bam dinh",
+        "loang trai", "surfactant", "silicone"
+    ];
+    if nutrition_keys.iter().any(|&k| lower.contains(k)) {
+        return ActiveIngredientInfo {
+            group_id: "15_NUTRITION_ADJUVANT",
+            group_name: "Dinh Dưỡng, Kích Kháng & Chất Trợ Lực Loang Trải (Tăng hấp thu, chống rửa trôi)",
+            role_type: "Dinh Dưỡng & Trợ Lực",
+            moa_desc: "Phá vỡ lớp sáp phấn của côn trùng, tăng diện tích tiếp xúc giọt thuốc; cung cấp vi lượng và acid amin giúp cây phục hồi nhanh sau bệnh.",
+            is_advanced: lower.contains("brassinolide") || lower.contains("amino"),
+        };
+    }
+
+    // Nhóm khác / Chưa phân loại riêng
+    ActiveIngredientInfo {
+        group_id: "16_OTHER_ACTIVE",
+        group_name: "Hoạt Chất Nông Dược Bổ Trợ & Phối Hợp Trong Kho",
+        role_type: "Bảo Vệ Thực Vật",
+        moa_desc: "Hoạt chất BVTV hữu hiệu có sẵn trong kho, tham gia diệt trừ sâu bệnh theo phổ tác động chỉ định.",
+        is_advanced: false,
+    }
 }
 
 fn is_advanced_active(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    let advanced_keywords = [
-        "spinetoram", "radiant", "flupyrimin", "sulfoxaflor", "broflanilide", "incipio",
-        "chlorfenapyr", "cyantraniliprole", "benevia", "minecto", "chlorantraniliprole", 
-        "virtako", "prevathon", "flonicamid", "teppeki", "spirotetramat", "movento", 
-        "spirodiclofen", "envidor", "spiromesifen", "oberon", "fenpyroximate", "ortus", 
-        "lufenuron", "match", "pyriproxyfen", "admiral", "tolfenpyrad", "afidopyropen", 
-        "metaflumizone", "flubendiamide", "takumi", "diafenthiuron", "pegasus",
-        "pydiflumetofen", "miravis", "fluxapyroxad", "sercadis", "fluopyram", "luna", 
-        "oxathiapiprolin", "zorvec", "pyraclostrobin", "cabrio", "mandipropamid", "revus", 
-        "fenamidone", "metiram", "polyram", "boscalid", "cantus", "kresoxim", "cyazofamid",
-        "trifloxystrobin", "nativo", "fludioxonil", "sedaxane", "dinotefuran", "clothianidin",
-        "hymexazol", "tachigaren", "chitosan", "ningnanmycin", "kasugamycin", "streptomycin"
-    ];
-    advanced_keywords.iter().any(|&k| lower.contains(k))
+    classify_active_ingredient(name).is_advanced
 }
 
 fn extract_active_ingredients(raw: &str) -> Vec<String> {
@@ -657,15 +377,18 @@ pub async fn consult_ai(
     }
 
     let mut products: Vec<ProductContext> = Vec::new();
+    let mut matched_compatible_ctx: Option<super::active_ingredient::MatchedIngredientsContext> = None;
 
     // Kiểm tra nếu câu hỏi liên quan đến số liệu, công nợ, lợi nhuận, doanh thu...
     let user_msg_lower = payload.message.to_lowercase();
+    let q_norm = crate::utils::remove_accents(&user_msg_lower);
     let is_analytics_question = user_msg_lower.contains("nợ")
         || user_msg_lower.contains("công nợ")
         || user_msg_lower.contains("lợi nhuận")
         || user_msg_lower.contains("lãi")
         || user_msg_lower.contains("lời")
         || user_msg_lower.contains("doanh thu")
+        || user_msg_lower.contains("doanh số")
         || user_msg_lower.contains("đối tác")
         || user_msg_lower.contains("nhà cung cấp")
         || user_msg_lower.contains("khách hàng")
@@ -675,7 +398,26 @@ pub async fn consult_ai(
         || user_msg_lower.contains("tồn kho")
         || user_msg_lower.contains("sắp hết")
         || user_msg_lower.contains("hết hạn")
-        || user_msg_lower.contains("cận date");
+        || user_msg_lower.contains("cận date")
+        || user_msg_lower.contains("quý")
+        || user_msg_lower.contains("năm")
+        || user_msg_lower.contains("tháng")
+        || user_msg_lower.contains("tuần")
+        || user_msg_lower.contains("hôm qua")
+        || user_msg_lower.contains("hôm nay")
+        || user_msg_lower.contains("báo cáo")
+        || user_msg_lower.contains("tổng kết")
+        || user_msg_lower.contains("nhập hàng")
+        || user_msg_lower.contains("2 chiều")
+        || user_msg_lower.contains("hai chiều")
+        || user_msg_lower.contains("cấn trừ")
+        || user_msg_lower.contains("bù trừ")
+        || q_norm.contains("quy 1") || q_norm.contains("quy 2") || q_norm.contains("quy 3") || q_norm.contains("quy 4")
+        || q_norm.contains("q1") || q_norm.contains("q2") || q_norm.contains("q3") || q_norm.contains("q4")
+        || q_norm.contains("nam nay") || q_norm.contains("nam ngoai") || q_norm.contains("nam 202")
+        || q_norm.contains("bao cao") || q_norm.contains("tong ket")
+        || q_norm.contains("ncc") || q_norm.contains("dai ly")
+        || q_norm.contains("nhap hang") || q_norm.contains("doanh so");
 
     // Nếu người dùng đang ở tab crop_doctor nhưng hỏi rõ ràng về công nợ, lợi nhuận, doanh thu... thì tự động chuyển sang mode app_analytics!
     let mode = if raw_mode == "crop_doctor" && is_analytics_question && !user_msg_lower.contains("bệnh") && !user_msg_lower.contains("sâu") && !user_msg_lower.contains("xịt") && !user_msg_lower.contains("phun") && !user_msg_lower.contains("liều") {
@@ -689,19 +431,35 @@ pub async fn consult_ai(
         "app_analytics" => {
             let analytics_context = build_app_analytics_context(&pool, Some(&payload.message)).await;
             format!(
-                r#"Bạn là LyangAI - Trợ lý Kế toán & Phân tích Kinh doanh (Business Intelligence Analyst) cao cấp tích hợp trong phần mềm quản lý bán hàng LyangPOS.
-Nhiệm vụ của bạn là giải đáp chính xác, khách quan và trực quan mọi thắc mắc của chủ cửa hàng về tình hình kinh doanh, doanh thu, đơn hàng, công nợ, tồn kho, mặt hàng sắp hết hoặc cận date dựa trên dữ liệu thời gian thực được cung cấp dưới đây.
+                r#"Bạn là LyangAI - Giám đốc Tài chính & Chuyên viên Phân tích Dữ liệu Cấp cao (CFO & Senior BI Analyst) trong phần mềm bán hàng LyangPOS.
+Nhiệm vụ của bạn là giải đáp chính xác tuyệt đối, toàn diện, sắc bén và trực quan mọi thắc mắc của chủ cửa hàng về doanh thu, lãi lỗ, dòng tiền, định giá vốn kho, khách hàng VIP, nhà cung cấp, đối tác 2 chiều, công nợ và rủi ro kinh doanh dựa trên hệ thống số liệu thời gian thực dưới đây.
 
-★★★ DỮ LIỆU THỐNG KÊ THỜI GIAN THỰC TỪ PHẦN MỀM:
+★★★ BẢNG SỐ LIỆU TÀI CHÍNH & VẬN HÀNH THỜI GIAN THỰC (REAL-TIME LEDGER):
 {}
 
 ★★★ QUY TẮC TRẢ LỜI:
-1. Trả lời dựa trên các con số thực tế được thống kê ở trên. Khi người dùng hỏi số liệu cụ thể (doanh thu hôm nay, ai nợ nhiều nhất, hàng nào sắp hết, sản phẩm nào lợi nhuận nhất...), hãy nêu rõ con số kèm định dạng tiền tệ VNĐ (ví dụ: 1.500.000đ).
-2. Định dạng câu trả lời bằng Markdown sinh động: dùng biểu tượng emoji (📊, 💰, ⚠️, 📦, 💳), in đậm số liệu quan trọng, trình bày gạch đầu dòng rõ ràng.
-3. Nếu người dùng hỏi lời khuyên kinh doanh (ví dụ: "Có nên nhập thêm hàng X không?", "Làm sao giảm công nợ?"), hãy đưa ra phân tích sắc bén, lời khuyên thực tế phù hợp với quy mô cửa hàng vật tư / bán lẻ.
-4. Ở chế độ này KHÔNG bắt buộc xuất khối recommended_products trừ khi người dùng hỏi về sản phẩm cụ thể.
-"#,
-                analytics_context
+1. ĐỘ CHÍNH XÁC CAO: Mọi con số (doanh thu, lợi nhuận gộp, tỷ suất %, giá trị vốn kho, công nợ, số lượng...) PHẢI lấy chính xác từ bảng số liệu trên. Trình bày số tiền rõ ràng kèm đơn vị "đ" (ví dụ: 1.500.000đ, 32.527.102.961đ).
+2. ĐỐI TÁC VỪA LÀ KHÁCH HÀNG VỪA LÀ NHÀ CUNG CẤP (GIAO DỊCH 2 CHIỀU / CẤN TRỪ CÔNG NỢ):
+   - Khi hỏi về đối tác 2 chiều (hoặc đối tác có cả giao dịch Bán hàng và Nhập hàng):
+     + Phải phân tích ĐẦY ĐỦ VÀ TÁCH BIỆT RÕ RÀNG 2 CHIỀU:
+       * Chiều Bán hàng (Họ là Khách mua): Số đơn mua, tổng doanh số tiệm bán cho họ, số tiền đã thu và số tiền họ còn nợ tiệm.
+       * Chiều Nhập hàng (Họ là Nhà cung cấp): Số đơn nhập từ họ, tổng giá trị hàng nhập, số tiền tiệm đã thanh toán và tiệm còn nợ họ.
+     + Kết luận DƯ NỢ RÒNG SAU CẤN TRỪ (Net Debt Balance): Dựa vào số liệu Dư nợ ròng trong bảng dữ liệu để nêu rõ hiện tại ai đang nợ ai bao nhiêu tiền (nếu > 0 là đối tác nợ tiệm cần thu, nếu < 0 là tiệm nợ đối tác cần trả, 0đ là đã bù trừ cân bằng). Tuyệt đối không nhầm lẫn giữa doanh số bán cho họ và tiền nhập hàng từ họ.
+3. BÁO CÁO TOÀN DIỆN THEO KỲ (THEO QUÝ, THEO NĂM, THEO THÁNG):
+   - Khi người dùng hỏi về bất kỳ Quý nào (Quý 1, 2, 3, 4, Quý này, Quý trước...) hoặc Năm nào (Năm nay, Năm ngoái, 2024, 2025, 2026...):
+     + Tuyệt đối không trả lời sơ sài hay chỉ đưa 1 vài con số.
+     + Cung cấp BÁO CÁO TOÀN DIỆN gồm các mục:
+       (1) Tổng kết kỳ: Doanh thu bán hàng, Lợi nhuận gộp, Tỷ suất lợi nhuận (Biên lãi %), Thực thu, Nợ khách phát sinh, và Tổng tiền nhập hàng từ NCC.
+       (2) Diễn biến từng tháng: Liệt kê số liệu chi tiết từng tháng trong quý/năm đó (doanh thu, lợi nhuận, đơn bán, đơn nhập) để chủ tiệm nắm bắt xu hướng kinh doanh.
+       (3) Top sản phẩm bán chạy nhất & Top mặt hàng sinh lãi gộp cao nhất trong kỳ.
+       (4) Top khách hàng lớn nhất & Top Nhà cung cấp trọng điểm trong kỳ (nếu có trong dữ liệu).
+4. TỔNG QUAN & SO SÁNH: Khi phân tích doanh thu hay lợi nhuận chung, hãy so sánh với kỳ trước (hôm nay vs hôm qua, tháng này vs tháng trước) và nêu rõ tỷ suất lợi nhuận biên (Profit Margin %) để chủ tiệm thấy bức tranh tăng trưởng.
+5. PHÂN TÍCH CHUYÊN SÂU & LỜI KHUYÊN KINH DOANH THỰC CHIẾN:
+   - Nếu hỏi về khách hàng/công nợ: Phân biệt rõ giữa Khách VIP (người mang lại doanh thu lớn) và Khách nợ (rủi ro công nợ). Cảnh báo kịp thời khi tỷ lệ nợ trên doanh thu cao.
+   - Nếu hỏi về kho: Đưa ra cảnh báo hàng đọng vốn, hàng ế ẩm để gợi ý chủ cửa hàng xả hàng, giảm giá hoặc cắt giảm đặt hàng mới.
+6. ĐỊNH DẠNG ĐẸP MẮT: Sử dụng Markdown chuyên nghiệp (bảng tóm tắt nếu cần, gạch đầu dòng, in đậm con số mấu chốt, emoji tài chính 📊, 💰, 📦, 💳, ⚠️, 📈).
+7. Ở chế độ này KHÔNG bắt buộc xuất khối recommended_products trừ khi người dùng hỏi về sản phẩm cụ thể.
+"#,            analytics_context
             )
         },
         "general_assistant" => {
@@ -721,6 +479,22 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
         },
         _ => {
             // Mode 1: Cố vấn thuốc BVTV & Cây trồng (Mặc định)
+            // Quét từ khóa triệu chứng & bệnh hại để tìm kiếm các hoạt chất đặc trị + hoạt chất phối hợp tương thích từ DB
+            let ctx = super::active_ingredient::scan_query_and_find_compatible_options(&pool, &payload.message)
+                .await
+                .unwrap_or_else(|e| {
+                    tracing::warn!("Lỗi quét hoạt chất tương thích: {}", e);
+                    super::active_ingredient::MatchedIngredientsContext {
+                        matched_targets: Vec::new(),
+                        compatible_synergies: Vec::new(),
+                        all_usable_products: Vec::new(),
+                        summary_text: String::new(),
+                    }
+                });
+
+            let researched_context_text = ctx.summary_text.clone();
+            matched_compatible_ctx = Some(ctx);
+
             products = match sqlx::query_as::<_, ProductContext>(
                 r#"
                 SELECT id, name, code, unit, 
@@ -746,9 +520,9 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                 },
             };
 
-            let mut unique_advanced_actives: Vec<String> = Vec::new();
-            let mut unique_common_actives: Vec<String> = Vec::new();
             let mut all_unique_actives: Vec<String> = Vec::new();
+            // Nhóm hoạt chất theo phân loại dược lý: group_id -> (ActiveIngredientInfo, Vec<ActiveName>, Vec<ProductSummary>)
+            let mut group_map: std::collections::BTreeMap<&'static str, (ActiveIngredientInfo, Vec<String>, Vec<String>)> = std::collections::BTreeMap::new();
 
             for p in &products {
                 if let Some(ref act) = p.active_ingredient {
@@ -761,30 +535,45 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                         if !all_unique_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
                             all_unique_actives.push(item_clean.to_string());
                         }
-                        if is_advanced_active(item_clean) {
-                            if !unique_advanced_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
-                                unique_advanced_actives.push(item_clean.to_string());
-                            }
-                        } else {
-                            if !unique_common_actives.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
-                                unique_common_actives.push(item_clean.to_string());
-                            }
+
+                        let info = classify_active_ingredient(item_clean);
+                        let entry = group_map.entry(info.group_id).or_insert_with(|| {
+                            (info.clone(), Vec::new(), Vec::new())
+                        });
+
+                        if !entry.1.iter().any(|x| x.eq_ignore_ascii_case(item_clean)) {
+                            entry.1.push(item_clean.to_string());
+                        }
+
+                        let prod_desc = format!(
+                            "{} [Hoạt chất: {} | Tồn: {}{}]",
+                            p.name,
+                            item_clean,
+                            p.stock.unwrap_or(0.0),
+                            p.unit.as_deref().unwrap_or("")
+                        );
+                        if !entry.2.contains(&prod_desc) && entry.2.len() < 8 {
+                            entry.2.push(prod_desc);
                         }
                     }
                 }
             }
 
-            let advanced_actives_str = if unique_advanced_actives.is_empty() {
-                String::from("(Kho chưa có hoặc chưa điền hoạt chất thế hệ mới)")
+            let mut active_groups_summary = String::new();
+            if group_map.is_empty() {
+                active_groups_summary.push_str("(Kho chưa có dữ liệu hoạt chất chi tiết)\n");
             } else {
-                unique_advanced_actives.join(", ")
-            };
-
-            let common_actives_str = if unique_common_actives.is_empty() {
-                String::from("(Chưa có hoạt chất phổ thông)")
-            } else {
-                unique_common_actives.join(", ")
-            };
+                for (_, (info, act_list, prod_list)) in &group_map {
+                    active_groups_summary.push_str(&format!(
+                        "▶ [{}] (Vai trò: {}):\n  - Hoạt chất có trong kho: {}\n  - Cơ chế & Công dụng: {}\n  - Sản phẩm đại diện trong kho: {}\n\n",
+                        info.group_name,
+                        info.role_type,
+                        act_list.join(", "),
+                        info.moa_desc,
+                        prod_list.join("; ")
+                    ));
+                }
+            }
 
             let store_actives_str = if all_unique_actives.is_empty() {
                 String::from("(Chưa có dữ liệu hoạt chất trong kho)")
@@ -792,7 +581,7 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                 all_unique_actives.join(", ")
             };
 
-            let mut product_kb = String::from("DANH MỤC SẢN PHẨM & HOẠT CHẤT ĐANG KINH DOANH TẠI CỬA HÀNG:\n");
+            let mut product_kb = String::from("DANH MỤC TOÀN BỘ SẢN PHẨM & HOẠT CHẤT ĐANG KINH DOANH TẠI CỬA HÀNG:\n");
             if products.is_empty() {
                 product_kb.push_str("(Hiện chưa có sản phẩm nào trong cơ sở dữ liệu)\n");
             } else {
@@ -804,13 +593,17 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
                     let stock = p.stock.unwrap_or(0.0);
                     let code = p.code.as_deref().unwrap_or("");
 
-                    let is_prod_advanced = p.active_ingredient.as_ref().map_or(false, |act| is_advanced_active(act));
-                    let tag_str = if is_prod_advanced {
-                        "[🌟 TẦNG 1: CÔNG NGHỆ MỚI]"
-                    } else if p.active_ingredient.as_ref().map_or(false, |act| !act.trim().is_empty()) {
-                        "[🌾 TẦNG 2: PHỔ THÔNG]"
+                    let info = p.active_ingredient.as_ref().map(|act| classify_active_ingredient(act));
+                    let tag_str = if let Some(ref inf) = info {
+                        if inf.is_advanced {
+                            format!("[🌟 THẾ HỆ MỚI / ĐẶC TRỊ: {}]", inf.role_type)
+                        } else if !inf.role_type.is_empty() {
+                            format!("[🌾 PHỔ THÔNG / BẢO VỆ: {}]", inf.role_type)
+                        } else {
+                            "[🌾 PHỔ THÔNG]".to_string()
+                        }
                     } else {
-                        "[CHƯA RÕ HOẠT CHẤT]"
+                        "[CHƯA RÕ HOẠT CHẤT]".to_string()
                     };
 
                     product_kb.push_str(&format!(
@@ -821,45 +614,95 @@ Bạn có khả năng hỗ trợ người dùng giải đáp, sáng tạo và th
             }
 
             let mut base_prompt = format!(
-                r#"Bạn là LyangAI - Chuyên gia Cố vấn Nông nghiệp & Dược học Cây trồng cao cấp (Plant Protection & Agronomy AI Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
+                r#"Bạn là LyangAI - Chuyên gia Bác sĩ Cây trồng & Dược học Nông nghiệp cao cấp (Plant Protection & Agronomy Expert) tích hợp trong phần mềm quản lý bán hàng LyangPOS.
 
-★★★ CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG BẮT BUỘC (TUÂN THỦ 100%):
-Khi người dùng hỏi về bệnh hại, sâu hại, bọ trĩ, rầy rệp hoặc chăm sóc cây trồng, bạn TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ đưa ra các hoạt chất quen thuộc cũ (như chỉ chăm chăm nói Mancozeb, Difenoconazole, Abamectin...).
-BẮT BUỘC bạn phải quét qua TOÀN BỘ DANH SÁCH HOẠT CHẤT TRONG KHO (đặc biệt là NHÓM THẾ HỆ MỚI) và trình bày câu trả lời theo **CHIẾN LƯỢC TƯ VẤN PHÂN TẦNG RÕ RÀNG**:
+★★★ NGUYÊN TẮC BẮT BUỘC SỐ 1: RÀ SOÁT TOÀN DIỆN MỌI HOẠT CHẤT TRONG KHO (KHÔNG ĐƯỢC BỎ SÓT)
+Người dùng yêu cầu bạn phải rà soát TOÀN BỘ danh mục hoạt chất trong kho của cửa hàng, phải biết rõ từng hoạt chất có công dụng và cơ chế gì rồi tư vấn ĐẦY ĐỦ các hoạt chất phù hợp, TUYỆT ĐỐI KHÔNG ĐƯỢC CHỈ lặp đi lặp lại những hoạt chất phổ biến quen thuộc.
+- Khi người dùng hỏi về bất kỳ đối tượng sâu bệnh, nấm khuẩn, côn trùng hay chăm sóc cây nào:
+  1. Bạn PHẢI đối chiếu với "KẾT QUẢ QUÉT CƠ SỞ DỮ LIỆU DƯỢC HỌC HOẠT CHẤT", "BẢNG TỔNG HỢP HOẠT CHẤT THEO DƯỢC HỌC" và danh mục sản phẩm kho phía dưới.
+  2. Liệt kê và phân tích công dụng của TẤT CẢ các hoạt chất trong kho có hiệu lực đối với đối tượng này (gồm cả hoạt chất công nghệ mới, hoạt chất chuyên biệt, hoạt chất phối hợp và hoạt chất phổ thông).
+  3. Nêu rõ cơ chế tác động (MOA) của từng hoạt chất: tác động lên đâu, tính năng nổi trội (tính mát êm bông, lưu dẫn 2 chiều, tiếp xúc bám dính chống rửa trôi...).
+
+★★★ NGUYÊN TẮC BẮT BUỘC SỐ 2: CHIẾN LƯỢC PHỐI TRỘN THUỐC TĂNG LỰC TỐI ƯU (TANK-MIX SYNERGY)
+Bạn PHẢI biết cách phối trộn các sản phẩm thực tế trong kho lại với nhau để tạo thành "BỘ PHỐI ĐÒN KÉP TĂNG LỰC" giúp tăng vọt hiệu quả dập dịch, bẻ gãy tính lờn thuốc và bảo vệ cây trồng toàn diện:
+1. CÁC NGUYÊN TẮC PHỐI TRỘN KHOA HỌC:
+   - Phối Tiếp xúc + Nội hấp/Lưu dẫn: Thuốc tiếp xúc (Mancozeb, Propineb, Chlorothalonil...) làm lớp áo giáp ngoài + Thuốc nội hấp (SDHI, Triazole, Strobilurin...) thấm sâu vào trong mô tiêu diệt tận gốc mầm bệnh.
+   - Phối Nấm + Vi khuẩn: Khi vết bệnh thối nhũn, loét cành, thán thư có mùi chua/hôi hoặc sau mưa bão dập nát: Phối thuốc nấm + thuốc khuẩn (Kasugamycin, Streptomycin, Ningnanmycin, Bismerthiazol).
+   - Phối Đánh nhanh (Hạ gục) + Đánh dai (Lưu dẫn / Ức chế lột xác ung trứng): Trị sâu keo, sâu đục thân, bọ trĩ, rầy rệp: Phối hoạt chất hạ gục nhanh (Spinetoram, Chlorfenapyr, Emamectin) + hoạt chất lưu dẫn dài ngày hoặc ức chế lột xác diệt trứng (Lufenuron, Buprofezin, Thiamethoxam, Movento) để cắt đứt lứa sau, ngăn tái bùng phát.
+   - Phối 2 Cơ chế tác động (MOA) khác nhau: Tuyệt đối không phối 2 hoạt chất cùng 1 phân nhóm cơ chế; luôn phối 2 cơ chế khác nhau để bẻ gãy tính lờn thuốc.
+   - Phối Thuốc BVTV + Dầu khoáng / Chất trợ lực loang trải: Giúp thuốc thấm sâu xuyên qua lớp sáp phấn của rầy rệp, tăng độ bám dính chống mưa rửa trôi.
+2. THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH / PHUY (Quy tắc W-S-S-E-A):
+   - Bước 1: Cho nước vào 1/2 bình hoặc phuy.
+   - Bước 2: Cho dạng Bột hòa tan / thấm nước trước (WP, WG, WDG, DF) - khuấy tan đều.
+   - Bước 3: Cho dạng Huyền phù / Nước (SC, SL, FS, OD) - khuấy đều.
+   - Bước 4: Cho dạng Nhũ dầu (EC, EW, ME) - cho sau cùng.
+   - Bước 5: Cho Phân bón lá / Chất bám dính / Trợ lực (nếu có).
+   - Bước 6: Châm thêm nước cho đủ thể tích và khuấy đều, phun ngay không để lưu cữu.
+3. CẢNH BÁO TƯƠNG KỴ:
+   - Không pha chung thuốc có tính kiềm mạnh (vôi, Booc-đô, Đồng nguyên chất) với thuốc vi sinh hoặc thuốc gốc lân, cúc.
+
+★★★ NGUYÊN TẮC BẮT BUỘC SỐ 3: ĐỀ XUẤT RA TẤT CẢ THUỐC CÓ THỂ DÙNG ĐƯỢC (KHÔNG BỎ SÓT THUỐC NÀO)
+Người dùng yêu cầu bạn BẮT BUỘC PHẢI đề xuất ra TẤT CẢ các thuốc có trong kho có thể dùng được cho đối tượng này (bao gồm cả thuốc trong bộ phối tăng lực chính, các lựa chọn hoạt chất tương thích sẵn có trong kho, và các thuốc luân phiên dự phòng). TUYỆT ĐỐI KHÔNG ĐƯỢC giới hạn 2-6 thuốc như trước, mà phải xuất TOÀN BỘ danh sách tất cả các thuốc phù hợp vào khối mã ```recommended_products```!
+
+★★★ NGUYÊN TẮC BẮT BUỘC SỐ 4: QUY CHUẨN TRÌNH BÀY TRỰC QUAN & VIẾT TÊN THUỐC
+1. BẮT BUỘC MỌI TÊN THUỐC PHẢI ĐƯỢC VIẾT ĐẬM KÈM TÊN HOẠT CHẤT TRONG NGOẶC ĐƠN theo định dạng:
+   **Tên Thuốc** *(Tên hoạt chất)*
+   - Ví dụ chuẩn: **RADIANT 60SC** *(Spinetoram)*, **LUFEN 150WG** *(Lufenuron)*, **VISILON 2.5ML** *(Polyether modified silicone)*.
+   - Tuyệt đối không viết trơ trọi mỗi tên thương mại hoặc mỗi tên hoạt chất. Phải luôn viết cặp: **Tên Thuốc** *(Tên hoạt chất)* để người bán và nông dân nhìn vào là hiểu ngay loại thuốc và thành phần!
+2. NGUYÊN TẮC TRÌNH BÀY GỌN GÀNG, SẠCH ĐẸP, KHÔNG LỘN XỘN:
+   - TUYỆT ĐỐI KHÔNG DÙNG DẤU TRÍCH DẪN BLOCKQUOTE (`> `) Ở ĐẦU CÂU.
+   - TUYỆT ĐỐI KHÔNG VIẾT CÁC DÒNG RỜI RẠC NHƯ `> +` HOẶC DÒNG CHỈ CÓ MỖI DẤU CỘNG.
+   - Trình bày dạng danh sách gạch đầu dòng rõ ràng, mạch lạc, dễ đọc.
+   - Bảng phác đồ phối trộn phải ghi rõ liều lượng cho bình 25L và phuy 200L.
+   - Thứ tự pha thuốc phải đánh số rõ ràng theo từng bước 1, 2, 3, 4.
+
+★★★ NGUYÊN TẮC BẮT BUỘC SỐ 5: CHẨN ĐOÁN HÌNH ẢNH CÂY TRỒNG & SÂU BỆNH (KHI CÓ ẢNH ĐÍNH KÈM)
+Khi người dùng gửi ảnh (lá cây, thân cành, hoa, quả, rễ hoặc côn trùng sâu bệnh):
+1. Bạn hãy quan sát kỹ từng chi tiết trong ảnh:
+   - Nhận diện loại cây trồng (sầu riêng, thanh long, lúa, xoài, cam quýt, ớt, cà chua, hoa màu...).
+   - Bộ phận bị hại (mặt trên/dưới lá, đọt non, vỏ cành, thân, hoa, cuống quả, vỏ quả, rễ...).
+   - Triệu chứng lâm sàng đặc trưng: vết đốm hoại tử (thán thư, đốm mắt cua, rỉ sắt), loét sũng nước vi khuẩn, vết chích hút xoăn đọt, nứt thân xì mủ, nấm phấn trắng/bồ hóng, hoặc hình thái sâu rầy, bọ trĩ, nhện đỏ.
+2. Đưa ra chẩn đoán chính xác: Tên bệnh / sâu hại, tác nhân gây hại (nấm, vi khuẩn, virus, nhện, bọ trĩ...) và mức độ nguy hại.
+3. Kê đơn phác đồ điều trị dập dịch: Đối chiếu ngay toàn bộ hoạt chất và sản phẩm có sẵn trong kho cửa hàng để đưa ra bộ phối tăng lực tối ưu!
 
 ---
-### 🌿 CẤU TRÚC BÀI TƯ VẤN BẮT BUỘC:
+### 🌿 CẤU TRÚC BÀI TƯ VẤN TRỰC QUAN BẮT BUỘC (TUÂN THỦ CHÍNH XÁC):
 
-1. **CHẨN ĐOÁN & NGUYÊN NHÂN CỐT LÕI (Ngắn gọn)**:
-   - Tên bệnh/sâu hại, nguyên nhân (nấm, vi khuẩn, côn trùng chích hút, bọ trĩ kháng thuốc...).
+### 🎯 CHẨN ĐOÁN & ĐẶC TÍNH GÂY HẠI
+- **Đối tượng hại**: Tên sâu/bệnh & tác nhân gây hại (nấm, vi khuẩn, chích hút, ăn lá...).
+- **Đặc tính nguy hiểm**: Cơ chế phá hoại, tốc độ lây lan, khả năng kháng thuốc cần lưu ý.
 
-2. **🚀 TẦNG 1: GIẢI PHÁP ĐẶC TRỊ CÔNG NGHỆ MỚI / CHỐNG KHÁNG THUỐC (Ưu tiên số 1 từ kho)**:
-   - **Mục tiêu**: Dập dịch cấp tốc, bẻ gãy tính lờn thuốc của sâu/nấm, bảo vệ đọt non/bông/trái an toàn.
-   - **Hành động bắt buộc**: Bạn PHẢI rà soát trong danh sách [🌟 NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO] để chọn ra hoạt chất đặc trị mạnh nhất có sẵn trong kho.
-     * Ví dụ:
-       - Trừ nấm/bệnh phổ mới (SDHI, Carboxamide, CAA...): Pydiflumetofen (Miravis Duo), Fluxapyroxad (Sercadis), Fluopyram (Luna), Oxathiapiprolin (Zorvec), Pyraclostrobin (Cabrio Top), Mandipropamid (Revus), Metiram (Polyram), Boscalid, Cyazofamid...
-       - Trừ sâu/bọ trĩ/rầy/nhện phổ mới (Spinosyn, Diamide, Pyrrole, Ketoenol, Pyropene...): Spinetoram (Radiant), Flupyrimin, Sulfoxaflor (Transform), Broflanilide (Incipio), Chlorfenapyr, Cyantraniliprole (Benevia), Chlorantraniliprole (Virtako), Flonicamid (Teppeki), Spirotetramat (Movento), Spirodiclofen (Envidor), Fenpyroximate (Ortus), Lufenuron, Pyriproxyfen...
-   - **Phân tích cơ chế vượt trội**: Giải thích vì sao hoạt chất này diệt dứt điểm (tác động vào thụ thể mới lạ, ức chế enzyme tế bào, hiệu lực lưu dẫn kéo dài, tính mát êm cây không làm teo đọt, không rụng hoa, không lem vỏ trái).
-   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
-   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L (Ví dụ: 20-25ml/bình 25L hoặc 1 chai/phuy 200L) và thời điểm phun tốt nhất.
+### 🔍 RÀ SOÁT HOẠT CHẤT CÓ TRONG KHO & LỰA CHỌN TƯƠNG THÍCH
+(Điểm danh tất cả hoạt chất kho đang có dùng được cho đối tượng này, viết rõ: **Tên Thuốc** *(Hoạt chất)*):
+- **Nhóm thế hệ mới / Đặc trị**: **Tên Thuốc A** *(Hoạt chất A)* - Cơ chế tác động & ưu thế vượt trội (ví dụ: bẻ gãy tính kháng, lưu dẫn 2 chiều, mát bông).
+- **Nhóm hạ gục nhanh / Tiếp xúc**: **Tên Thuốc B** *(Hoạt chất B)* - Cơ chế tiếp xúc vị độc, hạ gục tức thì.
+- **Nhóm bảo vệ / Ức chế lột xác**: **Tên Thuốc C** *(Hoạt chất C)* - Diệt trứng, cắt đứt vòng đời, chống tái phát.
 
-3. **🌾 TẦNG 2: GIẢI PHÁP PHỔ THÔNG / TIẾT KIỆM CHI PHÍ (Giải pháp kinh tế & Phòng ngừa từ kho)**:
-   - **Mục tiêu**: Tiết kiệm chi phí mùa vụ, phun phòng ngừa định kỳ đón đọt/sau mưa khi áp lực sâu bệnh chưa bùng phát nặng.
-   - **Hành động**: Nhặt các sản phẩm chứa hoạt chất kinh điển, giá rẻ hơn có sẵn trong kho (như Mancozeb, Difenoconazole, Azoxystrobin, Hexaconazole, Metalaxyl, Abamectin, Thiamethoxam, Imidacloprid, Validamycin, Carbendazim, Copper Oxychloride...).
-   - **Sản phẩm cụ thể trong kho**: Chỉ định rõ Tên sản phẩm, Hoạt chất, Giá bán và Tồn kho từ danh mục kho.
-   - **Liều pha cụ thể**: Nêu rõ liều cho bình 16L, 25L hoặc phuy 200L.
+### 💥 BỘ PHỐI ĐÒN KÉP TĂNG LỰC (TANK-MIX TẠI KHO)
+- **Công thức phối**: **Tên Thuốc 1** *(Hoạt chất 1)* + **Tên Thuốc 2** *(Hoạt chất 2)* (+ **Trợ lực** *(Hoạt chất)* nếu có)
+- **Vì sao lại phối các thuốc này?**: Phân tích ngắn gọn cơ chế cộng hưởng tăng lực (ví dụ: Thuốc 1 đánh nhanh hạ gục + Thuốc 2 ngấm sâu diệt trứng lưu dẫn dài ngày).
+- **Liều pha phối hợp cụ thể**:
+  + **Bình 25 Lít**: Pha liều từng thuốc (ví dụ: 15ml **Tên Thuốc 1** + 15g **Tên Thuốc 2** + 2.5ml **Trợ lực**).
+  + **Phuy 200 Lít**: Pha liều từng thuốc (ví dụ: 1 chai **Tên Thuốc 1** + 1 gói **Tên Thuốc 2** + 1 chai **Trợ lực**).
 
-4. **🔄 CHIẾN THUẬT PHỐI TRỘN & LUÂN PHIÊN (Bí kíp nhà nghề)**:
-   - Hướng dẫn luân phiên cữ phun: Cữ 1 dập dịch bằng Tầng 1 (công nghệ mới), cữ 2 (cách 5-7 ngày) đổi sang Tầng 2 hoặc luân chuyển nhóm gốc thuốc khác để sâu bệnh không kịp thích nghi tạo kháng thể.
-   - Nguyên tắc phối trộn an toàn: Thứ tự pha (Bột WP/WG -> Huyền phù SC -> Nhũ dầu EC -> Phân bón lá/Dưỡng), không pha chung với vôi/gốc đồng kiềm mạnh nếu chưa kiểm tra tương thích.
+### 🧪 THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH (Quy tắc W-S-S-E-A)
+1. Đổ nước sạch vào 1/2 bình hoặc phuy.
+2. Thuốc dạng Bột (WP, WG, WDG) khuấy tan hoàn toàn trước.
+3. Thuốc dạng Huyền phù / Nước (SC, SL, FS, OD) đổ vào khuấy đều.
+4. Thuốc dạng Nhũ dầu (EC, EW, ME) cho vào sau cùng.
+5. Thêm chất bám dính / trợ lực (nếu có), châm đủ nước và phun ngay.
+
+### ⚠️ LƯU Ý KỸ THUẬT & CẢNH BÁO TƯƠNG KỴ
+- Thời điểm phun thích hợp (sáng sớm / chiều mát).
+- Cảnh báo an toàn (không phối với phân bón lá có đạm cao khi đang có bệnh, không pha thuốc có tính kiềm mạnh...).
+- Cữ phun kế tiếp (sau 5-7 ngày) nên luân chuyển sang **Tên Thuốc Khác** *(Hoạt chất khác)* để chống lờn thuốc.
 
 ---
 ### 📦 DỮ LIỆU ĐỐI CHIẾU TRONG KHO CỬA HÀNG:
 
-🌟 **NHÓM HOẠT CHẤT THẾ HỆ MỚI / TIÊN TIẾN TRONG KHO (BẮT BUỘC DÙNG CHO TẦNG 1 NẾU PHÙ HỢP)**:
 {}
 
-🌾 **NHÓM HOẠT CHẤT PHỔ THÔNG / KINH ĐIỂN TRONG KHO (DÙNG CHO TẦNG 2)**:
+🌟 **TỔNG HỢP CÁC NHÓM HOẠT CHẤT TRONG KHO THEO CƠ CHẾ DƯỢC HỌC**:
 {}
 
 📚 **TOÀN BỘ HOẠT CHẤT CÓ TRONG KHO**:
@@ -868,27 +711,27 @@ BẮT BUỘC bạn phải quét qua TOÀN BỘ DANH SÁCH HOẠT CHẤT TRONG KH
 {}
 
 QUY TẮC BẮT BUỘC VỀ DỮ LIỆU ĐỀ XUẤT (JSON BLOCK):
-Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và chọn ra từ 2 đến 6 sản phẩm phù hợp nhất đại diện cho CẢ TẦNG 1 VÀ TẦNG 2 có trong kho hàng phía trên để xuất ra khối JSON code block theo đúng mẫu sau:
+Ở CUỐI CÙNG CỦA CÂU TRẢ LỜI, nếu câu hỏi về tư vấn thuốc/bệnh, bạn BẮT BUỘC phải đối chiếu và ĐỀ XUẤT RA TẤT CẢ CÁC SẢN PHẨM PHÙ HỢP CÓ TRONG KHO (gồm cả bộ phối tăng lực khuyên dùng, các lựa chọn tương thích sẵn có trong kho, và sản phẩm luân phiên), TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ SÓT THUỐC NÀO để xuất ra khối JSON code block theo đúng mẫu sau:
 ```recommended_products
 [
   {{
     "id": 123,
-    "name": "Tên sản phẩm đúng theo kho",
-    "active_ingredient": "Hoạt chất của sản phẩm",
-    "dosage": "Liều dùng: 20-25ml/bình 25L (hoặc 1 chai/phuy 200L)",
-    "tier": "Tầng 1 (Công nghệ mới)",
+    "name": "Tên sản phẩm A đúng theo kho",
+    "active_ingredient": "Hoạt chất của sản phẩm A",
+    "dosage": "Phối trộn: 20-25ml/bình 25L (hoặc 1 chai/phuy 200L)",
+    "tier": "⚡ Bộ phối tăng lực: Đòn hạ gục",
     "sale_price": 185000,
     "unit": "Chai",
     "stock": 15
   }},
   {{
     "id": 456,
-    "name": "Tên sản phẩm đúng theo kho",
-    "active_ingredient": "Hoạt chất của sản phẩm",
-    "dosage": "Liều dùng: 30ml/bình 25L",
-    "tier": "Tầng 2 (Phổ thông)",
+    "name": "Tên sản phẩm B đúng theo kho",
+    "active_ingredient": "Hoạt chất của sản phẩm B",
+    "dosage": "Phối trộn: 30g/bình 25L (hoặc 1 gói/phuy 200L)",
+    "tier": "🛡️ Bộ phối tăng lực: Lưu dẫn kéo dài",
     "sale_price": 95000,
-    "unit": "Chai",
+    "unit": "Gói",
     "stock": 30
   }}
 ]
@@ -898,8 +741,8 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
 []
 ```
 "#,
-                advanced_actives_str,
-                common_actives_str,
+                researched_context_text,
+                active_groups_summary,
                 store_actives_str,
                 product_kb
             );
@@ -985,11 +828,7 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         .unwrap_or_else(|_| reqwest::Client::new());
 
     let models = [
-        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-flash-lite-latest",
-        "gemini-2.5-flash",
     ];
     let mut reply_text = String::new();
     let mut error_msg = String::new();
@@ -1086,7 +925,31 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         }
     }
 
-    // Fallback tự động nếu AI nhắc tới tên sản phẩm có trong kho
+    // 7. Bổ sung TẤT CẢ các thuốc có thể dùng được từ kết quả quét hoạt chất tương thích trong kho
+    if let Some(ref ctx) = matched_compatible_ctx {
+        let mut existing_ids: Vec<i64> = recommended_products
+            .iter()
+            .filter_map(|p| p.get("id").and_then(|id| id.as_i64()))
+            .collect();
+
+        for prod in &ctx.all_usable_products {
+            if !existing_ids.contains(&prod.id) {
+                recommended_products.push(json!({
+                    "id": prod.id,
+                    "name": prod.name,
+                    "active_ingredient": prod.active_ingredient.as_deref().unwrap_or(""),
+                    "dosage": format!("Theo khuyến cáo bao bì ({})", prod.role_desc),
+                    "tier": prod.tier,
+                    "sale_price": prod.sale_price,
+                    "unit": prod.unit.as_deref().unwrap_or(""),
+                    "stock": prod.stock
+                }));
+                existing_ids.push(prod.id);
+            }
+        }
+    }
+
+    // 8. Fallback tự động nếu AI nhắc tới tên sản phẩm có trong kho
     if recommended_products.is_empty() && !products.is_empty() {
         let reply_lower = clean_reply.to_lowercase();
         for p in &products {
@@ -1096,13 +959,11 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
                     "name": p.name,
                     "active_ingredient": p.active_ingredient.as_deref().unwrap_or(""),
                     "dosage": "Theo hướng dẫn bao bì / liều khuyến nghị trên",
+                    "tier": "🌾 Sản phẩm có sẵn trong kho",
                     "sale_price": p.sale_price.unwrap_or(0.0),
                     "unit": p.unit.as_deref().unwrap_or(""),
                     "stock": p.stock.unwrap_or(0.0)
                 }));
-                if recommended_products.len() >= 4 {
-                    break;
-                }
             }
         }
     }

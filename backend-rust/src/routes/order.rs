@@ -6,7 +6,7 @@ use axum::{
 };
 use chrono::{Local, NaiveDate, NaiveDateTime, NaiveTime};
 use serde_json::json;
-use sqlx::{Row, SqlitePool};
+use sqlx::{Row, SqliteConnection, SqlitePool};
 use std::collections::HashMap;
 
 use crate::error::AppError;
@@ -309,6 +309,7 @@ async fn populate_order_details_response(
                     is_invoiced: d.is_invoiced.unwrap_or(false),
                     invoiced_quantity: d.invoiced_quantity.unwrap_or(if d.is_invoiced.unwrap_or(false) { qty } else { 0.0 }),
                     invoice_no: d.invoice_no.unwrap_or_default(),
+                    brand: p.brand.clone(),
                 });
                 continue;
             }
@@ -341,6 +342,7 @@ async fn populate_order_details_response(
             is_invoiced: d.is_invoiced.unwrap_or(false),
             invoiced_quantity: d.invoiced_quantity.unwrap_or(0.0),
             invoice_no: d.invoice_no.unwrap_or_default(),
+            brand: None,
         });
     }
 
@@ -470,6 +472,18 @@ pub async fn get_orders(
 
     if let Some(prod_id) = params.product_id {
         conditions.push_str(&format!(" AND od.product_id = {prod_id}"));
+    }
+
+    if let Some(ref b) = params.brand {
+        let b_clean = b.trim();
+        if !b_clean.is_empty() && b_clean != "All" {
+            if b_clean == "Khác" || b_clean == "Chưa phân loại" {
+                conditions.push_str(" AND (prod.brand IS NULL OR TRIM(prod.brand) = '' OR prod.brand = 'Khác' OR prod.brand = 'Chưa phân loại')");
+            } else {
+                let b_esc = b_clean.replace('\'', "''");
+                conditions.push_str(&format!(" AND lower(TRIM(prod.brand)) = lower('{b_esc}')"));
+            }
+        }
     }
 
     if let Some(ref min_p) = params.min_price {
@@ -609,6 +623,253 @@ pub async fn get_order(
     Ok(Json(resp))
 }
 
+pub async fn deduct_product_stock_fifo(
+    conn: &mut SqliteConnection,
+    prod_id: i64,
+    qty: f64,
+) -> Result<(), AppError> {
+    if qty <= 0.0 {
+        return Ok(());
+    }
+    let prod_opt: Option<Product> = sqlx::query_as(
+        "SELECT id, name, code, unit, secondary_unit, \
+         CAST(multiplier AS REAL) as multiplier, \
+         CAST(cost_price AS REAL) as cost_price, \
+         CAST(sale_price AS REAL) as sale_price, \
+         CAST(stock AS REAL) as stock, \
+         expiry_date, active_ingredient, brand, \
+         CAST(is_combo AS BOOLEAN) as is_combo, \
+         CAST(is_active AS BOOLEAN) as is_active, \
+         latest_audit, category_id, \
+         CAST(accounting_price AS REAL) as accounting_price, \
+         CAST(accounting_stock AS REAL) as accounting_stock, \
+         CAST(latest_cost_price AS REAL) as latest_cost_price, \
+         CAST(bulk_quantity AS REAL) as bulk_quantity, \
+         CAST(bulk_price AS REAL) as bulk_price, \
+         alias, CAST(min_stock AS REAL) as min_stock \
+         FROM product WHERE id = ?"
+    )
+    .bind(prod_id)
+    .fetch_optional(&mut *conn)
+    .await?;
+
+    let prod = match prod_opt {
+        Some(p) => p,
+        None => return Ok(()),
+    };
+
+    if prod.is_combo.unwrap_or(false) {
+        let combo_items = sqlx::query(
+            "SELECT ci.product_id, CAST(ci.quantity AS REAL) as quantity, CAST(p.stock AS REAL) as stock \
+             FROM combo_item ci JOIN product p ON ci.product_id = p.id WHERE ci.combo_id = ?"
+        )
+        .bind(prod.id)
+        .fetch_all(&mut *conn)
+        .await?;
+
+        for ci in combo_items {
+            let child_id: i64 = ci.get("product_id");
+            let ci_qty: f64 = ci.get("quantity");
+            let child_stock: Option<f64> = ci.get("stock");
+
+            let needed_qty = qty * ci_qty;
+            let new_c_stock = child_stock.unwrap_or(0.0) - needed_qty;
+            sqlx::query("UPDATE product SET stock = ? WHERE id = ?")
+                .bind(new_c_stock)
+                .bind(child_id)
+                .execute(&mut *conn)
+                .await?;
+
+            let mut remaining_needed = needed_qty;
+            let batches: Vec<StockBatch> = sqlx::query_as(
+                "SELECT id, product_id, purchase_order_id, \
+                 CAST(original_quantity AS REAL) as original_quantity, \
+                 CAST(current_quantity AS REAL) as current_quantity, \
+                 CAST(cost_price AS REAL) as cost_price, created_at \
+                 FROM stock_batch WHERE product_id = ? AND current_quantity > 0 \
+                 ORDER BY created_at ASC, id ASC"
+            )
+            .bind(child_id)
+            .fetch_all(&mut *conn)
+            .await?;
+
+            for mut b in batches {
+                if remaining_needed <= 0.0 {
+                    break;
+                }
+                let take = remaining_needed.min(b.current_quantity);
+                b.current_quantity -= take;
+                remaining_needed -= take;
+
+                sqlx::query("UPDATE stock_batch SET current_quantity = ? WHERE id = ?")
+                    .bind(b.current_quantity)
+                    .bind(b.id)
+                    .execute(&mut *conn)
+                    .await?;
+            }
+        }
+    } else {
+        let new_stock = prod.stock.unwrap_or(0.0) - qty;
+        sqlx::query("UPDATE product SET stock = ? WHERE id = ?")
+            .bind(new_stock)
+            .bind(prod.id)
+            .execute(&mut *conn)
+            .await?;
+
+        let mut remaining_needed = qty;
+        let batches: Vec<StockBatch> = sqlx::query_as(
+            "SELECT id, product_id, purchase_order_id, \
+             CAST(original_quantity AS REAL) as original_quantity, \
+             CAST(current_quantity AS REAL) as current_quantity, \
+             CAST(cost_price AS REAL) as cost_price, created_at \
+             FROM stock_batch WHERE product_id = ? AND current_quantity > 0 \
+             ORDER BY created_at ASC, id ASC"
+        )
+        .bind(prod.id)
+        .fetch_all(&mut *conn)
+        .await?;
+
+        for mut b in batches {
+            if remaining_needed <= 0.0 {
+                break;
+            }
+            let take = remaining_needed.min(b.current_quantity);
+            b.current_quantity -= take;
+            remaining_needed -= take;
+
+            sqlx::query("UPDATE stock_batch SET current_quantity = ? WHERE id = ?")
+                .bind(b.current_quantity)
+                .bind(b.id)
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn restore_product_stock_fifo(
+    conn: &mut SqliteConnection,
+    prod_id: i64,
+    qty: f64,
+) -> Result<(), AppError> {
+    if qty <= 0.0 {
+        return Ok(());
+    }
+    let prod_opt: Option<Product> = sqlx::query_as(
+        "SELECT id, name, code, unit, secondary_unit, \
+         CAST(multiplier AS REAL) as multiplier, \
+         CAST(cost_price AS REAL) as cost_price, \
+         CAST(sale_price AS REAL) as sale_price, \
+         CAST(stock AS REAL) as stock, \
+         expiry_date, active_ingredient, brand, \
+         CAST(is_combo AS BOOLEAN) as is_combo, \
+         CAST(is_active AS BOOLEAN) as is_active, \
+         latest_audit, category_id, \
+         CAST(accounting_price AS REAL) as accounting_price, \
+         CAST(accounting_stock AS REAL) as accounting_stock, \
+         CAST(latest_cost_price AS REAL) as latest_cost_price, \
+         CAST(bulk_quantity AS REAL) as bulk_quantity, \
+         CAST(bulk_price AS REAL) as bulk_price, \
+         alias, CAST(min_stock AS REAL) as min_stock \
+         FROM product WHERE id = ?"
+    )
+    .bind(prod_id)
+    .fetch_optional(&mut *conn)
+    .await?;
+
+    let prod = match prod_opt {
+        Some(p) => p,
+        None => return Ok(()),
+    };
+
+    if prod.is_combo.unwrap_or(false) {
+        let combo_items = sqlx::query(
+            "SELECT product_id, CAST(quantity AS REAL) as quantity FROM combo_item WHERE combo_id = ?"
+        )
+        .bind(prod.id)
+        .fetch_all(&mut *conn)
+        .await?;
+
+        for ci in combo_items {
+            let child_id: i64 = ci.get("product_id");
+            let ci_qty: f64 = ci.get("quantity");
+            let mut child_needed = qty * ci_qty;
+
+            sqlx::query("UPDATE product SET stock = coalesce(stock, 0) + ? WHERE id = ?")
+                .bind(child_needed)
+                .bind(child_id)
+                .execute(&mut *conn)
+                .await?;
+
+            let c_batches: Vec<StockBatch> = sqlx::query_as(
+                "SELECT id, product_id, purchase_order_id, \
+                 CAST(original_quantity AS REAL) as original_quantity, \
+                 CAST(current_quantity AS REAL) as current_quantity, \
+                 CAST(cost_price AS REAL) as cost_price, created_at \
+                 FROM stock_batch WHERE product_id = ? AND current_quantity < original_quantity \
+                 ORDER BY created_at DESC, id DESC"
+            )
+            .bind(child_id)
+            .fetch_all(&mut *conn)
+            .await?;
+
+            for mut cb in c_batches {
+                if child_needed <= 0.0 {
+                    break;
+                }
+                let can_add = cb.original_quantity - cb.current_quantity;
+                let take = child_needed.min(can_add);
+                cb.current_quantity += take;
+                child_needed -= take;
+
+                sqlx::query("UPDATE stock_batch SET current_quantity = ? WHERE id = ?")
+                    .bind(cb.current_quantity)
+                    .bind(cb.id)
+                    .execute(&mut *conn)
+                    .await?;
+            }
+        }
+    } else {
+        sqlx::query("UPDATE product SET stock = coalesce(stock, 0) + ? WHERE id = ?")
+            .bind(qty)
+            .bind(prod.id)
+            .execute(&mut *conn)
+            .await?;
+
+        let mut qty_to_restore = qty;
+        let p_batches: Vec<StockBatch> = sqlx::query_as(
+            "SELECT id, product_id, purchase_order_id, \
+             CAST(original_quantity AS REAL) as original_quantity, \
+             CAST(current_quantity AS REAL) as current_quantity, \
+             CAST(cost_price AS REAL) as cost_price, created_at \
+             FROM stock_batch WHERE product_id = ? AND current_quantity < original_quantity \
+             ORDER BY created_at DESC, id DESC"
+        )
+        .bind(prod.id)
+        .fetch_all(&mut *conn)
+        .await?;
+
+        for mut pb in p_batches {
+            if qty_to_restore <= 0.0 {
+                break;
+            }
+            let can_add = pb.original_quantity - pb.current_quantity;
+            let take = qty_to_restore.min(can_add);
+            pb.current_quantity += take;
+            qty_to_restore -= take;
+
+            sqlx::query("UPDATE stock_batch SET current_quantity = ? WHERE id = ?")
+                .bind(pb.current_quantity)
+                .bind(pb.id)
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
+
+    Ok(())
+}
+
 // POST /api/orders
 pub async fn create_order(
     State(pool): State<SqlitePool>,
@@ -644,6 +905,7 @@ pub async fn create_order(
         if payload.r#type == "Purchase" { "Completed".to_string() } else { "Pending".to_string() }
     });
     let is_draft_order = order_status == "Draft";
+    let is_shipping_order = payload.shipping_status.as_deref() == Some("Shipping");
 
     // Start database transaction
     let mut tx = pool.begin().await?;
@@ -691,7 +953,7 @@ pub async fn create_order(
             .bind(order_id)
             .bind(name_override)
             .bind(item_qty)
-            .bind(if is_consignment_order || is_draft_order || payload.shipping_status.is_some() { 0.0 } else { item_qty })
+            .bind(if is_consignment_order || is_draft_order || is_shipping_order { 0.0 } else { item_qty })
             .bind(item_price)
             .execute(&mut *tx)
             .await?;
@@ -730,9 +992,9 @@ pub async fn create_order(
 
         let mut avg_cost: f64 = 0.0;
 
-        if is_draft_order {
-            // Draft order: NO inventory changes and NO batch creation
-            avg_cost = item_price;
+        if is_draft_order || is_shipping_order {
+            // Draft order or Shipping order: NO inventory changes and NO batch creation/consumption
+            avg_cost = prod.cost_price.unwrap_or(0.0);
         } else if payload.r#type == "Sale" {
             if item_qty < 0.0 {
                 // Return transaction
@@ -939,7 +1201,7 @@ pub async fn create_order(
         }
 
         let name_override = item.product_name.clone().or_else(|| item.name.clone());
-        let shipped_qty = if is_consignment_order || is_draft_order || payload.shipping_status.is_some() {
+        let shipped_qty = if is_consignment_order || is_draft_order || is_shipping_order {
             0.0
         } else {
             item_qty
@@ -1571,8 +1833,13 @@ pub async fn update_order(
     let mut tx = pool.begin().await?;
 
     let is_old_draft = order.status.as_deref() == Some("Draft");
+    let is_old_shipping = order.shipping_status.as_deref() == Some("Shipping");
     let new_status = payload.status.clone().unwrap_or_else(|| order.status.clone().unwrap_or_else(|| "Completed".to_string()));
     let is_new_draft = new_status == "Draft";
+    let final_shipping_status = payload.shipping_status.clone().or_else(|| order.shipping_status.clone());
+    let final_shipping_address = payload.shipping_address.clone().or_else(|| order.shipping_address.clone());
+    let final_shipping_phone = payload.shipping_phone.clone().or_else(|| order.shipping_phone.clone());
+    let is_new_shipping = final_shipping_status.as_deref() == Some("Shipping");
 
     // 1. Reverse Previous Inventory (only if old order was NOT a draft)
     let old_details: Vec<OrderDetail> = sqlx::query_as(
@@ -1594,7 +1861,14 @@ pub async fn update_order(
         if order.r#type.as_deref() == Some("Sale") {
             for d in &old_details {
                 if let Some(prod_id) = d.product_id {
-                    let mut qty_to_restore = d.quantity;
+                    let mut qty_to_restore = if is_old_shipping {
+                        d.shipped_quantity.unwrap_or(0.0)
+                    } else {
+                        d.quantity
+                    };
+                    if qty_to_restore <= 0.0 {
+                        continue;
+                    }
                     let prod_opt: Option<Product> = sqlx::query_as(
                         "SELECT id, name, code, unit, secondary_unit, \
                          CAST(multiplier AS REAL) as multiplier, \
@@ -1803,7 +2077,7 @@ pub async fn update_order(
             .bind(order.id)
             .bind(name_override)
             .bind(item_qty)
-            .bind(if is_consignment || is_new_draft || payload.shipping_status.is_some() { 0.0 } else { item_qty })
+            .bind(if is_consignment || is_new_draft || is_new_shipping { 0.0 } else { item_qty })
             .bind(item_price)
             .execute(&mut *tx)
             .await?;
@@ -1841,9 +2115,9 @@ pub async fn update_order(
         };
 
         let mut avg_cost = 0.0;
-        if is_new_draft {
-            // New state is draft: do not modify stock or batches
-            avg_cost = item_price;
+        if is_new_draft || is_new_shipping {
+            // New state is draft or shipping: do not modify stock or batches
+            avg_cost = prod.cost_price.unwrap_or(0.0);
         } else if order_type == "Sale" {
             if item_qty < 0.0 {
                 sqlx::query("UPDATE product SET stock = coalesce(stock, 0) - ? WHERE id = ?")
@@ -2021,7 +2295,7 @@ pub async fn update_order(
         }
 
         let name_override = item.product_name.clone().or_else(|| item.name.clone());
-        let shipped_qty = if is_consignment || is_new_draft || payload.shipping_status.is_some() {
+        let shipped_qty = if is_consignment || is_new_draft || is_new_shipping {
             0.0
         } else {
             item_qty
@@ -2061,9 +2335,9 @@ pub async fn update_order(
     .bind(payload.cash_given.unwrap_or(0.0))
     .bind(is_consignment)
     .bind(&new_status)
-    .bind(&payload.shipping_status)
-    .bind(&payload.shipping_address)
-    .bind(&payload.shipping_phone)
+    .bind(&final_shipping_status)
+    .bind(&final_shipping_address)
+    .bind(&final_shipping_phone)
     .bind(order.id)
     .execute(&mut *tx)
     .await?;
@@ -2275,6 +2549,8 @@ pub async fn update_shipping_status(
     Path(id): Path<i64>,
     Json(payload): Json<UpdateShippingStatusDto>,
 ) -> Result<impl IntoResponse, AppError> {
+    let mut tx = pool.begin().await?;
+
     let order: Order = sqlx::query_as(
         "SELECT id, date, partner_id, CAST(total_amount AS REAL) as total_amount, \
          payment_method, type, note, CAST(amount_paid AS REAL) as amount_paid, \
@@ -2286,29 +2562,109 @@ pub async fn update_shipping_status(
          FROM \"order\" WHERE id = ?"
     )
     .bind(id)
-    .fetch_one(&pool)
+    .fetch_one(&mut *tx)
     .await?;
 
-    let mut delivery_date = order.delivery_date;
-    if let Some(ref ss) = payload.shipping_status {
-        if ss == "Delivered" && order.shipping_status.as_deref() != Some("Delivered") {
-            delivery_date = Some(get_vn_time());
-        } else if ss != "Delivered" {
-            delivery_date = None;
-        }
+    let details: Vec<OrderDetail> = sqlx::query_as(
+        "SELECT id, order_id, product_id, product_name_override, \
+         CAST(quantity AS REAL) as quantity, \
+         CAST(shipped_quantity AS REAL) as shipped_quantity, \
+         CAST(price AS REAL) as price, \
+         CAST(cost_price AS REAL) as cost_price, \
+         CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
+         CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
+         invoice_no \
+         FROM order_detail WHERE order_id = ?"
+    )
+    .bind(order.id)
+    .fetch_all(&mut *tx)
+    .await?;
 
-        if ss == "Shipping" {
-            sqlx::query("UPDATE order_detail SET shipped_quantity = 0 WHERE order_id = ?")
+    let is_active_sale = order.r#type.as_deref() == Some("Sale")
+        && !order.is_consignment.unwrap_or(false)
+        && order.status.as_deref() != Some("Draft");
+
+    if let Some(ref ss) = payload.shipping_status {
+        if ss == "Delivered" {
+            let delivery_date = Some(get_vn_time());
+            // If previous status was not Delivered, deduct all remaining undelivered quantities
+            for d in &details {
+                let current_shipped = d.shipped_quantity.unwrap_or(0.0);
+                let remaining_to_ship = (d.quantity - current_shipped).max(0.0);
+                if remaining_to_ship > 0.0 {
+                    if is_active_sale {
+                        if let Some(prod_id) = d.product_id {
+                            deduct_product_stock_fifo(&mut tx, prod_id, remaining_to_ship).await?;
+                        }
+                    }
+                    sqlx::query("UPDATE order_detail SET shipped_quantity = ? WHERE id = ?")
+                        .bind(d.quantity)
+                        .bind(d.id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+
+            sqlx::query("UPDATE \"order\" SET shipping_status = ?, delivery_date = ? WHERE id = ?")
+                .bind(ss)
+                .bind(delivery_date)
                 .bind(order.id)
-                .execute(&pool)
+                .execute(&mut *tx)
+                .await?;
+        } else if ss == "Shipping" {
+            // If order was Delivered or partially shipped, restore whatever was shipped
+            for d in &details {
+                let current_shipped = d.shipped_quantity.unwrap_or(0.0);
+                if current_shipped > 0.0 {
+                    if is_active_sale {
+                        if let Some(prod_id) = d.product_id {
+                            restore_product_stock_fifo(&mut tx, prod_id, current_shipped).await?;
+                        }
+                    }
+                    sqlx::query("UPDATE order_detail SET shipped_quantity = 0 WHERE id = ?")
+                        .bind(d.id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+
+            sqlx::query("UPDATE \"order\" SET shipping_status = ?, delivery_date = NULL WHERE id = ?")
+                .bind(ss)
+                .bind(order.id)
+                .execute(&mut *tx)
+                .await?;
+        } else {
+            // Any other status string
+            sqlx::query("UPDATE \"order\" SET shipping_status = ?, delivery_date = NULL WHERE id = ?")
+                .bind(ss)
+                .bind(order.id)
+                .execute(&mut *tx)
                 .await?;
         }
-
-        sqlx::query("UPDATE \"order\" SET shipping_status = ?, delivery_date = ? WHERE id = ?")
-            .bind(ss)
-            .bind(delivery_date)
+    } else {
+        // Shipping status cleared (NULL)
+        // If it was in Shipping, it's now a direct completed order: deduct remaining undelivered quantities
+        if order.shipping_status.as_deref() == Some("Shipping") {
+            for d in &details {
+                let current_shipped = d.shipped_quantity.unwrap_or(0.0);
+                let remaining_to_ship = (d.quantity - current_shipped).max(0.0);
+                if remaining_to_ship > 0.0 {
+                    if is_active_sale {
+                        if let Some(prod_id) = d.product_id {
+                            deduct_product_stock_fifo(&mut tx, prod_id, remaining_to_ship).await?;
+                        }
+                    }
+                    sqlx::query("UPDATE order_detail SET shipped_quantity = ? WHERE id = ?")
+                        .bind(d.quantity)
+                        .bind(d.id)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+        }
+        sqlx::query("UPDATE \"order\" SET shipping_status = NULL, delivery_date = NULL WHERE id = ?")
             .bind(order.id)
-            .execute(&pool)
+            .execute(&mut *tx)
             .await?;
     }
 
@@ -2323,8 +2679,26 @@ pub async fn update_shipping_status(
          FROM \"order\" WHERE id = ?"
     )
     .bind(id)
-    .fetch_one(&pool)
+    .fetch_one(&mut *tx)
     .await?;
+
+    tx.commit().await?;
+
+    // Broadcast Real-time WebSocket Event to all LAN clients & Web Terminals
+    crate::routes::ws::broadcast_event(
+        "ORDER_UPDATED",
+        serde_json::json!({
+            "order_id": order.id,
+            "shipping_status": updated.shipping_status,
+        }),
+    );
+    crate::routes::ws::broadcast_event(
+        "STOCK_CHANGED",
+        serde_json::json!({
+            "reason": "SHIPPING_STATUS_UPDATED",
+            "order_id": order.id,
+        }),
+    );
 
     let resp = populate_order_details_response(&pool, &updated).await?;
     Ok(Json(resp))
@@ -2336,11 +2710,7 @@ pub async fn update_detail_shipped_quantity(
     Path(detail_id): Path<i64>,
     Json(payload): Json<UpdateShippedQuantityDto>,
 ) -> Result<impl IntoResponse, AppError> {
-    sqlx::query("UPDATE order_detail SET shipped_quantity = ? WHERE id = ?")
-        .bind(payload.shipped_quantity)
-        .bind(detail_id)
-        .execute(&pool)
-        .await?;
+    let mut tx = pool.begin().await?;
 
     let detail: OrderDetail = sqlx::query_as(
         "SELECT id, order_id, product_id, product_name_override, \
@@ -2354,10 +2724,48 @@ pub async fn update_detail_shipped_quantity(
          FROM order_detail WHERE id = ?"
     )
     .bind(detail_id)
-    .fetch_one(&pool)
+    .fetch_one(&mut *tx)
     .await?;
 
-    // Check all details of this order
+    let order: Order = sqlx::query_as(
+        "SELECT id, date, partner_id, CAST(total_amount AS REAL) as total_amount, \
+         payment_method, type, note, CAST(amount_paid AS REAL) as amount_paid, \
+         CAST(old_debt AS REAL) as old_debt, display_id, status, shipping_status, \
+         shipping_address, shipping_phone, delivery_date, CAST(cash_given AS REAL) as cash_given, \
+         created_by, CAST(is_duplicate_checked AS BOOLEAN) as is_duplicate_checked, \
+         CAST(is_consignment AS BOOLEAN) as is_consignment, \
+         CAST(is_invoiced AS BOOLEAN) as is_invoiced, invoice_no, invoice_date, invoice_note \
+         FROM \"order\" WHERE id = ?"
+    )
+    .bind(detail.order_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    let old_shipped = detail.shipped_quantity.unwrap_or(0.0);
+    let target_shipped = payload.shipped_quantity.max(0.0).min(detail.quantity);
+    let delta = target_shipped - old_shipped;
+
+    let is_active_sale = order.r#type.as_deref() == Some("Sale")
+        && !order.is_consignment.unwrap_or(false)
+        && order.status.as_deref() != Some("Draft");
+
+    if is_active_sale && delta.abs() > 0.0001 {
+        if let Some(prod_id) = detail.product_id {
+            if delta > 0.0 {
+                deduct_product_stock_fifo(&mut tx, prod_id, delta).await?;
+            } else {
+                restore_product_stock_fifo(&mut tx, prod_id, -delta).await?;
+            }
+        }
+    }
+
+    sqlx::query("UPDATE order_detail SET shipped_quantity = ? WHERE id = ?")
+        .bind(target_shipped)
+        .bind(detail_id)
+        .execute(&mut *tx)
+        .await?;
+
+    // Check all details of this order to determine order shipping status
     let all_details: Vec<OrderDetail> = sqlx::query_as(
         "SELECT id, order_id, product_id, product_name_override, \
          CAST(quantity AS REAL) as quantity, \
@@ -2370,44 +2778,59 @@ pub async fn update_detail_shipped_quantity(
          FROM order_detail WHERE order_id = ?"
     )
     .bind(detail.order_id)
-    .fetch_all(&pool)
+    .fetch_all(&mut *tx)
     .await?;
 
     let mut all_shipped = true;
-    let mut any_shipped = false;
-
     for d in &all_details {
         if d.shipped_quantity.unwrap_or(0.0) < d.quantity {
             all_shipped = false;
-        }
-        if d.shipped_quantity.unwrap_or(0.0) > 0.0 {
-            any_shipped = true;
+            break;
         }
     }
 
-    let mut order_shipping_status = None;
+    let order_shipping_status;
     if all_shipped {
         let now = get_vn_time();
         sqlx::query("UPDATE \"order\" SET shipping_status = 'Delivered', delivery_date = ? WHERE id = ?")
             .bind(now)
             .bind(detail.order_id)
-            .execute(&pool)
+            .execute(&mut *tx)
             .await?;
         order_shipping_status = Some("Delivered".to_string());
-    } else if any_shipped {
+    } else {
         sqlx::query("UPDATE \"order\" SET shipping_status = 'Shipping', delivery_date = NULL WHERE id = ?")
             .bind(detail.order_id)
-            .execute(&pool)
+            .execute(&mut *tx)
             .await?;
         order_shipping_status = Some("Shipping".to_string());
     }
+
+    tx.commit().await?;
+
+    // Broadcast Real-time WebSocket Event to all LAN clients & Web Terminals
+    crate::routes::ws::broadcast_event(
+        "ORDER_UPDATED",
+        serde_json::json!({
+            "order_id": detail.order_id,
+            "shipping_status": order_shipping_status,
+        }),
+    );
+    crate::routes::ws::broadcast_event(
+        "STOCK_CHANGED",
+        serde_json::json!({
+            "reason": "DETAIL_SHIPPED_QUANTITY_UPDATED",
+            "order_id": detail.order_id,
+            "product_id": detail.product_id,
+        }),
+    );
 
     Ok(Json(json!({
         "detail": {
             "id": detail.id,
             "order_id": detail.order_id,
             "product_id": detail.product_id,
-            "shipped_quantity": detail.shipped_quantity
+            "shipped_quantity": target_shipped
         },
         "order_shipping_status": order_shipping_status
     })))

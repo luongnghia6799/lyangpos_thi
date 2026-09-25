@@ -48,6 +48,16 @@ async fn main() -> anyhow::Result<()> {
     // Start reminder scheduler background service (Every 5s check and real-time alert)
     routes::reminder::start_reminder_scheduler_task(pool.clone());
 
+    // Initialize researched active ingredients knowledge base in background
+    let pool_ai = pool.clone();
+    tokio::spawn(async move {
+        if let Err(e) = routes::active_ingredient::init_active_ingredient_knowledge(&pool_ai).await {
+            tracing::warn!("Lỗi khởi tạo cơ sở dữ liệu hoạt chất nghiên cứu: {}", e);
+        } else {
+            tracing::info!("Cơ sở dữ liệu dược học hoạt chất kho LyangPOS đã được nạp thành công.");
+        }
+    });
+
     // Configure CORS for local UI and remote mobile devices
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -94,9 +104,13 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/history/active-filters", get(routes::system::get_history_active_filters))
         .route("/api/tauri/save-and-open", post(routes::system::save_and_open_tauri))
         .route("/api/open-external-chrome", post(routes::system::open_external_chrome))
+        .route("/api/purchase/scan-invoice", post(routes::system::scan_purchase_invoice))
         .route("/api/ai/consult", post(routes::ai::consult_ai))
-        .route("/api/tts", get(routes::tts::get_tts))
-        .route("/api/tts/clear-cache", post(routes::tts::clear_tts_cache))
+        // Active Ingredients Pharmacological Research Knowledge & Sync
+        .route("/api/active-ingredients/researched", get(routes::active_ingredient::get_researched_ingredients))
+        .route("/api/active-ingredients/researched/sync", post(routes::active_ingredient::sync_and_research_warehouse))
+        .route("/api/active-ingredients/researched/research-one", post(routes::active_ingredient::research_single_ingredient_handler))
+        .route("/api/active-ingredients/researched/update", post(routes::active_ingredient::update_researched_ingredient_handler))
         // Backup, Restore & Reset Database
         .route("/api/backup", get(routes::backup::download_backup))
         .route(

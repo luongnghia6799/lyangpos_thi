@@ -57,7 +57,7 @@
   --color-neutral-700: #404040;
 }
 
-*:not(#print-template):not(#print-template *):not(.po-slip-container):not(.po-slip-container *):not(.font-preview-sample):not(.font-preview-sample *):not(.typing-practice-root):not(.typing-practice-root *):not(.typing-custom-font):not(.typing-custom-font *):not(.type-letter):not([id^="type-word-"]) {
+*:not(#print-template):not(#print-template *):not(.font-preview-sample):not(.font-preview-sample *):not(.typing-practice-root):not(.typing-practice-root *):not(.typing-custom-font):not(.typing-custom-font *):not(.type-letter):not([id^="type-word-"]) {
   font-family: var(--app-global-font);
 }
 
@@ -1621,5 +1621,114 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
   background-color: rgba(var(--primary-rgb, 74, 222, 128), 0.12) !important;
 }
 
+/* Purchase Order Slip Print & Export styling */
+.po-slip-container .po-prod-name {
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
 
+.po-slip-container .po-prod-ai {
+  font-size: 11px !important;
+  color: #64748b !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  margin-top: 2px !important;
+  line-height: 1.2 !important;
+}
 
+.po-slip-container .po-spec-text {
+  font-size: 11.5px !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+.po-slip-container .po-table th {
+  padding: 0 !important;
+  height: 38px !important;
+}
+
+.po-slip-container .po-th-inner {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 6px;
+}
+
+.po-slip-container .po-th-inner.po-th-name {
+  justify-content: flex-start;
+  padding-left: 12px;
+}
+
+.po-slip-container .po-table td {
+  padding: 0 !important;
+  height: 48px !important;
+  vertical-align: middle !important;
+}
+
+.po-slip-container .po-td-inner {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.po-slip-container .po-td-inner.po-td-name {
+  justify-content: flex-start;
+  padding-left: 12px;
+}
+
+.po-slip-container .po-table-tfoot td {
+  padding: 0 !important;
+  height: 42px !important;
+}
+
+.po-slip-container .po-tfoot-inner-label {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+  line-height: 1;
+}
+
+.po-slip-container .po-tfoot-inner-qty {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ========================================================
+   HARDWARE ACCELERATION & POPUP PERFORMANCE OPTIMIZATION
+   - Prevents stutter, frame drops and layout flickering
+   - Zero visual change, promotes active layers to GPU
+   ======================================================== */
+.dropdown-premium,
+[class*="backdrop-blur"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Modal, Popups & Floating Dialogs GPU promotion */
+[role='dialog'],
+.modal-content,
+[class*='fixed inset-0'] > div {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Prevent horizontal jitter on list open */
+.custom-scrollbar,
+.overflow-y-auto {
+  scrollbar-gutter: stable;
+}

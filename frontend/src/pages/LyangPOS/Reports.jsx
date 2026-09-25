@@ -549,7 +549,8 @@ export default function Reports() {
                         <CustomSelect
                             value={filterMode}
                             onChange={(val) => {
-                                setFilterMode(val);
+                                const mode = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                setFilterMode(mode);
                                 setPage(1);
                             }}
                             options={filterModeOptions}
@@ -580,7 +581,8 @@ export default function Reports() {
                             <CustomSelect
                                 value={String(month)}
                                 onChange={(val) => {
-                                    setMonth(val);
+                                    const m = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                    setMonth(m);
                                     setPage(1);
                                 }}
                                 options={monthListOptions}
@@ -591,7 +593,8 @@ export default function Reports() {
                             <CustomSelect
                                 value={String(year)}
                                 onChange={(val) => {
-                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                    setYear(parseInt(y) || new Date().getFullYear());
                                     setPage(1);
                                 }}
                                 options={yearListOptions}
@@ -606,7 +609,8 @@ export default function Reports() {
                             <CustomSelect
                                 value={String(quarter || '1')}
                                 onChange={(val) => {
-                                    setQuarter(val);
+                                    const q = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                    setQuarter(q);
                                     setPage(1);
                                 }}
                                 options={quarterListOptions}
@@ -617,7 +621,8 @@ export default function Reports() {
                             <CustomSelect
                                 value={String(year)}
                                 onChange={(val) => {
-                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                    setYear(parseInt(y) || new Date().getFullYear());
                                     setPage(1);
                                 }}
                                 options={yearListOptions}
@@ -632,7 +637,8 @@ export default function Reports() {
                             <CustomSelect
                                 value={String(year)}
                                 onChange={(val) => {
-                                    setYear(parseInt(val) || new Date().getFullYear());
+                                    const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                    setYear(parseInt(y) || new Date().getFullYear());
                                     setPage(1);
                                 }}
                                 options={yearListOptions}
@@ -785,7 +791,8 @@ export default function Reports() {
                                 <CustomDatePicker
                                     value={synthesisStartDate}
                                     onChange={(val) => {
-                                        setSynthesisStartDate(val || '');
+                                        const d = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                        setSynthesisStartDate(d || '');
                                         setPage(1);
                                     }}
                                     placeholder="Từ ngày..."
@@ -795,7 +802,8 @@ export default function Reports() {
                                 <CustomDatePicker
                                     value={synthesisEndDate}
                                     onChange={(val) => {
-                                        setSynthesisEndDate(val || '');
+                                        const d = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                        setSynthesisEndDate(d || '');
                                         setPage(1);
                                     }}
                                     placeholder="Đến ngày..."

@@ -1628,17 +1628,28 @@ pub async fn get_report_brands(
         }
     }
 
+    let brand = params.brand.unwrap_or_else(|| "All".into());
+    let mut brand_clause = String::new();
+    if brand != "All" && !brand.trim().is_empty() {
+        if brand == "Khác" || brand == "Chưa phân loại" {
+            brand_clause = " AND (p.brand IS NULL OR TRIM(p.brand) = '' OR p.brand = 'Khác' OR p.brand = 'Chưa phân loại')".to_string();
+        } else {
+            let b_esc = brand.trim().replace('\'', "''");
+            brand_clause = format!(" AND lower(TRIM(p.brand)) = lower('{b_esc}')");
+        }
+    }
+
     let q = format!(
-        "SELECT COALESCE(p.brand, 'Khác') as brand, \
+        "SELECT COALESCE(NULLIF(TRIM(p.brand), ''), 'Khác') as brand, \
          CAST(SUM(od.price * od.quantity) AS REAL) as revenue, \
          CAST(SUM((od.price - COALESCE(od.cost_price, p.cost_price, 0)) * od.quantity) AS REAL) as profit, \
          CAST(SUM(od.quantity) AS REAL) as qty \
          FROM order_detail od \
          JOIN product p ON p.id = od.product_id \
          JOIN \"order\" o ON o.id = od.order_id \
-         WHERE o.id IN ({}) \
-         GROUP BY p.brand",
-        sql_orders
+         WHERE o.id IN ({}) {} \
+         GROUP BY COALESCE(NULLIF(TRIM(p.brand), ''), 'Khác')",
+        sql_orders, brand_clause
     );
 
     let rows = sqlx::query(&q).fetch_all(&pool).await?;
@@ -1654,6 +1665,19 @@ pub async fn get_report_brands(
             "profit": prof,
             "qty": qty
         }));
+    }
+
+    // Filter by search query if provided
+    if let Some(ref s) = params.search {
+        let s_clean = s.trim().to_lowercase();
+        if !s_clean.is_empty() {
+            let s_norm = remove_accents(&s_clean);
+            results.retain(|item| {
+                let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
+                let name_norm = remove_accents(&name);
+                name.contains(&s_clean) || name_norm.contains(&s_norm)
+            });
+        }
     }
 
     let sort_by = params.sort_by.unwrap_or_else(|| "revenue".into());

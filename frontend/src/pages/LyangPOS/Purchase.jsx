@@ -26,7 +26,7 @@ import CustomSelect from '../../components/forms/CustomSelect';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
 import PriceRaiseModal from '../../components/modals/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle } from '../../components/modals/CartColorCustomizerModal';
+import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle, getCartTextPillStyle, getCartTextShadowStyle } from '../../components/modals/CartColorCustomizerModal';
 import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import LyangLogo from '../../assets/logo.png';
 
@@ -3252,7 +3252,7 @@ export default function Purchase() {
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
                                                                         ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
-                                                                        : "z-[50] hover:z-[3000] group-hover/price:z-[4000] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                                                                        : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
                                                                 )}
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
@@ -3265,10 +3265,14 @@ export default function Purchase() {
                                                                     }
                                                                 }}
                                                             >
-                                                                <td className="py-2 px-2 text-center text-slate-400 font-black text-[11px] group-hover:text-primary transition-colors tabular-nums">{idx + 1}</td>
-                                                                <td className="py-2 px-2 relative">
+                                                                <td className="py-2 px-2 text-center text-slate-400 font-black text-[11px] group-hover:text-primary transition-colors tabular-nums">
+                                                                    <div className={cn("w-7 h-7 mx-auto rounded-lg flex items-center justify-center transition-all", cartColorConfig?.enableTextPills && "border shadow-xs")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'index') : undefined}>
+                                                                        {idx + 1}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-2 relative group-hover/search-row:z-[9999]">
                                                                     <div
-                                                                        className="relative group/search-row"
+                                                                        className="relative group/search-row hover:z-[9999]"
                                                                         onDoubleClick={(e) => {
                                                                             e.preventDefault();
                                                                             const p = products.find(prod => prod.id === item.product_id);
@@ -3491,25 +3495,31 @@ export default function Purchase() {
                                                                         >
                                                                             <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                                                    <MarqueeText
-                                                                                        text={item.product_name}
-                                                                                        className={cn(
-                                                                                            "text-[17px] font-black tracking-tight leading-snug",
-                                                                                            (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
+                                                                                    <div className={cn("min-w-0 flex items-center gap-2", cartColorConfig?.enableTextPills && "px-2.5 py-1 rounded-2xl border transition-all")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'name') : undefined}>
+                                                                                        <MarqueeText
+                                                                                            text={item.product_name}
+                                                                                            className={cn(
+                                                                                                "text-[17px] font-black tracking-tight leading-snug",
+                                                                                                (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
+                                                                                            )}
+                                                                                            style={{
+                                                                                                color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined,
+                                                                                                ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor)
+                                                                                            }}
+                                                                                            title={item.product_name}
+                                                                                            onDoubleClick={(e) => {
+                                                                                                e.preventDefault();
+                                                                                                const p = products.find(prod => prod.id === item.product_id);
+                                                                                                if (p) {
+                                                                                                    setEditingProduct(p);
+                                                                                                    setIsEditModalOpen(true);
+                                                                                                }
+                                                                                            }}
+                                                                                        />
+                                                                                        {item.is_combo && (
+                                                                                            <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>
                                                                                         )}
-                                                                                        style={{
-                                                                                            color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined
-                                                                                        }}
-                                                                                        title={item.product_name}
-                                                                                        onDoubleClick={(e) => {
-                                                                                            e.preventDefault();
-                                                                                            const p = products.find(prod => prod.id === item.product_id);
-                                                                                            if (p) {
-                                                                                                setEditingProduct(p);
-                                                                                                setIsEditModalOpen(true);
-                                                                                            }
-                                                                                        }}
-                                                                                    />
+                                                                                    </div>
                                                                                 </div>
                                                                                 {item.ai_scanned && (
                                                                                     <div className="mt-1 flex items-center gap-1.5 z-10 w-fit">
@@ -3782,7 +3792,7 @@ export default function Purchase() {
                                                                 </td>
                                                                 <td className="py-2 px-2">
                                                                     {item.secondary_unit ? (
-                                                                        <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus-within:bg-transparent focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 shadow-none transition-all text-primary dark:text-emerald-400">
+                                                                        <div className={cn("flex items-center gap-1 h-10 px-2 rounded-2xl shadow-none transition-all text-primary dark:text-emerald-400", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}>
                                                                             <input
                                                                                 type="number"
                                                                                 style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
@@ -3817,8 +3827,8 @@ export default function Purchase() {
                                                                 <td className="py-2 px-2 relative group/qty">
                                                                     <input
                                                                         type="number"
-                                                                        style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
-                                                                        className="w-full h-10 text-center bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 outline-none font-black text-lg text-primary dark:text-emerald-400 shadow-none transition-all placeholder:text-gray-300"
+                                                                        style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'qty') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }}
+                                                                        className={cn("w-full h-10 text-center outline-none font-black text-lg text-primary dark:text-emerald-400 transition-all placeholder:text-gray-300", cartColorConfig?.enableTextPills ? "rounded-2xl border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 shadow-none")}
                                                                         value={item.quantity}
                                                                         onFocus={(e) => e.target.select()}
                                                                         autoComplete="off"
@@ -3889,10 +3899,10 @@ export default function Purchase() {
                                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" />
                                                                             </div>
                                                                         )}
-                                                                        <div className="relative w-full">
+                                                                        <div className={cn("relative w-full transition-all", cartColorConfig?.enableTextPills && "rounded-2xl border shadow-xs")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'price') : undefined}>
                                                                             <input
                                                                                 type="text"
-                                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
+                                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }}
                                                                                 className={cn(
                                                                                     "w-full p-2 text-center bg-transparent border-none focus:ring-0 rounded font-black outline-none text-lg tabular-nums text-primary dark:text-emerald-400",
                                                                                     item.price === 0 && "text-transparent select-none placeholder:text-transparent"
@@ -3945,8 +3955,10 @@ export default function Purchase() {
                                                                     </div>
                                                                 </div>
                                                                 </td>
-                                                                <td style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="py-2 px-4 text-right font-black text-slate-900 dark:text-white text-lg tabular-nums">
-                                                                    {formatNumber(item.price * item.quantity)}
+                                                                <td className="py-2 px-4 text-right">
+                                                                    <div style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={cn("font-black text-slate-900 dark:text-white text-lg tabular-nums transition-all", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>
+                                                                        {formatNumber(item.price * item.quantity)}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="py-2 px-2 text-center">
                                                                     <button

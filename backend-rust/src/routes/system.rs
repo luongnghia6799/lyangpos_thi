@@ -453,8 +453,7 @@ Nếu ảnh không có dòng sản phẩm nào hoặc không đọc được, tr
     });
 
     let client = reqwest::Client::new();
-    // Use gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-flash
-    let models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+    let models = ["gemini-3.5-flash-lite"];
     let mut response_text = String::new();
 
     for model in models {

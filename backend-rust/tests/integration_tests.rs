@@ -130,6 +130,269 @@ mod tests {
         }
         assert!(result.is_ok(), "Edge TTS should return valid audio bytes");
     }
+
+    #[tokio::test]
+    async fn test_active_ingredient_scan_and_compatibility() {
+        use sqlx::sqlite::SqlitePoolOptions;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("Failed to create in-memory sqlite pool");
+
+        // Khởi tạo schema và tri thức hoạt chất
+        backend_rust::db::ensure_schema(&pool).await.expect("Failed to ensure schema");
+        backend_rust::routes::active_ingredient::init_active_ingredient_knowledge(&pool)
+            .await
+            .expect("Failed to init active ingredient knowledge");
+
+        // Thêm sản phẩm giả lập vào kho
+        sqlx::query(
+            "INSERT INTO product (id, name, active_ingredient, stock, sale_price, unit) VALUES 
+             (1, 'Thuốc trừ sâu Radiant 60SC', 'Spinetoram 60g/l', 15.0, 120000.0, 'Chai'),
+             (2, 'Confidor 100SL', 'Imidacloprid 100g/l', 20.0, 85000.0, 'Chai'),
+             (3, 'Amistar Top 325SC', 'Azoxystrobin 200g/l + Difenoconazole 125g/l', 10.0, 250000.0, 'Chai'),
+             (4, 'TAKIWA BMC', 'Metaflumizone', 110.0, 220000.0, 'Chai')"
+        )
+        .execute(&pool)
+        .await
+        .expect("Failed to insert sample products");
+
+        // Quét câu hỏi về bọ trĩ
+        let result = backend_rust::routes::active_ingredient::scan_query_and_find_compatible_options(
+            &pool,
+            "Vườn ớt bị bọ trĩ nặng kháng thuốc cần phối hợp thuốc gì"
+        )
+        .await
+        .expect("Scan query failed");
+
+        // Kiểm tra kết quả
+        assert!(!result.matched_targets.is_empty(), "Should match bọ trĩ active ingredients");
+        assert!(!result.compatible_synergies.is_empty(), "Should have compatible synergies");
+        assert!(!result.all_usable_products.is_empty(), "Should retrieve usable products from warehouse");
+        
+        let found_radiant = result.all_usable_products.iter().any(|p| p.name.contains("Radiant"));
+        assert!(found_radiant, "Should propose Radiant (Spinetoram) for bọ trĩ");
+
+        let found_amistar = result.all_usable_products.iter().any(|p| p.name.contains("Amistar"));
+        assert!(!found_amistar, "Thuốc bệnh Amistar Top TUYỆT ĐỐI KHÔNG ĐƯỢC đề xuất khi hỏi về bọ trĩ");
+
+        // Quét câu hỏi về sâu xanh (phải đề xuất Metaflumizone / TAKIWA BMC)
+        let res_sau_xanh = backend_rust::routes::active_ingredient::scan_query_and_find_compatible_options(
+            &pool,
+            "Có thuốc nào trị sâu xanh ăn lá không"
+        )
+        .await
+        .expect("Scan sau xanh query failed");
+
+        let found_takiwa = res_sau_xanh.all_usable_products.iter().any(|p| p.name.contains("TAKIWA BMC"));
+        assert!(found_takiwa, "Thuốc TAKIWA BMC (Metaflumizone) PHẢI ĐƯỢC đề xuất khi hỏi về sâu xanh");
+
+        // Quét câu hỏi về bệnh thán thư
+        let res_disease = backend_rust::routes::active_ingredient::scan_query_and_find_compatible_options(
+            &pool,
+            "Thanh long bị thán thư cành và nứt đốm nâu"
+        )
+        .await
+        .expect("Scan disease query failed");
+
+        let found_amistar_in_disease = res_disease.all_usable_products.iter().any(|p| p.name.contains("Amistar"));
+        assert!(found_amistar_in_disease, "Thuốc bệnh Amistar Top PHẢI ĐƯỢC đề xuất khi hỏi về thán thư");
+
+        let found_radiant_in_disease = res_disease.all_usable_products.iter().any(|p| p.name.contains("Radiant"));
+        assert!(!found_radiant_in_disease, "Thuốc sâu Radiant TUYỆT ĐỐI KHÔNG ĐƯỢC đề xuất khi hỏi về bệnh thán thư");
+    }
+
+    #[test]
+    fn test_detect_period_quarters_years_months() {
+        use backend_rust::routes::ai_analytics::detect_query_period;
+        use chrono::NaiveDate;
+
+        let today = NaiveDate::from_ymd_opt(2026, 9, 24).unwrap();
+
+        // 1. Quý 1 năm 2026
+        let p_q1 = detect_query_period("bao cao doanh thu quy 1 nam 2026", &today).unwrap();
+        assert_eq!(p_q1.label, "Quý 1 năm 2026");
+        assert_eq!(p_q1.start_d, "2026-01-01");
+        assert_eq!(p_q1.end_d, "2026-03-31");
+        assert!(p_q1.is_quarter_or_year);
+
+        // 2. Q2
+        let p_q2 = detect_query_period("tong ket q2", &today).unwrap();
+        assert_eq!(p_q2.label, "Quý 2 năm 2026");
+        assert_eq!(p_q2.start_d, "2026-04-01");
+        assert_eq!(p_q2.end_d, "2026-06-30");
+
+        // 3. Quý này (tháng 9 là Q3)
+        let p_curr_q = detect_query_period("tinh hinh quy nay the nao", &today).unwrap();
+        assert_eq!(p_curr_q.label, "Quý 3 năm 2026");
+        assert_eq!(p_curr_q.start_d, "2026-07-01");
+        assert_eq!(p_curr_q.end_d, "2026-09-30");
+
+        // 4. Quý trước (tháng 9 -> Quý 2)
+        let p_last_q = detect_query_period("so sanh voi quy truoc", &today).unwrap();
+        assert_eq!(p_last_q.label, "Quý 2 năm 2026");
+        assert_eq!(p_last_q.start_d, "2026-04-01");
+        assert_eq!(p_last_q.end_d, "2026-06-30");
+
+        // 5. Cả năm 2025
+        let p_2025 = detect_query_period("tong doanh thu ca nam 2025", &today).unwrap();
+        assert_eq!(p_2025.label, "Cả năm 2025");
+        assert_eq!(p_2025.start_d, "2025-01-01");
+        assert_eq!(p_2025.end_d, "2025-12-31");
+        assert!(p_2025.is_quarter_or_year);
+
+        // 6. Năm ngoái
+        let p_last_year = detect_query_period("nam ngoai ban duoc bao nhieu tien", &today).unwrap();
+        assert_eq!(p_last_year.label, "Cả năm 2025");
+        assert_eq!(p_last_year.start_d, "2025-01-01");
+        assert_eq!(p_last_year.end_d, "2025-12-31");
+
+        // 7. Tháng 8 năm 2025
+        let p_m8 = detect_query_period("thang 8/2025 loi nhuan bao nhieu", &today).unwrap();
+        assert!(!p_m8.is_quarter_or_year);
+    }
+
+    #[tokio::test]
+    async fn test_shipping_stock_deduct_and_restore_fifo() {
+        use sqlx::sqlite::SqlitePoolOptions;
+        use backend_rust::routes::order::{deduct_product_stock_fifo, restore_product_stock_fifo};
+
+        let pool = SqlitePoolOptions::new()
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+
+        // Create minimal schema for product and stock_batch
+        sqlx::query(
+            "CREATE TABLE product (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                code TEXT,
+                unit TEXT,
+                secondary_unit TEXT,
+                multiplier REAL,
+                cost_price REAL,
+                sale_price REAL,
+                stock REAL,
+                expiry_date TEXT,
+                active_ingredient TEXT,
+                brand TEXT,
+                is_combo BOOLEAN,
+                is_active BOOLEAN,
+                latest_audit TEXT,
+                category_id INTEGER,
+                accounting_price REAL,
+                accounting_stock REAL,
+                latest_cost_price REAL,
+                bulk_quantity REAL,
+                bulk_price REAL,
+                alias TEXT,
+                min_stock REAL
+            );"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE stock_batch (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER,
+                purchase_order_id INTEGER,
+                original_quantity REAL,
+                current_quantity REAL,
+                cost_price REAL,
+                created_at DATETIME
+            );"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TABLE combo_item (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                combo_id INTEGER,
+                product_id INTEGER,
+                quantity REAL
+            );"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Insert initial product with stock = 30
+        sqlx::query(
+            "INSERT INTO product (id, name, stock, cost_price, is_combo) VALUES (1, 'Thuốc Test', 30.0, 10000.0, 0)"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Insert 2 batches: batch 1 (10 units, cost 10k), batch 2 (20 units, cost 12k)
+        sqlx::query(
+            "INSERT INTO stock_batch (id, product_id, purchase_order_id, original_quantity, current_quantity, cost_price, created_at)
+             VALUES (1, 1, 1, 10.0, 10.0, 10000.0, '2026-01-01 00:00:00')"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "INSERT INTO stock_batch (id, product_id, purchase_order_id, original_quantity, current_quantity, cost_price, created_at)
+             VALUES (2, 1, 2, 20.0, 20.0, 12000.0, '2026-01-02 00:00:00')"
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // 1. Initial State: stock is 30.0, batches 10.0 and 20.0
+        // Simulating Shipping order: stock is NOT deducted yet.
+        let mut conn = pool.acquire().await.unwrap();
+
+        // 2. Deliver 15 units from Shipping Panel
+        deduct_product_stock_fifo(&mut conn, 1, 15.0).await.unwrap();
+
+        let stock: f64 = sqlx::query_scalar("SELECT stock FROM product WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(stock, 15.0);
+
+        let b1_curr: f64 = sqlx::query_scalar("SELECT current_quantity FROM stock_batch WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        let b2_curr: f64 = sqlx::query_scalar("SELECT current_quantity FROM stock_batch WHERE id = 2")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        // Batch 1 (10 units) depleted, Batch 2 took 5 units -> 15 units remaining
+        assert_eq!(b1_curr, 0.0);
+        assert_eq!(b2_curr, 15.0);
+
+        // 3. User reverts order back to Shipping (undo)
+        restore_product_stock_fifo(&mut conn, 1, 15.0).await.unwrap();
+
+        let stock_restored: f64 = sqlx::query_scalar("SELECT stock FROM product WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(stock_restored, 30.0);
+
+        let b1_restored: f64 = sqlx::query_scalar("SELECT current_quantity FROM stock_batch WHERE id = 1")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        let b2_restored: f64 = sqlx::query_scalar("SELECT current_quantity FROM stock_batch WHERE id = 2")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(b1_restored, 10.0);
+        assert_eq!(b2_restored, 20.0);
+    }
 }
+
 
 

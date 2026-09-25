@@ -1,10 +1,11 @@
-const sharp = require('sharp');
+const sharp = require('e:/vibe/LyangPOS/LyangPOS_final/frontend/node_modules/sharp');
 const path = require('path');
 const fs = require('fs');
 
 async function makeTransparentChibi() {
   const inputPath = 'C:\\Users\\Administrator\\.gemini\\antigravity-ide\\brain\\ae324bbc-f55c-4500-8cbb-40a07a034b54\\cheobingo_2d_chibi_1790122900049.jpg';
   const outDir = path.join(__dirname, 'public', 'assets', 'images');
+  const distDir = path.join(__dirname, 'dist', 'assets', 'images');
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
@@ -29,7 +30,7 @@ async function makeTransparentChibi() {
     const r = data[idx];
     const g = data[idx + 1];
     const b = data[idx + 2];
-    return r > 238 && g > 238 && b > 238;
+    return (r + g + b) / 3 > 140;
   }
 
   const queue = [];
@@ -71,7 +72,6 @@ async function makeTransparentChibi() {
   }
 
   const rgba = Buffer.alloc(W * H * 4);
-
   let minX = W, maxX = 0, minY = H, maxY = 0;
 
   for (let y = 0; y < H; y++) {
@@ -81,53 +81,62 @@ async function makeTransparentChibi() {
       const srcIdx = idx * channels;
 
       if (isBg[idx] === 1) {
-        rgba[dstIdx] = 0;
-        rgba[dstIdx + 1] = 0;
-        rgba[dstIdx + 2] = 0;
         rgba[dstIdx + 3] = 0;
-      } else {
-        // Track bounding box of character
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        continue;
+      }
 
-        // Check if edge touches background for anti-aliasing / defringing
-        let touchesBg = false;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nx = x + dx;
-            const ny = y + dy;
-            if (nx >= 0 && nx < W && ny >= 0 && ny < H && isBg[ny * W + nx] === 1) {
-              touchesBg = true;
-              break;
-            }
+      let touchesBg = false;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= W || ny < 0 || ny >= H || isBg[ny * W + nx] === 1) {
+            touchesBg = true;
+            break;
           }
-          if (touchesBg) break;
         }
+        if (touchesBg) break;
+      }
 
-        const r = data[srcIdx];
-        const g = data[srcIdx + 1];
-        const b = data[srcIdx + 2];
+      const r = data[srcIdx];
+      const g = data[srcIdx + 1];
+      const b = data[srcIdx + 2];
+      const bri = (r + g + b) / 3;
 
-        if (touchesBg && (r + g + b) / 3 > 220) {
-          // Soften white halo
-          rgba[dstIdx] = r;
-          rgba[dstIdx + 1] = g;
-          rgba[dstIdx + 2] = b;
+      if (touchesBg) {
+        if (bri > 120) {
           rgba[dstIdx + 3] = 0;
+          continue;
+        } else if (bri > 45) {
+          const factor = (120 - bri) / 75;
+          rgba[dstIdx] = Math.round(r * factor);
+          rgba[dstIdx + 1] = Math.round(g * factor);
+          rgba[dstIdx + 2] = Math.round(b * factor);
+          rgba[dstIdx + 3] = Math.round(factor * 255);
         } else {
           rgba[dstIdx] = r;
           rgba[dstIdx + 1] = g;
           rgba[dstIdx + 2] = b;
           rgba[dstIdx + 3] = 255;
         }
+      } else {
+        rgba[dstIdx] = r;
+        rgba[dstIdx + 1] = g;
+        rgba[dstIdx + 2] = b;
+        rgba[dstIdx + 3] = 255;
+      }
+
+      if (rgba[dstIdx + 3] > 0) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
       }
     }
   }
 
   // Crop to character with small padding
-  const pad = 20;
+  const pad = 10;
   const cropLeft = Math.max(0, minX - pad);
   const cropTop = Math.max(0, minY - pad);
   const cropW = Math.min(W - cropLeft, (maxX - minX) + pad * 2);
@@ -137,6 +146,10 @@ async function makeTransparentChibi() {
     .extract({ left: cropLeft, top: cropTop, width: cropW, height: cropH })
     .png({ quality: 100 })
     .toFile(outputPath);
+
+  if (fs.existsSync(distDir)) {
+    fs.copyFileSync(outputPath, path.join(distDir, 'cheobingo.png'));
+  }
 
   console.log(`Saved transparent mascot: ${outputPath} (${cropW}x${cropH})`);
 }

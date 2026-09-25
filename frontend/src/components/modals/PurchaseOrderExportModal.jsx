@@ -38,43 +38,66 @@ export default function PurchaseOrderExportModal({
     const generateCanvas = async () => {
         if (!slipRef.current) return null;
         try {
+            // Ensure fonts in main window are loaded before capturing
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+
+            // Get current active app font from document styles
+            const computedFont = window.getComputedStyle(document.body).fontFamily || 
+                window.getComputedStyle(document.documentElement).getPropertyValue('--app-global-font') || 
+                '"Be Vietnam Pro", sans-serif';
+
             return await html2canvas(slipRef.current, {
-                scale: 3.5, // High-resolution scale for razor-sharp text & borders
+                scale: 3, // Crisp resolution
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#ffffff',
                 logging: false,
                 scrollX: 0,
                 scrollY: 0,
-                onclone: (clonedDoc) => {
-                    // Remove all external stylesheet link / style tags in cloned doc that might contain Tailwind v4 oklch()
-                    const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]');
+                onclone: async (clonedDoc) => {
+                    // Extract Google Font link from parent document to ensure same typography
+                    const fontLinks = document.querySelectorAll('link[href*="fonts.googleapis.com"]');
+                    fontLinks.forEach(link => {
+                        const newLink = clonedDoc.createElement('link');
+                        newLink.rel = 'stylesheet';
+                        newLink.href = link.href;
+                        clonedDoc.head.appendChild(newLink);
+                    });
+
+                    // Remove existing tailwind styles that might have unsupported CSS color functions
+                    const styles = clonedDoc.querySelectorAll('style, link[rel="stylesheet"]:not([href*="fonts.googleapis.com"])');
                     styles.forEach(s => s.remove());
 
-                    // Inject clean, standard CSS for the exported slip
+                    // Inject clean, standard CSS for the exported slip using the user's active font
                     const customStyle = clonedDoc.createElement('style');
                     customStyle.innerHTML = `
+                        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap');
                         * {
                             box-sizing: border-box !important;
-                            font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+                            font-family: ${computedFont} !important;
                             -webkit-print-color-adjust: exact !important;
                             color-adjust: exact !important;
-                            line-height: 1.3 !important;
+                            margin: 0;
+                            padding: 0;
                         }
                         .po-slip-container {
                             background-color: #ffffff !important;
                             color: #0f172a !important;
-                            padding: 32px !important;
+                            padding: 24px 32px !important;
                             width: 650px !important;
-                            border: 1px solid #cbd5e1 !important;
+                            box-sizing: border-box !important;
+                            border: 1px solid #e2e8f0 !important;
                             border-radius: 16px !important;
                             box-shadow: none !important;
                         }
                         .po-header {
                             display: flex !important;
+                            flex-direction: row !important;
                             justify-content: space-between !important;
                             align-items: center !important;
-                            border-bottom: 2px solid #1e293b !important;
+                            border-bottom: 2px solid #0f172a !important;
                             padding-bottom: 12px !important;
                             margin-bottom: 16px !important;
                         }
@@ -94,7 +117,7 @@ export default function PurchaseOrderExportModal({
                         }
                         .po-title-box {
                             text-align: center !important;
-                            margin: 12px 0 !important;
+                            margin: 12px 0 16px 0 !important;
                         }
                         .po-title {
                             font-size: 20px !important;
@@ -110,28 +133,33 @@ export default function PurchaseOrderExportModal({
                             font-weight: 600 !important;
                             color: #64748b !important;
                             font-style: italic !important;
-                            margin-top: 2px !important;
+                            margin-top: 4px !important;
                             line-height: 1.3 !important;
                         }
                         .po-info-box {
                             background-color: #f8fafc !important;
                             border: 1px solid #e2e8f0 !important;
                             border-radius: 12px !important;
-                            padding: 12px !important;
-                            margin: 14px 0 !important;
+                            padding: 12px 16px !important;
+                            margin: 14px 0 18px 0 !important;
                             font-size: 12px !important;
                         }
                         .po-info-row {
                             display: flex !important;
+                            flex-direction: row !important;
                             align-items: center !important;
-                            margin-bottom: 4px !important;
-                            line-height: 1.3 !important;
+                            min-height: 24px !important;
+                            line-height: 1.2 !important;
                         }
                         .po-info-label {
                             font-weight: 800 !important;
                             color: #334155 !important;
-                            width: 120px !important;
+                            width: 110px !important;
+                            min-width: 110px !important;
                             flex-shrink: 0 !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            line-height: 1.2 !important;
                         }
                         .po-partner-name {
                             font-size: 14px !important;
@@ -139,9 +167,11 @@ export default function PurchaseOrderExportModal({
                             color: #064e3b !important;
                             text-transform: uppercase !important;
                             line-height: 1.2 !important;
+                            display: flex !important;
+                            align-items: center !important;
                         }
                         .po-table-wrap {
-                            border: 1.5px solid #0f172a !important;
+                            border: 1px solid #cbd5e1 !important;
                             border-radius: 12px !important;
                             overflow: hidden !important;
                             margin-top: 14px !important;
@@ -150,74 +180,131 @@ export default function PurchaseOrderExportModal({
                             width: 100% !important;
                             border-collapse: collapse !important;
                             font-size: 12px !important;
-                        }
-                        .po-table tr {
-                            height: 36px !important;
+                            table-layout: fixed !important;
                         }
                         .po-table th {
                             background-color: #f1f5f9 !important;
                             color: #0f172a !important;
                             font-weight: 900 !important;
-                            padding: 6px 8px !important;
                             border-bottom: 1.5px solid #0f172a !important;
-                            border-right: none !important;
                             font-size: 11px !important;
                             text-transform: uppercase !important;
-                            vertical-align: middle !important;
+                            padding: 0 !important;
+                            height: 38px !important;
                         }
-                        .po-table td {
-                            padding: 6px 8px !important;
-                            border-bottom: none !important;
-                            border-right: none !important;
-                            vertical-align: middle !important;
-                        }
-                        .po-cell-inner {
+                        .po-th-inner {
+                            height: 38px !important;
                             display: flex !important;
                             align-items: center !important;
                             justify-content: center !important;
-                            min-height: 28px !important;
-                            height: 100% !important;
-                            width: 100% !important;
+                            line-height: 1 !important;
+                            padding: 0 6px !important;
                         }
-                        .po-td-name .po-cell-inner,
-                        .po-th-name .po-cell-inner {
+                        .po-th-inner.po-th-name {
                             justify-content: flex-start !important;
-                            text-align: left !important;
-                            padding-left: 8px !important;
+                            padding-left: 12px !important;
+                        }
+                        .po-table td {
+                            border-bottom: 1px solid #f1f5f9 !important;
+                            padding: 0 !important;
+                            height: 48px !important;
+                        }
+                        .po-td-inner {
+                            min-height: 48px !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            padding: 6px !important;
+                            box-sizing: border-box !important;
+                        }
+                        .po-td-inner.po-td-name {
+                            justify-content: flex-start !important;
+                            padding-left: 12px !important;
                         }
                         .po-table tbody tr {
                             background-color: #ffffff !important;
                         }
-                        .po-qty-cell {
-                            background-color: #ecfdf5 !important;
-                            color: #065f46 !important;
-                            font-weight: 900 !important;
+                        .po-table tbody tr:last-child td {
+                            border-bottom: none !important;
+                        }
+                        .po-prod-col {
+                            display: flex !important;
+                            flex-direction: column !important;
+                            justify-content: center !important;
+                            text-align: left !important;
+                        }
+                        .po-prod-name {
+                            display: block !important;
+                            font-weight: 800 !important;
+                            color: #0f172a !important;
+                            line-height: 1.25 !important;
                             font-size: 13px !important;
+                        }
+                        .po-prod-ai {
+                            display: block !important;
+                            font-size: 11px !important;
+                            color: #64748b !important;
+                            font-style: italic !important;
+                            font-weight: normal !important;
+                            margin-top: 2px !important;
+                            line-height: 1.2 !important;
+                        }
+                        .po-spec-text {
+                            font-size: 11.5px !important;
+                            color: #334155 !important;
+                            font-weight: 600 !important;
+                            line-height: 1.2 !important;
                             text-align: center !important;
+                            display: block !important;
+                        }
+                        .po-qty-cell {
+                            background-color: #f0fdf4 !important;
+                            color: #059669 !important;
+                            font-weight: 900 !important;
+                            font-size: 15px !important;
                         }
                         .po-table-tfoot {
-                            background-color: #f1f5f9 !important;
+                            background-color: #f8fafc !important;
                             font-weight: 900 !important;
                             color: #0f172a !important;
                         }
                         .po-table-tfoot td {
-                            vertical-align: middle !important;
-                            padding: 10px 8px !important;
-                            line-height: 1.2 !important;
+                            height: 42px !important;
                             border-top: 1.5px solid #0f172a !important;
+                            padding: 0 !important;
+                        }
+                        .po-tfoot-inner-label {
+                            height: 42px !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: flex-end !important;
+                            padding: 0 12px !important;
+                            line-height: 1 !important;
+                            font-weight: 900 !important;
+                            font-size: 12px !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 0.5px !important;
                         }
                         .po-total-qty {
                             background-color: #d1fae5 !important;
-                            color: #064e3b !important;
-                            font-size: 15px !important;
-                            font-weight: 900 !important;
-                            text-align: center !important;
-                            vertical-align: middle !important;
-                            line-height: 1.2 !important;
+                            color: #065f46 !important;
                             border-top: 1.5px solid #0f172a !important;
+                        }
+                        .po-tfoot-inner-qty {
+                            height: 42px !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            font-size: 16px !important;
+                            font-weight: 900 !important;
+                            line-height: 1 !important;
                         }
                     `;
                     clonedDoc.head.appendChild(customStyle);
+
+                    if (clonedDoc.fonts && clonedDoc.fonts.ready) {
+                        await clonedDoc.fonts.ready;
+                    }
                 }
             });
         } catch (canvasErr) {
@@ -460,21 +547,21 @@ export default function PurchaseOrderExportModal({
                             </div>
 
                             {/* Partner & Note Info */}
-                            <div className="po-info-box bg-slate-50 p-3.5 rounded-xl border border-slate-200 my-4 space-y-1 text-xs">
+                            <div className="po-info-box bg-slate-50 p-4 rounded-xl border border-slate-200 my-4 space-y-1.5 text-xs">
                                 <div className="po-info-row flex items-center gap-2">
-                                    <span className="po-info-label font-extrabold text-slate-700 w-28 shrink-0">Kính gửi NCC:</span>
-                                    <span className="po-partner-name font-black text-emerald-900 uppercase text-sm">{partnerName}</span>
+                                    <span className="po-info-label font-extrabold text-slate-700 w-28 shrink-0 flex items-center">Kính gửi NCC:</span>
+                                    <span className="po-partner-name font-black text-emerald-900 uppercase text-sm flex items-center">{partnerName}</span>
                                 </div>
                                 {partnerPhone && (
                                     <div className="po-info-row flex items-center gap-2">
-                                        <span className="po-info-label font-bold text-slate-600 w-28 shrink-0">Số điện thoại:</span>
-                                        <span className="font-semibold text-slate-800">{partnerPhone}</span>
+                                        <span className="po-info-label font-bold text-slate-600 w-28 shrink-0 flex items-center">Số điện thoại:</span>
+                                        <span className="font-semibold text-slate-800 flex items-center">{partnerPhone}</span>
                                     </div>
                                 )}
                                 {partnerAddress && (
                                     <div className="po-info-row flex items-center gap-2">
-                                        <span className="po-info-label font-bold text-slate-600 w-28 shrink-0">Địa chỉ:</span>
-                                        <span className="font-medium text-slate-800">{partnerAddress}</span>
+                                        <span className="po-info-label font-bold text-slate-600 w-28 shrink-0 flex items-center">Địa chỉ:</span>
+                                        <span className="font-medium text-slate-800 flex items-center">{partnerAddress}</span>
                                     </div>
                                 )}
                                 {note && (
@@ -486,24 +573,31 @@ export default function PurchaseOrderExportModal({
                             </div>
 
                             {/* Products Table */}
-                            <div className="po-table-wrap border border-slate-800 rounded-xl overflow-hidden mt-4">
+                            <div className="po-table-wrap border border-slate-300 rounded-xl overflow-hidden mt-4">
                                  <table className="po-table w-full border-collapse text-xs">
+                                     <colgroup>
+                                         <col style={{ width: '42px' }} />
+                                         <col style={{ width: 'auto' }} />
+                                         <col style={{ width: '115px' }} />
+                                         <col style={{ width: '60px' }} />
+                                         <col style={{ width: '80px' }} />
+                                     </colgroup>
                                      <thead>
                                          <tr className="bg-slate-100 border-b border-slate-800 text-slate-900">
-                                             <th className="py-2 px-2 text-center font-black w-10">
-                                                 <div className="po-cell-inner flex items-center justify-center min-h-[28px]">STT</div>
+                                             <th className="font-black">
+                                                 <div className="po-th-inner">STT</div>
                                              </th>
-                                             <th className="po-th-name py-2 px-3 text-left font-black">
-                                                 <div className="po-cell-inner flex items-center justify-start min-h-[28px]">TÊN SẢN PHẨM / HOẠT CHẤT</div>
+                                             <th className="po-th-name font-black">
+                                                 <div className="po-th-inner po-th-name">TÊN SẢN PHẨM / HOẠT CHẤT</div>
                                              </th>
-                                             <th className="py-2 px-2 text-center font-black w-24">
-                                                 <div className="po-cell-inner flex items-center justify-center min-h-[28px]">QUY CÁCH</div>
+                                             <th className="font-black">
+                                                 <div className="po-th-inner">QUY CÁCH</div>
                                              </th>
-                                             <th className="py-2 px-2 text-center font-black w-18">
-                                                 <div className="po-cell-inner flex items-center justify-center min-h-[28px]">ĐVT</div>
+                                             <th className="font-black">
+                                                 <div className="po-th-inner">ĐVT</div>
                                              </th>
-                                             <th className="py-2 px-3 text-center font-black w-20 bg-emerald-50 text-emerald-900">
-                                                 <div className="po-cell-inner flex items-center justify-center min-h-[28px]">SỐ LƯỢNG</div>
+                                             <th className="font-black bg-emerald-50 text-emerald-900">
+                                                 <div className="po-th-inner">SỐ LƯỢNG</div>
                                              </th>
                                          </tr>
                                      </thead>
@@ -528,44 +622,60 @@ export default function PurchaseOrderExportModal({
                                                  }
 
                                                  return (
-                                                     <tr key={idx} className="bg-white">
-                                                         <td className="py-1 px-2 text-center font-bold text-slate-600">
-                                                             <div className="po-cell-inner flex items-center justify-center min-h-[30px]">{idx + 1}</div>
-                                                         </td>
-                                                         <td className="po-td-name py-1 px-3 text-left font-black text-slate-900">
-                                                             <div className="po-cell-inner flex flex-col justify-center min-h-[30px]">
-                                                                <span className="leading-snug">{prodName}</span>
-                                                                {item.active_ingredient && (
-                                                                    <span className="text-[10px] text-slate-500 font-normal italic mt-0.5 leading-tight">
-                                                                        {item.active_ingredient}
-                                                                    </span>
-                                                                )}
+                                                     <tr key={idx} className="bg-white border-b border-slate-100 last:border-b-0">
+                                                         <td>
+                                                             <div className="po-td-inner font-bold text-slate-600">
+                                                                 {idx + 1}
                                                              </div>
-                                                        </td>
-                                                        <td className="py-1 px-2 text-center font-semibold text-slate-700 whitespace-nowrap">
-                                                            <div className="po-cell-inner flex items-center justify-center min-h-[30px]">{specText}</div>
-                                                        </td>
-                                                        <td className="py-1 px-2 text-center font-extrabold text-slate-800 uppercase">
-                                                            <div className="po-cell-inner flex items-center justify-center min-h-[30px]">{normalizeUOM(unit)}</div>
-                                                        </td>
-                                                        <td className="po-qty-cell py-1 px-3 text-center font-black text-emerald-800 text-sm bg-emerald-50/40">
-                                                            <div className="po-cell-inner flex items-center justify-center min-h-[30px]">{formatNumber(item.quantity)}</div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })
-                                        )}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="po-table-tfoot bg-slate-100 font-black text-slate-900">
-                                            <td colSpan={4} className="py-2.5 px-3 text-right uppercase tracking-wider text-xs border-t-[1.5px] border-slate-900">
-                                                TỔNG CỘNG SỐ LƯỢNG ({totalLines} mặt hàng):
-                                            </td>
-                                            <td className="po-total-qty py-2.5 px-3 text-center text-base text-emerald-900 bg-emerald-100/60 font-black border-t-[1.5px] border-slate-900">
-                                                {formatNumber(totalQty)}
-                                            </td>
-                                        </tr>
-                                    </tfoot>
+                                                         </td>
+                                                         <td className="po-td-name">
+                                                             <div className="po-td-inner po-td-name">
+                                                                 <div className="po-prod-col">
+                                                                     <div className="po-prod-name font-black text-slate-900 tracking-tight" style={{ fontWeight: 800 }}>
+                                                                         {prodName}
+                                                                     </div>
+                                                                     {item.active_ingredient && (
+                                                                         <div className="po-prod-ai text-[11px] text-slate-500 font-normal italic mt-0.5" style={{ fontWeight: 400 }}>
+                                                                             {item.active_ingredient}
+                                                                         </div>
+                                                                     )}
+                                                                 </div>
+                                                             </div>
+                                                         </td>
+                                                         <td>
+                                                             <div className="po-td-inner">
+                                                                 <span className="po-spec-text whitespace-nowrap">{specText}</span>
+                                                             </div>
+                                                         </td>
+                                                         <td>
+                                                             <div className="po-td-inner font-extrabold text-slate-800 uppercase">
+                                                                 {normalizeUOM(unit)}
+                                                             </div>
+                                                         </td>
+                                                         <td className="po-qty-cell">
+                                                             <div className="po-td-inner font-black text-emerald-700">
+                                                                 {formatNumber(item.quantity)}
+                                                             </div>
+                                                         </td>
+                                                     </tr>
+                                                 );
+                                             })
+                                         )}
+                                     </tbody>
+                                     <tfoot>
+                                         <tr className="po-table-tfoot bg-slate-100 font-black text-slate-900 border-t-[1.5px] border-slate-900">
+                                             <td colSpan={4}>
+                                                 <div className="po-tfoot-inner-label">
+                                                     TỔNG CỘNG SỐ LƯỢNG ({totalLines} mặt hàng):
+                                                 </div>
+                                             </td>
+                                             <td className="po-total-qty">
+                                                 <div className="po-tfoot-inner-qty">
+                                                     {formatNumber(totalQty)}
+                                                 </div>
+                                             </td>
+                                         </tr>
+                                     </tfoot>
                                 </table>
                             </div>
                         </div>

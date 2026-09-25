@@ -58,7 +58,11 @@ export default function ReportsBoard() {
 
     // Filter Mode: 'month' | 'day' | 'quarter' | 'year' | 'range' | 'all'
     const now = new Date();
-    const [filterMode, setFilterMode] = useState(savedState.filterMode || 'month');
+    const rawSavedFilter = savedState.filterMode;
+    const parsedSavedFilter = typeof rawSavedFilter === 'object' && rawSavedFilter !== null
+        ? (rawSavedFilter.value || rawSavedFilter.target?.value || 'month')
+        : (rawSavedFilter || 'month');
+    const [filterMode, setFilterMode] = useState(parsedSavedFilter);
     const [exactDate, setExactDate] = useState(() => formatLocal(now));
     const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth() + 1));
     const [selectedQuarter, setSelectedQuarter] = useState(String(Math.ceil((now.getMonth() + 1) / 3)));
@@ -132,7 +136,10 @@ export default function ReportsBoard() {
 
     // Persist state
     useEffect(() => {
-        sessionStorage.setItem('reports_board_state', JSON.stringify({ filterMode, customRange, activeTab }));
+        const cleanFilter = typeof filterMode === 'object' && filterMode !== null
+            ? (filterMode.value || filterMode.target?.value || 'month')
+            : filterMode;
+        sessionStorage.setItem('reports_board_state', JSON.stringify({ filterMode: cleanFilter, customRange, activeTab }));
     }, [filterMode, customRange, activeTab]);
     const [loading, setLoading] = useState(false);
 
@@ -343,7 +350,15 @@ export default function ReportsBoard() {
     const partnerReport = partnerReportData;
     const purchaseReport = purchaseReportData;
     const inventoryReport = inventoryReportData;
-    const brandReport = brandReportData;
+    const brandReport = useMemo(() => {
+        if (!searchTerm) return brandReportData;
+        const term = searchTerm.toLowerCase();
+        const termNorm = removeAccents(term);
+        return brandReportData.filter(b => {
+            const name = (b.name || '').toLowerCase();
+            return name.includes(term) || removeAccents(name).includes(termNorm);
+        });
+    }, [brandReportData, searchTerm]);
 
     const slowMovingReport = useMemo(() => {
         if (activeTab !== 'inventory') return [];
@@ -363,7 +378,7 @@ export default function ReportsBoard() {
         const topBrands = brandReport.slice(0, 6);
         const otherRevenue = brandReport.slice(6).reduce((sum, i) => sum + i.revenue, 0);
         const labels = topBrands.map(b => b.name);
-        if (otherRevenue > 0) labels.push('Khác');
+        if (otherRevenue > 0) labels.push('Các hãng khác');
         const data = topBrands.map(b => b.revenue);
         if (otherRevenue > 0) data.push(otherRevenue);
         return {
@@ -437,7 +452,10 @@ export default function ReportsBoard() {
                                 <Calendar size={18} className="text-primary shrink-0" />
                                 <CustomSelect
                                     value={filterMode}
-                                    onChange={(val) => setFilterMode(val)}
+                                    onChange={(val) => {
+                                        const mode = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                        setFilterMode(mode);
+                                    }}
                                     options={filterModeOptions}
                                     className="min-w-[135px] bg-transparent border-none text-xs font-black text-primary"
                                 />
@@ -463,8 +481,11 @@ export default function ReportsBoard() {
                             {filterMode === 'month' && (
                                 <div className="flex items-center gap-1">
                                     <CustomSelect
-                                        value={selectedMonth}
-                                        onChange={(val) => setSelectedMonth(val)}
+                                        value={String(selectedMonth)}
+                                        onChange={(val) => {
+                                            const m = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                            setSelectedMonth(String(m));
+                                        }}
                                         options={monthListOptions}
                                         placeholder="Chọn tháng..."
                                         className="min-w-[110px] bg-transparent border-none text-xs font-bold"
@@ -472,7 +493,10 @@ export default function ReportsBoard() {
                                     <div className="w-px h-4 bg-border/40"></div>
                                     <CustomSelect
                                         value={String(selectedYear)}
-                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        onChange={(val) => {
+                                            const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                            setSelectedYear(parseInt(y) || new Date().getFullYear());
+                                        }}
                                         options={yearListOptions}
                                         placeholder="Năm..."
                                         className="min-w-[95px] bg-transparent border-none text-xs font-bold"
@@ -483,8 +507,11 @@ export default function ReportsBoard() {
                             {filterMode === 'quarter' && (
                                 <div className="flex items-center gap-1">
                                     <CustomSelect
-                                        value={selectedQuarter}
-                                        onChange={(val) => setSelectedQuarter(val)}
+                                        value={String(selectedQuarter)}
+                                        onChange={(val) => {
+                                            const q = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                            setSelectedQuarter(String(q));
+                                        }}
                                         options={quarterListOptions}
                                         placeholder="Chọn quý..."
                                         className="min-w-[150px] bg-transparent border-none text-xs font-bold"
@@ -492,7 +519,10 @@ export default function ReportsBoard() {
                                     <div className="w-px h-4 bg-border/40"></div>
                                     <CustomSelect
                                         value={String(selectedYear)}
-                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        onChange={(val) => {
+                                            const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                            setSelectedYear(parseInt(y) || new Date().getFullYear());
+                                        }}
                                         options={yearListOptions}
                                         placeholder="Năm..."
                                         className="min-w-[95px] bg-transparent border-none text-xs font-bold"
@@ -504,7 +534,10 @@ export default function ReportsBoard() {
                                 <div className="flex items-center gap-2">
                                     <CustomSelect
                                         value={String(selectedYear)}
-                                        onChange={(val) => setSelectedYear(parseInt(val) || new Date().getFullYear())}
+                                        onChange={(val) => {
+                                            const y = typeof val === 'object' && val !== null && 'target' in val ? val.target.value : (typeof val === 'object' && val !== null && 'value' in val ? val.value : val);
+                                            setSelectedYear(parseInt(y) || new Date().getFullYear());
+                                        }}
                                         options={yearListOptions}
                                         placeholder="Năm..."
                                         className="min-w-[105px] bg-transparent border-none text-xs font-bold"
@@ -905,26 +938,26 @@ export default function ReportsBoard() {
                                             </thead>
                                             <tbody className="divide-y divide-border">
                                                 {activeTab === 'sales' && salesReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (
-                                                    <tr key={row.id} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
-                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><div><div className="font-bold text-slate-800 dark:text-white">{row.name}</div><div className="text-xs text-slate-400 font-bold">{row.code}</div></div><button onClick={() => fetchDetailOrders('product', row.id, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
+                                                    <tr key={row.id} onClick={() => fetchDetailOrders('product', row.id, row.name)} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
+                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><div><div className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{row.name}</div><div className="text-xs text-slate-400 font-bold">{row.code}</div></div><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('product', row.id, row.name); }} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-center font-bold text-slate-600 dark:text-slate-400">{row.unit}</td>
                                                         <td className="px-6 py-3.5 text-right font-black text-slate-700 dark:text-slate-300">{formatNumber(row.qty)}</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-slate-800 dark:text-slate-200">{formatNumber(row.revenue)} ₫</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(row.profit)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-slate-800 dark:text-slate-200">{formatNumber(Math.round(row.revenue))} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(Math.round(row.profit))} ₫</td>
                                                     </tr>
                                                 ))}
                                                 {activeTab === 'customers' && partnerReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (
-                                                    <tr key={row.id} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
-                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><button onClick={() => fetchDetailOrders('partner', row.id, row.name)} className="font-black hover:underline text-primary">{row.name}</button><button onClick={() => fetchDetailOrders('partner', row.id, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
+                                                    <tr key={row.id} onClick={() => fetchDetailOrders('partner', row.id, row.name)} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
+                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('partner', row.id, row.name); }} className="font-black hover:underline text-primary text-left">{row.name}</button><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('partner', row.id, row.name); }} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-right font-bold text-slate-600 dark:text-slate-400">{row.orderCount}</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-slate-800 dark:text-white">{formatNumber(row.totalRevenue)} ₫</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-orange-500">{formatNumber(row.debtIncrease)} ₫</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-red-600">{formatNumber(row.totalDebt)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-slate-800 dark:text-white">{formatNumber(Math.round(row.totalRevenue))} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-orange-500">{formatNumber(Math.round(row.debtIncrease))} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-red-600">{formatNumber(Math.round(row.totalDebt))} ₫</td>
                                                     </tr>
                                                 ))}
                                                 {activeTab === 'inventory' && inventoryReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (
-                                                    <tr key={row.id} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
-                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white">{row.name}</span><button onClick={() => fetchDetailOrders('product', row.id, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
+                                                    <tr key={row.id} onClick={() => fetchDetailOrders('product', row.id, row.name)} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
+                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{row.name}</span><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('product', row.id, row.name); }} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-center font-bold text-slate-600 dark:text-slate-400">{formatNumber(row.openingStock)}</td>
                                                         <td className="px-6 py-3.5 text-center font-bold text-blue-600">+{row.importQty}</td>
                                                         <td className="px-6 py-3.5 text-center font-bold text-orange-600">-{row.exportQty}</td>
@@ -932,18 +965,18 @@ export default function ReportsBoard() {
                                                     </tr>
                                                 ))}
                                                 {activeTab === 'purchases' && purchaseReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (
-                                                    <tr key={row.id} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
-                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white">{row.name}</span><button onClick={() => fetchDetailOrders('partner', row.id, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
+                                                    <tr key={row.id} onClick={() => fetchDetailOrders('partner', row.id, row.name)} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
+                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{row.name}</span><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('partner', row.id, row.name); }} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-right font-bold text-slate-600 dark:text-slate-400">{row.importCount}</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-orange-600">{formatNumber(row.totalImport)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-orange-600">{formatNumber(Math.round(row.totalImport))} ₫</td>
                                                     </tr>
                                                 ))}
                                                 {activeTab === 'brands' && brandReport.slice((page - 1) * itemsPerPage, page * itemsPerPage).map(row => (
-                                                    <tr key={row.name} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
-                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white">{row.name}</span><button onClick={() => fetchDetailOrders('brand', row.name, row.name)} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all"><Search size={14} /></button></div></td>
+                                                    <tr key={row.name} onClick={() => fetchDetailOrders('brand', row.name, row.name)} className="hover:bg-primary/5 transition-colors border-b border-border cursor-pointer group">
+                                                        <td className="px-6 py-3.5"><div className="flex justify-between items-center"><span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{row.name}</span><button type="button" onClick={(e) => { e.stopPropagation(); fetchDetailOrders('brand', row.name, row.name); }} className="p-1.5 opacity-0 group-hover:opacity-100 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-all" title="Xem đơn hàng của nhãn hàng này"><Search size={14} /></button></div></td>
                                                         <td className="px-6 py-3.5 text-right font-bold text-slate-600 dark:text-slate-400">{formatNumber(row.qty)}</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-slate-850 dark:text-slate-200">{formatNumber(row.revenue)} ₫</td>
-                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(row.profit)} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-slate-850 dark:text-slate-200">{formatNumber(Math.round(row.revenue))} ₫</td>
+                                                        <td className="px-6 py-3.5 text-right font-black text-emerald-600">{formatNumber(Math.round(row.profit))} ₫</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -993,7 +1026,7 @@ export default function ReportsBoard() {
                             <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full max-w-5xl h-[90vh] rounded-[2rem] shadow-2xl flex flex-col relative z-20 border border-slate-200 dark:border-slate-800 overflow-hidden">
                                 <div className="p-5 px-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80 shrink-0">
                                     <div className="flex-1">
-                                        <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-tight">{detailConfig.type === 'partner' ? 'Lịch sử khách hàng' : detailConfig.type === 'brand' ? 'Lịch sử nhãn hàng' : 'Các giao dịch SP'}: {detailConfig.name}</h2>
+                                        <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 uppercase tracking-tight">{detailConfig.type === 'partner' ? 'Lịch sử khách hàng' : detailConfig.type === 'brand' ? 'Đơn hàng theo nhãn hàng' : 'Các giao dịch SP'}: {detailConfig.name}</h2>
                                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mt-0.5">Tìm thấy {detailTotal} đơn hàng</p>
                                     </div>
                                     <div className="flex items-center gap-4">
@@ -1018,13 +1051,29 @@ export default function ReportsBoard() {
                                         </thead>
                                         <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800">
                                             {detailOrders.map(order => (
-                                                <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800/60">
+                                                <tr key={order.id} onClick={() => setViewingOrder(order)} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800/60 cursor-pointer group">
                                                     <td className="p-3 font-extrabold text-primary dark:text-emerald-400 text-center">#{order.display_id || order.id}</td>
                                                     <td className="p-3 text-xs text-center font-medium text-slate-600 dark:text-slate-300">{new Date(order.date).toLocaleString('vi-VN')}</td>
-                                                    <td className="p-3 font-semibold text-center text-slate-800 dark:text-slate-200">{order.partner_name || 'Khách lẻ'}</td>
-                                                    <td className="p-3 text-right font-extrabold text-slate-900 dark:text-white">{formatNumber(order.total_amount)} ₫</td>
+                                                    <td className="p-3 text-center">
+                                                        <div className="font-semibold text-slate-800 dark:text-slate-200">{order.partner_name || 'Khách lẻ'}</div>
+                                                        {detailConfig.type === 'brand' && order.details && order.details.length > 0 && (
+                                                            <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium truncate max-w-sm mx-auto mt-0.5">
+                                                                {order.details
+                                                                    .filter(d => {
+                                                                        const b = d.brand || '';
+                                                                        if (detailConfig.name === 'Khác' || detailConfig.name === 'Chưa phân loại') {
+                                                                            return !b || b.trim() === '' || b === 'Khác' || b === 'Chưa phân loại';
+                                                                        }
+                                                                        return b.trim().toLowerCase() === detailConfig.name.trim().toLowerCase();
+                                                                    })
+                                                                    .map(d => `${d.product_name} (x${d.quantity})`)
+                                                                    .join(', ') || order.details.map(d => `${d.product_name} (x${d.quantity})`).join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-3 text-right font-extrabold text-slate-900 dark:text-white">{formatNumber(Math.round(order.total_amount || 0))} ₫</td>
                                                     <td className="p-3 text-right">
-                                                        <button onClick={() => setViewingOrder(order)} className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all"><ExternalLink size={15} /></button>
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); setViewingOrder(order); }} className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 rounded-xl transition-all" title="Xem chi tiết đơn hàng"><ExternalLink size={15} /></button>
                                                     </td>
                                                 </tr>
                                             ))}

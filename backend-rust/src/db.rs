@@ -451,5 +451,29 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
         )"
     ).execute(pool).await?;
 
+    // 7. Active Ingredient Research Knowledge Table
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS active_ingredient_research (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name VARCHAR(150) UNIQUE NOT NULL,
+            group_name VARCHAR(150),
+            role_type VARCHAR(100),
+            moa TEXT,
+            targets TEXT,
+            compatible_synergies TEXT,
+            incompatibilities TEXT,
+            features TEXT,
+            keywords TEXT,
+            is_advanced BOOLEAN DEFAULT 0,
+            research_source VARCHAR(50) DEFAULT 'system',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )"
+    ).execute(pool).await?;
+
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_air_name ON active_ingredient_research(name)"
+    ).execute(pool).await?;
+
     Ok(())
 }

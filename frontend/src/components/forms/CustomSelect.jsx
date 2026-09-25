@@ -40,8 +40,21 @@ export default function CustomSelect({
         });
     }, [options]);
 
-    const selectedOption = normalizedOptions.find(opt => opt.value === value) ||
-        normalizedOptions.find(opt => String(opt.value) === String(value));
+    // Extract raw value if an event-like object was passed as value prop
+    const rawValue = useMemo(() => {
+        if (value !== null && typeof value === 'object') {
+            if ('target' in value && value.target && 'value' in value.target) {
+                return value.target.value;
+            }
+            if ('value' in value) {
+                return value.value;
+            }
+        }
+        return value;
+    }, [value]);
+
+    const selectedOption = normalizedOptions.find(opt => opt.value === rawValue) ||
+        normalizedOptions.find(opt => String(opt.value) === String(rawValue));
 
     // Enable search if searchable is true or if more than 6 options
     const shouldShowSearch = searchable !== undefined ? searchable : normalizedOptions.length > 6;
@@ -85,7 +98,7 @@ export default function CustomSelect({
             setSearchTerm('');
             isUsingKeyboardRef.current = false;
             const selectedIdx = normalizedOptions.findIndex(opt =>
-                opt.value === value || String(opt.value) === String(value)
+                opt.value === rawValue || String(opt.value) === String(rawValue)
             );
             const initialIdx = selectedIdx >= 0 ? selectedIdx : (normalizedOptions.length > 0 ? 0 : -1);
             setHighlightedIndex(initialIdx);
@@ -181,13 +194,36 @@ export default function CustomSelect({
                 currentTarget: { value: optionValue },
                 value: optionValue
             };
+
+            let prefersEvent = false;
             try {
-                onChange(simulatedEvent);
-            } catch (err) {
+                const fnStr = Function.prototype.toString.call(onChange);
+                if (fnStr.includes('.target') || fnStr.includes("['target']") || fnStr.includes('["target"]')) {
+                    prefersEvent = true;
+                }
+            } catch (e) {
+                // Ignore inspection error
+            }
+
+            if (prefersEvent) {
                 try {
-                    onChange(optionValue);
-                } catch (e2) {
-                    console.error("Error in CustomSelect onChange:", e2);
+                    onChange(simulatedEvent);
+                } catch (err) {
+                    try {
+                        onChange(optionValue, simulatedEvent);
+                    } catch (e2) {
+                        console.error("Error in CustomSelect onChange (fallback):", e2);
+                    }
+                }
+            } else {
+                try {
+                    onChange(optionValue, simulatedEvent);
+                } catch (err) {
+                    try {
+                        onChange(simulatedEvent);
+                    } catch (e2) {
+                        console.error("Error in CustomSelect onChange (simulated):", e2);
+                    }
                 }
             }
         }
@@ -347,7 +383,7 @@ export default function CustomSelect({
                             >
                                 {filteredOptions.length > 0 ? (
                                     filteredOptions.map((option, idx) => {
-                                        const isSelected = String(option.value) === String(value);
+                                        const isSelected = String(option.value) === String(rawValue);
                                         const isClearOption = !option.value && option.value !== 0;
                                         const isHighlighted = highlightedIndex === idx;
                                         return (
@@ -363,22 +399,19 @@ export default function CustomSelect({
                                                 }}
                                                 style={option.fontFamily ? { fontFamily: option.fontFamily } : undefined}
                                                 className={cn(
-                                                    "w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-xs text-left transition-all cursor-pointer font-preview-sample select-none",
+                                                    "w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs text-left transition-colors duration-150 cursor-pointer font-preview-sample select-none",
                                                     isClearOption && !isSelected && "text-stone-400 dark:text-stone-400 italic",
-                                                    isSelected && isHighlighted && "bg-emerald-600 text-white font-black ring-2 ring-emerald-400 shadow-2xs",
-                                                    isSelected && !isHighlighted && "bg-emerald-600/15 dark:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 font-black shadow-2xs",
-                                                    !isSelected && isHighlighted && "bg-emerald-600/15 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-500/40 font-bold",
-                                                    !isSelected && !isHighlighted && "text-stone-700 dark:text-stone-200 font-semibold hover:bg-emerald-600/10 dark:hover:bg-white/5 hover:text-emerald-800 dark:hover:text-emerald-300"
+                                                    isSelected && "bg-emerald-600 dark:bg-emerald-600 text-white font-bold shadow-xs",
+                                                    isSelected && isHighlighted && "bg-emerald-700 dark:bg-emerald-500 text-white",
+                                                    !isSelected && isHighlighted && "bg-stone-200/60 dark:bg-white/10 text-stone-900 dark:text-stone-100 font-semibold",
+                                                    !isSelected && !isHighlighted && "text-stone-700 dark:text-stone-300 font-medium"
                                                 )}
                                             >
                                                 <span className="truncate">{option.label}</span>
                                                 {isSelected && (
                                                     <Check
-                                                        size={13}
-                                                        className={cn(
-                                                            "shrink-0",
-                                                            isSelected && isHighlighted ? "text-white" : "text-emerald-600 dark:text-emerald-400"
-                                                        )}
+                                                        size={14}
+                                                        className="shrink-0 text-white"
                                                         strokeWidth={2.5}
                                                     />
                                                 )}

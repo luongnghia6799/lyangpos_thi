@@ -158,6 +158,7 @@ export const DEFAULT_SETTINGS = {
     pos_sound_theme_typing: 'mechanical', // 'mechanical', 'typewriter', 'soft_click', 'thock_deep'
     feature_accounting_enabled: import.meta.env.VITE_FEATURE_ACCOUNTING_ENABLED === 'false' ? 'false' : 'true',
     sidebar_hidden_items: '[]',
+    sidebar_custom_style: '{}',
     ram_cleanup_auto_enabled: 'false',
     ram_cleanup_interval_minutes: '10',
     invoice_show_watermark: 'false',

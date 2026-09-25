@@ -1,5 +1,7 @@
 pub mod accounting;
+pub mod active_ingredient;
 pub mod ai;
+pub mod ai_analytics;
 pub mod auth;
 pub mod backup;
 pub mod bank;

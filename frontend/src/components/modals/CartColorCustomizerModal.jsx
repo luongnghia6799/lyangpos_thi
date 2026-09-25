@@ -7,6 +7,9 @@ import {
     SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import BubbleCustomizerTab, { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS } from './BubbleCustomizerTab';
+
+export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS };
 
 export const CART_COLOR_PRESETS = [
     {
@@ -150,7 +153,173 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     overlayBlur: 12,
     enableBorder: true,
     enableGlow: true,
-    enableShadow: true
+    enableShadow: true,
+    // Bubble & Button customizations
+    bubbleCustomMode: 'all',
+    bubbleBg: 'default',
+    bubbleTextColor: 'default',
+    bubbleBorderColor: 'default',
+    bubbleBorderWidth: '2',
+    bubbleEnableBorder: true,
+    bubbleShadowY: 10,
+    bubbleShadowBlur: 22,
+    bubbleShadowColor: 'default',
+    bubbleShadowOpacity: 24,
+    bubbleEnableGlow: false,
+    bubbleGlowColor: '#10b981',
+    bubbleGlowIntensity: 15,
+    bubblePartnerBg: 'default',
+    bubblePartnerTextColor: 'default',
+    bubblePartnerBorder: 'default',
+    bubblePartnerGlow: 'default',
+    bubbleCashBg: 'default',
+    bubbleCashTextColor: 'default',
+    bubbleCashBorder: 'default',
+    bubbleCashGlow: 'default',
+    bubblePaymentBg: 'default',
+    bubblePaymentTextColor: 'default',
+    bubblePaymentBorder: 'default',
+    bubblePaymentGlow: 'default',
+    bubbleTotalBg: 'default',
+    bubbleTotalTextColor: 'default',
+    bubbleTotalBorder: 'default',
+    bubbleTotalGlow: 'default',
+    btnBg: 'default',
+    btnTextColor: 'default',
+    btnBorderColor: 'default',
+    btnBorderWidth: '2',
+    btnEnableBorder: true,
+    btnShadowY: 8,
+    btnShadowBlur: 18,
+    btnShadowColor: 'default',
+    btnShadowOpacity: 22,
+    btnEnableGlow: false,
+    btnGlowColor: '#2d5016',
+    btnGlowIntensity: 12,
+    btnSavePrintBg: 'default',
+    btnSavePrintTextColor: 'default',
+    btnSavePrintBorder: 'default',
+    btnSavePrintShadowY: 10,
+    btnSavePrintEnableGlow: true,
+    btnSavePrintGlowColor: '#10b981',
+    // Text Pills customization
+    enableTextPills: false,
+    textPillStyle: 'glass', // 'glass' | 'neon' | 'theme'
+    pillBgColor: 'default',
+    pillBorderColor: 'default',
+    pillBlur: 12,
+    pillOpacity: 25,
+    pillRadius: 16, // px (0 to 99)
+    pillGlow: true,
+    // Text Glow & Text Shadow customization
+    textShadowMode: 'none', // 'none' | 'glow' | 'shadow' | 'both'
+    textGlowColor: 'default',
+    textShadowColor: 'default',
+    textShadowBlur: 6
+};
+
+export const getCartTextShadowStyle = (config, baseColor = null) => {
+    const mode = config?.textShadowMode || 'none';
+    if (!mode || mode === 'none') return null;
+
+    const accent = (config?.accentColor && config.accentColor !== 'default') ? config.accentColor : '#2d5016';
+    const glowCol = (config?.textGlowColor && config.textGlowColor !== 'default') 
+        ? config.textGlowColor 
+        : (baseColor || accent || '#10b981');
+    const shadowCol = (config?.textShadowColor && config.textShadowColor !== 'default') 
+        ? config.textShadowColor 
+        : 'rgba(0, 0, 0, 0.45)';
+    const blur = (config?.textShadowBlur !== undefined && config?.textShadowBlur !== null && config?.textShadowBlur !== '') 
+        ? Number(config.textShadowBlur) 
+        : 6;
+
+    if (mode === 'glow') {
+        return {
+            textShadow: `0 0 ${blur}px ${glowCol}99, 0 0 ${blur * 2}px ${glowCol}45`
+        };
+    }
+
+    if (mode === 'shadow') {
+        return {
+            textShadow: `0 2px ${blur}px ${shadowCol}, 0 1px 2px rgba(0, 0, 0, 0.35)`
+        };
+    }
+
+    if (mode === 'both') {
+        return {
+            textShadow: `0 2px ${blur}px ${shadowCol}, 0 0 ${blur * 1.5}px ${glowCol}80`
+        };
+    }
+
+    return null;
+};
+
+export const getCartTextPillStyle = (config, type = 'default') => {
+    if (!config?.enableTextPills) return null;
+    const style = config?.textPillStyle || 'glass';
+    const accent = (config?.accentColor && config.accentColor !== 'default') ? config.accentColor : '#2d5016';
+    const borderCol = (config?.borderColor && config.borderColor !== 'default') ? config.borderColor : accent;
+
+    // Custom overrides if set
+    const customBg = (config?.pillBgColor && config.pillBgColor !== 'default') ? config.pillBgColor : null;
+    const customBorder = (config?.pillBorderColor && config.pillBorderColor !== 'default') ? config.pillBorderColor : null;
+    const customBlur = (config?.pillBlur !== undefined && config?.pillBlur !== null && config?.pillBlur !== '') ? Number(config.pillBlur) : null;
+    const customOpacity = (config?.pillOpacity !== undefined && config?.pillOpacity !== null && config?.pillOpacity !== '') ? (Number(config.pillOpacity) / 100) : null;
+    const customRadius = (config?.pillRadius !== undefined && config?.pillRadius !== null && config?.pillRadius !== '') ? Number(config.pillRadius) : 16;
+    const borderRadius = `${customRadius}px`;
+    const enableGlow = config?.pillGlow !== false;
+
+    if (style === 'neon') {
+        const bgAlpha = customOpacity !== null ? customOpacity : 0.12;
+        const blurVal = customBlur !== null ? customBlur : 8;
+        const finalBorder = customBorder || `${borderCol}80`;
+        const finalBg = customBg ? (hexToRgba(customBg, bgAlpha) || `${customBg}20`) : (hexToRgba(accent, bgAlpha) || `${accent}18`);
+        const glowColor = customBorder || borderCol;
+
+        return {
+            backgroundColor: finalBg,
+            borderColor: finalBorder,
+            borderRadius,
+            boxShadow: enableGlow ? `0 0 12px ${glowColor}40` : '0 1px 4px rgba(0,0,0,0.06)',
+            backdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none',
+            WebkitBackdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none'
+        };
+    }
+
+    if (style === 'theme') {
+        const bgAlpha = customOpacity !== null ? customOpacity : 0.18;
+        const blurVal = customBlur !== null ? customBlur : 8;
+        const finalBorder = customBorder || `${accent}40`;
+        const finalBg = customBg ? (hexToRgba(customBg, bgAlpha) || `${customBg}25`) : (hexToRgba(accent, bgAlpha) || `${accent}22`);
+
+        return {
+            backgroundColor: finalBg,
+            borderColor: finalBorder,
+            borderRadius,
+            boxShadow: enableGlow ? `0 2px 10px rgba(0,0,0,0.08), 0 0 8px ${accent}20` : '0 2px 8px rgba(0,0,0,0.06)',
+            backdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none',
+            WebkitBackdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none'
+        };
+    }
+
+    // Default: 'glass'
+    const bgAlpha = customOpacity !== null ? customOpacity : 0.22;
+    const blurVal = customBlur !== null ? customBlur : 12;
+    const finalBg = customBg 
+        ? (hexToRgba(customBg, bgAlpha) || `rgba(255, 255, 255, ${bgAlpha})`)
+        : `rgba(255, 255, 255, ${bgAlpha})`;
+    const finalBorder = customBorder || 'rgba(255, 255, 255, 0.45)';
+
+    return {
+        backgroundColor: finalBg,
+        borderColor: finalBorder,
+        borderRadius,
+        boxShadow: enableGlow 
+            ? '0 4px 15px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6), 0 0 8px rgba(255, 255, 255, 0.25)' 
+            : '0 4px 15px rgba(0, 0, 0, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.6)',
+        backdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none',
+        WebkitBackdropFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none'
+    };
 };
 
 export const hexToRgba = (hex, alpha = 1) => {
@@ -449,45 +618,58 @@ export default function CartColorCustomizerModal({
                     </div>
 
                     {/* Segmented Control / Tabs */}
-                    <div className="flex items-center p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10">
+                    <div className="flex items-center p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10 overflow-x-auto custom-scrollbar">
                         <button
                             type="button"
                             onClick={() => setActiveTab('colors')}
                             className={cn(
-                                "flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer",
+                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
                                 activeTab === 'colors'
                                     ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                             )}
                         >
-                            <Palette size={14} strokeWidth={2.5} />
-                            <span>1. Màu Sắc & Hiệu Ứng Viền</span>
+                            <Palette size={14} strokeWidth={2.5} className="shrink-0" />
+                            <span>1. Màu Giỏ Hàng</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setActiveTab('displays')}
                             className={cn(
-                                "flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer",
+                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
                                 activeTab === 'displays'
                                     ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                             )}
                         >
-                            <SlidersHorizontal size={14} strokeWidth={2.5} />
-                            <span>2. Hiển Thị & Lớp Mờ</span>
+                            <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
+                            <span>2. Hiển Thị & Mờ Kính</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setActiveTab('mascot')}
                             className={cn(
-                                "flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer",
+                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
                                 activeTab === 'mascot'
                                     ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
                                     : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                             )}
                         >
-                            <ImageIcon size={14} strokeWidth={2.5} />
-                            <span>3. Mascot Khắc Chìm</span>
+                            <ImageIcon size={14} strokeWidth={2.5} className="shrink-0" />
+                            <span>3. Mascot Chìm</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab('bubbles')}
+                            className={cn(
+                                "flex-1 min-w-[130px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
+                                activeTab === 'bubbles'
+                                    ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                            )}
+                        >
+                            <Sparkles size={14} strokeWidth={2.5} className="text-amber-500 shrink-0" />
+                            <span>4. Bubble & Nút Bấm</span>
                         </button>
                     </div>
                 </div>
@@ -576,27 +758,87 @@ export default function CartColorCustomizerModal({
                                             borderColor: currentConfig.borderColor !== 'default' ? `${currentConfig.borderColor}30` : undefined
                                         }}
                                     >
-                                        <td className="py-2.5 px-3 text-center font-bold text-slate-400">1</td>
+                                        <td className="py-2.5 px-3 text-center font-bold text-slate-400">
+                                            {currentConfig.enableTextPills ? (
+                                                <span 
+                                                    className="inline-flex items-center justify-center px-2 py-0.5 rounded-full border text-xs font-black shadow-xs"
+                                                    style={getCartTextPillStyle(currentConfig, 'index')}
+                                                >
+                                                    1
+                                                </span>
+                                            ) : (
+                                                <span>1</span>
+                                            )}
+                                        </td>
                                         <td className="py-2.5 px-3">
-                                            <div 
-                                                className="font-black text-slate-800 dark:text-slate-100 uppercase"
-                                                style={{
-                                                    color: (currentConfig.productTextColor && currentConfig.productTextColor !== 'default')
-                                                        ? currentConfig.productTextColor
-                                                        : undefined
-                                                }}
-                                            >
-                                                Sản phẩm mẫu VIP
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <div 
+                                                    className={cn(
+                                                        "font-black text-slate-800 dark:text-slate-100 uppercase",
+                                                        currentConfig.enableTextPills && "px-2.5 py-1 rounded-xl border shadow-xs inline-flex items-center"
+                                                    )}
+                                                    style={{
+                                                        color: (currentConfig.productTextColor && currentConfig.productTextColor !== 'default')
+                                                            ? currentConfig.productTextColor
+                                                            : undefined,
+                                                        ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'name') : {}),
+                                                        ...getCartTextShadowStyle(currentConfig, currentConfig.productTextColor)
+                                                    }}
+                                                >
+                                                    Sản phẩm mẫu VIP
+                                                </div>
                                             </div>
                                             {showLastPurchaseBadge && (
-                                                <div className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-in fade-in zoom-in-90 duration-200 transition-all">
+                                                <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-in fade-in zoom-in-90 duration-200 transition-all">
                                                     <Clock size={10} /> Mua gần nhất: 2 ngày trước
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="py-2.5 px-3 text-center font-black" style={{ color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor }}>2</td>
-                                        <td className="py-2.5 px-3 text-right font-black" style={{ color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : undefined }}>150.000</td>
-                                        <td className="py-2.5 px-3 text-right font-black" style={{ color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor }}>300.000đ</td>
+                                        <td className="py-2.5 px-3 text-center font-black">
+                                            <span 
+                                                className={cn(
+                                                    "inline-flex items-center justify-center min-w-[28px]",
+                                                    currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
+                                                )}
+                                                style={{
+                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
+                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'qty') : {}),
+                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
+                                                }}
+                                            >
+                                                2
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-black">
+                                            <span 
+                                                className={cn(
+                                                    "inline-flex items-center justify-end",
+                                                    currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
+                                                )}
+                                                style={{
+                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : undefined,
+                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'price') : {}),
+                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
+                                                }}
+                                            >
+                                                150.000
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-3 text-right font-black">
+                                            <span 
+                                                className={cn(
+                                                    "inline-flex items-center justify-end",
+                                                    currentConfig.enableTextPills && "px-2.5 py-1 rounded-xl border shadow-xs"
+                                                )}
+                                                style={{
+                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
+                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'amount') : {}),
+                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor || activeAccentColor)
+                                                }}
+                                            >
+                                                300.000đ
+                                            </span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1181,6 +1423,180 @@ export default function CartColorCustomizerModal({
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Text Glow & Shadow Customization (Hiệu ứng phát sáng & Đổ bóng chữ) */}
+                                    <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-amber-500/25 dark:border-amber-500/20 shadow-xs space-y-3.5">
+                                        <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/5">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                                    <Sparkles size={16} strokeWidth={2.5} />
+                                                </div>
+                                                <div>
+                                                    <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                                                        Phát Sáng & Đổ Bóng Chữ (Text Glow / Shadow)
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                        Làm nổi bật chữ trên mọi nền tối, sáng hoặc ảnh nền phức tạp
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newCfg = {
+                                                        ...currentConfig,
+                                                        textShadowMode: 'none',
+                                                        textGlowColor: 'default',
+                                                        textShadowColor: 'default',
+                                                        textShadowBlur: 6
+                                                    };
+                                                    onChangeConfig(newCfg);
+                                                    applyCartThemeToDom(newCfg);
+                                                }}
+                                                className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                            >
+                                                <RotateCcw size={10} />
+                                                <span>Tắt hiệu ứng chữ</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Mode selector */}
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {[
+                                                { id: 'none', label: 'Tắt', desc: 'Chữ phẳng' },
+                                                { id: 'glow', label: '✨ Phát sáng (Glow)', desc: 'Ánh hào quang rực rỡ' },
+                                                { id: 'shadow', label: '🌑 Đổ bóng (Shadow)', desc: 'Bóng đổ 3D sắc nét' },
+                                                { id: 'both', label: '🌟 Glow + Shadow', desc: 'Kết hợp tương phản tối đa' }
+                                            ].map((modeOpt) => (
+                                                <button
+                                                    key={modeOpt.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newCfg = { ...currentConfig, textShadowMode: modeOpt.id };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }}
+                                                    className={cn(
+                                                        "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-0.5",
+                                                        (currentConfig.textShadowMode || 'none') === modeOpt.id
+                                                            ? "bg-amber-500/15 border-amber-600 dark:border-amber-400 shadow-xs ring-1 ring-amber-500/20"
+                                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                                                            {modeOpt.label}
+                                                        </span>
+                                                        {(currentConfig.textShadowMode || 'none') === modeOpt.id && (
+                                                            <Check size={12} strokeWidth={3} className="text-amber-600 dark:text-amber-400" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                                        {modeOpt.desc}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Color & Blur Controls when active */}
+                                        {currentConfig.textShadowMode && currentConfig.textShadowMode !== 'none' && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
+                                                {/* Glow Color (if glow or both) */}
+                                                {(currentConfig.textShadowMode === 'glow' || currentConfig.textShadowMode === 'both') && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                                                            <span>Màu Glow chữ:</span>
+                                                            <span className="font-mono text-[9.5px] text-amber-700 dark:text-amber-400 font-bold">
+                                                                {currentConfig.textGlowColor === 'default' || !currentConfig.textGlowColor ? 'Tự động' : currentConfig.textGlowColor}
+                                                            </span>
+                                                        </label>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                type="color"
+                                                                value={(currentConfig.textGlowColor && currentConfig.textGlowColor !== 'default') ? currentConfig.textGlowColor : activeAccentColor}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, textGlowColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={(currentConfig.textGlowColor && currentConfig.textGlowColor !== 'default') ? currentConfig.textGlowColor : ''}
+                                                                placeholder="#HEX..."
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, textGlowColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 text-xs font-mono font-bold outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Shadow Color (if shadow or both) */}
+                                                {(currentConfig.textShadowMode === 'shadow' || currentConfig.textShadowMode === 'both') && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                                                            <span>Màu Shadow đổ bóng:</span>
+                                                            <span className="font-mono text-[9.5px] text-slate-700 dark:text-slate-400 font-bold">
+                                                                {currentConfig.textShadowColor === 'default' || !currentConfig.textShadowColor ? 'Đen 3D mờ' : currentConfig.textShadowColor}
+                                                            </span>
+                                                        </label>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <input
+                                                                type="color"
+                                                                value={(currentConfig.textShadowColor && currentConfig.textShadowColor !== 'default') ? currentConfig.textShadowColor : '#000000'}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, textShadowColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={(currentConfig.textShadowColor && currentConfig.textShadowColor !== 'default') ? currentConfig.textShadowColor : ''}
+                                                                placeholder="#HEX..."
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, textShadowColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 text-xs font-mono font-bold outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Blur Intensity Slider */}
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                                        <span>Cường độ mờ / tỏa sáng:</span>
+                                                        <span className="font-mono text-[9.5px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded">
+                                                            {currentConfig.textShadowBlur !== undefined ? currentConfig.textShadowBlur : 6}px
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="2"
+                                                        max="20"
+                                                        step="1"
+                                                        value={currentConfig.textShadowBlur !== undefined ? currentConfig.textShadowBlur : 6}
+                                                        onChange={(e) => {
+                                                            const newCfg = { ...currentConfig, textShadowBlur: Number(e.target.value) };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className="w-full accent-amber-500 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none mt-2"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1512,6 +1928,399 @@ export default function CartColorCustomizerModal({
                                         <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
                                     </div>
                                 </div>
+
+                                {/* Text Pills Highlighter Toggle & Style Options */}
+                                <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-teal-500/25 dark:border-teal-500/20 shadow-xs space-y-3">
+                                    <div 
+                                        onClick={() => {
+                                            const newCfg = {
+                                                ...currentConfig,
+                                                enableTextPills: !currentConfig.enableTextPills
+                                            };
+                                            onChangeConfig(newCfg);
+                                            applyCartThemeToDom(newCfg);
+                                        }}
+                                        className="flex items-center justify-between cursor-pointer select-none group"
+                                    >
+                                        <div className="flex items-center gap-3.5">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
+                                                currentConfig.enableTextPills
+                                                    ? "bg-teal-600 text-white shadow-md shadow-teal-600/30"
+                                                    : "bg-black/10 dark:bg-white/10 text-slate-400"
+                                            )}>
+                                                <Sparkles size={20} strokeWidth={2.5} />
+                                            </div>
+                                            <div>
+                                                <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                                    <span>Badge / Pill Nền Mờ Nổi Bật Chữ Trong Giỏ</span>
+                                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/20">
+                                                        HOT
+                                                    </span>
+                                                </span>
+                                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                                    {currentConfig.enableTextPills 
+                                                        ? "Bật: Bọc viền & nền mờ pill sang trọng cho Tên sản phẩm, Đơn vị, Quy đổi, SL, Giá & Thành tiền" 
+                                                        : "Tắt: Chữ hiển thị phẳng tự nhiên theo nền giỏ hàng"}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className={cn(
+                                            "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                            currentConfig.enableTextPills
+                                                ? "bg-teal-600 border-teal-600 justify-end"
+                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                        )}>
+                                            <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                                        </div>
+                                    </div>
+
+                                    {/* Pill Style Selector (Glass vs Neon vs Theme) */}
+                                    {currentConfig.enableTextPills && (
+                                        <m.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="pt-3 border-t border-black/5 dark:border-white/5 space-y-2"
+                                        >
+                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Paintbrush size={13} className="text-teal-500" />
+                                                    Kiểu dáng Pill nổi bật:
+                                                </span>
+                                                <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold uppercase">
+                                                    {currentConfig.textPillStyle === 'neon' ? 'Viền Neon Sắc Nét' : currentConfig.textPillStyle === 'theme' ? 'Nền Màu Theme POS' : 'Kính Mờ Tinh Tế (Glass)'}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[
+                                                    {
+                                                        id: 'glass',
+                                                        label: 'Kính Mờ Glass',
+                                                        desc: 'Bóng bẩy, mờ ảo cao cấp'
+                                                    },
+                                                    {
+                                                        id: 'neon',
+                                                        label: 'Viền Neon Sắc',
+                                                        desc: 'Viền phát sáng nhẹ theo theme'
+                                                    },
+                                                    {
+                                                        id: 'theme',
+                                                        label: 'Nền Mờ Theme',
+                                                        desc: 'Hòa quyện với màu chủ đạo'
+                                                    }
+                                                ].map(pillOpt => (
+                                                    <button
+                                                        key={pillOpt.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newCfg = {
+                                                                ...currentConfig,
+                                                                textPillStyle: pillOpt.id
+                                                            };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className={cn(
+                                                            "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-0.5",
+                                                            (currentConfig.textPillStyle || 'glass') === pillOpt.id
+                                                                ? "bg-teal-500/15 border-teal-600 dark:border-teal-400 shadow-xs ring-1 ring-teal-500/20"
+                                                                : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200">
+                                                                {pillOpt.label}
+                                                            </span>
+                                                            {(currentConfig.textPillStyle || 'glass') === pillOpt.id && (
+                                                                <Check size={12} strokeWidth={3} className="text-teal-600 dark:text-teal-400" />
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                                            {pillOpt.desc}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Advanced Pill Customization Controls: Border Color, Background Color, Blur, Opacity, Glow */}
+                                            <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-3.5">
+                                                <div className="flex items-center justify-between pb-1">
+                                                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                                        <Sliders size={13} className="text-teal-600 dark:text-teal-400" />
+                                                        Chi tiết màu sắc & độ mờ Pill
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newCfg = {
+                                                                ...currentConfig,
+                                                                pillBgColor: 'default',
+                                                                pillBorderColor: 'default',
+                                                                pillBlur: 12,
+                                                                pillOpacity: 25,
+                                                                pillRadius: 16,
+                                                                pillGlow: true
+                                                            };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                                    >
+                                                        <RotateCcw size={10} />
+                                                        <span>Đặt lại Pill</span>
+                                                    </button>
+                                                </div>
+
+                                                {/* 1. Pill Background Color */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Droplet size={12} className="text-teal-500" />
+                                                            Màu nền Pill:
+                                                        </span>
+                                                        <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
+                                                            {currentConfig.pillBgColor === 'default' || !currentConfig.pillBgColor ? 'Mặc định theo chế độ' : currentConfig.pillBgColor}
+                                                        </span>
+                                                    </label>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newCfg = { ...currentConfig, pillBgColor: 'default' };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className={cn(
+                                                                "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
+                                                                (currentConfig.pillBgColor === 'default' || !currentConfig.pillBgColor)
+                                                                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
+                                                                    : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                            )}
+                                                        >
+                                                            Mặc định
+                                                        </button>
+                                                        <div className="relative flex items-center gap-1.5 flex-1">
+                                                            <input
+                                                                type="color"
+                                                                value={(currentConfig.pillBgColor && currentConfig.pillBgColor !== 'default') ? currentConfig.pillBgColor : (currentConfig.textPillStyle === 'glass' ? '#ffffff' : activeAccentColor)}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, pillBgColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={(currentConfig.pillBgColor && currentConfig.pillBgColor !== 'default') ? currentConfig.pillBgColor : ''}
+                                                                placeholder="#HEX (vd: #ffffff, #10b981, #d4a574)..."
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, pillBgColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="flex-1 h-8 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* 2. Pill Border Color */}
+                                                <div className="space-y-1.5">
+                                                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Square size={12} className="text-teal-500" />
+                                                            Màu viền Pill:
+                                                        </span>
+                                                        <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
+                                                            {currentConfig.pillBorderColor === 'default' || !currentConfig.pillBorderColor ? 'Mặc định theo chế độ' : currentConfig.pillBorderColor}
+                                                        </span>
+                                                    </label>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newCfg = { ...currentConfig, pillBorderColor: 'default' };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className={cn(
+                                                                "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
+                                                                (currentConfig.pillBorderColor === 'default' || !currentConfig.pillBorderColor)
+                                                                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
+                                                                    : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                            )}
+                                                        >
+                                                            Mặc định
+                                                        </button>
+                                                        <div className="relative flex items-center gap-1.5 flex-1">
+                                                            <input
+                                                                type="color"
+                                                                value={(currentConfig.pillBorderColor && currentConfig.pillBorderColor !== 'default') ? currentConfig.pillBorderColor : (currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor)}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, pillBorderColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={(currentConfig.pillBorderColor && currentConfig.pillBorderColor !== 'default') ? currentConfig.pillBorderColor : ''}
+                                                                placeholder="#HEX viền (vd: #10b981, #ffffff, #38bdf8)..."
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, pillBorderColor: e.target.value };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="flex-1 h-8 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* 3. Pill Opacity, Blur & Border Radius Sliders */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                                                    {/* Border Radius */}
+                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                            <span className="flex items-center gap-1 text-[11px]">
+                                                                <Square size={12} className="text-emerald-500" />
+                                                                Độ bo góc (Radius):
+                                                            </span>
+                                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded">
+                                                                {currentConfig.pillRadius !== undefined ? currentConfig.pillRadius : 16}px
+                                                            </span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="40"
+                                                            step="2"
+                                                            value={currentConfig.pillRadius !== undefined ? currentConfig.pillRadius : 16}
+                                                            onChange={(e) => {
+                                                                const newCfg = { ...currentConfig, pillRadius: Number(e.target.value) };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                        />
+                                                        <div className="flex items-center justify-between gap-1 pt-1">
+                                                            {[
+                                                                { r: 4, l: 'Vuông' },
+                                                                { r: 10, l: 'Bo nhẹ' },
+                                                                { r: 16, l: 'Vừa' },
+                                                                { r: 24, l: 'Tròn' },
+                                                                { r: 99, l: 'Pill max' }
+                                                            ].map(opt => (
+                                                                <button
+                                                                    key={opt.r}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const newCfg = { ...currentConfig, pillRadius: opt.r };
+                                                                        onChangeConfig(newCfg);
+                                                                        applyCartThemeToDom(newCfg);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex-1 py-0.5 text-[9px] font-bold rounded border transition-all text-center",
+                                                                        (Number(currentConfig.pillRadius ?? 16) === opt.r)
+                                                                            ? "bg-emerald-600 text-white border-emerald-600"
+                                                                            : "bg-black/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                                    )}
+                                                                >
+                                                                    {opt.l}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Opacity */}
+                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                            <span className="flex items-center gap-1 text-[11px]">
+                                                                <Layers size={12} className="text-teal-500" />
+                                                                Độ đậm nền pill:
+                                                            </span>
+                                                            <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold bg-teal-500/10 dark:bg-teal-500/20 px-1.5 py-0.2 rounded">
+                                                                {currentConfig.pillOpacity !== undefined ? currentConfig.pillOpacity : (currentConfig.textPillStyle === 'glass' ? 22 : 18)}%
+                                                            </span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="5"
+                                                            max="85"
+                                                            step="5"
+                                                            value={currentConfig.pillOpacity !== undefined ? currentConfig.pillOpacity : (currentConfig.textPillStyle === 'glass' ? 22 : 18)}
+                                                            onChange={(e) => {
+                                                                const newCfg = { ...currentConfig, pillOpacity: Number(e.target.value) };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className="w-full accent-teal-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                        />
+                                                    </div>
+
+                                                    {/* Blur (Độ Glass) */}
+                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
+                                                            <span className="flex items-center gap-1 text-[11px]">
+                                                                <Sparkles size={12} className="text-amber-500" />
+                                                                Độ nhòe kính (Glass blur):
+                                                            </span>
+                                                            <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 dark:bg-amber-500/20 px-1.5 py-0.2 rounded">
+                                                                {currentConfig.pillBlur !== undefined ? currentConfig.pillBlur : (currentConfig.textPillStyle === 'glass' ? 12 : 8)}px
+                                                            </span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="30"
+                                                            step="2"
+                                                            value={currentConfig.pillBlur !== undefined ? currentConfig.pillBlur : (currentConfig.textPillStyle === 'glass' ? 12 : 8)}
+                                                            onChange={(e) => {
+                                                                const newCfg = { ...currentConfig, pillBlur: Number(e.target.value) };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className="w-full accent-amber-500 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* 4. Glow toggle for Pill */}
+                                                <div 
+                                                    onClick={() => {
+                                                        const newCfg = {
+                                                            ...currentConfig,
+                                                            pillGlow: currentConfig.pillGlow === false ? true : false
+                                                        };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }}
+                                                    className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 cursor-pointer select-none group"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <SunMedium size={14} className={currentConfig.pillGlow !== false ? "text-amber-500" : "text-slate-400"} />
+                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                            Hiệu ứng viền phát sáng & đổ bóng nhẹ (Pill Glow & Depth)
+                                                        </span>
+                                                    </div>
+                                                    <div className={cn(
+                                                        "w-9 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                        currentConfig.pillGlow !== false
+                                                            ? "bg-teal-600 border-teal-600 justify-end"
+                                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                    )}>
+                                                        <div className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </m.div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1721,6 +2530,14 @@ export default function CartColorCustomizerModal({
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* TAB 4: BUBBLES & BUTTONS CUSTOMIZATION */}
+                    {activeTab === 'bubbles' && (
+                        <BubbleCustomizerTab 
+                            config={currentConfig} 
+                            onChangeConfig={onChangeConfig} 
+                        />
                     )}
                 </div>
 

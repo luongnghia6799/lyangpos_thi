@@ -1,8 +1,8 @@
-const sharp = require('sharp');
+const sharp = require('e:/vibe/LyangPOS/LyangPOS_final/frontend/node_modules/sharp');
 const path = require('path');
 const fs = require('fs');
 
-async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction = false) {
+async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isDirection = false) {
   const image = sharp(inputJpgPath);
   const rawBuffer = await image
     .resize(1080, 1080, { fit: 'fill' })
@@ -14,34 +14,28 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
   const H = 1080;
   const cellSize = 360;
 
-  // True gaps measured from image projections
-  const rowRanges = [
-    [0, 370],
-    [371, 708],
-    [709, 1080]
-  ];
-
-  const colRanges = [
-    [0, 360],
-    [361, 720],
-    [721, 1080]
-  ];
+  const rowSplits = [0, 362, 721, 1080];
+  const colSplits = [0, 345, 715, 1080];
 
   const outRgba = Buffer.alloc(W * H * 4);
 
-  // Standard target height and bottom anchor
   const targetH = 280;
-  const bottomMargin = 20; // 20px of guaranteed clean transparent padding at bottom
+  const bottomMargin = 20;
 
   for (let r = 0; r < 3; r++) {
     for (let c = 0; c < 3; c++) {
-      const [yMin, yMax] = rowRanges[r];
-      const [xMin, xMax] = colRanges[c];
+      // Directions: swap col 0 and col 2
+      const srcCol = isDirection ? (c === 0 ? 2 : c === 2 ? 0 : 1) : c;
+      const srcRow = r;
+
+      const yMin = rowSplits[srcRow];
+      const yMax = rowSplits[srcRow + 1];
+      const xMin = colSplits[srcCol];
+      const xMax = colSplits[srcCol + 1];
 
       const regionW = xMax - xMin;
       const regionH = yMax - yMin;
 
-      // Extract this region's raw data
       const regionData = Buffer.alloc(regionW * regionH * 3);
       for (let y = 0; y < regionH; y++) {
         for (let x = 0; x < regionW; x++) {
@@ -57,7 +51,8 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
       const isBg = new Uint8Array(regionW * regionH);
       function isWhite(x, y) {
         const idx = (y * regionW + x) * 3;
-        return regionData[idx] > 225 && regionData[idx + 1] > 225 && regionData[idx + 2] > 225;
+        const bri = (regionData[idx] + regionData[idx + 1] + regionData[idx + 2]) / 3;
+        return bri > 140;
       }
 
       const queue = [];
@@ -89,12 +84,71 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
         }
       }
 
-      // Find tight foreground bounds
+      // Build tight foreground
+      // For any pixel touching isBg:
+      // If brightness > 120, treat as background (completely eliminating white halo)
+      // If brightness between 40 and 120, smoothly blend alpha and darken RGB so there is no white fringe
+      const charRgbaRaw = Buffer.alloc(regionW * regionH * 4);
       let minX = regionW, maxX = 0, minY = regionH, maxY = 0;
+
       for (let y = 0; y < regionH; y++) {
         for (let x = 0; x < regionW; x++) {
-          const idx = y * regionW + x;
-          if (isBg[idx] === 0) {
+          const rIdx = y * regionW + x;
+          const dstIdx = (y * regionW + x) * 4;
+
+          if (isBg[rIdx] === 1) {
+            charRgbaRaw[dstIdx + 3] = 0;
+            continue;
+          }
+
+          let touchesBg = false;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (nx < 0 || nx >= regionW || ny < 0 || ny >= regionH || isBg[ny * regionW + nx] === 1) {
+                touchesBg = true;
+                break;
+              }
+            }
+            if (touchesBg) break;
+          }
+
+          const srcIdx = (y * regionW + x) * 3;
+          const red = regionData[srcIdx];
+          const green = regionData[srcIdx + 1];
+          const blue = regionData[srcIdx + 2];
+          const bri = (red + green + blue) / 3;
+
+          if (touchesBg) {
+            if (bri > 120) {
+              // Too bright on the outer edge -> part of the white halo!
+              charRgbaRaw[dstIdx + 3] = 0;
+              continue;
+            } else if (bri > 45) {
+              // Anti-aliased outer stroke: make soft edge with dark ink
+              const factor = (120 - bri) / 75; // 0..1
+              const alpha = Math.round(factor * 255);
+              // Darken color towards stroke color (dark ink)
+              charRgbaRaw[dstIdx] = Math.round(red * factor);
+              charRgbaRaw[dstIdx + 1] = Math.round(green * factor);
+              charRgbaRaw[dstIdx + 2] = Math.round(blue * factor);
+              charRgbaRaw[dstIdx + 3] = alpha;
+            } else {
+              charRgbaRaw[dstIdx] = red;
+              charRgbaRaw[dstIdx + 1] = green;
+              charRgbaRaw[dstIdx + 2] = blue;
+              charRgbaRaw[dstIdx + 3] = 255;
+            }
+          } else {
+            // Inside the mascot
+            charRgbaRaw[dstIdx] = red;
+            charRgbaRaw[dstIdx + 1] = green;
+            charRgbaRaw[dstIdx + 2] = blue;
+            charRgbaRaw[dstIdx + 3] = 255;
+          }
+
+          if (charRgbaRaw[dstIdx + 3] > 0) {
             if (x < minX) minX = x;
             if (x > maxX) maxX = x;
             if (y < minY) minY = y;
@@ -111,50 +165,20 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
       const charW = maxX - minX + 1;
       const charH = maxY - minY + 1;
 
-      // Extract foreground to buffer with defringing
+      // Extract tight box
       const charRgba = Buffer.alloc(charW * charH * 4);
       for (let y = 0; y < charH; y++) {
         for (let x = 0; x < charW; x++) {
-          const rx = minX + x;
-          const ry = minY + y;
-          const rIdx = ry * regionW + rx;
+          const srcIdx = ((minY + y) * regionW + (minX + x)) * 4;
           const dstIdx = (y * charW + x) * 4;
-
-          if (isBg[rIdx] === 1) {
-            charRgba[dstIdx + 3] = 0;
-          } else {
-            let touchesBg = false;
-            for (let dy = -1; dy <= 1; dy++) {
-              for (let dx = -1; dx <= 1; dx++) {
-                const nx = rx + dx;
-                const ny = ry + dy;
-                if (nx < 0 || nx >= regionW || ny < 0 || ny >= regionH || isBg[ny * regionW + nx] === 1) {
-                  touchesBg = true;
-                  break;
-                }
-              }
-              if (touchesBg) break;
-            }
-
-            const srcIdx = (ry * regionW + rx) * 3;
-            const red = regionData[srcIdx];
-            const green = regionData[srcIdx + 1];
-            const blue = regionData[srcIdx + 2];
-
-            if (touchesBg && (red + green + blue) / 3 > 218) {
-              charRgba[dstIdx + 3] = 0;
-            } else {
-              charRgba[dstIdx] = red;
-              charRgba[dstIdx + 1] = green;
-              charRgba[dstIdx + 2] = blue;
-              charRgba[dstIdx + 3] = 255;
-            }
-          }
+          charRgba[dstIdx] = charRgbaRaw[srcIdx];
+          charRgba[dstIdx + 1] = charRgbaRaw[srcIdx + 1];
+          charRgba[dstIdx + 2] = charRgbaRaw[srcIdx + 2];
+          charRgba[dstIdx + 3] = charRgbaRaw[srcIdx + 3];
         }
       }
 
       // Scale character uniformly so height = targetH (280px)
-      // and max width fits inside 320px
       const scale = Math.min(targetH / charH, 320 / charW);
       const scaledW = Math.round(charW * scale);
       const scaledH = Math.round(charH * scale);
@@ -175,7 +199,7 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
       const cellStartX = c * cellSize;
       const cellStartY = r * cellSize;
 
-      console.log(`Cell [${r},${c}]: orig ${charW}x${charH} -> scaled ${scaledW}x${scaledH}, placed at cell pos (${pasteX}, ${pasteY})`);
+      console.log(`Cell [${r},${c}] (from src [${srcRow},${srcCol}]): ${scaledW}x${scaledH}, placed at (${pasteX}, ${pasteY})`);
 
       for (let y = 0; y < scaledH; y++) {
         for (let x = 0; x < scaledW; x++) {
@@ -205,16 +229,23 @@ async function processCleanSpriteSheet(inputJpgPath, outputWebpPath, isReaction 
 }
 
 async function main() {
-  const dirJpg = 'C:\\Users\\Administrator\\.gemini\\antigravity-ide\\brain\\ae324bbc-f55c-4500-8cbb-40a07a034b54\\cheobingo_dir_v2_1790123553544.jpg';
-  const reactJpg = 'C:\\Users\\Administrator\\.gemini\\antigravity-ide\\brain\\ae324bbc-f55c-4500-8cbb-40a07a034b54\\cheobingo_reactions_1790123059608.jpg';
+  const dirJpg = 'C:\\Users\\Administrator\\.gemini\\antigravity-ide\\brain\\ae324bbc-f55c-4500-8cbb-40a07a034b54\\cheobingo_dir_v3_1790123813034.jpg';
+  const reactJpg = 'C:\\Users\\Administrator\\.gemini\\antigravity-ide\\brain\\ae324bbc-f55c-4500-8cbb-40a07a034b54\\cheobingo_react_v3_1790123841258.jpg';
 
-  const outDir = path.join(__dirname, 'public', 'mascots');
+  const outDir = 'e:\\vibe\\LyangPOS\\LyangPOS_final\\frontend\\public\\mascots';
+  const distDir = 'e:\\vibe\\LyangPOS\\LyangPOS_final\\frontend\\dist\\mascots';
 
-  console.log('--- Processing Directions ---');
-  await processCleanSpriteSheet(dirJpg, path.join(outDir, 'cheobingo-directions.webp'), false);
+  console.log('--- Generating Clean Directions (NO WHITE BORDER) ---');
+  await processCleanSpriteSheet(dirJpg, path.join(outDir, 'cheobingo-directions.webp'), true);
+  if (fs.existsSync(distDir)) {
+    fs.copyFileSync(path.join(outDir, 'cheobingo-directions.webp'), path.join(distDir, 'cheobingo-directions.webp'));
+  }
 
-  console.log('--- Processing Reactions ---');
-  await processCleanSpriteSheet(reactJpg, path.join(outDir, 'cheobingo-reactions.webp'), true);
+  console.log('--- Generating Clean Reactions (NO WHITE BORDER) ---');
+  await processCleanSpriteSheet(reactJpg, path.join(outDir, 'cheobingo-reactions.webp'), false);
+  if (fs.existsSync(distDir)) {
+    fs.copyFileSync(path.join(outDir, 'cheobingo-reactions.webp'), path.join(distDir, 'cheobingo-reactions.webp'));
+  }
 
   console.log('ALL DONE CLEANLY!');
 }

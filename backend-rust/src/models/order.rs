@@ -79,6 +79,7 @@ pub struct OrderDetailResponse {
     pub is_invoiced: bool,
     pub invoiced_quantity: f64,
     pub invoice_no: String,
+    pub brand: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -195,6 +196,7 @@ pub struct OrderQueryDto {
     pub is_consignment: Option<String>,
     pub sort_by: Option<String>,
     pub sort_order: Option<String>,
+    pub brand: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

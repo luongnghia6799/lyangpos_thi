@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Portal from '../widgets/Portal';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import { Truck, X, Clock, CheckCircle2, MapPin, Phone, Calendar, Search, ExternalLink, PackageSearch, RefreshCcw } from 'lucide-react';
+import { Truck, X, Clock, CheckCircle2, MapPin, Phone, Calendar, Search, ExternalLink, PackageSearch, RefreshCcw, Plus, Minus, Check } from 'lucide-react';
 import { formatCurrency, formatDate, formatNumber } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
@@ -56,10 +56,26 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                 setConfirmingShipCancel(null);
                 toast.success("Đã gỡ đơn khỏi danh sách giao hàng.");
             } else {
-                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, shipping_status: newStatus } : o));
-                toast.success(newStatus === 'Delivered' ? "Đã giao hàng thành công!" : "Đã hoàn tác trạng thái.");
+                setOrders(prev => prev.map(o => o.id === orderId ? {
+                    ...o,
+                    shipping_status: newStatus,
+                    details: o.details?.map(d => ({
+                        ...d,
+                        shipped_quantity: newStatus === 'Delivered' ? d.quantity : 0
+                    }))
+                } : o));
+                toast.success(newStatus === 'Delivered' ? "Đã giao hàng thành công & trừ tồn kho!" : "Đã hoàn tác trạng thái & hoàn lại tồn kho.");
             }
             queryClient.invalidateQueries(['shippingSummary']);
+            queryClient.invalidateQueries(['orders']);
+            queryClient.invalidateQueries(['products']);
+            queryClient.invalidateQueries(['posHistory']);
+            try {
+                const bc = new BroadcastChannel('pos_data_sync');
+                bc.postMessage({ type: 'SYNC_ORDERS' });
+                bc.postMessage({ type: 'SYNC_PRODUCTS' });
+                bc.close();
+            } catch (e) {}
         } catch (err) {
             console.error("Error updating shipping status:", err);
             toast.error("Không thể cập nhật trạng thái.");
@@ -67,21 +83,31 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
     };
 
     const updateItemShippedQty = async (detail, newQty) => {
+        const clampedQty = Math.max(0, Math.min(detail.quantity, Number(newQty) || 0));
         const loadingToast = toast.loading("Đang cập nhật...");
         try {
-            const res = await axios.patch(`/api/order-details/${detail.id}/shipped-quantity`, { shipped_quantity: newQty });
+            const res = await axios.patch(`/api/order-details/${detail.id}/shipped-quantity`, { shipped_quantity: clampedQty });
             const { order_shipping_status } = res.data;
 
             setOrders(prev => prev.map(o => {
                 if (o.details?.some(d => d.id === detail.id)) {
-                    const newDetails = o.details.map(d => d.id === detail.id ? { ...d, shipped_quantity: newQty } : d);
+                    const newDetails = o.details.map(d => d.id === detail.id ? { ...d, shipped_quantity: clampedQty } : d);
                     return { ...o, details: newDetails, shipping_status: order_shipping_status };
                 }
                 return o;
             }));
             setUpdatingQty(null);
             queryClient.invalidateQueries(['shippingSummary']);
-            toast.success("Cập nhật số lượng thành công!", { id: loadingToast });
+            queryClient.invalidateQueries(['orders']);
+            queryClient.invalidateQueries(['products']);
+            queryClient.invalidateQueries(['posHistory']);
+            try {
+                const bc = new BroadcastChannel('pos_data_sync');
+                bc.postMessage({ type: 'SYNC_ORDERS' });
+                bc.postMessage({ type: 'SYNC_PRODUCTS' });
+                bc.close();
+            } catch (e) {}
+            toast.success("Cập nhật số lượng & tồn kho thành công!", { id: loadingToast });
         } catch (err) {
             console.error("Error updating item shipped qty:", err);
             toast.error("Không thể cập nhật số lượng.", { id: loadingToast });
@@ -241,6 +267,23 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                             order.shipping_status === 'Delivered' ? "bg-blue-500/20 text-blue-400 border-blue-500/5" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/5")}>
                                                             {order.partner_name || 'Khách lẻ'}
                                                         </div>
+                                                        {(() => {
+                                                            const packed = order.details?.reduce((acc, d) => acc + (d.shipped_quantity || 0), 0) || 0;
+                                                            const total = order.details?.reduce((acc, d) => acc + (d.quantity || 0), 0) || 0;
+                                                            const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
+                                                            return (
+                                                                <div className={cn(
+                                                                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tight border",
+                                                                    pct === 100
+                                                                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                                                        : pct > 0
+                                                                        ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                                                        : "bg-white/5 text-white/40 border-white/10"
+                                                                )}>
+                                                                    Bốc {packed}/{total} ({pct}%)
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </div>
@@ -351,64 +394,110 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                         <h4 className="text-xl font-black text-gray-900 dark:text-white uppercase">📦 Bốc hàng #{order.display_id}</h4>
                                                         <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">{order.partner_name || 'Khách lẻ'}</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Tiến độ bốc</div>
-                                                        <div className="text-2xl font-black text-emerald-600">{progress}%</div>
+                                                    <div className="flex items-center gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (progress === 100) {
+                                                                    updateStatus(order.id, 'Shipping');
+                                                                } else {
+                                                                    updateStatus(order.id, 'Delivered');
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border",
+                                                                progress === 100
+                                                                    ? "bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30"
+                                                                    : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30"
+                                                            )}
+                                                        >
+                                                            {progress === 100 ? "Đặt lại 0%" : "Bốc đủ 100%"}
+                                                        </button>
+                                                        <div className="text-right">
+                                                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-0.5">Tiến độ bốc</div>
+                                                            <div className="text-2xl font-black text-emerald-500">{progress}%</div>
+                                                        </div>
                                                     </div>
                                                 </div>
 
                                                 <div className="max-h-[60vh] overflow-y-auto p-6 space-y-3">
                                                     {order.details?.map(detail => {
                                                         const isDone = (detail.shipped_quantity || 0) >= detail.quantity;
+                                                        const currentShipped = detail.shipped_quantity || 0;
                                                         return (
                                                             <div
                                                                 key={detail.id}
                                                                 className={cn(
                                                                     "flex items-center gap-4 p-4 rounded-2xl border transition-all",
                                                                     isDone
-                                                                        ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-500/20 opacity-60"
-                                                                        : "bg-transparent border-gray-100 dark:border-slate-800 shadow-sm"
+                                                                        ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/20"
+                                                                        : "bg-white/5 border-white/10 dark:border-slate-800 shadow-sm"
                                                                 )}
                                                             >
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div className={cn("text-base font-black uppercase tracking-tight truncate", isDone && "line-through text-gray-400")}>
+                                                                    <div className={cn("text-base font-black uppercase tracking-tight truncate text-foreground", isDone && "text-emerald-400")}>
                                                                         {detail.product_name}
                                                                     </div>
-                                                                    <div className="text-sm font-bold text-gray-400 mt-1">
-                                                                        SL: <span className="text-gray-900 dark:text-gray-100 font-black">{detail.shipped_quantity || 0}</span> / {detail.quantity} {detail.unit}
+                                                                    <div className="text-sm font-bold text-muted-foreground mt-1">
+                                                                        Đã bốc: <span className={cn("font-black", isDone ? "text-emerald-400" : "text-foreground")}>{currentShipped}</span> / {detail.quantity} {detail.unit}
                                                                     </div>
                                                                 </div>
 
                                                                 <div className="flex items-center gap-2">
-                                                                    {updatingQty?.detailId === detail.id ? (
+                                                                    {/* Stepper with direct numeric input */}
+                                                                    <div className="flex items-center bg-black/20 dark:bg-white/5 border border-white/10 rounded-xl overflow-hidden p-0.5">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updateItemShippedQty(detail, Math.max(0, currentShipped - 1))}
+                                                                            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-lg transition-colors font-bold text-base select-none"
+                                                                            title="Giảm 1"
+                                                                        >
+                                                                            <Minus size={14} />
+                                                                        </button>
                                                                         <input
                                                                             type="number"
-                                                                            autoFocus
-                                                                            className="w-20 h-10 bg-transparent border-2 border-emerald-500 rounded-xl text-lg font-black text-center outline-none"
-                                                                            value={updatingQty.value}
-                                                                            onChange={(e) => setUpdatingQty({ ...updatingQty, value: e.target.value })}
-                                                                            onBlur={() => updateItemShippedQty(detail, parseFloat(updatingQty.value) || 0)}
-                                                                            onKeyDown={(e) => e.key === 'Enter' && updateItemShippedQty(detail, parseFloat(updatingQty.value) || 0)}
+                                                                            min="0"
+                                                                            max={detail.quantity}
+                                                                            step="any"
+                                                                            className="w-16 h-8 bg-transparent text-center font-bold text-sm text-foreground outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                            value={updatingQty?.detailId === detail.id ? updatingQty.value : currentShipped}
+                                                                            onFocus={() => setUpdatingQty({ detailId: detail.id, value: currentShipped })}
+                                                                            onChange={(e) => setUpdatingQty({ detailId: detail.id, value: e.target.value })}
+                                                                            onBlur={() => {
+                                                                                if (updatingQty?.detailId === detail.id) {
+                                                                                    updateItemShippedQty(detail, parseFloat(updatingQty.value) || 0);
+                                                                                }
+                                                                            }}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    updateItemShippedQty(detail, parseFloat(updatingQty?.value) || 0);
+                                                                                    e.target.blur();
+                                                                                }
+                                                                            }}
                                                                         />
-                                                                    ) : (
                                                                         <button
-                                                                            onClick={() => setUpdatingQty({ detailId: detail.id, value: detail.shipped_quantity || 0 })}
-                                                                            className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-xl text-gray-400 transition-all border border-transparent hover:border-gray-200"
+                                                                            type="button"
+                                                                            onClick={() => updateItemShippedQty(detail, Math.min(detail.quantity, currentShipped + 1))}
+                                                                            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 rounded-lg transition-colors font-bold text-base select-none"
+                                                                            title="Tăng 1"
                                                                         >
-                                                                            <Search size={18} />
+                                                                            <Plus size={14} />
                                                                         </button>
-                                                                    )}
+                                                                    </div>
 
+                                                                    {/* Quick Tick / Check button */}
                                                                     <button
+                                                                        type="button"
                                                                         onClick={() => updateItemShippedQty(detail, isDone ? 0 : detail.quantity)}
                                                                         className={cn(
-                                                                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-md",
+                                                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-md shrink-0",
                                                                             isDone
-                                                                                ? "bg-emerald-500 text-white"
-                                                                                : "bg-transparent border-2 border-gray-200 dark:border-slate-700 text-gray-300 hover:border-emerald-500 hover:text-emerald-500"
+                                                                                ? "bg-emerald-500 text-white shadow-emerald-500/20"
+                                                                                : "bg-white/5 border border-white/10 text-muted-foreground hover:border-emerald-500/50 hover:text-emerald-400"
                                                                         )}
+                                                                        title={isDone ? "Bỏ chọn (về 0)" : "Bốc đủ số lượng"}
                                                                     >
-                                                                        <CheckCircle2 size={24} />
+                                                                        <CheckCircle2 size={20} strokeWidth={2.5} />
                                                                     </button>
                                                                 </div>
                                                             </div>

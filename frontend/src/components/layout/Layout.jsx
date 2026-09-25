@@ -62,10 +62,49 @@ import { checkIsAdmin } from '../../lib/auth';
 import { createPortal } from 'react-dom';
 import ContextMenu from '../widgets/ContextMenu';
 import { getLiteTheme } from '../../lib/liteTheme';
+import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
 
 const Portal = ({ children }) => {
     return createPortal(children, document.body);
+};
+
+
+const useSidebarStyle = () => {
+    const [style, setStyle] = useState(() => getStoredSidebarStyle());
+
+    useEffect(() => {
+        const updateIfChanged = (nextVal) => {
+            if (!nextVal) return;
+            setStyle(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(nextVal)) return prev;
+                return nextVal;
+            });
+        };
+
+        const handleUpdate = (e) => {
+            if (e?.data?.type === 'SIDEBAR_STYLE_UPDATED') {
+                updateIfChanged(e.data.value);
+            }
+        };
+        const handleLocal = () => {
+            updateIfChanged(getStoredSidebarStyle());
+        };
+        window.addEventListener('sidebar_style_changed', handleLocal);
+        window.addEventListener('storage', handleLocal);
+        let chan;
+        try {
+            chan = new BroadcastChannel('pos_data_sync');
+            chan.addEventListener('message', handleUpdate);
+        } catch (err) {}
+        return () => {
+            window.removeEventListener('sidebar_style_changed', handleLocal);
+            window.removeEventListener('storage', handleLocal);
+            if (chan) chan.close();
+        };
+    }, []);
+
+    return style;
 };
 
 const useCartColorConfig = () => {
@@ -109,11 +148,13 @@ const useCartColorConfig = () => {
     return cfg;
 };
 
-const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTheme }) => {
+const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTheme, isFlyout = false, customSidebarStyle }) => {
     const isLite = !!liteTheme;
     const cartColorConfig = useCartColorConfig();
     const hasCustomAccent = !isLite && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
     const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+    const isCustomSidebar = !isLite && !isFlyout && customSidebarStyle?.enabled;
+    const isSidebarLightText = !isCustomSidebar || customSidebarStyle?.isLightText !== false;
 
     const linkStyle = isLite ? {
         color: active ? '#ffffff' : liteTheme.text,
@@ -132,7 +173,11 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
                         : (active
                             ? "text-white font-black"
-                            : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
+                            : isFlyout
+                                ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10"
+                                : isCustomSidebar 
+                                    ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10") 
+                                    : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
                 {active && isLite && (
@@ -177,20 +222,13 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     <Icon size={20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-300", active && !isLite ? "text-white drop-shadow-sm" : "")} />
                 </m.div>
 
-                <AnimatePresence>
-                    {!isCollapsed && (
-                        <div className="relative z-10 flex-1 min-w-0 sidebar-marquee-container">
-                            <m.span
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                className="inline-block text-[12px] font-black uppercase tracking-[0.15em] whitespace-nowrap marquee-content"
-                            >
-                                {label}
-                            </m.span>
-                        </div>
-                    )}
-                </AnimatePresence>
+                {!isCollapsed && (
+                    <div className="relative z-10 flex-1 min-w-0 sidebar-marquee-container">
+                        <span className="inline-block text-[12px] font-black uppercase tracking-[0.15em] whitespace-nowrap marquee-content">
+                            {label}
+                        </span>
+                    </div>
+                )}
 
                 {/* Tooltip for Simple Collapsed NavItem */}
                 {isCollapsed && (
@@ -211,8 +249,10 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
 
 const NavItemMemo = memo(NavItem);
 
-const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
+const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarStyle }) => {
     const isLite = !!liteTheme;
+    const isCustomSidebar = !isLite && customSidebarStyle?.enabled;
+    const isSidebarLightText = !isCustomSidebar || customSidebarStyle?.isLightText !== false;
     const [isOpen, setIsOpen] = useState(false);
     const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
     const [flyoutHeight, setFlyoutHeight] = useState(350);
@@ -225,7 +265,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
         if (isAnyChildActive) setIsOpen(true);
     }, [isAnyChildActive]);
 
-    // Measure height dynamically using ResizeObserver (handles zooms and updates)
+    // Measure height dynamically using ResizeObserver with debounce/threshold
     useEffect(() => {
         if (!isFlyoutOpen || !flyoutRef.current) return;
         
@@ -233,7 +273,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
             if (flyoutRef.current) {
                 const height = flyoutRef.current.getBoundingClientRect().height;
                 if (height > 0) {
-                    setFlyoutHeight(height);
+                    setFlyoutHeight(prev => (Math.abs(prev - height) > 5 ? height : prev));
                 }
             }
         };
@@ -250,8 +290,9 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
 
     // Handle Click Outside for Flyout
     useEffect(() => {
+        if (!isFlyoutOpen) return;
         const handleClickOutside = (event) => {
-            if (isFlyoutOpen && groupRef.current && !groupRef.current.contains(event.target)) {
+            if (groupRef.current && !groupRef.current.contains(event.target)) {
                 const flyout = document.querySelector('[data-flyout="true"]');
                 if (flyout && flyout.contains(event.target)) return;
                 setIsFlyoutOpen(false);
@@ -274,11 +315,15 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
         }
     };
 
-    const handleHeaderClick = () => {
+    const handleHeaderClick = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (isCollapsed) {
-            setIsFlyoutOpen(!isFlyoutOpen);
+            setIsFlyoutOpen(prev => !prev);
         } else {
-            setIsOpen(!isOpen);
+            setIsOpen(prev => !prev);
         }
     };
 
@@ -322,7 +367,9 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
                             ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40"
-                            : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
+                            : isCustomSidebar
+                                ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10")
+                                : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
                 <item.icon size={20} className={cn("shrink-0 transition-transform duration-500", (isAnyChildActive || isFlyoutOpen) ? "scale-110 rotate-3 text-white" : "")} />
@@ -333,7 +380,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                                 {item.label}
                             </span>
                         </div>
-                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-40 shrink-0", isOpen ? "rotate-90 opacity-100 text-white" : "")} />
+                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-60 shrink-0", isOpen ? "rotate-90 opacity-100 text-white" : "")} />
                     </>
                 )}
 
@@ -418,6 +465,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme }) => {
                                             isCollapsed={false}
                                             onClick={() => setIsFlyoutOpen(false)}
                                             liteTheme={liteTheme}
+                                            isFlyout={true}
                                         />
                                     ))}
                                 </div>
@@ -603,7 +651,8 @@ const getAvatarSrc = (url) => {
 
 export default function Layout({ children }) {
     const location = useLocation();
-    const isActive = (path) => location.pathname === path;
+    const customSidebarStyle = useSidebarStyle();
+    const isActive = useCallback((path) => location.pathname === path, [location.pathname]);
     const isLiteMode = import.meta.env.VITE_APP_MODE === 'lite';
     const [liteBgColor, setLiteBgColor] = useState(() => localStorage.getItem('pos_lite_bg_color') || "#f4ecd8");
     const liteTheme = useMemo(() => getLiteTheme(liteBgColor), [liteBgColor]);
@@ -1536,8 +1585,17 @@ export default function Layout({ children }) {
                         x: isSidebarHidden ? -280 : 0,
                         opacity: isSidebarHidden ? 0 : 1
                      }}
-                     transition={{ type: "spring", stiffness: 250, damping: 30, mass: 0.6 }}
-                     className="absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4 bg-transparent"
+                     transition={{ type: "spring", stiffness: 300, damping: 30, mass: 0.8 }}
+                     style={customSidebarStyle?.enabled ? {
+                        background: `linear-gradient(${customSidebarStyle.angle || 180}deg, ${customSidebarStyle.color1 || '#1b381e'}, ${customSidebarStyle.color2 || '#0b1f10'})`,
+                        borderRight: customSidebarStyle.showBorder ? `1px solid ${customSidebarStyle.borderColor || 'rgba(255,255,255,0.15)'}` : 'none',
+                        boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
+                        backdropFilter: 'blur(20px)'
+                     } : undefined}
+                     className={cn(
+                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4",
+                        customSidebarStyle?.enabled ? "" : "bg-transparent"
+                     )}
                  >
 
             {/* Active Tab Logo Icon Container */}
@@ -1637,10 +1695,10 @@ export default function Layout({ children }) {
                         isSidebarCollapsed ? "h-12 justify-center p-0 rounded-xl mx-auto" : "px-4 py-3 rounded-2xl bg-transparent"
                     )}
                 >
-                    <Search size={18} className="text-primary dark:text-emerald-400 shrink-0" />
+                    <Search size={18} className={cn("shrink-0", customSidebarStyle?.enabled ? (customSidebarStyle.isLightText !== false ? "text-white/80" : "text-slate-700") : "text-primary dark:text-emerald-400")} />
                     {!isSidebarCollapsed && (
                         <div className="flex-1 flex items-center justify-between min-w-0">
-                            <span className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">Tìm kiếm nhanh</span>
+                            <span className={cn("text-xs font-black uppercase tracking-wider", customSidebarStyle?.enabled ? (customSidebarStyle.isLightText !== false ? "text-white/90" : "text-slate-800") : "text-[#8b6f47] dark:text-[#d4a574]")}>Tìm kiếm nhanh</span>
                             <span className="text-[9px] bg-[#8b6f47]/10 dark:bg-white/10 px-1.5 py-0.5 rounded text-[#8b6f47] dark:text-[#d4a574] font-black shrink-0">Ctrl+G</span>
                         </div>
                     )}
@@ -1657,6 +1715,7 @@ export default function Layout({ children }) {
                             isActive={isActive}
                             isCollapsed={isSidebarCollapsed}
                             liteTheme={isLiteMode ? liteTheme : null}
+                            customSidebarStyle={customSidebarStyle}
                         />
                     ) : (
                         <NavItemMemo
@@ -1667,183 +1726,163 @@ export default function Layout({ children }) {
                             active={isActive(item.path)}
                             isCollapsed={isSidebarCollapsed}
                             liteTheme={isLiteMode ? liteTheme : null}
+                            customSidebarStyle={customSidebarStyle}
                         />
                     )
                 ))}
             </div>
 
             {/* Bottom Actions Cluster */}
-            <div 
-                className={cn(
-                    "mb-3 backdrop-blur-xl transition-all duration-300 border border-[#2d5016]/40 dark:border-emerald-500/30 bg-gradient-to-b from-[#2d5016] to-[#223d11] dark:from-[#13220f] dark:to-[#0c160a] shadow-lg shadow-[#2d5016]/25 dark:shadow-emerald-950/50 text-white",
-                    isSidebarCollapsed ? "mx-auto w-12 rounded-full p-1.5 space-y-1.5" : "mx-3 space-y-2 rounded-3xl p-2.5"
-                )} 
-                style={hasCustomAccent ? {
-                    background: `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
-                    borderColor: `${accentCol}60`,
-                    boxShadow: `0 8px 24px ${accentCol}35`
-                } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
-            >
-
-                {/* Footer Actions (Reminder, Volume, Theme, Close) */}
-                <m.div layout className={cn(
-                    "grid justify-items-center transition-all duration-200",
-                    isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-4 gap-1.5"
-                )}>
-                    <m.button
-                        layout
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
-                        style={isLiteMode ? {
-                            backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
-                            color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
-                        } : {}}
-                        className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative",
-                            isSidebarCollapsed ? "w-10 h-10" : "w-11 h-11",
-                            isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
-                        )}
-                        title="Nhắc nhở & Lịch hẹn"
-                    >
-                        <div className="relative flex items-center justify-center">
-                            <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
-                            {reminderCount > 0 && (
-                                <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
-                                    {reminderCount > 9 ? '9+' : reminderCount}
+            <div className={cn("w-full mb-3 shrink-0 flex justify-center", isSidebarCollapsed ? "px-0" : "px-3")}>
+                <m.div 
+                    layout
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    className={cn(
+                        "backdrop-blur-xl border border-[#2d5016]/40 dark:border-emerald-500/30 bg-gradient-to-b from-[#2d5016] to-[#223d11] dark:from-[#13220f] dark:to-[#0c160a] shadow-lg shadow-[#2d5016]/25 dark:shadow-emerald-950/50 text-white overflow-hidden transition-all duration-300",
+                        isSidebarCollapsed ? "w-[48px] rounded-2xl p-1.5 space-y-1.5 flex flex-col items-center" : "w-full space-y-2 rounded-3xl p-2.5"
+                    )} 
+                    style={hasCustomAccent ? {
+                        background: `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
+                        borderColor: `${accentCol}60`,
+                        boxShadow: `0 8px 24px ${accentCol}35`
+                    } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
+                >
+                    {/* Footer Actions (Reminder, Volume, Theme, Close) */}
+                    <div className={cn(
+                        "grid justify-items-center transition-all duration-300 w-full",
+                        isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-4 gap-1.5"
+                    )}>
+                        {/* 1. Reminders */}
+                        <m.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
+                            style={isLiteMode ? {
+                                backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
+                                color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
+                            } : {}}
+                            className={cn(
+                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative cursor-pointer",
+                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11",
+                                isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
+                            )}
+                            title="Nhắc nhở & Lịch hẹn"
+                        >
+                            <div className="relative flex items-center justify-center">
+                                <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
+                                {reminderCount > 0 && (
+                                    <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
+                                        {reminderCount > 9 ? '9+' : reminderCount}
+                                    </span>
+                                )}
+                            </div>
+                            {!isSidebarCollapsed && (
+                                <span className={cn(
+                                    "text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap",
+                                    reminderCount > 0 ? "text-amber-300 font-extrabold" : "text-emerald-100/90"
+                                )}>
+                                    Nhắc
                                 </span>
                             )}
-                        </div>
-                        <AnimatePresence>
-                            {!isSidebarCollapsed && (
-                                <m.span
-                                    initial={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.15 }}
-                                    className={cn(
-                                        "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
-                                        reminderCount > 0 ? "text-amber-300 font-extrabold" : "text-emerald-100"
-                                    )}
-                                >
-                                    Nhắc
-                                </m.span>
-                            )}
-                        </AnimatePresence>
-                    </m.button>
+                        </m.button>
 
-                    <m.button
-                        layout
-                        whileTap={{ scale: 0.9 }}
-                        onClick={toggleMute}
-                        style={isLiteMode ? {
-                            backgroundColor: isMuted ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
-                            color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
-                        } : {}}
-                        className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none",
-                            isSidebarCollapsed ? "w-10 h-10" : "w-11 h-11",
-                            isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
-                        )}
-                        title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
-                    >
-                        {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                        <AnimatePresence>
+                        {/* 2. Sound Volume */}
+                        <m.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={toggleMute}
+                            style={isLiteMode ? {
+                                backgroundColor: isMuted ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                                color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
+                            } : {}}
+                            className={cn(
+                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none cursor-pointer",
+                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11",
+                                isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
+                            )}
+                            title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
+                        >
+                            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                             {!isSidebarCollapsed && (
-                                <m.span
-                                    initial={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.15 }}
-                                    className={cn(
-                                        "text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden",
-                                        isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-300" : "text-emerald-100")
-                                    )}
-                                >
+                                <span className={cn(
+                                    "text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap",
+                                    isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-300" : "text-emerald-100/90")
+                                )}>
                                     {isMuted ? "Tắt" : "Bật"}
-                                </m.span>
+                                </span>
                             )}
-                        </AnimatePresence>
-                    </m.button>
+                        </m.button>
 
-                    <m.button
-                        layout
-                        whileTap={{ scale: 0.9 }}
-                        onClick={toggleTheme}
-                        className={cn(
-                            "rounded-full hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-colors duration-200 flex flex-col items-center justify-center gap-1 shadow-none shrink-0",
-                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
-                        )}
-                        title="Sáng/Tối"
-                    >
-                        {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                        <AnimatePresence>
+                        {/* 3. Theme */}
+                        <m.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={toggleTheme}
+                            className={cn(
+                                "rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer",
+                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11"
+                            )}
+                            title="Sáng / Tối"
+                        >
+                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                             {!isSidebarCollapsed && (
-                                <m.span
-                                    initial={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-emerald-100/90"
-                                >
+                                <span className="text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap text-emerald-100/90">
                                     Phông
-                                </m.span>
+                                </span>
                             )}
-                        </AnimatePresence>
-                    </m.button>
+                        </m.button>
 
+                        {/* 4. Hide Sidebar */}
+                        <m.button
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => setIsSidebarHidden(true)}
+                            style={isLiteMode ? {
+                                backgroundColor: "rgba(239, 68, 68, 0.12)",
+                                color: "rgb(239, 68, 68)"
+                            } : {}}
+                            className={cn(
+                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer",
+                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11"
+                            )}
+                            title="Đóng / Ẩn hoàn toàn menu"
+                        >
+                            <X size={16} strokeWidth={2.5} />
+                            {!isSidebarCollapsed && (
+                                <span className="text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap text-rose-300">
+                                    Đóng
+                                </span>
+                            )}
+                        </m.button>
+                    </div>
+
+                    {/* Collapse / Expand Toggle Button */}
                     <m.button
-                        layout
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsSidebarHidden(true)}
+                        whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                         style={isLiteMode ? {
-                            backgroundColor: "rgba(239, 68, 68, 0.12)",
-                            color: "rgb(239, 68, 68)"
+                            backgroundColor: liteTheme.inputBg,
+                            color: liteTheme.text
                         } : {}}
                         className={cn(
-                            "rounded-full transition-colors duration-200 flex flex-col items-center justify-center gap-1 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200",
-                            isSidebarCollapsed ? "w-10 h-10" : "w-12 h-12"
+                            "w-full rounded-2xl transition-all duration-300 flex items-center justify-center gap-2.5 border-t border-white/20 pt-2 cursor-pointer select-none",
+                            isSidebarCollapsed ? "py-1.5 min-h-[34px]" : "py-2.5 min-h-[38px] px-3",
+                            isLiteMode ? "" : "text-white"
                         )}
-                        title="Đóng menu"
                     >
-                        <X size={16} strokeWidth={3} />
-                        <AnimatePresence>
-                            {!isSidebarCollapsed && (
-                                <m.span
-                                    initial={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, height: 'auto', scale: 1 }}
-                                    exit={{ opacity: 0, height: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="text-[7px] font-black uppercase tracking-widest leading-none overflow-hidden text-rose-300"
-                                >
-                                    Đóng
-                                </m.span>
-                            )}
-                        </AnimatePresence>
+                        {isSidebarCollapsed ? (
+                            <ChevronRight size={18} className="text-emerald-300 shrink-0" />
+                        ) : (
+                            <>
+                                <ChevronLeft size={16} className="text-emerald-300 shrink-0" />
+                                <span className="text-[9.5px] font-black uppercase tracking-[0.25em] whitespace-nowrap text-white/90">
+                                    Thu gọn menu
+                                </span>
+                            </>
+                        )}
                     </m.button>
                 </m.div>
-
-                {/* Toggle Button */}
-                <m.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    style={isLiteMode ? {
-                        backgroundColor: liteTheme.inputBg,
-                        color: liteTheme.text
-                    } : {}}
-                    className={cn(
-                        "w-full rounded-2xl transition-all flex items-center justify-center gap-3 hover:bg-white/15 dark:hover:bg-white/10 border-t border-white/20 pt-1.5",
-                        isSidebarCollapsed ? "py-1.5 min-h-[34px]" : "py-2.5 min-h-[40px]",
-                        isLiteMode ? "" : "text-white hover:opacity-90"
-                    )}
-                >
-                    {isSidebarCollapsed ? <ChevronRight size={18} /> : (
-                        <>
-                            <ChevronLeft size={16} />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Thu gọn menu</span>
-                        </>
-                    )}
-                </m.button>
             </div>
 
 

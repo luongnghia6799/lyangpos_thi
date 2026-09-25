@@ -180,3 +180,59 @@ export const setStoredHiddenPaths = (paths) => {
         return false;
     }
 };
+
+export const SIDEBAR_GRADIENT_PRESETS = [
+    { id: 'emerald', label: 'Lục bảo cổ điển', color1: '#1b381e', color2: '#0b1f10', angle: 180, isLightText: true },
+    { id: 'forest_mist', label: 'Rừng thông sâu', color1: '#2d5016', color2: '#13220f', angle: 180, isLightText: true },
+    { id: 'midnight', label: 'Đêm huyền bí', color1: '#1e293b', color2: '#0f172a', angle: 180, isLightText: true },
+    { id: 'ocean_deep', label: 'Đại dương sâu', color1: '#0f2b48', color2: '#071626', angle: 180, isLightText: true },
+    { id: 'royal_purple', label: 'Tím hoàng gia', color1: '#3b1d54', color2: '#1e0c2f', angle: 180, isLightText: true },
+    { id: 'warm_coffee', label: 'Cà phê ấm', color1: '#3d2616', color2: '#1f1208', angle: 180, isLightText: true },
+    { id: 'sunset_glow', label: 'Hoàng hôn rực rỡ', color1: '#832819', color2: '#3d120a', angle: 180, isLightText: true },
+    { id: 'ruby_wine', label: 'Rượu vang đỏ', color1: '#4a1525', color2: '#20070e', angle: 180, isLightText: true },
+    { id: 'charcoal', label: 'Khói than đen', color1: '#262626', color2: '#121212', angle: 180, isLightText: true },
+    { id: 'clean_light', label: 'Trắng sứ thanh lịch', color1: '#f8fafc', color2: '#e2e8f0', angle: 180, isLightText: false },
+    { id: 'warm_cream', label: 'Kem ấm Vintage', color1: '#fcf8f0', color2: '#ede3d1', angle: 180, isLightText: false }
+];
+
+export const DEFAULT_SIDEBAR_STYLE = {
+    enabled: false,
+    color1: '#1b381e',
+    color2: '#0b1f10',
+    angle: 180,
+    opacity: 100, // 0 - 100%
+    isLightText: true,
+    showBorder: true,
+    borderColor: '#ffffff1a'
+};
+
+export const getStoredSidebarStyle = () => {
+    try {
+        const saved = localStorage.getItem('sidebar_custom_style');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            return { ...DEFAULT_SIDEBAR_STYLE, ...parsed };
+        }
+    } catch (e) {
+        console.error('Error reading sidebar_custom_style:', e);
+    }
+    return DEFAULT_SIDEBAR_STYLE;
+};
+
+export const setStoredSidebarStyle = (style) => {
+    try {
+        const merged = { ...DEFAULT_SIDEBAR_STYLE, ...style };
+        localStorage.setItem('sidebar_custom_style', JSON.stringify(merged));
+        window.dispatchEvent(new Event('sidebar_style_changed'));
+        window.dispatchEvent(new Event('storage'));
+        try {
+            const chan = new BroadcastChannel('pos_data_sync');
+            chan.postMessage({ type: 'SIDEBAR_STYLE_UPDATED', value: merged });
+        } catch (err) {}
+        return true;
+    } catch (e) {
+        console.error('Error saving sidebar_custom_style:', e);
+        return false;
+    }
+};
+

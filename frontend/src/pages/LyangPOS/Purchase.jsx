@@ -232,42 +232,6 @@ export default function Purchase() {
     const [isAuditOpen, setIsAuditOpen] = useState(false);
     const [auditProduct, setAuditProduct] = useState(null);
     const [auditCoords, setAuditCoords] = useState(null);
-    const [workingSearchCoords, setWorkingSearchCoords] = useState({ top: 0, left: 0, width: 0 });
-
-    useLayoutEffect(() => {
-        if (searchTerm && !workingItem?.product) {
-            let rafId = null;
-            const updateCoords = () => {
-                if (searchInputRef.current) {
-                    const rect = searchInputRef.current.getBoundingClientRect();
-                    if (rect.width > 0 && rect.bottom > 0) {
-                        const nextTop = rect.bottom + 6;
-                        const nextLeft = rect.left;
-                        const nextWidth = Math.max(rect.width, 600);
-                        setWorkingSearchCoords(prev => {
-                            if (Math.abs(prev.top - nextTop) < 1 && Math.abs(prev.left - nextLeft) < 1 && Math.abs(prev.width - nextWidth) < 1) {
-                                return prev;
-                            }
-                            return { top: nextTop, left: nextLeft, width: nextWidth };
-                        });
-                    }
-                }
-            };
-            updateCoords();
-            const onScrollOrResize = () => {
-                if (rafId) cancelAnimationFrame(rafId);
-                rafId = requestAnimationFrame(updateCoords);
-            };
-            window.addEventListener("resize", onScrollOrResize);
-            window.addEventListener("scroll", onScrollOrResize, true);
-            return () => {
-                if (rafId) cancelAnimationFrame(rafId);
-                window.removeEventListener("resize", onScrollOrResize);
-                window.removeEventListener("scroll", onScrollOrResize, true);
-            };
-        }
-    }, [searchTerm, workingItem?.product]);
-
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
     const [isPriceRaiseModalOpen, setIsPriceRaiseModalOpen] = useState(false);

@@ -241,13 +241,106 @@ const Ls = (v, N) => {
       await new Promise(res => setTimeout(res, Math.max(150, itemGap * 1.5)));
     }
 
-    if (!isStopped) {
-      await speakAudioSequence(["Đã soạn xong"]);
-    }
-    if (window.currentPackingQueue && window.currentPackingQueue.stop) {
-      window.currentPackingQueue = null;
-    }
   };
+
+// Isolated component for TTS Precache progress & actions to prevent re-rendering the whole 6300-line POS page
+const TTSPrecacheSection = ({ products, onPrecache, onPrecacheQuick, onCancel, onClearCache, IconLa, IconUo, IconSo }) => {
+  const [status, setStatus] = React.useState(() => {
+    return (typeof window !== 'undefined' && window.ttsPrecacheProgress) || { completed: 0, total: 0, active: false, currentText: "" };
+  });
+
+  React.useEffect(() => {
+    const handleProgress = (e) => {
+      if (e.detail) {
+        setStatus(e.detail);
+      }
+    };
+    window.addEventListener('tts-precache-progress', handleProgress);
+    return () => window.removeEventListener('tts-precache-progress', handleProgress);
+  }, []);
+
+  return (
+    <div className="space-y-3 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-4 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
+      <div className="flex justify-between items-center text-xs font-black">
+        <span className="uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <IconLa size={16} strokeWidth={2.5} className="text-[#8b6f47] dark:text-emerald-400" />
+          <span>Tải sẵn âm thanh Offline vĩnh viễn (Precache)</span>
+        </span>
+        <span className="px-2 py-0.5 rounded-lg bg-[#8b6f47]/15 dark:bg-emerald-500/15 text-[#8b6f47] dark:text-emerald-300 font-mono font-black text-[10px]">
+          {status.active ? "ĐANG TẢI VỀ..." : "LƯU TRÊN Ổ ĐĨA"}
+        </span>
+      </div>
+
+      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-bold">
+        Tải trước toàn bộ số đếm (1 - 1000), tên sản phẩm và câu thông báo vào bộ nhớ đệm để đọc tức thì 0ms, không độ trễ ngay cả khi không có mạng.
+      </p>
+
+      {/* Progress Bar if downloading */}
+      {status.active && (
+        <div className="space-y-1.5 p-3 rounded-xl bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 shadow-xs">
+          <div className="flex justify-between items-center text-[11px] font-black">
+            <span className="text-[#8b6f47] dark:text-emerald-400 truncate max-w-[250px]">
+              Đang tải: "{status.currentText || 'Đang nạp...'}"
+            </span>
+            <span className="font-mono text-slate-600 dark:text-slate-300">
+              {status.completed} / {status.total} ({Math.round((status.completed / (status.total || 1)) * 100)}%)
+            </span>
+          </div>
+          <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#8b6f47] to-[#b38f5d] dark:from-emerald-600 dark:to-teal-500 rounded-full transition-all duration-150"
+              style={{
+                width: `${Math.round((status.completed / (status.total || 1)) * 100)}%`
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 pt-1">
+        {status.active ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full py-2.5 px-3 rounded-xl text-xs font-black bg-rose-500 hover:bg-rose-600 text-white uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
+          >
+            <IconUo size={14} /><span>Dừng tải trước</span>
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => onPrecache(products)}
+              className="flex-1 py-2.5 px-3 rounded-xl text-xs font-black bg-[#8b6f47] dark:bg-emerald-600 hover:opacity-90 text-white uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
+            >
+              <IconLa size={14} /><span>Tải trước (1-1000 & SP)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onPrecacheQuick(products, { limitNumbers: 100 })}
+              className="py-2.5 px-3 rounded-xl text-xs font-black bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47] dark:hover:border-emerald-500 text-slate-700 dark:text-slate-300 uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
+              title="Tải nhanh 100 số đầu tiên & mặt hàng"
+            >
+              <span>Tải nhanh (1-100)</span>
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm âm thanh trên ổ đĩa và trình duyệt để tải lại từ đầu?")) {
+                  await onClearCache();
+                }
+              }}
+              className="py-2.5 px-3 rounded-xl text-xs font-black bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-500/20 transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
+              title="Xóa toàn bộ cache âm thanh trên ổ đĩa để tải lại mới"
+            >
+              <IconSo size={14} /><span>Xóa cache</span>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 function POSPage({
   onToggleTheme: v,
@@ -575,25 +668,16 @@ function POSPage({
       const t = localStorage.getItem("pos_selected_voice") || "edge-vi-female";
       return t === "native-vi" || !t.startsWith("edge") && t !== "google" ? (localStorage.setItem("pos_selected_voice", "edge-vi-female"), "edge-vi-female") : t;
     });
-  const [ttsPrecacheStatus, setTtsPrecacheStatus] = i.useState(() => {
-    return (typeof window !== 'undefined' && window.ttsPrecacheProgress) || { completed: 0, total: 0, active: false, currentText: "" };
-  });
-
+  // Precache audio initial
   i.useEffect(() => {
-    const handleProgress = (e) => {
-      if (e.detail) {
-        setTtsPrecacheStatus(e.detail);
-      }
-    };
-    window.addEventListener('tts-precache-progress', handleProgress);
-    return () => window.removeEventListener('tts-precache-progress', handleProgress);
-  }, []);
-
-  i.useEffect(() => {
-    Ss();
-  }, []), i.useEffect(() => {
-    T && T.length > 0 && Ss(T);
-  }, [T]);
+    // Chỉ kích hoạt precache một lần sau khi dữ liệu sản phẩm đã nạp xong, không trigger re-render
+    if (T && T.length > 0) {
+      const timer = setTimeout(() => {
+        Ss(T);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [T?.length]);
   const [Or, wi] = i.useState(() => parseFloat(localStorage.getItem("pos_speech_rate") || "1")),
     ji = t => {
       const a = parseFloat(t.target.value);
@@ -5803,85 +5887,16 @@ function POSPage({
                       </div>
 
                       {/* Precache Audio Management (Tải trước âm thanh vĩnh viễn / Offline) */}
-                      <div className="space-y-3 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 p-4 rounded-2xl border border-[#8b6f47]/20 dark:border-emerald-500/20">
-                        <div className="flex justify-between items-center text-xs font-black">
-                          <span className="uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                            <la size={16} strokeWidth={2.5} className="text-[#8b6f47] dark:text-emerald-400" />
-                            <span>Tải sẵn âm thanh Offline vĩnh viễn (Precache)</span>
-                          </span>
-                          <span className="px-2 py-0.5 rounded-lg bg-[#8b6f47]/15 dark:bg-emerald-500/15 text-[#8b6f47] dark:text-emerald-300 font-mono font-black text-[10px]">
-                            {ttsPrecacheStatus.active ? "ĐANG TẢI VỀ..." : "LƯU TRÊN Ổ ĐĨA"}
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-bold">
-                          Tải trước toàn bộ số đếm (1 - 1000), tên sản phẩm và câu thông báo vào bộ nhớ đệm để đọc tức thì 0ms, không độ trễ ngay cả khi không có mạng.
-                        </p>
-
-                        {/* Progress Bar if downloading */}
-                        {ttsPrecacheStatus.active && (
-                          <div className="space-y-1.5 p-3 rounded-xl bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 shadow-xs">
-                            <div className="flex justify-between items-center text-[11px] font-black">
-                              <span className="text-[#8b6f47] dark:text-emerald-400 truncate max-w-[250px]">
-                                Đang tải: "{ttsPrecacheStatus.currentText || 'Đang nạp...'}"
-                              </span>
-                              <span className="font-mono text-slate-600 dark:text-slate-300">
-                                {ttsPrecacheStatus.completed} / {ttsPrecacheStatus.total} ({Math.round((ttsPrecacheStatus.completed / (ttsPrecacheStatus.total || 1)) * 100)}%)
-                              </span>
-                            </div>
-                            <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-gradient-to-r from-[#8b6f47] to-[#b38f5d] dark:from-emerald-600 dark:to-teal-500 rounded-full transition-all duration-150"
-                                style={{
-                                  width: `${Math.round((ttsPrecacheStatus.completed / (ttsPrecacheStatus.total || 1)) * 100)}%`
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2 pt-1">
-                          {ttsPrecacheStatus.active ? (
-                            <button
-                              type="button"
-                              onClick={() => cancelPrecacheCommonTTS()}
-                              className="w-full py-2.5 px-3 rounded-xl text-xs font-black bg-rose-500 hover:bg-rose-600 text-white uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-                            >
-                              <Uo size={14} /><span>Dừng tải trước</span>
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => Ss(T)}
-                                className="flex-1 py-2.5 px-3 rounded-xl text-xs font-black bg-[#8b6f47] dark:bg-emerald-600 hover:opacity-90 text-white uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-                              >
-                                <la size={14} /><span>Tải trước (1-1000 & SP)</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => Ss(T, { limitNumbers: 100 })}
-                                className="py-2.5 px-3 rounded-xl text-xs font-black bg-white dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47] dark:hover:border-emerald-500 text-slate-700 dark:text-slate-300 uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-                                title="Tải nhanh 100 số đầu tiên & mặt hàng"
-                              >
-                                <span>Tải nhanh (1-100)</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (window.confirm("Bạn có chắc chắn muốn xóa toàn bộ bộ nhớ đệm âm thanh trên ổ đĩa và trình duyệt để tải lại từ đầu?")) {
-                                    await clearTTSAudioCache();
-                                  }
-                                }}
-                                className="py-2.5 px-3 rounded-xl text-xs font-black bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white border border-rose-500/20 transition-all cursor-pointer shadow-xs active:scale-98 flex items-center justify-center gap-1.5"
-                                title="Xóa toàn bộ cache âm thanh trên ổ đĩa để tải lại mới"
-                              >
-                                <so size={14} /><span>Xóa cache</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      <TTSPrecacheSection 
+                        products={T}
+                        onPrecache={Ss}
+                        onPrecacheQuick={Ss}
+                        onCancel={cancelPrecacheCommonTTS}
+                        onClearCache={clearTTSAudioCache}
+                        IconLa={la}
+                        IconUo={Uo}
+                        IconSo={so}
+                      />
                     </div>
                   ) : dc === "templates" ? (
                     /* Tab 3: Mẫu câu thông báo */

@@ -56,13 +56,24 @@ export default function GoogleFontPickerModal({
 
     return (
         <Portal>
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200 font-sans">
-                <m.div
-                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                    className="bg-[#faf8f3] dark:bg-[#0c140e] border border-[#8b6f47]/30 dark:border-white/10 w-full max-w-4xl h-[85vh] max-h-[750px] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 relative"
-                >
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 font-sans select-none">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={onClose}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
+                        />
+                        <m.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                            className="bg-[#faf8f3] dark:bg-[#0c140e] border border-[#8b6f47]/30 dark:border-white/10 w-full max-w-4xl h-[85vh] max-h-[750px] rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 relative z-10 transform-gpu will-change-transform"
+                        >
                     {/* Header */}
                     <div className="p-5 px-6 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between bg-[#d4a574]/10 dark:bg-white/[0.02]">
                         <div className="flex items-center gap-3">
@@ -214,6 +225,8 @@ export default function GoogleFontPickerModal({
                     </div>
                 </m.div>
             </div>
+                )}
+            </AnimatePresence>
         </Portal>
     );
 }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { 
     Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
@@ -7,6 +6,7 @@ import {
     SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import Portal from '../widgets/Portal';
 import BubbleCustomizerTab, { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS } from './BubbleCustomizerTab';
 
 export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS };
@@ -567,23 +567,27 @@ export default function CartColorCustomizerModal({
 
     const activeAccentColor = currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016';
 
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5">
-            <m.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                className="fixed inset-0 bg-black/65 backdrop-blur-md"
-            />
+    return (
+        <Portal>
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 select-none">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.22 }}
+                            onClick={onClose}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
+                        />
 
-            <m.div
-                initial={{ opacity: 0, scale: 0.94, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.94, y: 15 }}
-                transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                className="relative w-full max-w-3xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh]"
-            >
+                        <m.div
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                            className="relative w-full max-w-3xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
+                        >
                 {/* Header with Navigation Tabs */}
                 <div className="px-6 pt-5 pb-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                     <div className="flex items-center justify-between mb-4">
@@ -789,7 +793,7 @@ export default function CartColorCustomizerModal({
                                                 </div>
                                             </div>
                                             {showLastPurchaseBadge && (
-                                                <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 animate-in fade-in zoom-in-90 duration-200 transition-all">
+                                                <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                                     <Clock size={10} /> Mua gần nhất: 2 ngày trước
                                                 </div>
                                             )}
@@ -2557,8 +2561,10 @@ export default function CartColorCustomizerModal({
                     </button>
                 </div>
             </m.div>
-        </div>,
-        document.body
+                    </div>
+                )}
+            </AnimatePresence>
+        </Portal>
     );
 }
 

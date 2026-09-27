@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { m } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, ReceiptIcon, Wallet, Calendar } from 'lucide-react';
 import { cn, formatNumber, getLocalDateString } from '../../lib/utils';
+import Portal from '../widgets/Portal';
 
 const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) => {
     const [amount, setAmount] = useState('');
@@ -140,13 +141,25 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
     };
 
     return (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200" onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <m.div
-                initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                className="bg-[#fbf9f4]/95 dark:bg-[#181512]/95 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 flex flex-col relative z-10 overflow-hidden text-foreground"
-            >
+        <Portal>
+            <AnimatePresence>
+                {isOpen && (
+                    <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 select-none">
+                        <m.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={onClose}
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm transform-gpu will-change-transform"
+                        />
+                        <m.div
+                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                            className="bg-[#fbf9f4]/95 dark:bg-[#181512]/95 backdrop-blur-2xl w-full max-w-sm rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35)] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 flex flex-col relative z-10 overflow-hidden text-foreground transform-gpu will-change-transform"
+                        >
 
                 <div className="p-5 flex items-center justify-between border-b border-[#8b6f47]/20 dark:border-[#d4a574]/20 bg-transparent relative z-10">
                     <div className="flex items-center gap-3">
@@ -357,7 +370,10 @@ const QuickVoucherModal = ({ isOpen, onClose, partner, onSave, initialData }) =>
                     </div>
                 </form>
             </m.div>
-        </div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </Portal>
     );
 };
 

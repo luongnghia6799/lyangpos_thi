@@ -429,14 +429,100 @@ export default function AiConsultantModal({
         return () => window.removeEventListener('keydown', handleKeyDown, true);
     }, [isOpen, onClose]);
 
+    const [customSize, setCustomSize] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_ai_custom_size');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return null; // { width: number, height: number }
+    });
+    const isResizingRef = useRef(false);
+
+    // Xử lý kéo resize tự do
+    const handleResizeStart = (direction, e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizingRef.current = true;
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+
+        const currentRect = popoverRef.current?.getBoundingClientRect();
+        const startWidth = currentRect ? currentRect.width : (customSize?.width || 430);
+        const startHeight = currentRect ? currentRect.height : (customSize?.height || 540);
+
+        const handleMouseMove = (moveEvent) => {
+            if (!isResizingRef.current) return;
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+
+            // X-direction
+            if (direction.includes('e')) {
+                newWidth = startWidth + deltaX;
+            } else if (direction.includes('w')) {
+                newWidth = startWidth - deltaX;
+            }
+
+            // Y-direction
+            if (direction.includes('s')) {
+                newHeight = startHeight + deltaY;
+            } else if (direction.includes('n')) {
+                newHeight = startHeight - deltaY;
+            }
+
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+            const clampedW = Math.min(Math.max(340, newWidth), winW - 20);
+            const clampedH = Math.min(Math.max(400, newHeight), winH - 20);
+
+            setCustomSize({ width: Math.round(clampedW), height: Math.round(clampedH) });
+        };
+
+        const handleMouseUp = () => {
+            isResizingRef.current = false;
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            setCustomSize((latest) => {
+                if (latest) {
+                    try {
+                        localStorage.setItem('lyang_ai_custom_size', JSON.stringify(latest));
+                    } catch (e) {}
+                }
+                return latest;
+            });
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Reset kích thước về mặc định khi click đúp hoặc reset
+    const handleResetSize = () => {
+        setCustomSize(null);
+        try {
+            localStorage.removeItem('lyang_ai_custom_size');
+        } catch (e) {}
+    };
+
     // Tính toán vị trí Popover bám sát cạnh Mascot & chiều cao từ dưới lên
     const popoverStyle = useMemo(() => {
         if (typeof window === 'undefined') return { top: 100, left: 100, width: 440, height: 540 };
         const winW = window.innerWidth;
         const winH = window.innerHeight;
 
-        const popW = isExpanded ? Math.min(620, winW - 24) : Math.min(430, winW - 24);
-        const popH = isExpanded ? Math.min(700, winH - 24) : Math.min(540, winH - 24);
+        let baseW = customSize?.width || (isExpanded ? 640 : 430);
+        let baseH = customSize?.height || (isExpanded ? 720 : 540);
+
+        if (isExpanded && !customSize) {
+            baseW = Math.min(680, winW - 24);
+            baseH = Math.min(740, winH - 24);
+        }
+
+        const popW = Math.min(baseW, winW - 16);
+        const popH = Math.min(baseH, winH - 16);
 
         // Lấy tọa độ thực tế trực tiếp từ DOM của Mascot
         let mX = mascotPos?.x ?? 800;
@@ -493,7 +579,7 @@ export default function AiConsultantModal({
             originX,
             originY
         };
-    }, [mascotPos, mascotSize, isExpanded, isOpen]);
+    }, [mascotPos, mascotSize, isExpanded, isOpen, customSize]);
 
     // Close when clicking outside
     useEffect(() => {
@@ -561,6 +647,24 @@ export default function AiConsultantModal({
             return () => clearTimeout(timer);
         }
     }, [isOpen]);
+
+    // Lắng nghe sự kiện tìm kiếm nhanh từ giỏ hàng hoặc các nơi khác
+    useEffect(() => {
+        const handleQuickQuery = (e) => {
+            const query = e?.detail?.query;
+            if (query && typeof query === 'string') {
+                if (activeMode !== 'crop_doctor') {
+                    handleSwitchMode('crop_doctor');
+                }
+                setTimeout(() => {
+                    handleSend(query);
+                }, 100);
+            }
+        };
+
+        window.addEventListener('lyang_ai_query', handleQuickQuery);
+        return () => window.removeEventListener('lyang_ai_query', handleQuickQuery);
+    }, [activeMode, messages]);
 
     const handleClearChat = () => {
         const welcomeMsg = [
@@ -2131,6 +2235,59 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 <Send size={12} />
                             </button>
                         </form>
+                    </div>
+
+                    {/* RESIZE HANDLERS (8 HƯỚNG & 4 GÓC TỰ DO) */}
+                    {/* Top edge */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('n', e)}
+                        className="absolute top-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                        title="Kéo để chỉnh chiều cao"
+                    />
+                    {/* Bottom edge */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('s', e)}
+                        className="absolute bottom-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                        title="Kéo để chỉnh chiều cao"
+                    />
+                    {/* Left edge */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('w', e)}
+                        className="absolute left-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                        title="Kéo để chỉnh chiều rộng"
+                    />
+                    {/* Right edge */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('e', e)}
+                        className="absolute right-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                        title="Kéo để chỉnh chiều rộng"
+                    />
+                    {/* Top-Left corner */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('nw', e)}
+                        className="absolute top-0 left-0 w-3.5 h-3.5 cursor-nwse-resize z-50 hover:bg-emerald-500/30 rounded-tl-3xl"
+                    />
+                    {/* Top-Right corner */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('ne', e)}
+                        className="absolute top-0 right-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-tr-3xl"
+                    />
+                    {/* Bottom-Left corner */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('sw', e)}
+                        className="absolute bottom-0 left-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-bl-3xl"
+                    />
+                    {/* Bottom-Right corner with visual resize grip indicator */}
+                    <div 
+                        onMouseDown={(e) => handleResizeStart('se', e)}
+                        className="absolute bottom-0.5 right-0.5 w-4 h-4 cursor-nwse-resize z-50 flex items-center justify-center group/grip opacity-60 hover:opacity-100 transition-opacity"
+                        title="Kéo để thay đổi kích thước tự do"
+                    >
+                        <svg className="w-2.5 h-2.5 text-stone-400 dark:text-stone-500 group-hover/grip:text-emerald-500" viewBox="0 0 6 6" fill="currentColor">
+                            <circle cx="5" cy="5" r="0.75" />
+                            <circle cx="5" cy="2.5" r="0.75" />
+                            <circle cx="2.5" cy="5" r="0.75" />
+                        </svg>
                     </div>
                 </m.div>
             )}

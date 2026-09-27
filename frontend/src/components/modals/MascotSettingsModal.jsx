@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MASCOT_LIST, MASCOT_CATEGORIES, DEFAULT_MASCOT_CONFIG, playPopSound } from '../../lib/mascots';
 import { X, Sparkles, Volume2, VolumeX, Lock, Unlock, RotateCcw, Eye, MessageSquare, Check, Search } from 'lucide-react';
+import { m, AnimatePresence } from 'framer-motion';
+import Portal from '../widgets/Portal';
 
 const MascotSettingsModal = ({ isOpen, onClose }) => {
   const [config, setConfig] = useState(() => {
@@ -57,14 +59,27 @@ const MascotSettingsModal = ({ isOpen, onClose }) => {
     });
   }, [selectedCategory, searchQuery]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-      <div
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Portal>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 select-none">
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
+            />
+            <m.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 relative z-10 transform-gpu will-change-transform"
+              onClick={(e) => e.stopPropagation()}
+            >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2.5">
@@ -332,8 +347,11 @@ const MascotSettingsModal = ({ isOpen, onClose }) => {
             Xong
           </button>
         </div>
-      </div>
+      </m.div>
     </div>
+        )}
+      </AnimatePresence>
+    </Portal>
   );
 };
 

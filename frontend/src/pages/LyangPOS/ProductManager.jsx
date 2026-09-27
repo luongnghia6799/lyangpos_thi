@@ -19,6 +19,7 @@ import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import QuickEditModal from '../../components/modals/QuickEditModal';
 import CategoryIcon from '../../components/widgets/CategoryIcon';
 import ActiveIngredientInput from '../../components/forms/ActiveIngredientInput';
+import ActiveIngredientTooltip from '../../components/widgets/ActiveIngredientTooltipContent';
 import UnitSelect from '../../components/forms/UnitSelect';
 import BrandSelect from '../../components/forms/BrandSelect';
 import MasterDataHub from '../../components/MasterDataHub/MasterDataHub';
@@ -1562,25 +1563,15 @@ export default function ProductManager() {
                                                         <td className="p-3 hidden lg:table-cell">
                                                             <span className="text-[11.5px] font-bold text-gray-500 bg-transparent/50 dark:bg-slate-800 px-2 py-1 rounded border border-gray-200/50 break-words leading-tight block max-w-[100px]">{p.brand || '---'}</span>
                                                         </td>
-                                                        <td className="p-3 hidden xl:table-cell relative group/ing-cell">
-                                                            <span className="text-[11.5px] font-bold text-gray-500 dark:text-gray-400 italic break-words leading-tight block max-w-[120px] truncate cursor-pointer hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors">
-                                                                {p.active_ingredient || '-'}
-                                                            </span>
-                                                            {p.active_ingredient && (
-                                                                <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/ing-cell:opacity-100 group-hover/ing-cell:translate-y-0 group-hover/ing-cell:scale-100 transition-all duration-200 ease-out z-[4000] min-w-[240px] max-w-[340px] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
-                                                                    <div className="flex items-center gap-1.5 pb-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
-                                                                        <Sparkles size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
-                                                                        <span>Hoạt chất / Thành phần</span>
-                                                                    </div>
-                                                                    <div className="flex flex-wrap gap-1.5 mt-2">
-                                                                        {p.active_ingredient.split(/[,+]/).map((ing, idx) => (
-                                                                            <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/25">
-                                                                                {ing.trim()}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
-                                                                    <div className="absolute -bottom-1.5 left-6 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#141d13] border-r border-b border-[#8b6f47]/30 dark:border-emerald-500/30" />
-                                                                </div>
+                                                        <td className="p-3 hidden xl:table-cell">
+                                                            {p.active_ingredient ? (
+                                                                <ActiveIngredientTooltip activeIngredient={p.active_ingredient}>
+                                                                    <span className="text-[11.5px] font-bold text-gray-500 dark:text-gray-400 italic break-words leading-tight block max-w-[120px] truncate cursor-pointer hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors">
+                                                                        {p.active_ingredient}
+                                                                    </span>
+                                                                </ActiveIngredientTooltip>
+                                                            ) : (
+                                                                <span className="text-[11.5px] text-gray-400 italic">-</span>
                                                             )}
                                                         </td>
                                                         <td className="p-3 text-center font-black text-[12px] text-[#8b6f47]">{normalizeUOM(p.unit)}</td>

@@ -208,25 +208,24 @@ export default function DailyOrderHistoryModal({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.22 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-md"
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
                             onClick={onClose}
                         />
 
                         {/* Modal Box with Resize & Close Animation */}
                         <m.div
                             layout
-                            initial={{ scale: 0.94, opacity: 0, y: 16 }}
+                            initial={{ scale: 0.95, opacity: 0, y: 14 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.94, opacity: 0, y: 16 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 14 }}
                             transition={{
-                                type: "spring",
-                                damping: 28,
-                                stiffness: 320,
-                                layout: { duration: 0.32, ease: [0.16, 1, 0.3, 1] }
+                                duration: 0.22,
+                                ease: [0.16, 1, 0.3, 1],
+                                layout: { duration: 0.25, ease: [0.16, 1, 0.3, 1] }
                             }}
                             className={cn(
-                                "bg-[#fbf9f4]/95 dark:bg-[#1a1c1e]/95 backdrop-blur-2xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 transition-[width,max-width,height,max-height] duration-300 ease-out",
+                                "bg-[#fbf9f4]/95 dark:bg-[#1a1c1e]/95 backdrop-blur-2xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 transition-[width,max-width,height,max-height] duration-300 ease-out transform-gpu will-change-transform",
                                 isMaximized
                                     ? "w-[98vw] max-w-[98vw] h-[95vh] max-h-[95vh]"
                                     : "w-full max-w-4xl max-h-[92vh]"

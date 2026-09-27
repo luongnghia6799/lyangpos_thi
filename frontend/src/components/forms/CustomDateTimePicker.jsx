@@ -352,48 +352,56 @@ export default function CustomDateTimePicker({
                       <div className="grid grid-cols-2 gap-2.5 mt-2.5">
                         {/* Hour Column */}
                         <div>
-                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                             Giờ (0 - 23h)
                           </label>
-                          <select
-                            value={selectedHour}
-                            onChange={(e) => handleHourChange(e.target.value)}
-                            size={5}
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-slate-200 outline-none p-1 custom-scrollbar"
-                          >
-                            {Array.from({ length: 24 }, (_, i) => i).map((h) => (
-                              <option
-                                key={h}
-                                value={h}
-                                className="px-2 py-1 rounded-md my-0.5 cursor-pointer hover:bg-emerald-500/20 font-mono text-center"
-                              >
-                                {String(h).padStart(2, '0')} giờ
-                              </option>
-                            ))}
-                          </select>
+                          <div className="h-32 overflow-y-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 space-y-1 custom-scrollbar">
+                            {Array.from({ length: 24 }, (_, i) => i).map((h) => {
+                              const isCurHour = h === selectedHour;
+                              return (
+                                <button
+                                  key={h}
+                                  type="button"
+                                  onClick={() => handleHourChange(h)}
+                                  className={cn(
+                                    'w-full py-1.5 px-2 rounded-lg text-xs font-mono font-bold text-center transition-colors flex items-center justify-center',
+                                    isCurHour
+                                      ? 'bg-[#2d5016] text-white shadow-xs font-black'
+                                      : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5'
+                                  )}
+                                >
+                                  {String(h).padStart(2, '0')} giờ
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {/* Minute Column */}
                         <div>
-                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                             Phút (0 - 59p)
                           </label>
-                          <select
-                            value={selectedMinute}
-                            onChange={(e) => handleMinuteChange(e.target.value)}
-                            size={5}
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-slate-200 outline-none p-1 custom-scrollbar"
-                          >
-                            {minuteSteps.map((m) => (
-                              <option
-                                key={m}
-                                value={m}
-                                className="px-2 py-1 rounded-md my-0.5 cursor-pointer hover:bg-emerald-500/20 font-mono text-center"
-                              >
-                                {String(m).padStart(2, '0')} phút
-                              </option>
-                            ))}
-                          </select>
+                          <div className="h-32 overflow-y-auto bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 space-y-1 custom-scrollbar">
+                            {minuteSteps.map((m) => {
+                              const isCurMin = m === selectedMinute;
+                              return (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => handleMinuteChange(m)}
+                                  className={cn(
+                                    'w-full py-1.5 px-2 rounded-lg text-xs font-mono font-bold text-center transition-colors flex items-center justify-center',
+                                    isCurMin
+                                      ? 'bg-[#2d5016] text-white shadow-xs font-black'
+                                      : 'text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5'
+                                  )}
+                                >
+                                  {String(m).padStart(2, '0')} phút
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 

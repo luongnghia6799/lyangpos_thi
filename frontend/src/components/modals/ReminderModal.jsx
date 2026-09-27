@@ -298,16 +298,16 @@ export default function ReminderModal({ isOpen, onClose }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
             />
 
-            {/* Modal Dialog with zoom & fade exit */}
+            {/* Modal Dialog with smooth hardware-accelerated zoom & fade exit */}
             <m.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              className="relative z-10 w-full max-w-3xl bg-[#faf8f3] dark:bg-[#121614] rounded-3xl shadow-2xl border border-[#8b6f47]/30 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="relative z-10 w-full max-w-3xl bg-[#faf8f3] dark:bg-[#121614] rounded-3xl shadow-2xl border border-[#8b6f47]/30 dark:border-white/10 flex flex-col max-h-[90vh] overflow-hidden transform-gpu will-change-transform"
             >
               {/* Top Header */}
               <div className="p-4 sm:p-5 bg-gradient-to-r from-[#2d5016]/10 via-[#2d5016]/5 to-transparent dark:from-emerald-950/40 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between shrink-0">

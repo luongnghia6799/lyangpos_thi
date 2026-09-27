@@ -143,10 +143,7 @@ const ProductAutocomplete = React.forwardRef(({
                         className="absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border overflow-hidden shadow-2xl border-amber-300/50 dark:border-white/10 w-full min-w-[500px] backdrop-blur-[24px] backdrop-saturate-150"
                         style={{ backgroundColor: 'color-mix(in srgb, var(--bg-color, #faf8f3) 90%, transparent)' }}
                     >
-                            {/* Liquid Header highlight */}
-                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
-                            
-                            <ul ref={listRef} className="max-h-60 overflow-y-auto no-scrollbar rounded-2xl">
+                            <ul ref={listRef} className="max-h-60 overflow-y-auto overscroll-contain no-scrollbar rounded-2xl">
                                 {filteredOptions.map((p, index) => (
                                     <li
                                         key={p.id}

@@ -32,6 +32,8 @@ import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
+import ActiveIngredientTooltipContent from '../../components/widgets/ActiveIngredientTooltipContent';
+
 
 
 const SearchableProductSelect = ({ value, onChange, products }) => {
@@ -2096,10 +2098,10 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="dropdown-premium absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                        className="dropdown-premium absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border-0 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
-                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
+                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">
                                             {!partnerSearch && (
                                                 <div
                                                     data-index={0}
@@ -2324,7 +2326,7 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
+                                        className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border-0 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
                                         style={{ maxHeight: '50vh', overflowY: 'auto' }}
                                     >
                                         {/* Preview Invoice */}
@@ -2457,7 +2459,7 @@ export default function Purchase() {
                                                     syncChan.close();
                                                 } catch (e) {}
                                             }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 w-full text-left"
+                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
                                         >
                                             <div className="flex items-center gap-2.5">
                                                 <ShoppingCart size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
@@ -2486,7 +2488,7 @@ export default function Purchase() {
                                                     syncChan.close();
                                                 } catch (e) {}
                                             }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 w-full text-left"
+                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
                                         >
                                             <div className="flex items-center gap-2.5">
                                                 <Bell size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
@@ -2509,7 +2511,7 @@ export default function Purchase() {
                                                 setIsActionMenuOpen(false);
                                                 toggleSummaryLayout();
                                             }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2"
+                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2"
                                         >
                                             {summaryLayoutMode === 'bottom' ? (
                                                 <PanelRight size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
@@ -2793,7 +2795,8 @@ export default function Purchase() {
                                                                 <input
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
-                                                                    className="w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] text-slate-900 dark:text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-transparent placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]"
+                                                                    style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
+                                                                    className={cn("w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-transparent placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white")}
                                                                     autoComplete="off"
                                                                     value={searchTerm}
                                                                     onChange={(e) => {
@@ -2897,7 +2900,7 @@ export default function Purchase() {
                                                                             transition={{
                                                                                 duration: 0.15
                                                                             }}
-                                                                            className="dropdown-premium fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                            className="dropdown-premium fixed !z-[400000] shadow-2xl rounded-2xl border-0 overflow-hidden"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
                                                                                 left: workingSearchCoords.left,
@@ -2905,7 +2908,7 @@ export default function Purchase() {
                                                                                 maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480)
                                                                             }}
                                                                         >
-                                                                            <div className="max-h-[480px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5" ref={productDropdownRef}>
+                                                                            <div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar p-0 " ref={productDropdownRef}>
                                                                                 {filteredProducts.map((p, idx) => (
                                                                                     <div
                                                                                         key={p.id}
@@ -3628,9 +3631,9 @@ export default function Purchase() {
                                                                                 transition={{
                                                                                     duration: 0.15
                                                                                 }}
-                                                                                className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                                className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border-0 overflow-hidden"
                                                                             >
-                                                                            <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">
+                                                                            <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 ">
                                                                                 {products.filter(p => {
                                                                                     const s = rowSearchTerm.toLowerCase();
                                                                                     return (p.name || "").toLowerCase().includes(s) ||
@@ -3699,9 +3702,13 @@ export default function Purchase() {
                                                                                                     )}
                                                                                                 </div>
                                                                                                 <div className="flex items-center gap-5">
-                                                                                                    <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
-                                                                                                        {p.active_ingredient || ""}
-                                                                                                    </span>
+                                                                                                    {p.active_ingredient && (
+                                                                                                        <ActiveIngredientTooltip activeIngredient={p.active_ingredient}>
+                                                                                                            <span className={cn("text-[11px] font-black italic tracking-wide transition-colors cursor-pointer hover:underline", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                                {p.active_ingredient}
+                                                                                                            </span>
+                                                                                                        </ActiveIngredientTooltip>
+                                                                                                    )}
                                                                                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                                                                         {p.code && (
                                                                                                             <span className={cn(
@@ -3769,18 +3776,8 @@ export default function Purchase() {
                                                                     )}
                                                                     </AnimatePresence>
                                                                         {item.active_ingredient && (
-                                                                            <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] min-w-[260px] max-w-[360px] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
-                                                                                <div className="flex items-center gap-1.5 pb-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
-                                                                                    <Sparkles size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
-                                                                                    <span>Hoạt chất / Thành phần</span>
-                                                                                </div>
-                                                                                <div className="flex flex-wrap gap-1.5 mt-2">
-                                                                                    {item.active_ingredient.split(/[,+]/).map((ing, idx) => (
-                                                                                        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/25">
-                                                                                            {ing.trim()}
-                                                                                        </span>
-                                                                                    ))}
-                                                                                </div>
+                                                                            <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
+                                                                                <ActiveIngredientTooltipContent activeIngredient={item.active_ingredient} />
                                                                                 <div className="absolute -bottom-1.5 left-6 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#141d13] border-r border-b border-[#8b6f47]/30 dark:border-emerald-500/30" />
                                                                             </div>
                                                                         )}
@@ -5336,7 +5333,7 @@ export default function Purchase() {
                                     <div className="mt-6 pt-4 border-t border-[#8b6f47]/20">
                                         <button
                                             onClick={() => setIsHeldSidebarOpen(false)}
-                                            className="w-full py-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border border-[#8b6f47]/30 dark:border-white/10 text-foreground font-black uppercase text-xs transition-all tracking-widest shadow-sm"
+                                            className="w-full py-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border-0 text-foreground font-black uppercase text-xs transition-all tracking-widest shadow-sm"
                                         >
                                             Đóng sidebar
                                         </button>
@@ -6091,28 +6088,24 @@ export default function Purchase() {
                 </AnimatePresence>
 
                 {/* Cart Color & Border Customizer Modal */}
-                <AnimatePresence>
-                    {showCartColorCustomizer && (
-                        <CartColorCustomizerModal
-                            isOpen={showCartColorCustomizer}
-                            config={cartColorConfig}
-                            onClose={() => setShowCartColorCustomizer(false)}
-                            onChangeConfig={(newCfg) => {
-                                setCartColorConfig(newCfg);
-                                localStorage.setItem("pos_cart_color_config", JSON.stringify(newCfg));
-                                try {
-                                    const syncChan = new BroadcastChannel("pos_data_sync");
-                                    syncChan.postMessage({
-                                        type: "CART_COLOR_CONFIG_UPDATED",
-                                        key: "pos_cart_color_config",
-                                        value: JSON.stringify(newCfg)
-                                    });
-                                    syncChan.close();
-                                } catch (e) {}
-                            }}
-                        />
-                    )}
-                </AnimatePresence>
+                <CartColorCustomizerModal
+                    isOpen={showCartColorCustomizer}
+                    config={cartColorConfig}
+                    onClose={() => setShowCartColorCustomizer(false)}
+                    onChangeConfig={(newCfg) => {
+                        setCartColorConfig(newCfg);
+                        localStorage.setItem("pos_cart_color_config", JSON.stringify(newCfg));
+                        try {
+                            const syncChan = new BroadcastChannel("pos_data_sync");
+                            syncChan.postMessage({
+                                type: "CART_COLOR_CONFIG_UPDATED",
+                                key: "pos_cart_color_config",
+                                value: JSON.stringify(newCfg)
+                            });
+                            syncChan.close();
+                        } catch (e) {}
+                    }}
+                />
                 {/* Quick Audit Popout */}
                 <Portal>
                     {isAuditOpen && auditProduct && (

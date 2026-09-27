@@ -44,3 +44,26 @@ export const useShippingSummary = () => {
         staleTime: 30000,
     });
 };
+
+export function useResearchedActiveIngredients() {
+    return useQuery({
+        queryKey: ['researchedActiveIngredients'],
+        queryFn: async () => {
+            const res = await axios.get('/api/active-ingredients/researched');
+            const map = {};
+            if (res.data?.data && Array.isArray(res.data.data)) {
+                res.data.data.forEach(item => {
+                    const raw = item.research || item;
+                    const ingName = raw.name;
+                    if (ingName) {
+                        map[ingName.toLowerCase().trim()] = raw;
+                    }
+                });
+            }
+            return map;
+        },
+        staleTime: 1000 * 60 * 15, // 15 minutes
+        gcTime: 1000 * 60 * 60,
+    });
+}
+

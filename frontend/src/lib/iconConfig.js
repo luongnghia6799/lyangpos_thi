@@ -106,6 +106,8 @@ export const getStoredCustomIcons = () => {
     return {};
 };
 
+const CLIENT_ID = Math.random().toString(36).substring(2);
+
 export const setStoredCustomIcon = (iconId, iconData) => {
     try {
         const current = getStoredCustomIcons();
@@ -125,7 +127,7 @@ export const setStoredCustomIcon = (iconId, iconData) => {
         window.dispatchEvent(new Event('storage'));
         try {
             const chan = new BroadcastChannel('pos_data_sync');
-            chan.postMessage({ type: 'APP_ICON_UPDATED', iconId, iconData });
+            chan.postMessage({ type: 'APP_ICON_UPDATED', iconId, iconData, clientId: CLIENT_ID });
         } catch (e) {}
         return true;
     } catch (e) {
@@ -134,7 +136,6 @@ export const setStoredCustomIcon = (iconId, iconData) => {
     }
 };
 
-
 export const resetStoredCustomIcons = () => {
     try {
         localStorage.removeItem(STORAGE_KEY);
@@ -142,7 +143,7 @@ export const resetStoredCustomIcons = () => {
         window.dispatchEvent(new Event('storage'));
         try {
             const chan = new BroadcastChannel('pos_data_sync');
-            chan.postMessage({ type: 'APP_ICON_RESET' });
+            chan.postMessage({ type: 'APP_ICON_RESET', clientId: CLIENT_ID });
         } catch (e) {}
         return true;
     } catch (e) {
@@ -150,6 +151,7 @@ export const resetStoredCustomIcons = () => {
         return false;
     }
 };
+
 
 export const getLucideIconComponent = (name) => {
     if (!name) return null;

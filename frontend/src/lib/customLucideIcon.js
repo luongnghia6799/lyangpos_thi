@@ -3,8 +3,10 @@ import Icon from 'lucide-react/dist/esm/Icon.js';
 import { mergeClasses, toKebabCase, toPascalCase } from 'lucide-react/dist/esm/shared/src/utils.js';
 
 const STORAGE_KEY = 'app_custom_icons';
+const CLIENT_ID = Math.random().toString(36).substring(2);
 
 // In-memory cache truy xuất tức thì O(1) đồng bộ 0ms ngay frame đầu tiên
+let lastRawJson = '';
 let customIconsCache = {};
 const listeners = new Set();
 const renderingStack = new Set();
@@ -16,27 +18,37 @@ function getCachedIcons() {
 function loadIconsFromStorage() {
     if (typeof window === 'undefined') return {};
     try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed === 'object') return parsed;
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw === lastRawJson && customIconsCache) {
+            return customIconsCache;
         }
-    } catch (e) {
-        console.error('Error loading custom icons:', e);
-    }
-    return {};
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+                lastRawJson = raw;
+                customIconsCache = parsed;
+                return customIconsCache;
+            }
+        }
+    } catch (e) {}
+    lastRawJson = '';
+    customIconsCache = {};
+    return customIconsCache;
 }
 
 // Khởi tạo cache ngay khi JS module được load
 customIconsCache = loadIconsFromStorage();
 
 function notifyListeners() {
-    customIconsCache = loadIconsFromStorage();
-    listeners.forEach((listener) => {
-        try {
-            listener();
-        } catch (e) {}
-    });
+    const prev = lastRawJson;
+    loadIconsFromStorage();
+    if (prev !== lastRawJson) {
+        listeners.forEach((listener) => {
+            try {
+                listener();
+            } catch (e) {}
+        });
+    }
 }
 
 if (typeof window !== 'undefined') {
@@ -45,6 +57,7 @@ if (typeof window !== 'undefined') {
     try {
         const chan = new BroadcastChannel('pos_data_sync');
         chan.addEventListener('message', (e) => {
+            if (e.data?.clientId === CLIENT_ID) return; // Bỏ qua message từ chính tab này
             if (e.data?.type === 'APP_ICON_UPDATED' || e.data?.type === 'APP_ICON_RESET') {
                 notifyListeners();
             }
@@ -69,9 +82,8 @@ function resolveReplacementComponent(iconName) {
  * Custom createLucideIcon Factory
  * Chặn mọi icon trong lucide-react để:
  * 1. Render NGAY LẬP TỨC icon tùy biến từ frame đầu tiên (không delay, không flash icon cũ).
- * 2. Tự động phản ứng khi Reset hoặc Đổi icon trong thời gian thực.
- * 3. Hỗ trợ tùy chỉnh độ dày nét vẽ (Stroke Width) linh hoạt.
- * 4. Chuột phải (Right-click) vào bất kỳ icon nào để mở bộ chọn icon mà không cần phím tắt!
+ * 2. Tiết kiệm RAM tối đa (Zero Memory Leak, Fast Memo Cache).
+ * 3. Chuột phải (Right-click) vào bất kỳ icon nào để mở bộ chọn icon mà không cần phím tắt!
  */
 const createLucideIcon = (iconName, iconNode) => {
     const defaultPascal = toPascalCase(iconName);
@@ -165,7 +177,7 @@ const createLucideIcon = (iconName, iconNode) => {
             }
         }
 
-        // Render icon mặc định gốc (kèm strokeWidth tùy chỉnh ghi đè lên props)
+        // Render icon mặc định gốc
         return createElement(Icon, {
             ref,
             iconNode,

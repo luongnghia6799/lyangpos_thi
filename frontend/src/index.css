@@ -1772,4 +1772,38 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
   will-change: transform, opacity;
 }
 
+/* ========================================================
+   GLOBAL ICON CUSTOMIZATION EDIT MODE (Alt + I)
+   Biến MỌI icon SVG trong app thành điểm có thể click để đổi
+   ======================================================== */
+body.icon-edit-mode svg.lucide,
+body.icon-edit-mode .global-editable-icon {
+  outline: 2px dashed #f59e0b !important;
+  outline-offset: 3px !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  animation: iconPulseBorder 1.5s infinite ease-in-out !important;
+  border-radius: 4px !important;
+  transition: transform 0.15s ease, filter 0.15s ease !important;
+}
+
+body.icon-edit-mode svg.lucide:hover,
+body.icon-edit-mode .global-editable-icon:hover {
+  transform: scale(1.3) !important;
+  outline: 2px solid #ef4444 !important;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8)) !important;
+  z-index: 99999 !important;
+}
+
+@keyframes iconPulseBorder {
+  0%, 100% {
+    outline-color: #f59e0b;
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    outline-color: #ef4444;
+    box-shadow: 0 0 6px 2px rgba(239, 68, 68, 0.4);
+  }
+}
+
 

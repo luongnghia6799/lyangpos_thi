@@ -19,11 +19,29 @@ export const IconProvider = ({ children }) => {
     const [activePickerTarget, setActivePickerTarget] = useState(null); // { id, label, currentIconName }
 
     useEffect(() => {
+        if (editMode) {
+            document.body.classList.add('icon-edit-mode');
+        } else {
+            document.body.classList.remove('icon-edit-mode');
+        }
+        return () => {
+            document.body.classList.remove('icon-edit-mode');
+        };
+    }, [editMode]);
+
+    useEffect(() => {
         const handleSync = () => {
             setCustomIcons(getStoredCustomIcons());
         };
+        const handleOpenExternal = (e) => {
+            if (e.detail) {
+                setActivePickerTarget(e.detail);
+            }
+        };
+
         window.addEventListener('app_icon_changed', handleSync);
         window.addEventListener('storage', handleSync);
+        window.addEventListener('app_open_icon_picker', handleOpenExternal);
 
         // Shortcut Alt + I to toggle Icon Customization Mode quickly
         const handleKeyDown = (e) => {
@@ -37,6 +55,7 @@ export const IconProvider = ({ children }) => {
         return () => {
             window.removeEventListener('app_icon_changed', handleSync);
             window.removeEventListener('storage', handleSync);
+            window.removeEventListener('app_open_icon_picker', handleOpenExternal);
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);

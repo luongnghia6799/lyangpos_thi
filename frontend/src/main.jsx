@@ -4,10 +4,12 @@ import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/layout/ErrorBoundary.jsx'
 import { applyCartThemeToDom } from './components/modals/CartColorCustomizerModal.jsx'
+import { initGlobalIconObserver } from './lib/iconDomReplacer.js'
 
 // Native Tauri Fullscreen & Escape Hotkey Handler & Theme Sync
 if (typeof window !== 'undefined') {
   applyCartThemeToDom();
+  initGlobalIconObserver();
   try {
     const syncChannel = new BroadcastChannel('pos_data_sync');
     syncChannel.addEventListener('message', (e) => {

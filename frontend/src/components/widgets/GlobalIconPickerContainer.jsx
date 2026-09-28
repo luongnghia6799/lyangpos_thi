@@ -14,6 +14,67 @@ export default function GlobalIconPickerContainer() {
         resetIcons
     } = useIconContext();
 
+    // Global DOM click listener khi editMode bật:
+    // Người dùng bấm vào BẤT KỲ icon SVG Lucide nào trên toàn bộ phần mềm đều bắt được ngay!
+    React.useEffect(() => {
+        if (!editMode) return;
+
+        const handleGlobalClick = (e) => {
+            // Tìm phần tử svg hoặc icon gần nhất
+            const svg = e.target.closest('svg.lucide') || e.target.closest('svg');
+            if (!svg) return;
+
+            // Bỏ qua nếu đang click bên trong chính IconPickerModal hoặc floating banner
+            if (svg.closest('.fixed.z-\\[999999\\]') || svg.closest('.fixed.z-\\[99999\\]')) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Trích xuất tên icon từ class 'lucide-xxx'
+            let iconName = '';
+            for (const cls of svg.classList) {
+                if (cls.startsWith('lucide-') && cls !== 'lucide-icon') {
+                    const kebab = cls.replace('lucide-', '');
+                    // Chuyển kebab sang PascalCase (vd: shopping-cart -> ShoppingCart, arrow-left -> ArrowLeft)
+                    iconName = kebab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+                    break;
+                }
+            }
+
+            // Nếu không có class lucide-xxx, thử lấy thẻ cha hoặc data attribute
+            if (!iconName) {
+                const parentWithData = svg.closest('[data-lucide-name]');
+                if (parentWithData) {
+                    iconName = parentWithData.getAttribute('data-lucide-name');
+                }
+            }
+
+            // Tên nhãn mô tả vị trí click
+            const parentButton = svg.closest('button') || svg.closest('a') || svg.closest('[role="button"]');
+            const parentLabel = parentButton ? (parentButton.innerText || parentButton.getAttribute('title') || '').trim() : '';
+            const displayLabel = parentLabel ? `${iconName || 'Icon'} (${parentLabel.slice(0, 25)})` : (iconName || 'Icon');
+
+            // Tạo key duy nhất: nếu là icon name chuẩn thì đổi toàn bộ icon đó
+            const targetId = iconName ? `icon.${iconName}` : `dom.icon_${Date.now()}`;
+
+            window.dispatchEvent(new CustomEvent('app_open_icon_picker', {
+                detail: {
+                    id: targetId,
+                    label: displayLabel,
+                    currentIconName: iconName
+                }
+            }));
+        };
+
+        // Bắt sự kiện ở capturing phase để ngăn chặn các button click thông thường
+        window.addEventListener('click', handleGlobalClick, true);
+        return () => {
+            window.removeEventListener('click', handleGlobalClick, true);
+        };
+    }, [editMode]);
+
     return (
         <>
             {/* Modal picker khi click vao bat ky icon nao trong Edit Mode hoac tu Settings */}
@@ -40,7 +101,7 @@ export default function GlobalIconPickerContainer() {
                                 <Edit3 size={14} />
                             </span>
                             <span>
-                                Đang bật <strong>Chế độ đổi Icon</strong>: Bấm vào bất kỳ icon nào có viền vàng để đổi!
+                                Đang bật <strong>Chế độ đổi Icon</strong>: Bấm vào <strong>BẤT KỲ ICON NÀO</strong> trên màn hình để đổi!
                             </span>
                         </div>
 

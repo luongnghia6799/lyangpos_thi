@@ -6,39 +6,72 @@ import dynamicIconImports from 'lucide-react/dist/esm/dynamicIconImports.js';
 const STORAGE_KEY = 'app_custom_icons';
 const CLIENT_ID = Math.random().toString(36).substring(2);
 
-// O(1) in-memory synchronous storage cache
-let lastRawJson = '';
-let customIconsCache = {};
-const listeners = new Set();
-const iconNodeCache = new Map();
+// Build bidirectional name map for all 1,912 Lucide icons (O(1) resolution)
+const nameToKebabMap = new Map();
+if (dynamicIconImports) {
+    Object.keys(dynamicIconImports).forEach((kebab) => {
+        const pascal = kebab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+        nameToKebabMap.set(pascal, kebab);
+        nameToKebabMap.set(pascal.toLowerCase(), kebab);
+        nameToKebabMap.set(kebab, kebab);
+    });
+}
 
-function getCachedIcons() {
-    return customIconsCache;
+export function getIconKebabKey(iconName) {
+    if (!iconName) return '';
+    return nameToKebabMap.get(iconName) || nameToKebabMap.get(iconName.toLowerCase()) || toKebabCase(iconName);
+}
+
+// Global node cache and subscribers
+export const iconNodeCache = new Map();
+const nodeLoadedListeners = new Set();
+
+function notifyNodeLoaded(iconName) {
+    nodeLoadedListeners.forEach((listener) => {
+        try {
+            listener(iconName);
+        } catch (e) {}
+    });
 }
 
 export function preloadIconNode(iconName) {
     if (!iconName) return Promise.resolve(null);
-    const pascal = toPascalCase(iconName);
-    const kebab = toKebabCase(iconName);
+    const kebab = getIconKebabKey(iconName);
+    const pascal = toPascalCase(kebab);
+
     if (iconNodeCache.has(pascal)) return Promise.resolve(iconNodeCache.get(pascal));
     if (iconNodeCache.has(kebab)) return Promise.resolve(iconNodeCache.get(kebab));
 
-    const loader = dynamicIconImports[kebab] || dynamicIconImports[iconName.toLowerCase()];
+    const loader = dynamicIconImports[kebab];
     if (loader) {
         return loader().then((mod) => {
             const node = mod.__iconNode || (mod.default && mod.default.__iconNode);
             if (node) {
                 iconNodeCache.set(pascal, node);
                 iconNodeCache.set(kebab, node);
+                notifyNodeLoaded(pascal);
+                notifyNodeLoaded(kebab);
                 return node;
             }
             return null;
-        }).catch(() => null);
+        }).catch((err) => {
+            console.error('[customIcon] Error preloading icon:', iconName, err);
+            return null;
+        });
     }
     return Promise.resolve(null);
 }
 
-function loadIconsFromStorage() {
+// O(1) in-memory storage cache
+let lastRawJson = '';
+let customIconsCache = {};
+const storageListeners = new Set();
+
+export function getCachedIcons() {
+    return customIconsCache;
+}
+
+export function loadIconsFromStorage() {
     if (typeof window === 'undefined') return {};
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -50,7 +83,7 @@ function loadIconsFromStorage() {
             if (parsed && typeof parsed === 'object') {
                 lastRawJson = raw;
                 customIconsCache = parsed;
-                // Preload any custom icon replacements asynchronously
+                // Preload any custom icons immediately
                 Object.values(parsed).forEach((val) => {
                     const name = typeof val === 'string' ? val : val?.name;
                     if (name) preloadIconNode(name);
@@ -64,14 +97,14 @@ function loadIconsFromStorage() {
     return customIconsCache;
 }
 
-// Khởi tạo cache ngay khi load module
+// Khởi tạo cache ngay khi JS module được nạp
 customIconsCache = loadIconsFromStorage();
 
-function notifyListeners() {
+function notifyStorageListeners() {
     const prev = lastRawJson;
     loadIconsFromStorage();
     if (prev !== lastRawJson) {
-        listeners.forEach((listener) => {
+        storageListeners.forEach((listener) => {
             try {
                 listener();
             } catch (e) {}
@@ -80,25 +113,25 @@ function notifyListeners() {
 }
 
 if (typeof window !== 'undefined') {
-    window.addEventListener('app_icon_changed', notifyListeners);
-    window.addEventListener('storage', notifyListeners);
+    window.addEventListener('app_icon_changed', notifyStorageListeners);
+    window.addEventListener('storage', notifyStorageListeners);
     try {
         const chan = new BroadcastChannel('pos_data_sync');
         chan.addEventListener('message', (e) => {
             if (e.data?.clientId === CLIENT_ID) return;
             if (e.data?.type === 'APP_ICON_UPDATED' || e.data?.type === 'APP_ICON_RESET') {
-                notifyListeners();
+                notifyStorageListeners();
             }
         });
     } catch (e) {}
 }
 
-function subscribe(listener) {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+function subscribeStorage(listener) {
+    storageListeners.add(listener);
+    return () => storageListeners.delete(listener);
 }
 
-function getIconBaseName(className) {
+export function getIconBaseName(className) {
     if (!className || typeof className !== 'string') return '';
     const tokens = className.split(/\s+/);
     for (const t of tokens) {
@@ -118,10 +151,7 @@ function getIconBaseName(className) {
 
 /**
  * Custom Icon Component
- * Thay thế trực tiếp cho lucide-react/dist/esm/Icon.js
- * 1. Tiêu thụ 0% RAM dư thừa (không duyệt 1,600 module AST khi load).
- * 2. Hỗ trợ thay đổi icon tức thì & thay đổi strokeWidth (độ dày nét).
- * 3. Bắt sự kiện chuột phải (Right-Click) trên bất kỳ icon nào để mở bộ chọn icon.
+ * Drop-in replacement for lucide-react/dist/esm/Icon.js
  */
 const Icon = forwardRef(
     ({
@@ -135,10 +165,10 @@ const Icon = forwardRef(
         onContextMenu,
         ...rest
     }, ref) => {
-        const customIcons = useSyncExternalStore(subscribe, getCachedIcons, () => ({}));
+        const customIcons = useSyncExternalStore(subscribeStorage, getCachedIcons, () => ({}));
         const baseName = getIconBaseName(className);
 
-        // Kiểm tra xem icon này có override hay không
+        // Kiểm tra cấu hình override cho icon này
         const config = baseName
             ? (customIcons[`icon.${baseName}`] ||
                customIcons[baseName] ||
@@ -161,29 +191,52 @@ const Icon = forwardRef(
             }
         }
 
-        // Đang cần icon thay thế khác
-        const isDifferentName = overrideName && overrideName !== baseName;
-        const [dynamicNode, setDynamicNode] = useState(() => {
+        const isDifferentName = Boolean(overrideName && overrideName !== baseName);
+
+        // State quản lý dynamic node khi icon được đổi sang icon khác
+        const [loadedNode, setLoadedNode] = useState(() => {
             if (!isDifferentName) return null;
-            return iconNodeCache.get(overrideName) || iconNodeCache.get(toPascalCase(overrideName)) || null;
+            const kebab = getIconKebabKey(overrideName);
+            const pascal = toPascalCase(kebab);
+            return iconNodeCache.get(pascal) || iconNodeCache.get(kebab) || null;
         });
 
         useEffect(() => {
-            if (isDifferentName) {
-                const cached = iconNodeCache.get(overrideName) || iconNodeCache.get(toPascalCase(overrideName));
-                if (cached) {
-                    setDynamicNode(cached);
-                } else {
-                    preloadIconNode(overrideName).then((node) => {
-                        if (node) setDynamicNode(node);
-                    });
-                }
-            } else {
-                setDynamicNode(null);
+            if (!isDifferentName) {
+                setLoadedNode(null);
+                return;
             }
+
+            const kebab = getIconKebabKey(overrideName);
+            const pascal = toPascalCase(kebab);
+            const cached = iconNodeCache.get(pascal) || iconNodeCache.get(kebab);
+            if (cached) {
+                setLoadedNode(cached);
+                return;
+            }
+
+            let isMounted = true;
+            preloadIconNode(overrideName).then((node) => {
+                if (isMounted && node) {
+                    setLoadedNode(node);
+                }
+            });
+
+            const handleNodeLoaded = (loadedName) => {
+                if (loadedName === pascal || loadedName === kebab) {
+                    const node = iconNodeCache.get(pascal) || iconNodeCache.get(kebab);
+                    if (isMounted && node) setLoadedNode(node);
+                }
+            };
+
+            nodeLoadedListeners.add(handleNodeLoaded);
+            return () => {
+                isMounted = false;
+                nodeLoadedListeners.delete(handleNodeLoaded);
+            };
         }, [overrideName, isDifferentName]);
 
-        const effectiveNode = (isDifferentName && dynamicNode) ? dynamicNode : iconNode;
+        const effectiveNode = (isDifferentName && loadedNode) ? loadedNode : iconNode;
         const effectiveStroke = overrideStroke !== null ? overrideStroke : strokeWidth;
 
         const handleContextMenu = (e) => {
@@ -233,7 +286,7 @@ const Icon = forwardRef(
                 className: mergeClasses(
                     "lucide",
                     className,
-                    overrideName ? `lucide-${toKebabCase(overrideName)}` : ''
+                    overrideName ? `lucide-${getIconKebabKey(overrideName)}` : ''
                 ),
                 'data-lucide-name': baseName,
                 onContextMenu: handleContextMenu,

@@ -1,6 +1,6 @@
 import dynamicIconImports from 'lucide-react/dist/esm/dynamicIconImports.js';
 import { toPascalCase, toKebabCase } from 'lucide-react/dist/esm/shared/src/utils.js';
-import { preloadIconNode } from './customIcon.js';
+import { preloadIconNode, iconNodeCache, getIconKebabKey } from './customIcon.js';
 import { createElement, useState, useEffect } from 'react';
 import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
 
@@ -117,9 +117,8 @@ export const setStoredCustomIcon = (iconId, iconData) => {
             delete current[`icon.${baseName}`];
         } else {
             current[iconId] = iconData;
-            if (!iconId.startsWith('icon.') && !iconId.startsWith('nav.') && !iconId.startsWith('pos.')) {
-                current[`icon.${iconId}`] = iconData;
-            }
+            current[baseName] = iconData;
+            current[`icon.${baseName}`] = iconData;
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
         window.dispatchEvent(new CustomEvent('app_icon_changed', { detail: { iconId, iconData } }));
@@ -153,9 +152,18 @@ export const resetStoredCustomIcons = () => {
 
 // Component render icon động siêu nhẹ từ dynamicIconImports (Zero heap saturation)
 const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'currentColor', className = '', ...props }) => {
-    const [node, setNode] = useState(null);
+    const kebab = getIconKebabKey(name);
+    const pascal = toPascalCase(kebab);
+    const [node, setNode] = useState(() => {
+        return iconNodeCache.get(pascal) || iconNodeCache.get(kebab) || null;
+    });
 
     useEffect(() => {
+        const cached = iconNodeCache.get(pascal) || iconNodeCache.get(kebab);
+        if (cached) {
+            setNode(cached);
+            return;
+        }
         let isMounted = true;
         preloadIconNode(name).then((resNode) => {
             if (isMounted && resNode) {
@@ -165,11 +173,11 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
         return () => {
             isMounted = false;
         };
-    }, [name]);
+    }, [name, kebab, pascal]);
 
     if (!node) {
         return createElement('span', {
-            className: `inline-block animate-pulse bg-slate-200 dark:bg-slate-700 rounded ${className}`,
+            className: `inline-block animate-pulse bg-slate-200/60 dark:bg-slate-700/60 rounded ${className}`,
             style: { width: size, height: size }
         });
     }
@@ -182,7 +190,7 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
             height: size,
             stroke: color,
             strokeWidth,
-            className: `lucide lucide-${toKebabCase(name)} ${className}`,
+            className: `lucide lucide-${kebab} ${className}`,
             ...props
         },
         node.map(([tag, attrs], idx) => createElement(tag, { ...attrs, key: attrs.key || idx }))

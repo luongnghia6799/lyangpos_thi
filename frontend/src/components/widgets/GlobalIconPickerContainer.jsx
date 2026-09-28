@@ -1,5 +1,6 @@
 import React from 'react';
 import { useIconContext } from '../../context/IconContext';
+import { getStoredCustomIcons } from '../../lib/iconConfig';
 import IconPickerModal from '../modals/IconPickerModal';
 
 export default function GlobalIconPickerContainer() {
@@ -36,6 +37,21 @@ export default function GlobalIconPickerContainer() {
                 }
             }
 
+            const savedCustoms = getStoredCustomIcons();
+            const existingConfig = iconName ? (savedCustoms[`icon.${iconName}`] || savedCustoms[iconName]) : null;
+
+            let currentActiveName = iconName;
+            let currentStroke = 2;
+
+            if (typeof existingConfig === 'string') {
+                currentActiveName = existingConfig;
+            } else if (existingConfig && typeof existingConfig === 'object') {
+                currentActiveName = existingConfig.name || iconName;
+                if (existingConfig.strokeWidth) {
+                    currentStroke = parseFloat(existingConfig.strokeWidth) || 2;
+                }
+            }
+
             const parentButton = svg.closest('button') || svg.closest('a') || svg.closest('[role="button"]');
             const parentLabel = parentButton ? (parentButton.innerText || parentButton.getAttribute('title') || '').trim() : '';
             const displayLabel = parentLabel ? `${iconName || 'Icon'} (${parentLabel.slice(0, 25)})` : (iconName || 'Icon');
@@ -47,7 +63,8 @@ export default function GlobalIconPickerContainer() {
                 detail: {
                     id: targetId,
                     label: displayLabel,
-                    currentIconName: iconName,
+                    currentIconName: currentActiveName,
+                    currentStrokeWidth: currentStroke,
                     anchorRect: {
                         top: rect.top,
                         bottom: rect.bottom,
@@ -71,7 +88,7 @@ export default function GlobalIconPickerContainer() {
             isOpen={!!activePickerTarget}
             onClose={closePicker}
             target={activePickerTarget}
-            onSelectIcon={(id, name) => updateIcon(id, name)}
+            onSelectIcon={(id, data) => updateIcon(id, data)}
             onResetIcon={(id) => updateIcon(id, null)}
         />
     );

@@ -16,9 +16,12 @@ import {
     Sun,
     Moon,
     Compass,
-    RefreshCw
+    RefreshCw,
+    Edit3
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useIconContext } from '../../context/IconContext';
+import DynamicIcon from '../widgets/DynamicIcon';
 import { 
     DEFAULT_NAV_SECTIONS, 
     NAV_PRESETS, 
@@ -31,6 +34,7 @@ import {
 } from '../../lib/navConfig';
 
 export default function SidebarManager({ onToast, onUpdateSetting }) {
+    const { openPicker, customIcons, editMode, toggleEditMode } = useIconContext();
     const [hiddenPaths, setHiddenPaths] = useState(() => getStoredHiddenPaths());
     const [sidebarStyle, setSidebarStyle] = useState(() => getStoredSidebarStyle());
     const [searchQuery, setSearchQuery] = useState('');
@@ -633,8 +637,27 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
+                                        onClick={() => openPicker({
+                                            id: `nav.group.${section.label}`,
+                                            label: `Nhóm: ${section.label}`,
+                                            currentIconName: customIcons[`nav.group.${section.label}`] || section.icon?.displayName || section.icon?.name
+                                        })}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all flex items-center gap-1 border cursor-pointer",
+                                            customIcons[`nav.group.${section.label}`]
+                                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:text-emerald-600 hover:border-emerald-500/30"
+                                        )}
+                                        title={`Bấm để đổi Icon cho Nhóm ${section.label}`}
+                                    >
+                                        <Edit3 size={11} />
+                                        <span>Đổi Icon Nhóm</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
                                         onClick={() => toggleSection(section)}
-                                        className="px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all flex items-center gap-1"
+                                        className="px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
                                     >
                                         {allSectionHidden ? (
                                             <>
@@ -674,7 +697,12 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                                         ? "bg-slate-200/50 dark:bg-slate-800 text-gray-400 dark:text-slate-600"
                                                         : "bg-emerald-500/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-400"
                                                 )}>
-                                                    <ItemIcon size={16} />
+                                                    <DynamicIcon 
+                                                        id={`nav.${item.path}`}
+                                                        defaultIcon={ItemIcon}
+                                                        label={item.label}
+                                                        size={16}
+                                                    />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-1.5">
@@ -696,24 +724,45 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                                 </div>
                                             </div>
 
-                                            {/* Action Toggle Button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleItem(item.path)}
-                                                className={cn(
-                                                    "p-2 rounded-xl transition-all shrink-0 flex items-center justify-center border",
-                                                    isHidden
-                                                        ? "bg-slate-200/60 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-emerald-500/20 hover:text-emerald-600 hover:border-emerald-500/30 border-transparent"
-                                                        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-600 hover:border-rose-500/30"
-                                                )}
-                                                title={isHidden ? "Bấm để HIỆN trang này" : "Bấm để ẨN trang này"}
-                                            >
-                                                {isHidden ? (
-                                                    <EyeOff size={15} />
-                                                ) : (
-                                                    <Eye size={15} />
-                                                )}
-                                            </button>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                {/* Nút bấm đổi icon */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openPicker({
+                                                        id: `nav.${item.path}`,
+                                                        label: item.label,
+                                                        currentIconName: customIcons[`nav.${item.path}`] || item.icon?.displayName || item.icon?.name
+                                                    })}
+                                                    className={cn(
+                                                        "p-2 rounded-xl transition-all flex items-center justify-center border cursor-pointer",
+                                                        customIcons[`nav.${item.path}`]
+                                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 hover:bg-amber-500/25"
+                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-emerald-600 hover:border-emerald-500/30 border-slate-200 dark:border-slate-700"
+                                                    )}
+                                                    title="Bấm để đổi Icon trang này"
+                                                >
+                                                    <Edit3 size={14} />
+                                                </button>
+
+                                                {/* Action Toggle Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleItem(item.path)}
+                                                    className={cn(
+                                                        "p-2 rounded-xl transition-all flex items-center justify-center border cursor-pointer",
+                                                        isHidden
+                                                            ? "bg-slate-200/60 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-emerald-500/20 hover:text-emerald-600 hover:border-emerald-500/30 border-transparent"
+                                                            : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-600 hover:border-rose-500/30"
+                                                    )}
+                                                    title={isHidden ? "Bấm để HIỆN trang này" : "Bấm để ẨN trang này"}
+                                                >
+                                                    {isHidden ? (
+                                                        <EyeOff size={15} />
+                                                    ) : (
+                                                        <Eye size={15} />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </m.div>
                                     );
                                 })}

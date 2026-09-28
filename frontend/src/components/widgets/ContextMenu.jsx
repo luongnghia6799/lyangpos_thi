@@ -15,12 +15,15 @@ import {
     Minimize,
     PackagePlus,
     TrendingUp,
-    ChevronRight
+    ChevronRight,
+    Edit3
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { useIconContext } from '../../context/IconContext';
 
 const ContextMenu = () => {
+    const { editMode, toggleEditMode } = useIconContext();
     const [isVisible, setIsVisible] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
@@ -146,6 +149,9 @@ const ContextMenu = () => {
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
                 navigate('/welcome');
+                break;
+            case 'toggle_icon_edit':
+                toggleEditMode();
                 break;
             default: break;
         }
@@ -288,6 +294,13 @@ const ContextMenu = () => {
                     <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
 
                     <div className="space-y-0.5">
+                        <MenuItem 
+                            variants={itemVariants}
+                            icon={Edit3} 
+                            label={editMode ? "Tắt đổi Icon (Alt+I)" : "Tùy biến Icon (Alt+I)"} 
+                            active={editMode}
+                            onClick={() => handleAction('toggle_icon_edit')} 
+                        />
                         <MenuItem 
                             variants={itemVariants}
                             icon={isFullscreen ? Minimize : Maximize} 

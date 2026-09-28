@@ -64,6 +64,7 @@ import ContextMenu from '../widgets/ContextMenu';
 import { getLiteTheme } from '../../lib/liteTheme';
 import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
+import DynamicIcon from '../widgets/DynamicIcon';
 
 const Portal = ({ children }) => {
     return createPortal(children, document.body);
@@ -219,7 +220,14 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         isFlyout ? "w-5 h-5" : "w-6 h-6"
                     )}
                 >
-                    <Icon size={isFlyout ? 17 : 19} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} />
+                    <DynamicIcon 
+                        id={`nav.${path || label}`}
+                        defaultIcon={Icon}
+                        label={label}
+                        size={isFlyout ? 17 : 19} 
+                        strokeWidth={active ? 2.5 : 2} 
+                        className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} 
+                    />
                 </div>
 
                 {!isCollapsed && (
@@ -379,7 +387,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                 )}
             >
                 <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-                    <item.icon size={19} className={cn("transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} />
+                    <DynamicIcon 
+                        id={`nav.group.${item.label}`}
+                        defaultIcon={item.icon}
+                        label={`Nhóm: ${item.label}`}
+                        size={19} 
+                        className={cn("transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} 
+                    />
                 </div>
                 {!isCollapsed && (
                     <>
@@ -530,7 +544,12 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                     >
                                         <div className="flex items-center gap-2.5">
                                             <div className="w-7 h-7 rounded-xl bg-[#2d5016] text-white flex items-center justify-center shrink-0 shadow-xs">
-                                                <item.icon size={15} />
+                                                <DynamicIcon 
+                                                    id={`nav.group.${item.label}`}
+                                                    defaultIcon={item.icon}
+                                                    label={`Nhóm: ${item.label}`}
+                                                    size={15} 
+                                                />
                                             </div>
                                             <div>
                                                 <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">

@@ -44,6 +44,7 @@ import LyangLogo from '../../assets/logo.png';
 import { useProductData, usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
 import ActiveIngredientTooltipContent from '../../components/widgets/ActiveIngredientTooltipContent';
+import DynamicIcon from '../../components/widgets/DynamicIcon';
 
 
 
@@ -5151,7 +5152,7 @@ export default function Purchase() {
                                                             onClick={handleHold}
                                                             className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                                                         >
-                                                            <Pause size={18} strokeWidth={2.5} />
+                                                            <DynamicIcon id="purchase.hold_btn" defaultIcon={Pause} label="Nút Tạm Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
                                                             <span>TẠM</span>
                                                         </button>
                                                         <button
@@ -5159,7 +5160,7 @@ export default function Purchase() {
                                                             onClick={() => handleSave(false)}
                                                             className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                                                         >
-                                                            <Save size={18} strokeWidth={2.5} />
+                                                            <DynamicIcon id="purchase.save_btn" defaultIcon={Save} label="Nút Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
                                                             <span>LƯU</span>
                                                         </button>
                                                     </div>
@@ -5170,7 +5171,7 @@ export default function Purchase() {
                                                             className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-base font-black uppercase tracking-wider gap-2 shadow-lg shadow-amber-600/20 border-2 border-amber-400/40 transition-all disabled:opacity-40 cursor-pointer"
                                                             title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
                                                         >
-                                                            <FileText size={20} strokeWidth={2.5} />
+                                                            <DynamicIcon id="purchase.export_btn" defaultIcon={FileText} label="Nút Đặt Hàng NCC" size={20} strokeWidth={2.5} />
                                                             <span>ĐẶT HÀNG</span>
                                                         </button>
                                                         <button
@@ -5182,7 +5183,7 @@ export default function Purchase() {
                                                                 <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
                                                             ) : (
                                                                 <>
-                                                                    <Printer size={22} strokeWidth={2.5} />
+                                                                    <DynamicIcon id="purchase.print_btn" defaultIcon={Printer} label="Nút In Hóa Đơn Nhập" size={22} strokeWidth={2.5} />
                                                                     <span>IN</span>
                                                                 </>
                                                             )}

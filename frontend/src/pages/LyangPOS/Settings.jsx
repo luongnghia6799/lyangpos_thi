@@ -6,9 +6,10 @@ import {
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type
+    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useIconContext } from '../../context/IconContext';
 import Toast from '../../components/widgets/Toast';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import PasswordConfirmModal from '../../components/modals/PasswordConfirmModal';
@@ -36,6 +37,7 @@ const WALLPAPER_PRESETS = [
 ];
 
 export default function Settings() {
+    const { customIcons, editMode, toggleEditMode, resetIcons } = useIconContext();
     const [settings, setSettings] = useState({
         shop_name: 'Lyang Nghĩa',
         shop_address: '',
@@ -1183,6 +1185,7 @@ export default function Settings() {
                                         <div className="flex items-center gap-1.5 p-1 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-900/10 dark:border-slate-800 self-start sm:self-auto overflow-x-auto no-scrollbar">
                                             {[
                                                 { id: 'sidebar', label: 'Menu Sidebar', icon: Layers, desc: 'Ẩn/hiện các trang' },
+                                                { id: 'icons', label: 'Tùy biến Icon', icon: Edit3, desc: 'Đổi icon toàn app' },
                                                 { id: 'wallpaper', label: 'Hình Nền App', icon: Sparkles, desc: '11 Presets & Tùy chỉnh' },
                                                 { id: 'general', label: 'Mascot & Hệ thống', icon: Monitor, desc: 'Con trỏ, Mascot, Kế toán' },
                                                 { id: 'categories', label: 'Ngành hàng', icon: Leaf, desc: 'Danh mục Categories' },
@@ -1213,6 +1216,85 @@ export default function Settings() {
                                     {uiSubTab === 'sidebar' && (
                                         <div className="animate-[fadeIn_0.2s_ease-out]">
                                             <SidebarManager onToast={setToast} onUpdateSetting={updateSetting} />
+                                        </div>
+                                    )}
+
+                                    {/* SUBTAB: ICONS CUSTOMIZER */}
+                                    {uiSubTab === 'icons' && (
+                                        <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
+                                            <div className="p-6 bg-gradient-to-br from-amber-500/10 via-amber-600/5 to-transparent dark:from-amber-950/30 dark:via-slate-900 rounded-3xl border border-amber-500/30 space-y-4">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                    <div>
+                                                        <h3 className="text-base font-black uppercase tracking-tight text-slate-800 dark:text-amber-300 flex items-center gap-2">
+                                                            <Edit3 size={18} className="text-amber-500" />
+                                                            Hệ Thống Tùy Biến Icon Toàn Diện
+                                                        </h3>
+                                                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                                            Cho phép click chọn và thay đổi bất kỳ icon nào trên Sidebar, Nút Bấm POS, Đơn Nhập Hàng, Lịch sử...
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={toggleEditMode}
+                                                            className={cn(
+                                                                "px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm cursor-pointer",
+                                                                editMode
+                                                                    ? "bg-amber-500 text-white shadow-amber-500/30 animate-pulse"
+                                                                    : "bg-[#2d5016] hover:bg-[#3d6b20] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white"
+                                                            )}
+                                                        >
+                                                            <Edit3 size={15} />
+                                                            <span>{editMode ? "Đang Bật Edit Mode (Alt+I)" : "Bật Chế Độ Sửa Icon (Alt+I)"}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (window.confirm("Khôi phục toàn bộ icon về mặc định gốc?")) {
+                                                                    resetIcons();
+                                                                    setToast({ message: "Đã khôi phục toàn bộ icon về mặc định", type: "info" });
+                                                                }
+                                                            }}
+                                                            className="px-3.5 py-2.5 rounded-2xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                                                        >
+                                                            Đặt Lại Mặc Định
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-4 bg-white/70 dark:bg-slate-900/60 rounded-2xl border border-amber-500/20 text-xs space-y-2">
+                                                    <div className="font-bold text-slate-800 dark:text-slate-200">
+                                                        💡 Cách sử dụng linh hoạt:
+                                                    </div>
+                                                    <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-400">
+                                                        <li><strong>Cách 1:</strong> Bấm phím tắt <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono font-bold text-amber-600">Alt + I</kbd> ở bất kỳ đâu trên màn hình, hoặc bấm chuột phải chọn <em>"Tùy biến Icon"</em>. Khi đó các icon có thể đổi sẽ phát sáng viền vàng, bạn chỉ cần bấm vào để chọn icon mới!</li>
+                                                        <li><strong>Cách 2:</strong> Vào trang <em>Menu Sidebar</em> bên cạnh để đổi nhanh icon từng trang và từng nhóm danh mục.</li>
+                                                    </ul>
+                                                </div>
+
+                                                {/* Danh sách các icon đã tùy chỉnh */}
+                                                <div className="pt-2">
+                                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">
+                                                        Danh sách Icon Đã Tùy Chỉnh ({Object.keys(customIcons).length})
+                                                    </h4>
+                                                    {Object.keys(customIcons).length === 0 ? (
+                                                        <div className="p-6 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-400 text-xs">
+                                                            Hiện tại tất cả icon đang sử dụng mặc định ban đầu.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                                            {Object.entries(customIcons).map(([id, name]) => (
+                                                                <div key={id} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{id}</div>
+                                                                        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono truncate">{name}</div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 

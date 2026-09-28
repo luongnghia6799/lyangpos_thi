@@ -20,6 +20,8 @@ import { precacheCommonTTS } from './lib/utils';
 import axios from 'axios';
 
 import { wsService } from './lib/websocket';
+import { IconProvider } from './context/IconContext';
+import GlobalIconPickerContainer from './components/widgets/GlobalIconPickerContainer';
 
 const DEFAULT_PORT = import.meta.env.VITE_BACKEND_PORT || '3579';
 
@@ -744,7 +746,9 @@ function App() {
           reducedMotion={gpuDisabled ? "always" : "no-preference"}
           transition={gpuDisabled ? { type: "just" } : { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.25 }}
         >
-          <CustomCursor />
+          <IconProvider>
+            <GlobalIconPickerContainer />
+            <CustomCursor />
           <PageMascot
             onOpenAiConsultant={({ pos, size } = {}) => {
               if (pos) setMascotPos(pos);
@@ -794,6 +798,7 @@ function App() {
               </Routes>
             </Suspense>
           </Router>
+          </IconProvider>
         </MotionConfig>
       </LazyMotion>
     </QueryClientProvider>

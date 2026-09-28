@@ -35,11 +35,19 @@ export default function DynamicIcon({
             <span
                 onClick={(e) => {
                     e.preventDefault();
-                    e.stopPropagation();
+                    const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
                     openPicker({
                         id,
                         label: label || id,
-                        currentIconName: customName || (DefaultIcon?.displayName || DefaultIcon?.name || '')
+                        currentIconName: customName || (DefaultIcon?.displayName || DefaultIcon?.name || ''),
+                        anchorRect: rect ? {
+                            top: rect.top,
+                            bottom: rect.bottom,
+                            left: rect.left,
+                            right: rect.right,
+                            width: rect.width,
+                            height: rect.height
+                        } : null
                     });
                 }}
                 className="relative inline-flex items-center justify-center group/dynicon cursor-pointer"

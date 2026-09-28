@@ -637,11 +637,22 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                 <div className="flex items-center gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => openPicker({
-                                            id: `nav.group.${section.label}`,
-                                            label: `Nhóm: ${section.label}`,
-                                            currentIconName: customIcons[`nav.group.${section.label}`] || section.icon?.displayName || section.icon?.name
-                                        })}
+                                        onClick={(e) => {
+                                            const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+                                            openPicker({
+                                                id: `nav.group.${section.label}`,
+                                                label: `Nhóm: ${section.label}`,
+                                                currentIconName: customIcons[`nav.group.${section.label}`] || section.icon?.displayName || section.icon?.name,
+                                                anchorRect: rect ? {
+                                                    top: rect.top,
+                                                    bottom: rect.bottom,
+                                                    left: rect.left,
+                                                    right: rect.right,
+                                                    width: rect.width,
+                                                    height: rect.height
+                                                } : null
+                                            });
+                                        }}
                                         className={cn(
                                             "px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all flex items-center gap-1 border cursor-pointer",
                                             customIcons[`nav.group.${section.label}`]
@@ -728,11 +739,22 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                                 {/* Nút bấm đổi icon */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => openPicker({
-                                                        id: `nav.${item.path}`,
-                                                        label: item.label,
-                                                        currentIconName: customIcons[`nav.${item.path}`] || item.icon?.displayName || item.icon?.name
-                                                    })}
+                                                    onClick={(e) => {
+                                                        const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+                                                        openPicker({
+                                                            id: `nav.${item.path}`,
+                                                            label: item.label,
+                                                            currentIconName: customIcons[`nav.${item.path}`] || item.icon?.displayName || item.icon?.name,
+                                                            anchorRect: rect ? {
+                                                                top: rect.top,
+                                                                bottom: rect.bottom,
+                                                                left: rect.left,
+                                                                right: rect.right,
+                                                                width: rect.width,
+                                                                height: rect.height
+                                                            } : null
+                                                        });
+                                                    }}
                                                     className={cn(
                                                         "p-2 rounded-xl transition-all flex items-center justify-center border cursor-pointer",
                                                         customIcons[`nav.${item.path}`]

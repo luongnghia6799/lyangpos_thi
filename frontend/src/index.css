@@ -1776,8 +1776,8 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
    GLOBAL ICON CUSTOMIZATION EDIT MODE (Alt + I)
    Biến MỌI icon SVG trong app thành điểm có thể click để đổi
    ======================================================== */
-body.icon-edit-mode svg.lucide,
-body.icon-edit-mode .global-editable-icon {
+body.icon-edit-mode svg.lucide:not(#icon-popout-picker *):not(.icon-picker-exclude *),
+body.icon-edit-mode .global-editable-icon:not(#icon-popout-picker *):not(.icon-picker-exclude *) {
   outline: 2px dashed #f59e0b !important;
   outline-offset: 3px !important;
   cursor: pointer !important;
@@ -1787,8 +1787,8 @@ body.icon-edit-mode .global-editable-icon {
   transition: transform 0.15s ease, filter 0.15s ease !important;
 }
 
-body.icon-edit-mode svg.lucide:hover,
-body.icon-edit-mode .global-editable-icon:hover {
+body.icon-edit-mode svg.lucide:not(#icon-popout-picker *):not(.icon-picker-exclude *):hover,
+body.icon-edit-mode .global-editable-icon:not(#icon-popout-picker *):not(.icon-picker-exclude *):hover {
   transform: scale(1.3) !important;
   outline: 2px solid #ef4444 !important;
   filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8)) !important;

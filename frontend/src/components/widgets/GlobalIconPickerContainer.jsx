@@ -58,12 +58,21 @@ export default function GlobalIconPickerContainer() {
 
             // Tạo key duy nhất: nếu là icon name chuẩn thì đổi toàn bộ icon đó
             const targetId = iconName ? `icon.${iconName}` : `dom.icon_${Date.now()}`;
+            const rect = svg.getBoundingClientRect();
 
             window.dispatchEvent(new CustomEvent('app_open_icon_picker', {
                 detail: {
                     id: targetId,
                     label: displayLabel,
-                    currentIconName: iconName
+                    currentIconName: iconName,
+                    anchorRect: rect ? {
+                        top: rect.top,
+                        bottom: rect.bottom,
+                        left: rect.left,
+                        right: rect.right,
+                        width: rect.width,
+                        height: rect.height
+                    } : null
                 }
             }));
         };

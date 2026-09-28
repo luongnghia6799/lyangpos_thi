@@ -34,12 +34,20 @@ export const patchCreateLucideIcon = (origCreateLucideIcon) => {
             const handleClick = (e) => {
                 if (document.body.classList.contains('icon-edit-mode')) {
                     e.preventDefault();
-                    e.stopPropagation();
+                    const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
                     window.dispatchEvent(new CustomEvent('app_open_icon_picker', {
                         detail: {
                             id: `icon.${iconName}`,
                             label: `Icon: ${iconName}`,
-                            currentIconName: overriddenName || iconName
+                            currentIconName: overriddenName || iconName,
+                            anchorRect: rect ? {
+                                top: rect.top,
+                                bottom: rect.bottom,
+                                left: rect.left,
+                                right: rect.right,
+                                width: rect.width,
+                                height: rect.height
+                            } : null
                         }
                     }));
                     return;

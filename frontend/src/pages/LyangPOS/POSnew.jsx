@@ -4949,30 +4949,22 @@ function POSPage({
                           }} whileTap={Ce === 0 ? {} : {
                             scale: 0.95
                           }} className={c("flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all", Ce === 0 ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed" : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer")} title="Xem đơn kế tiếp"><Dr size={18} strokeWidth={2.8} /></x.button></div></div></x.div></div></div>;
-              })()}</x.div>{Ze === "sidebar" && <x.div initial={!1} animate={{
+              })()}</x.div>{Ze === "sidebar" && <x.div initial={false} animate={{
               width: ka ? "360px" : "90px"
             }} transition={{
               type: "spring",
-              stiffness: 300,
-              damping: 30
-            }} className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0"><div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0"><P mode="wait">{ka ? <x.div key="expanded-sidebar" initial={{
-                    opacity: 0,
-                    x: 20,
-                    scale: 0.98
+              stiffness: 350,
+              damping: 32
+            }} className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0 overflow-hidden"><div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0 overflow-hidden"><P initial={false}>{ka ? <x.div key="expanded-sidebar" initial={{
+                    opacity: 0
                   }} animate={{
-                    opacity: 1,
-                    x: 0,
-                    scale: 1
+                    opacity: 1
                   }} exit={{
-                    opacity: 0,
-                    x: 20,
-                    scale: 0.98
+                    opacity: 0
                   }} transition={{
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 30,
-                    mass: 1
-                  }} className="h-full flex flex-col relative bg-[#fbf9f4]/95 dark:bg-[#1a1e17]/95 backdrop-blur-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/60 text-slate-800 dark:text-white"><x.button whileHover={{
+                    duration: 0.18,
+                    ease: "easeOut"
+                  }} className="h-full w-[350px] flex flex-col relative bg-[#fbf9f4]/95 dark:bg-[#1a1e17]/95 backdrop-blur-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/60 text-slate-800 dark:text-white"><x.button whileHover={{
                       scale: 1.15,
                       x: 2
                     }} whileTap={{
@@ -5043,23 +5035,15 @@ function POSPage({
                         }} whileTap={{
                           scale: 0.98
                         }} disabled={y.length === 0 || Be} onClick={() => Re(!0)} className="w-full bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-2xl font-black uppercase tracking-widest gap-2.5 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer">{Be ? <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : <><Fa size={24} strokeWidth={2.5} /><span>IN</span></>}</x.button></div></div></x.div> : <x.div key="mini-sidebar" initial={{
-                    opacity: 0,
-                    x: -20,
-                    scale: 0.95
+                    opacity: 0
                   }} animate={{
-                    opacity: 1,
-                    x: 0,
-                    scale: 1
+                    opacity: 1
                   }} exit={{
-                    opacity: 0,
-                    x: -20,
-                    scale: 0.95
+                    opacity: 0
                   }} transition={{
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 30,
-                    mass: 1
-                  }} className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"><div onClick={() => p && Gr(!sr)} style={getButtonComputedStyle(cartColorConfig, 'partner')} className={c("w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all relative cursor-pointer partner-popout-trigger shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", p ? "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/60 dark:border-emerald-500/60 hover:bg-[#2d5016]/10" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] hover:bg-[#8b6f47]/10")} title={p ? `Khách: ${p.name}` : "Chưa chọn khách"}><Gn size={24} />{p && <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs transition-transform z-20">#{p.id}</div>}{p && <div ref={Wr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-2xl shadow-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-white partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-[#8b6f47]/20 dark:border-white/10 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-black/40 p-0.5 rounded-xl mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "debt" ? "bg-[#8b6f47] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "cash" ? "bg-[#2d5016] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-emerald-300"><Un size={14} className="animate-spin text-[#2d5016] dark:text-emerald-400" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
+                    duration: 0.18,
+                    ease: "easeOut"
+                  }} className="w-[82px] flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"><div onClick={() => p && Gr(!sr)} style={getButtonComputedStyle(cartColorConfig, 'partner')} className={c("w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all relative cursor-pointer partner-popout-trigger shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", p ? "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/60 dark:border-emerald-500/60 hover:bg-[#2d5016]/10" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] hover:bg-[#8b6f47]/10")} title={p ? `Khách: ${p.name}` : "Chưa chọn khách"}><Gn size={24} />{p && <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs transition-transform z-20">#{p.id}</div>}{p && <div ref={Wr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-2xl shadow-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-white partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-[#8b6f47]/20 dark:border-white/10 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-black/40 p-0.5 rounded-xl mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "debt" ? "bg-[#8b6f47] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "cash" ? "bg-[#2d5016] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-emerald-300"><Un size={14} className="animate-spin text-[#2d5016] dark:text-emerald-400" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
                           const t = Ne === "debt" ? st : nt;
                           t && t.obj && (mr(t.obj), Yt(!0));
                         }} className="space-y-2 py-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 rounded-xl transition-all active:scale-[0.98] border border-transparent hover:border-[#8b6f47]/20"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Comp_oa size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">SỐ TIỀN</div><div className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">{(() => {

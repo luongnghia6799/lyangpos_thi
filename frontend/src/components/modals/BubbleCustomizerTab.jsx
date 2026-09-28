@@ -230,6 +230,43 @@ export const adjustColor = (hex, percent) => {
 };
 
 export const getBubbleBadgeStyle = (config, bubbleKey = 'cash') => {
+    const mode = config?.bubbleCustomMode || 'all';
+
+    // Engraved inset badge style for cash bubble ("khắc vào ô")
+    if (bubbleKey === 'cash') {
+        let bg = config?.bubbleBg;
+        if (mode === 'individual' && config?.bubbleCashBg && config.bubbleCashBg !== 'default') {
+            bg = config.bubbleCashBg;
+        }
+        let textColor = null;
+        if (mode === 'individual' && config?.bubbleCashTextColor && config.bubbleCashTextColor !== 'default') {
+            textColor = config.bubbleCashTextColor;
+        } else if (config?.bubbleTextColor && config.bubbleTextColor !== 'default') {
+            textColor = config.bubbleTextColor;
+        }
+
+        if (bg && bg !== 'default' && bg.startsWith('#')) {
+            const isLight = isLightColor(bg);
+            const darker = adjustColor(bg, isLight ? -14 : -25);
+            const lighter = adjustColor(bg, isLight ? 4 : 8);
+            return {
+                background: `linear-gradient(145deg, ${darker}, ${lighter})`,
+                boxShadow: isLight
+                    ? 'inset 2px 2px 5px rgba(0, 0, 0, 0.22), inset -1px -1px 3px rgba(255, 255, 255, 0.5)'
+                    : 'inset 2px 2px 6px rgba(0, 0, 0, 0.6), inset -1px -1px 3px rgba(255, 255, 255, 0.1)',
+                border: isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)',
+                color: textColor || (isLight ? '#1a1e17' : '#ffffff')
+            };
+        }
+
+        return {
+            background: 'linear-gradient(145deg, rgba(0,0,0,0.1), rgba(0,0,0,0.02))',
+            boxShadow: 'inset 2px 2px 5px rgba(0, 0, 0, 0.2), inset -1px -1px 3px rgba(255, 255, 255, 0.4)',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            color: textColor || '#2d5016'
+        };
+    }
+
     if (!config) {
         return {
             background: 'linear-gradient(135deg, #2d5016, #059669)',
@@ -237,7 +274,6 @@ export const getBubbleBadgeStyle = (config, bubbleKey = 'cash') => {
             color: '#ffffff'
         };
     }
-    const mode = config.bubbleCustomMode || 'all';
 
     // 1. Check specific border for this bubble
     let col = null;
@@ -641,21 +677,18 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                             {/* Cash Given F1 Preview */}
                             {(() => {
                                 const cashSt = getBubbleComputedStyle(currentConfig, 'cash');
-                                const badgeSt = getBubbleBadgeStyle(currentConfig, 'cash');
                                 return (
                                     <div 
                                         style={cashSt}
-                                        className="flex items-center gap-2 p-2 px-3 rounded-2xl border-2 bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 transition-all shadow-md select-none"
+                                        className="flex items-center gap-2 p-2 px-3 rounded-2xl border-2 bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 transition-all shadow-md select-none relative overflow-hidden min-w-[110px]"
                                     >
-                                        <div style={badgeSt} className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 shadow-xs">
-                                            <DollarSign size={13} style={{ color: badgeSt.color || '#ffffff' }} />
-                                        </div>
-                                        <div className="flex flex-col text-right">
+                                        <DollarSign className="absolute -right-2 -bottom-2 w-12 h-12 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 pointer-events-none select-none" style={cashSt.color ? { color: cashSt.color, opacity: 0.1 } : undefined} />
+                                        <div className="flex flex-col text-left relative z-10">
                                             <span 
                                                 className="text-[7.5px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] transition-colors"
                                                 style={cashSt.color ? { color: cashSt.color, opacity: 0.8 } : undefined}
                                             >
-                                                Khách đưa F1
+                                                Khách đưa (F1)
                                             </span>
                                             <span 
                                                 className="text-xs font-black text-[#2d5016] dark:text-emerald-400 transition-colors"

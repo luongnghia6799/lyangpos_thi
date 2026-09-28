@@ -2065,7 +2065,7 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="dropdown-premium absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border-0 overflow-hidden"
+                                        className="dropdown-premium !bg-transparent backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
                                         <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">
@@ -2881,7 +2881,7 @@ export default function Purchase() {
                                                                             transition={{
                                                                                 duration: 0.15
                                                                             }}
-                                                                            className="dropdown-premium fixed !z-[400000] shadow-2xl rounded-2xl border-0 overflow-hidden"
+                                                                            className="dropdown-premium !bg-transparent backdrop-blur-2xl fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
                                                                                 left: workingSearchCoords.left,
@@ -3652,7 +3652,7 @@ export default function Purchase() {
                                                                                 transition={{
                                                                                     duration: 0.15
                                                                                 }}
-                                                                                className="dropdown-premium absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border-0 overflow-hidden"
+                                                                                className="dropdown-premium !bg-transparent backdrop-blur-2xl absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             >
                                                                             <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 ">
                                                                                 {products.filter(p => {
@@ -3724,11 +3724,9 @@ export default function Purchase() {
                                                                                                 </div>
                                                                                                 <div className="flex items-center gap-5">
                                                                                                     {p.active_ingredient && (
-                                                                                                        <ActiveIngredientTooltip activeIngredient={p.active_ingredient}>
-                                                                                                            <span className={cn("text-[11px] font-black italic tracking-wide transition-colors cursor-pointer hover:underline", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
-                                                                                                                {p.active_ingredient}
-                                                                                                            </span>
-                                                                                                        </ActiveIngredientTooltip>
+                                                                                                        <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                            {p.active_ingredient}
+                                                                                                        </span>
                                                                                                     )}
                                                                                                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                                                                         {p.code && (

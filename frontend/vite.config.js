@@ -6,6 +6,31 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const lucideIconPlugin = () => {
+  const customIconFile = path.resolve(__dirname, './src/lib/customIcon.js');
+  return {
+    name: 'lucide-custom-icon-plugin',
+    enforce: 'pre',
+    resolveId(id, importer) {
+      if (
+        id === './Icon.js' ||
+        id === './Icon' ||
+        id === '../Icon.js' ||
+        id.endsWith('/Icon.js') ||
+        id === 'lucide-react/dist/esm/Icon.js' ||
+        id === 'lucide-react/dist/esm/Icon'
+      ) {
+        if (importer && (importer.includes('lucide-react') || importer.includes('lucide'))) {
+          if (!importer.includes('customIcon.js')) {
+            return customIconFile;
+          }
+        }
+      }
+      return null;
+    }
+  };
+};
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const backendPort = process.env.VITE_BACKEND_PORT || (mode === 'development' ? '3580' : '3579');
@@ -15,12 +40,16 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     plugins: [
+      lucideIconPlugin(),
       react({
         babel: {
           compact: false
         }
       })
     ],
+    optimizeDeps: {
+      exclude: ['lucide-react']
+    },
     resolve: {
       alias: [
         {

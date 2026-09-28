@@ -25,9 +25,19 @@ import ActionContextMenu from '../../components/widgets/ActionContextMenu';
 import PartnerInfoHoverCard from '../../components/widgets/PartnerInfoHoverCard';
 import CustomSelect from '../../components/forms/CustomSelect';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
+import OrderDatePickerModal from '../../components/modals/OrderDatePickerModal';
 import PriceRaiseModal from '../../components/modals/PriceRaiseModal';
 import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { DEFAULT_CART_COLOR_CONFIG, getCartBoxShadow, getCartOverlayStyle, getCartTextPillStyle, getCartTextShadowStyle } from '../../components/modals/CartColorCustomizerModal';
+import CartColorCustomizerModal, { 
+    DEFAULT_CART_COLOR_CONFIG, 
+    getCartBoxShadow, 
+    getCartOverlayStyle, 
+    getCartTextPillStyle, 
+    getCartTextShadowStyle,
+    getBubbleComputedStyle,
+    getButtonComputedStyle,
+    getBubbleBadgeStyle
+} from '../../components/modals/CartColorCustomizerModal';
 import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import LyangLogo from '../../assets/logo.png';
 
@@ -1830,84 +1840,15 @@ export default function Purchase() {
                                             );
                                         })()}
                                     </button>
-
-                                    {/* Date Picker Popover */}
-                                    <AnimatePresence>
-                                        {isOrderDatePickerOpen && (
-                                            <Portal>
-                                                <div 
-                                                    className="fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-                                                    onClick={() => setIsOrderDatePickerOpen(false)}
-                                                >
-                                                    <m.div 
-                                                        initial={{ opacity: 0, scale: 0.9, y: 15 }}
-                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                                        transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                                                        className="bg-white/95 dark:bg-slate-900/95 border-2 border-[#2d5016]/20 dark:border-emerald-500/30 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-5 backdrop-blur-xl"
-                                                        onClick={e => e.stopPropagation()}
-                                                    >
-                                                        <div className="flex items-center justify-between pb-3.5 border-b border-border/70">
-                                                            <div className="flex items-center gap-2.5">
-                                                                <div className="w-8 h-8 rounded-xl bg-[#2d5016]/10 dark:bg-emerald-500/10 text-[#2d5016] dark:text-[#4ade80] flex items-center justify-center">
-                                                                    <Calendar size={18} strokeWidth={2.5} />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="text-sm font-black uppercase tracking-wider text-[#2d5016] dark:text-white">
-                                                                        Chọn ngày hóa đơn
-                                                                    </h3>
-                                                                    <p className="text-[10px] font-bold text-muted-foreground">Đổi ngày tạo hoặc cập nhật hóa đơn</p>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsOrderDatePickerOpen(false)}
-                                                                className="w-8 h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                                            >
-                                                                <X size={16} strokeWidth={2.5} />
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="space-y-2">
-                                                            <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider">
-                                                                Ngày giao dịch:
-                                                            </label>
-                                                            <div className="relative">
-                                                                <CustomDatePicker
-                                                                    value={customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
-                                                                    onChange={(e) => {
-                                                                        setCustomOrderDate(e.target.value);
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between pt-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setCustomOrderDate('');
-                                                                    setIsOrderDatePickerOpen(false);
-                                                                }}
-                                                                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                            >
-                                                                Đặt lại hôm nay
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setIsOrderDatePickerOpen(false)}
-                                                                className="px-5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white hover:brightness-110 active:scale-95 transition-all shadow-md cursor-pointer"
-                                                            >
-                                                                Xác nhận
-                                                            </button>
-                                                        </div>
-                                                    </m.div>
-                                                </div>
-                                            </Portal>
-                                        )}
-                                    </AnimatePresence>
                                 </m.div>
                             </AnimatePresence>
+                            {/* Date Picker Modal styled like ReminderModal */}
+                            <OrderDatePickerModal
+                                isOpen={isOrderDatePickerOpen}
+                                initialDate={customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
+                                onClose={() => setIsOrderDatePickerOpen(false)}
+                                onConfirm={(val) => setCustomOrderDate(val)}
+                            />
                         </div>
                     </div>
 
@@ -4150,133 +4091,143 @@ export default function Purchase() {
                                             className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
                                         >
                                             <div className="flex items-center gap-2.5 pointer-events-auto">
-                                                <div 
-                                                    onClick={() => {
-                                                        if (selectedPartner) {
-                                                            setIsHistoryPanelOpen(true);
-                                                        } else {
-                                                            setIsDailyHistoryOpen(true);
-                                                        }
-                                                    }}
-                                                    className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent backdrop-blur-md hover:border-[#8b6f47]/50 dark:hover:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 relative overflow-hidden"
-                                                >
-                                                    <Truck className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" />
-                                                    <div className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
-                                                        <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5">
-                                                            Nhà cung cấp / Đối tác
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 mb-1">
-                                                            {selectedPartner && (
-                                                                <span className="px-1.5 py-0.5 bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 text-[#8b6f47] dark:text-[#d4a574] rounded-md text-[9px] font-black tracking-wider shrink-0 border border-[#8b6f47]/20 dark:border-[#d4a574]/20">
-                                                                    ID: {selectedPartner.id}
-                                                                </span>
-                                                            )}
-                                                            <div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate">
-                                                                {selectedPartner ? selectedPartner.name : "Nhà cung cấp lẻ"}
-                                                            </div>
-                                                        </div>
+                                                {(() => {
+                                                    const partnerStyle = getBubbleComputedStyle(cartColorConfig, 'partner');
+                                                    const tc = partnerStyle?.color;
+                                                    return (
+                                                        <div 
+                                                            onClick={() => {
+                                                                if (selectedPartner) {
+                                                                    setIsHistoryPanelOpen(true);
+                                                                } else {
+                                                                    setIsDailyHistoryOpen(true);
+                                                                }
+                                                            }}
+                                                            style={partnerStyle}
+                                                            className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
+                                                        >
+                                                            <Truck className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={tc ? { color: tc, opacity: 0.1 } : undefined} />
+                                                            <div className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
+                                                                <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
+                                                                    Nhà cung cấp / Đối tác
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 mb-1">
+                                                                    {selectedPartner && (
+                                                                        <span 
+                                                                            className={cn("px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", !tc && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30")}
+                                                                            style={tc ? { color: tc, borderColor: `${tc}40`, backgroundColor: `${tc}20` } : undefined}
+                                                                        >
+                                                                            ID: {selectedPartner.id}
+                                                                        </span>
+                                                                    )}
+                                                                    <div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" style={tc ? { color: tc } : undefined}>
+                                                                        {selectedPartner ? selectedPartner.name : "Nhà cung cấp lẻ"}
+                                                                    </div>
+                                                                </div>
 
-                                                        {selectedPartner && (
-                                                            <div className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5">
-                                                                {(selectedPartner.phone || selectedPartner.tax_code || selectedPartner.cccd) && (
-                                                                    <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal py-0.5">
-                                                                        {selectedPartner.phone && (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <Phone size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                                                <span className="truncate leading-normal">{selectedPartner.phone}</span>
+                                                                {selectedPartner && (
+                                                                    <div className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5" style={tc ? { borderColor: `${tc}40` } : undefined}>
+                                                                        {(selectedPartner.phone || selectedPartner.tax_code || selectedPartner.cccd) && (
+                                                                            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
+                                                                                {selectedPartner.phone && (
+                                                                                    <div className="flex items-center gap-1" style={tc ? { color: tc } : undefined}>
+                                                                                        <Phone size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
+                                                                                        <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{selectedPartner.phone}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {(selectedPartner.tax_code || selectedPartner.cccd) && (
+                                                                                    <div className="flex items-center gap-1" style={tc ? { color: tc } : undefined}>
+                                                                                        <FileText size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
+                                                                                        <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{selectedPartner.tax_code || selectedPartner.cccd}</span>
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         )}
-                                                                        {(selectedPartner.tax_code || selectedPartner.cccd) && (
-                                                                            <div className="flex items-center gap-1">
-                                                                                <FileText size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                                                <span className="truncate leading-normal">{selectedPartner.tax_code || selectedPartner.cccd}</span>
+                                                                        {selectedPartner.address && (
+                                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
+                                                                                <MapPin size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
+                                                                                <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{selectedPartner.address}</span>
                                                                             </div>
                                                                         )}
-                                                                    </div>
-                                                                )}
-                                                                {selectedPartner.address && (
-                                                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal py-0.5">
-                                                                        <MapPin size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                                        <span className="truncate leading-normal">{selectedPartner.address}</span>
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                {/* Debt Status Card */}
-                                                                {(remainingDebt !== 0 || oldDebt !== 0) && (
-                                                                    <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15">
-                                                                        {(() => {
-                                                                            const deltaDebt = remainingDebt - oldDebt;
-                                                                            if (deltaDebt === 0) {
-                                                                                return (
-                                                                                    <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs">
-                                                                                        <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]">
-                                                                                            <Wallet size={11} className="shrink-0" />
-                                                                                            <span>Dư nợ:</span>
+                                                                        
+                                                                        {/* Debt Status Card */}
+                                                                        {(remainingDebt !== 0 || oldDebt !== 0) && (
+                                                                            <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15" style={tc ? { borderColor: `${tc}25` } : undefined}>
+                                                                                {(() => {
+                                                                                    const deltaDebt = remainingDebt - oldDebt;
+                                                                                    if (deltaDebt === 0) {
+                                                                                        return (
+                                                                                            <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
+                                                                                                <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
+                                                                                                    <Wallet size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
+                                                                                                    <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
+                                                                                                </div>
+                                                                                                <div className="flex items-center gap-1">
+                                                                                                    <span className={cn(
+                                                                                                        "text-xs font-black tabular-nums",
+                                                                                                        oldDebt < 0 ? "text-rose-600 dark:text-rose-400" : oldDebt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"
+                                                                                                    )}>
+                                                                                                        {formatNumber(Math.abs(oldDebt))}đ
+                                                                                                    </span>
+                                                                                                    <span className={cn(
+                                                                                                        "text-[8px] font-black px-1.5 py-0.5 rounded-md",
+                                                                                                        oldDebt < 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : oldDebt > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500"
+                                                                                                    )}>
+                                                                                                        {oldDebt < 0 ? "Mình nợ" : oldDebt > 0 ? "Họ nợ" : "Hết nợ"}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    }
+                                                                                    return (
+                                                                                        <div className="flex flex-col gap-1 w-full">
+                                                                                            <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
+                                                                                                <span className="flex items-center gap-1">
+                                                                                                    <Wallet size={11} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined} />
+                                                                                                    <span style={tc ? { color: tc } : undefined}>Biến động nợ</span>
+                                                                                                </span>
+                                                                                                <span className={cn(
+                                                                                                    "text-[8px] font-black px-1.5 py-0.5 rounded-md",
+                                                                                                    remainingDebt < 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : remainingDebt > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500"
+                                                                                                )}>
+                                                                                                    {remainingDebt < 0 ? "Mình nợ" : remainingDebt > 0 ? "Họ nợ" : "Hết nợ"}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
+                                                                                                <div className="flex flex-col">
+                                                                                                    <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mb-0.5" style={tc ? { color: tc, opacity: 0.7 } : undefined}>Hiện tại</span>
+                                                                                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-through decoration-rose-400/60 tabular-nums" style={tc ? { color: tc, opacity: 0.8 } : undefined}>
+                                                                                                        {formatNumber(Math.abs(oldDebt))}đ
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <div className={cn(
+                                                                                                    "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-tight",
+                                                                                                    deltaDebt < 0 ? "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+                                                                                                )}>
+                                                                                                    <span>➔</span>
+                                                                                                    <span>{deltaDebt < 0 ? `+${formatNumber(Math.abs(deltaDebt))}` : `-${formatNumber(Math.abs(deltaDebt))}`}</span>
+                                                                                                </div>
+                                                                                                <div className="flex flex-col items-end">
+                                                                                                    <span className="text-[8px] font-bold text-rose-500/80 dark:text-rose-400/80 uppercase leading-none mb-0.5">Sau đơn</span>
+                                                                                                    <span className={cn(
+                                                                                                        "text-[11px] font-black tabular-nums",
+                                                                                                        remainingDebt < 0 ? "text-rose-600 dark:text-rose-400" : remainingDebt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#2d5016] dark:text-emerald-400"
+                                                                                                    )}>
+                                                                                                        {formatNumber(Math.abs(remainingDebt))}đ
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                            </div>
                                                                                         </div>
-                                                                                        <div className="flex items-center gap-1">
-                                                                                            <span className={cn(
-                                                                                                "text-xs font-black tabular-nums",
-                                                                                                oldDebt < 0 ? "text-rose-600 dark:text-rose-400" : oldDebt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"
-                                                                                            )}>
-                                                                                                {formatNumber(Math.abs(oldDebt))}đ
-                                                                                            </span>
-                                                                                            <span className={cn(
-                                                                                                "text-[8px] font-black px-1.5 py-0.5 rounded-md",
-                                                                                                oldDebt < 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : oldDebt > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500"
-                                                                                            )}>
-                                                                                                {oldDebt < 0 ? "Mình nợ" : oldDebt > 0 ? "Họ nợ" : "Hết nợ"}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                );
-                                                                            }
-                                                                            return (
-                                                                                <div className="flex flex-col gap-1 w-full">
-                                                                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                                                                        <span className="flex items-center gap-1">
-                                                                                            <Wallet size={11} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
-                                                                                            <span>Biến động nợ</span>
-                                                                                        </span>
-                                                                                        <span className={cn(
-                                                                                            "text-[8px] font-black px-1.5 py-0.5 rounded-md",
-                                                                                            remainingDebt < 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : remainingDebt > 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500"
-                                                                                        )}>
-                                                                                            {remainingDebt < 0 ? "Mình nợ" : remainingDebt > 0 ? "Họ nợ" : "Hết nợ"}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs">
-                                                                                        <div className="flex flex-col">
-                                                                                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mb-0.5">Hiện tại</span>
-                                                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-through decoration-rose-400/60 tabular-nums">
-                                                                                                {formatNumber(Math.abs(oldDebt))}đ
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <div className={cn(
-                                                                                            "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-tight",
-                                                                                            deltaDebt < 0 ? "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
-                                                                                        )}>
-                                                                                            <span>➔</span>
-                                                                                            <span>{deltaDebt < 0 ? `+${formatNumber(Math.abs(deltaDebt))}` : `-${formatNumber(Math.abs(deltaDebt))}`}</span>
-                                                                                        </div>
-                                                                                        <div className="flex flex-col items-end">
-                                                                                            <span className="text-[8px] font-bold text-rose-500/80 dark:text-rose-400/80 uppercase leading-none mb-0.5">Sau đơn</span>
-                                                                                            <span className={cn(
-                                                                                                "text-[11px] font-black tabular-nums",
-                                                                                                remainingDebt < 0 ? "text-rose-600 dark:text-rose-400" : remainingDebt > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#2d5016] dark:text-emerald-400"
-                                                                                            )}>
-                                                                                                {formatNumber(Math.abs(remainingDebt))}đ
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })()}
+                                                                                    );
+                                                                                })()}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                                        </div>
+                                                    );
+                                                })()}
 
                                                 {/* Mini Action Icons Next to Supplier */}
                                                 <div className="relative group/note-container pointer-events-auto">
@@ -4285,11 +4236,12 @@ export default function Purchase() {
                                                             e.stopPropagation();
                                                             setIsNoteModalOpen(!isNoteModalOpen);
                                                         }}
+                                                        style={getButtonComputedStyle(cartColorConfig, 'note')}
                                                         className={cn(
-                                                            "w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 border-2 backdrop-blur-md shadow-md shadow-[#8b6f47]/5",
+                                                            "w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]",
                                                             note || isNoteModalOpen
                                                                 ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25"
-                                                                : "bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:bg-[#2d5016]/10 dark:hover:bg-emerald-500/15 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] dark:hover:text-emerald-400"
+                                                                : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400"
                                                         )}
                                                         title="Ghi chú đơn nhập"
                                                     >
@@ -4304,7 +4256,7 @@ export default function Purchase() {
                                                                 animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
                                                                 exit={{ opacity: 0, scale: 0.9, x: -20, y: 20 }}
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl z-[100]"
+                                                                className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
                                                             >
                                                                 <div className="flex justify-between items-center mb-2">
                                                                     <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest">
@@ -4312,7 +4264,7 @@ export default function Purchase() {
                                                                     </div>
                                                                     <button 
                                                                         onClick={(e) => { e.stopPropagation(); setIsNoteModalOpen(false); }}
-                                                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                                                        className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
                                                                     >
                                                                         <X size={14} strokeWidth={3} />
                                                                     </button>
@@ -4321,7 +4273,7 @@ export default function Purchase() {
                                                                     autoFocus
                                                                     placeholder="Nhập ghi chú cho phiếu nhập này..."
                                                                     rows={3}
-                                                                    className="w-full px-4 py-3 bg-white/60 dark:bg-slate-900/60 border border-[#8b6f47]/20 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar dark:text-white"
+                                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar text-slate-800 dark:text-white placeholder:text-slate-400"
                                                                     value={note}
                                                                     onChange={(e) => setNote(e.target.value)}
                                                                 />
@@ -4355,12 +4307,12 @@ export default function Purchase() {
                                         >
                                             {/* Tiền trả NCC (F1) / Đã trả */}
                                             {paymentMethod === 'Cash' && (
-                                                <div className="pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] transition-all duration-300">
-                                                    <div className="w-10 h-10 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-[#2d5016]/20 shrink-0 group-hover/cash-calculator:rotate-12 transition-transform">
-                                                        <Coins size={20} />
+                                                <div style={getBubbleComputedStyle(cartColorConfig, 'cash')} className="pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] transition-all duration-300">
+                                                    <div style={getBubbleBadgeStyle(cartColorConfig, 'cash')} className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md shrink-0 group-hover/cash-calculator:rotate-12 transition-transform">
+                                                        <Coins size={20} style={{ color: getBubbleBadgeStyle(cartColorConfig, 'cash').color || '#ffffff' }} />
                                                     </div>
                                                     <div className="flex flex-col ml-3">
-                                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 whitespace-nowrap">
+                                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, "cash").color ? { color: getBubbleComputedStyle(cartColorConfig, "cash").color } : undefined}>
                                                             Tiền trả NCC (F1)
                                                         </span>
                                                         <div className="flex items-center gap-2.5">
@@ -4371,6 +4323,7 @@ export default function Purchase() {
                                                                 <input
                                                                     id="purchase-cash-compact"
                                                                     type="text"
+                                                                    style={getBubbleComputedStyle(cartColorConfig, "cash").color ? { color: getBubbleComputedStyle(cartColorConfig, "cash").color } : undefined}
                                                                     className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10"
                                                                     value={formatNumber(amountPaid)}
                                                                     autoComplete="off"
@@ -4385,13 +4338,14 @@ export default function Purchase() {
 
                                             {/* Payment Method Toggle */}
                                             {selectedPartner && (
-                                                <div className="w-[155px] pointer-events-auto flex items-center bg-transparent backdrop-blur-md p-1 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 group/payment-toggle relative h-[56px] transition-all duration-300">
+                                                <div style={getBubbleComputedStyle(cartColorConfig, 'payment')} className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-all duration-300">
                                                     <m.div 
                                                         layout
-                                                        className="absolute inset-y-1 bg-gradient-to-tr from-[#2d5016] to-emerald-600 rounded-xl shadow-md shadow-[#2d5016]/20 z-0"
+                                                        className="absolute inset-y-1 rounded-xl shadow-md z-0"
                                                         style={{ 
                                                             width: 'calc(50% - 4px)',
-                                                            left: paymentMethod === 'Cash' ? '4px' : 'calc(50%)'
+                                                            left: paymentMethod === 'Cash' ? '4px' : 'calc(50%)',
+                                                            ...getBubbleBadgeStyle(cartColorConfig, 'payment')
                                                         }}
                                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                                     />
@@ -4401,9 +4355,14 @@ export default function Purchase() {
                                                             setPaymentMethod('Cash');
                                                             setAmountPaid(totalAmount);
                                                         }}
+                                                        style={{
+                                                            color: paymentMethod === 'Cash' 
+                                                                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
+                                                                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
+                                                        }}
                                                         className={cn(
                                                             "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5",
-                                                            paymentMethod === 'Cash' ? "text-white" : "text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400"
+                                                            paymentMethod === 'Cash' ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400"
                                                         )}
                                                     >
                                                         <Coins size={13} className={cn(paymentMethod === 'Cash' ? "opacity-100" : "opacity-40")} />
@@ -4415,9 +4374,14 @@ export default function Purchase() {
                                                             setPaymentMethod('Debt');
                                                             setAmountPaid(0);
                                                         }}
+                                                        style={{
+                                                            color: paymentMethod === 'Debt' 
+                                                                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
+                                                                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
+                                                        }}
                                                         className={cn(
                                                             "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5",
-                                                            paymentMethod === 'Debt' ? "text-white" : "text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400"
+                                                            paymentMethod === 'Debt' ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400"
                                                         )}
                                                     >
                                                         <CreditCard size={13} className={cn(paymentMethod === 'Debt' ? "opacity-100" : "opacity-40")} />
@@ -4428,18 +4392,28 @@ export default function Purchase() {
 
                                             {/* Big Total Bubble */}
                                             <div 
-                                                className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-transparent backdrop-blur-md hover:border-[#8b6f47]/50 dark:hover:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/5 dark:shadow-black/40 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+                                                style={getBubbleComputedStyle(cartColorConfig, 'total')}
+                                                className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
                                             >
                                                 <Wallet className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" />
                                                 <div className="flex items-center gap-1.5 mb-0.5 z-10 relative">
-                                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
+                                                    <div 
+                                                        className="w-2 h-2 rounded-full animate-pulse" 
+                                                        style={{ 
+                                                            backgroundColor: (cartColorConfig?.bubbleBorderColor && cartColorConfig.bubbleBorderColor !== 'default') 
+                                                                ? cartColorConfig.bubbleBorderColor 
+                                                                : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') 
+                                                                    ? cartColorConfig.accentColor 
+                                                                    : '#10b981' 
+                                                        }} 
+                                                    />
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                         Tổng cộng tiền nhập
                                                     </span>
                                                 </div>
-                                                <div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative">
+                                                <div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                     {formatNumber(totalAmount)}
-                                                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5">
+                                                    <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                         đ
                                                     </span>
                                                 </div>

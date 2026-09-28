@@ -43,22 +43,13 @@ export const IconProvider = ({ children }) => {
         window.addEventListener('storage', handleSync);
         window.addEventListener('app_open_icon_picker', handleOpenExternal);
 
-        // Shortcut Alt + I to toggle Icon Customization Mode quickly
-        const handleKeyDown = (e) => {
-            if (e.altKey && (e.key === 'i' || e.key === 'I')) {
-                e.preventDefault();
-                setEditMode(prev => !prev);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-
         return () => {
             window.removeEventListener('app_icon_changed', handleSync);
             window.removeEventListener('storage', handleSync);
             window.removeEventListener('app_open_icon_picker', handleOpenExternal);
-            window.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
+
 
     const updateIcon = useCallback((iconId, iconName) => {
         setStoredCustomIcon(iconId, iconName);

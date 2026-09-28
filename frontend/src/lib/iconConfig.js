@@ -1,5 +1,9 @@
 import * as LucideIcons from 'lucide-react';
 
+if (typeof window !== 'undefined') {
+    window.__LUCIDE_ICONS__ = LucideIcons;
+}
+
 export const POPULAR_ICONS = [
     // Điều hướng & Chức năng chính
     { name: 'Home', label: 'Trang chủ', category: 'Điều hướng' },
@@ -102,20 +106,26 @@ export const getStoredCustomIcons = () => {
     return {};
 };
 
-export const setStoredCustomIcon = (iconId, iconName) => {
+export const setStoredCustomIcon = (iconId, iconData) => {
     try {
         const current = getStoredCustomIcons();
-        if (!iconName) {
+        const baseName = iconId.replace(/^icon\./, '');
+        if (!iconData) {
             delete current[iconId];
+            delete current[baseName];
+            delete current[`icon.${baseName}`];
         } else {
-            current[iconId] = iconName;
+            current[iconId] = iconData;
+            if (!iconId.startsWith('icon.') && !iconId.startsWith('nav.') && !iconId.startsWith('pos.')) {
+                current[`icon.${iconId}`] = iconData;
+            }
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
-        window.dispatchEvent(new CustomEvent('app_icon_changed', { detail: { iconId, iconName } }));
+        window.dispatchEvent(new CustomEvent('app_icon_changed', { detail: { iconId, iconData } }));
         window.dispatchEvent(new Event('storage'));
         try {
             const chan = new BroadcastChannel('pos_data_sync');
-            chan.postMessage({ type: 'APP_ICON_UPDATED', iconId, iconName });
+            chan.postMessage({ type: 'APP_ICON_UPDATED', iconId, iconData });
         } catch (e) {}
         return true;
     } catch (e) {
@@ -124,11 +134,16 @@ export const setStoredCustomIcon = (iconId, iconName) => {
     }
 };
 
+
 export const resetStoredCustomIcons = () => {
     try {
         localStorage.removeItem(STORAGE_KEY);
         window.dispatchEvent(new CustomEvent('app_icon_changed', { detail: { reset: true } }));
         window.dispatchEvent(new Event('storage'));
+        try {
+            const chan = new BroadcastChannel('pos_data_sync');
+            chan.postMessage({ type: 'APP_ICON_RESET' });
+        } catch (e) {}
         return true;
     } catch (e) {
         console.error('Error resetting app_custom_icons:', e);
@@ -138,5 +153,57 @@ export const resetStoredCustomIcons = () => {
 
 export const getLucideIconComponent = (name) => {
     if (!name) return null;
-    return LucideIcons[name] || null;
+    return LucideIcons[name] || (typeof window !== 'undefined' && window.__LUCIDE_ICONS__ ? window.__LUCIDE_ICONS__[name] : null) || null;
 };
+
+// Lazy getter tránh lỗi Circular TDZ (Temporal Dead Zone)
+let cachedAllIcons = null;
+
+export const getAllLucideIcons = () => {
+    if (cachedAllIcons && cachedAllIcons.length > 100) return cachedAllIcons;
+
+    const list = [...POPULAR_ICONS];
+    const seen = new Set(POPULAR_ICONS.map(i => i.name));
+
+    try {
+        const iconsSource = (typeof window !== 'undefined' && window.__LUCIDE_ICONS__) || LucideIcons;
+        if (iconsSource) {
+            Object.keys(iconsSource).forEach(key => {
+                if (
+                    /^[A-Z]/.test(key) &&
+                    key !== 'Icon' &&
+                    key !== 'Lucide' &&
+                    key !== 'LucideIcon' &&
+                    !key.endsWith('Icon')
+                ) {
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        const friendlyLabel = key.replace(/([A-Z])/g, ' $1').trim();
+                        list.push({
+                            name: key,
+                            label: friendlyLabel,
+                            category: 'Kho Icon Khác'
+                        });
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('Lazy loading lucide icons:', e);
+    }
+
+    if (list.length > POPULAR_ICONS.length) {
+        cachedAllIcons = list;
+    }
+    return list;
+};
+
+export const ALL_LUCIDE_ICONS = new Proxy([], {
+    get(target, prop) {
+        const full = getAllLucideIcons();
+        if (prop === 'length') return full.length;
+        if (prop === Symbol.iterator) return full[Symbol.iterator].bind(full);
+        if (typeof full[prop] === 'function') return full[prop].bind(full);
+        return full[prop];
+    }
+});

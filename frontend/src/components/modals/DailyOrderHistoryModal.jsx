@@ -118,7 +118,10 @@ export default function DailyOrderHistoryModal({
         if (!isOpen) return;
         const channel = new BroadcastChannel('pos_data_sync');
         channel.onmessage = (e) => {
-            if (e.data && (e.data.type === 'ORDER_SAVED' || e.data.type === 'PARTNER_UPDATED')) {
+            if (e.data && (e.data.type === 'ORDER_SAVED' || e.data.type === 'ORDER_DELETED' || e.data.type === 'PARTNER_UPDATED')) {
+                if (e.data.type === 'ORDER_DELETED' && e.data.id) {
+                    setOrders(prev => prev.filter(o => o.id !== e.data.id));
+                }
                 fetchDailyOrders();
             }
         };
@@ -550,7 +553,13 @@ export default function DailyOrderHistoryModal({
                                                 {onDeleteOrder && (
                                                     <ActionTooltip text="Hủy đơn hàng">
                                                         <button
-                                                            onClick={() => onDeleteOrder(order)}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await onDeleteOrder(order);
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                }
+                                                            }}
                                                             className="p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all active:scale-95"
                                                         >
                                                             <Trash2 size={15} />

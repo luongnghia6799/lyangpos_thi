@@ -146,47 +146,111 @@ const ContextMenu = () => {
         }
     };
 
-    if (!isVisible) return null;
+    const containerVariants = {
+        hidden: { 
+            opacity: 0, 
+            scale: 0.94, 
+            y: -8,
+            transition: {
+                duration: 0.15,
+                ease: "easeInOut"
+            }
+        },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: {
+                duration: 0.22,
+                ease: [0.16, 1, 0.3, 1],
+                staggerChildren: 0.03,
+                delayChildren: 0.015
+            }
+        },
+        exit: {
+            opacity: 0,
+            scale: 0.95,
+            y: -4,
+            transition: {
+                duration: 0.2,
+                ease: "easeInOut",
+                staggerChildren: 0.02,
+                staggerDirection: -1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { 
+            opacity: 0, 
+            x: -12, 
+            y: -2,
+            filter: "blur(4px)" 
+        },
+        visible: { 
+            opacity: 1, 
+            x: 0, 
+            y: 0,
+            filter: "blur(0px)",
+            transition: { 
+                type: "spring", 
+                stiffness: 450, 
+                damping: 25,
+                mass: 0.6
+            } 
+        },
+        exit: {
+            opacity: 0,
+            x: -10,
+            filter: "blur(3px)",
+            transition: {
+                duration: 0.12,
+                ease: "easeIn"
+            }
+        }
+    };
 
     return createPortal(
         <AnimatePresence>
             {isVisible && (
                 <m.div
                     ref={menuRef}
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    transition={{ duration: 0.1, ease: "easeOut" }}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
                     style={{ 
                         position: 'fixed', 
                         top: position.y, 
                         left: position.x,
                         zIndex: 999999 
                     }}
-                    className="w-60 bg-[#1a300d]/95 backdrop-blur-3xl rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-1.5 overflow-hidden"
+                    className="w-64 bg-white/92 dark:bg-slate-900/92 text-slate-800 dark:text-slate-100 backdrop-blur-2xl rounded-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-2 overflow-hidden select-none"
                 >
                     {/* Navigation Group */}
-                    <div className="flex items-center justify-between px-2 py-2 mb-1 border-b border-white/5">
-                        <MenuIconButton icon={ArrowLeft} onClick={() => handleAction('back')} title="Back" />
-                        <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Forward" />
-                        <MenuIconButton icon={RotateCcw} onClick={() => handleAction('reload')} title="Reload" />
-                        <div className="w-px h-4 bg-white/10 mx-1" />
+                    <m.div variants={itemVariants} className="flex items-center justify-between px-1.5 py-1.5 mb-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+                        <MenuIconButton icon={ArrowLeft} onClick={() => handleAction('back')} title="Quay lại" />
+                        <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Tiến tới" />
+                        <MenuIconButton icon={RotateCcw} onClick={() => handleAction('reload')} title="Tải lại trang" />
+                        <div className="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1" />
                         <MenuIconButton 
                             icon={isDarkMode ? Sun : Moon} 
                             onClick={() => handleAction('theme')} 
-                            title="Toggle Theme" 
-                            className="text-amber-400"
+                            title={isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"} 
+                            className="text-amber-500 dark:text-amber-400 hover:bg-amber-500/15"
                         />
-                    </div>
+                    </m.div>
 
                     <div className="space-y-0.5">
                         <MenuItem 
+                            variants={itemVariants}
                             icon={LayoutDashboard} 
                             label="Tổng quan" 
                             shortcut="Ctrl+Q"
                             onClick={() => handleAction('dashboard')} 
                         />
                         <MenuItem 
+                            variants={itemVariants}
                             icon={ShoppingCart} 
                             label="Bán hàng (POS)" 
                             shortcut="Ctrl+P"
@@ -194,18 +258,20 @@ const ContextMenu = () => {
                             onClick={() => handleAction('pos')} 
                         />
                         <MenuItem 
+                            variants={itemVariants}
                             icon={History} 
                             label="Lịch sử đơn" 
                             onClick={() => handleAction('history')} 
                         />
                     </div>
 
-                    <div className="h-px bg-white/5 my-1.5" />
+                    <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
 
                     <div className="space-y-0.5">
                         {isPOS && (
                             <>
                                 <MenuItem 
+                                    variants={itemVariants}
                                     icon={Save} 
                                     label="Lưu hóa đơn" 
                                     shortcut="F12"
@@ -215,6 +281,7 @@ const ContextMenu = () => {
                                     }} 
                                 />
                                 <MenuItem 
+                                    variants={itemVariants}
                                     icon={PlusCircle} 
                                     label="Tạo đơn mới" 
                                     shortcut="F4"
@@ -226,6 +293,7 @@ const ContextMenu = () => {
                             </>
                         )}
                         <MenuItem 
+                            variants={itemVariants}
                             icon={isFullscreen ? Minimize : Maximize} 
                             label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
                             shortcut="F11" 
@@ -233,9 +301,10 @@ const ContextMenu = () => {
                         />
                     </div>
 
-                    <div className="h-px bg-white/5 my-1.5" />
+                    <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
 
                     <MenuItem 
+                        variants={itemVariants}
                         icon={LogOut} 
                         label="Đăng xuất" 
                         danger
@@ -243,13 +312,13 @@ const ContextMenu = () => {
                     />
 
                     {/* Logo/Branding footer */}
-                    <div className="mt-2 px-3 py-2 bg-white/5 rounded-xl flex items-center justify-between">
-                        <span className="text-[9px] font-black text-white/30 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
-                        <div className="flex gap-1">
-                            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                            <div className="w-1 h-1 rounded-full bg-emerald-500/50" />
+                    <m.div variants={itemVariants} className="mt-1.5 px-3 py-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5">
+                        <span className="text-[9.5px] font-black text-slate-400 dark:text-white/30 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
+                        <div className="flex gap-1.5 items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
                         </div>
-                    </div>
+                    </m.div>
                 </m.div>
             )}
         </AnimatePresence>,
@@ -257,23 +326,30 @@ const ContextMenu = () => {
     );
 };
 
-const MenuItem = ({ icon: Icon, label, shortcut, onClick, active, danger }) => (
+const MenuItem = ({ icon: Icon, label, shortcut, onClick, active, danger, variants }) => (
     <m.button
-        whileHover={{ x: 2 }}
-        whileTap={{ scale: 0.98 }}
+        variants={variants}
+        whileHover={{ x: 4, scale: 1.01 }}
+        whileTap={{ scale: 0.97 }}
         onClick={onClick}
-        className={`
-            w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all
-            ${active ? 'bg-emerald-500/20 text-emerald-400' : 'hover:bg-white/5 text-white/80 hover:text-white'}
-            ${danger ? 'hover:bg-rose-500/10 hover:text-rose-400' : ''}
-        `}
+        className={cn(
+            "w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer",
+            active 
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20" 
+                : danger
+                    ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
+                    : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+        )}
     >
-        <div className="flex items-center gap-3">
-            <Icon size={16} className={cn("shrink-0", active ? "text-emerald-400" : (danger ? "text-rose-400" : "text-white/40"))} />
-            <span className="text-xs font-bold tracking-wide">{label}</span>
+        <div className="flex items-center gap-2.5">
+            <Icon size={16} className={cn(
+                "shrink-0 transition-transform duration-200", 
+                active ? "text-emerald-600 dark:text-emerald-400 scale-105" : (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400")
+            )} />
+            <span className="text-xs font-bold tracking-tight">{label}</span>
         </div>
         {shortcut && (
-            <span className="text-[9px] font-black text-white/20 uppercase tracking-tighter bg-white/5 px-1.5 py-0.5 rounded-md group-hover:text-white/40">
+            <span className="text-[9px] font-black text-slate-400 dark:text-white/40 uppercase tracking-tight bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-md">
                 {shortcut}
             </span>
         )}
@@ -287,7 +363,7 @@ const MenuIconButton = ({ icon: Icon, onClick, title, className }) => (
         onClick={onClick}
         title={title}
         className={cn(
-            "p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-all",
+            "p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer",
             className
         )}
     >

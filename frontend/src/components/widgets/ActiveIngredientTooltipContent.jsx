@@ -1,5 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { motion as m, AnimatePresence } from 'framer-motion';
 import {
     POPULAR_ACTIVE_INGREDIENTS,
     CATEGORY_LABELS,
@@ -483,7 +484,6 @@ export function ActiveIngredientTooltipBody({ activeIngredient }) {
  */
 export default function ActiveIngredientTooltip({ activeIngredient, children, className = '' }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
     const [coords, setCoords] = useState({ top: 0, left: 0, placement: 'bottom' });
     const targetRef = useRef(null);
     const closeTimeoutRef = useRef(null);
@@ -513,20 +513,13 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
         if (!targetRef.current || !activeIngredient) return;
         clearTimeout(closeTimeoutRef.current);
         updatePosition();
-
-        setIsMounted(true);
-        requestAnimationFrame(() => {
-            setIsOpen(true);
-        });
+        setIsOpen(true);
     };
 
     const handleMouseLeave = () => {
         closeTimeoutRef.current = setTimeout(() => {
             setIsOpen(false);
-            setTimeout(() => {
-                setIsMounted(false);
-            }, 150);
-        }, 100);
+        }, 120);
     };
 
     const handleTooltipMouseEnter = () => {
@@ -549,6 +542,37 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
         return <>{children}</>;
     }
 
+    const tooltipVariants = {
+        hidden: {
+            opacity: 0,
+            scale: 0.92,
+            y: coords.placement === 'top' ? 6 : -6,
+            filter: "blur(4px)"
+        },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            filter: "blur(0px)",
+            transition: {
+                type: "spring",
+                stiffness: 400,
+                damping: 24,
+                mass: 0.6
+            }
+        },
+        exit: {
+            opacity: 0,
+            scale: 0.94,
+            y: coords.placement === 'top' ? 4 : -4,
+            filter: "blur(2px)",
+            transition: {
+                duration: 0.12,
+                ease: "easeIn"
+            }
+        }
+    };
+
     return (
         <>
             <div
@@ -560,32 +584,35 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
                 {children}
             </div>
 
-            {isMounted && typeof document !== 'undefined' && createPortal(
-                <div
-                    onMouseEnter={handleTooltipMouseEnter}
-                    onMouseLeave={handleTooltipMouseLeave}
-                    style={{
-                        position: 'fixed',
-                        top: coords.placement === 'top' ? undefined : `${coords.top}px`,
-                        bottom: coords.placement === 'top' ? `${window.innerHeight - coords.top}px` : undefined,
-                        left: `${coords.left}px`,
-                        zIndex: 999999,
-                        willChange: 'transform, opacity',
-                        transform: isOpen 
-                            ? 'translate3d(0, 0, 0) scale(1)' 
-                            : (coords.placement === 'top' ? 'translate3d(0, 4px, 0) scale(0.96)' : 'translate3d(0, -4px, 0) scale(0.96)'),
-                        opacity: isOpen ? 1 : 0,
-                        transition: 'opacity 140ms ease-out, transform 140ms ease-out'
-                    }}
-                    className="bg-[#faf8f3] dark:bg-[#151c14] border border-[#2d5016]/20 dark:border-emerald-500/25 rounded-2xl p-2.5 shadow-[0_10px_25px_-5px_rgba(45,80,22,0.15)] dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.7)] pointer-events-auto"
-                >
-                    <ActiveIngredientTooltipBody activeIngredient={activeIngredient} />
-                    {coords.placement === 'top' ? (
-                        <div className="absolute -bottom-1.5 left-5 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#151c14] border-r border-b border-[#2d5016]/20 dark:border-emerald-500/25 pointer-events-none" />
-                    ) : (
-                        <div className="absolute -top-1.5 left-5 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#151c14] border-l border-t border-[#2d5016]/20 dark:border-emerald-500/25 pointer-events-none" />
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {isOpen && (
+                        <m.div
+                            key="active-ingredient-tooltip-popover"
+                            variants={tooltipVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            onMouseEnter={handleTooltipMouseEnter}
+                            onMouseLeave={handleTooltipMouseLeave}
+                            style={{
+                                position: 'fixed',
+                                top: coords.placement === 'top' ? undefined : `${coords.top}px`,
+                                bottom: coords.placement === 'top' ? `${window.innerHeight - coords.top}px` : undefined,
+                                left: `${coords.left}px`,
+                                zIndex: 999999
+                            }}
+                            className="bg-[#faf8f3]/95 dark:bg-[#151c14]/95 backdrop-blur-xl border border-[#2d5016]/20 dark:border-emerald-500/25 rounded-2xl p-2.5 shadow-[0_12px_30px_-5px_rgba(45,80,22,0.2)] dark:shadow-[0_12px_30px_-5px_rgba(0,0,0,0.8)] pointer-events-auto"
+                        >
+                            <ActiveIngredientTooltipBody activeIngredient={activeIngredient} />
+                            {coords.placement === 'top' ? (
+                                <div className="absolute -bottom-1.5 left-5 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#151c14] border-r border-b border-[#2d5016]/20 dark:border-emerald-500/25 pointer-events-none" />
+                            ) : (
+                                <div className="absolute -top-1.5 left-5 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#151c14] border-l border-t border-[#2d5016]/20 dark:border-emerald-500/25 pointer-events-none" />
+                            )}
+                        </m.div>
                     )}
-                </div>,
+                </AnimatePresence>,
                 document.body
             )}
         </>

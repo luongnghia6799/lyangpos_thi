@@ -1452,12 +1452,12 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                 return (
                     <span 
                         key={tIdx} 
-                        className="inline-flex items-center gap-1 mx-1 my-0.5 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-2xs align-middle"
+                        className="inline-flex items-center gap-1.5 mx-1 my-0.5 px-2.5 py-0.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-2xs align-middle"
                     >
-                        <strong className="font-black text-emerald-900 dark:text-emerald-200 tracking-tight">
+                        <strong className="font-black text-emerald-950 dark:text-emerald-200 tracking-tight">
                             {token.drugName}
                         </strong>
-                        <span className="text-[0.88em] font-semibold italic text-emerald-700 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded">
+                        <span className="text-[0.88em] font-semibold italic text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded-lg">
                             ({token.activeName})
                         </span>
                     </span>
@@ -1477,7 +1477,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 return (
                                     <span 
                                         key={pIdx} 
-                                        className="font-black text-amber-800 dark:text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md mx-0.5"
+                                        className="font-black text-amber-900 dark:text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-lg mx-0.5 shadow-2xs"
                                     >
                                         {boldContent}
                                     </span>
@@ -1536,7 +1536,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                 const lower = headerText.toLowerCase();
 
                 let IconComp = Leaf;
-                let cardStyle = "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/30 text-emerald-900 dark:text-emerald-200";
+                let cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-900 dark:text-emerald-200";
 
                 if (lower.includes('chẩn đoán') || lower.includes('đặc tính') || lower.includes('nguyên nhân')) {
                     IconComp = Stethoscope;
@@ -1559,16 +1559,16 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     <div 
                         key={lineIdx}
                         className={cn(
-                            "mt-3.5 mb-2 px-3 py-1.5 rounded-xl border flex items-center gap-2 shadow-2xs",
+                            "mt-3.5 mb-2 px-3 py-1.5 rounded-2xl border flex items-center gap-2.5 shadow-2xs backdrop-blur-xs",
                             cardStyle
                         )}
                     >
-                        <div className="p-1 rounded-lg bg-white/70 dark:bg-black/30 shadow-2xs shrink-0">
+                        <div className="p-1 rounded-xl bg-white/80 dark:bg-black/40 shadow-xs shrink-0">
                             <IconComp size={Math.max(14, Math.round(fontSize * 1.05))} />
                         </div>
                         <h4 
                             style={{ fontSize: `${Math.round(fontSize * 1.08)}px` }}
-                            className="font-black tracking-tight"
+                            className="font-black tracking-tight drop-shadow-2xs"
                         >
                             {headerText}
                         </h4>
@@ -1581,7 +1581,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     <h3 
                         key={lineIdx} 
                         style={{ fontSize: `${Math.round(fontSize * 1.2)}px` }}
-                        className="font-black mt-3 mb-1 text-emerald-800 dark:text-emerald-400 flex items-center gap-1.5"
+                        className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5"
                     >
                         <Leaf size={Math.max(14, Math.round(fontSize * 1.1))} />
                         {line.replace('## ', '')}
@@ -1594,7 +1594,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     <h2 
                         key={lineIdx} 
                         style={{ fontSize: `${Math.round(fontSize * 1.35)}px` }}
-                        className="font-black mt-3 mb-1 text-emerald-800 dark:text-emerald-400"
+                        className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400"
                     >
                         {line.replace('# ', '')}
                     </h2>
@@ -1608,9 +1608,12 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     <div 
                         key={lineIdx} 
                         style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                        className="my-1 py-1 px-2.5 rounded-xl bg-stone-50/70 dark:bg-stone-900/40 border border-stone-200/50 dark:border-white/5 flex items-start gap-2.5"
+                        className="my-1.5 py-1 px-3 rounded-2xl bg-stone-50/80 dark:bg-stone-900/40 border border-stone-200/60 dark:border-white/5 flex items-start gap-2.5 shadow-2xs"
                     >
-                        <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-black text-[11px] flex items-center justify-center shrink-0 select-none shadow-2xs mt-0.5">
+                        <span 
+                            style={{ background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #4a7c59 100%))' }}
+                            className="w-5 h-5 rounded-full text-white font-black text-[10.5px] flex items-center justify-center shrink-0 select-none shadow-xs mt-0.5 border border-white/20"
+                        >
                             {numMatch[1]}
                         </span>
                         <div className="flex-1 text-stone-800 dark:text-stone-200">
@@ -1627,9 +1630,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     <div 
                         key={lineIdx} 
                         style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                        className="my-1 py-1.5 px-3 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/25 flex items-start gap-2 text-stone-800 dark:text-stone-200"
+                        className="my-1.5 py-1.5 px-3 rounded-2xl bg-amber-500/15 dark:bg-amber-950/40 border border-amber-500/30 flex items-start gap-2.5 text-stone-800 dark:text-stone-200 shadow-2xs"
                     >
-                        <span className="text-amber-600 dark:text-amber-400 font-black shrink-0 select-none mt-0.5">
+                        <span className="text-amber-600 dark:text-amber-400 font-black shrink-0 select-none mt-0.5 text-[14px]">
                             ⚡
                         </span>
                         <div className="flex-1 font-medium">
@@ -1652,7 +1655,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                             isSubItem ? "ml-5" : "ml-1"
                         )}
                     >
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0 select-none mt-1">
+                        <span className="text-[#2d5016] dark:text-emerald-400 font-bold shrink-0 select-none mt-1">
                             {isSubItem ? '›' : '•'}
                         </span>
                         <div className="flex-1">
@@ -1687,7 +1690,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     initial={{
                         opacity: 0,
                         scale: 0.94,
-                        y: 8
+                        y: 12
                     }}
                     animate={{
                         opacity: 1,
@@ -1696,12 +1699,12 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     }}
                     exit={{
                         opacity: 0,
-                        scale: 0.94,
-                        y: 6
+                        scale: 0.95,
+                        y: 10
                     }}
                     transition={{
-                        duration: 0.14,
-                        ease: 'easeOut'
+                        duration: 0.2,
+                        ease: [0.16, 1, 0.3, 1]
                     }}
                     style={{
                         position: 'fixed',
@@ -1717,13 +1720,13 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onPaste={handlePaste}
-                    className="bg-white dark:bg-[#07130e] text-stone-900 dark:text-stone-100 border border-emerald-800/20 dark:border-emerald-500/25 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/10 relative"
+                    className="bg-[#fcfbf9] dark:bg-[#091811] text-[#2d5016] dark:text-stone-100 border border-[#8b6f47]/20 dark:border-emerald-500/30 rounded-3xl shadow-xl flex flex-col overflow-hidden relative will-change-transform"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Drag & Drop Visual Overlay */}
                     {isDraggingImage && (
                         <div className="absolute inset-0 z-[200] bg-emerald-950/90 backdrop-blur-md border-3 border-dashed border-emerald-400 rounded-3xl flex flex-col items-center justify-center p-6 text-white text-center pointer-events-none transition-all">
-                            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300 mb-3 shadow-lg shadow-emerald-500/20 animate-bounce">
+                            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-300 mb-3 shadow-lg shadow-emerald-500/20">
                                 <ImageIcon size={32} />
                             </div>
                             <h4 className="text-base font-black uppercase tracking-wider text-emerald-300">Thả ảnh cây trồng vào đây</h4>
@@ -1735,35 +1738,37 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                         style={{ 
                             background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #205c26 50%, #2b7a33 100%))'
                         }}
-                        className="px-4 py-2.5 flex items-center justify-between border-b border-white/10 text-white shadow-sm shrink-0 select-none relative overflow-hidden"
+                        className="px-4 py-3 flex items-center justify-between border-b border-white/15 text-white shadow-md shrink-0 select-none relative overflow-hidden"
                     >
-                        {/* Shimmer line */}
-                        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+                        {/* Shimmer line & Glow */}
+                        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+                        
 
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center border border-white/25 shadow-xs relative">
-                                <currentModeConfig.icon size={17} className="text-white" />
+                        <div className="flex items-center gap-2.5 relative z-10">
+                            <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-md relative group">
+                                <currentModeConfig.icon size={18} className="text-white drop-shadow-xs transition-transform group-hover:scale-110" />
                                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#163d18] shadow-xs" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-black text-sm tracking-wide text-white drop-shadow-xs">
+                                    <h3 className="font-black text-sm tracking-wider text-white drop-shadow-sm flex items-center gap-1.5">
                                         LYANGAI
+                                        <Sparkles size={13} className="text-amber-300 opacity-90" />
                                     </h3>
-                                    <span className="bg-white/20 text-white text-[9.5px] font-black px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 shadow-2xs">
+                                    <span className="bg-white/20 backdrop-blur-md text-white text-[9.5px] font-black px-2.5 py-0.5 rounded-full border border-white/25 flex items-center gap-1 shadow-xs tracking-wide">
                                         {currentModeConfig.shortLabel}
                                     </span>
                                 </div>
-                                <p className="text-[10px] text-white/80 font-medium leading-none mt-0.5">
+                                <p className="text-[10.5px] text-white/85 font-medium leading-none mt-0.5 drop-shadow-2xs">
                                     {currentModeConfig.subTitle}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 relative z-10">
                             {/* Nút chỉnh cỡ chữ (A- và A+) */}
                             <div 
-                                className="flex items-center bg-black/25 rounded-full p-0.5 text-white border border-white/15 shadow-inner gap-0.5 overflow-hidden"
+                                className="flex items-center bg-black/25 backdrop-blur-md rounded-full p-0.5 text-white border border-white/20 shadow-inner gap-0.5 overflow-hidden"
                                 title="Chỉnh kích thước chữ trò chuyện (A- / A+)"
                             >
                                 <button
@@ -1771,7 +1776,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     onClick={() => handleFontSizeChange(-1)}
                                     disabled={fontSize <= 11}
                                     title="Giảm cỡ chữ (A-)"
-                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/20 active:scale-95 disabled:opacity-30 rounded-l-full text-[11px] font-black transition-all"
+                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/25 active:scale-95 disabled:opacity-30 rounded-l-full text-[10px] font-black transition-all cursor-pointer"
                                 >
                                     A-
                                 </button>
@@ -1781,41 +1786,33 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     onClick={() => handleFontSizeChange(1)}
                                     disabled={fontSize >= 22}
                                     title="Tăng cỡ chữ (A+)"
-                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/20 active:scale-95 disabled:opacity-30 rounded-r-full text-[11px] font-black transition-all"
+                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/25 active:scale-95 disabled:opacity-30 rounded-r-full text-[10px] font-black transition-all cursor-pointer"
                                 >
                                     A+
                                 </button>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={() => setIsExpanded(!isExpanded)}
-                                title={isExpanded ? "Thu nhỏ" : "Phóng to"}
-                                className="p-1.5 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
-                            >
-                                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                            </button>
                             <button 
                                 type="button"
                                 onClick={handleClearChat}
                                 title="Xóa lịch sử chat"
-                                className="p-1.5 hover:bg-white/20 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
+                                className="w-7 h-7 flex items-center justify-center bg-white/15 hover:bg-white/25 active:scale-90 text-white/90 hover:text-white rounded-xl border border-white/15 transition-all cursor-pointer shadow-xs"
                             >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                             </button>
                             <button 
                                 type="button"
                                 onClick={onClose}
                                 title="Đóng (ESC)"
-                                className="p-1.5 hover:bg-rose-500 active:scale-95 text-white/90 hover:text-white rounded-lg transition-all"
+                                className="w-7 h-7 flex items-center justify-center bg-rose-500/30 hover:bg-rose-500 text-white rounded-xl border border-white/20 transition-all active:scale-90 cursor-pointer shadow-xs ml-0.5"
                             >
-                                <X size={15} />
+                                <X size={14} />
                             </button>
                         </div>
                     </div>
 
                     {/* 3-Mode Segmented Tab Switcher */}
-                    <div className="px-2.5 py-1.5 bg-[#edf3ea] dark:bg-[#0a1811] border-b border-stone-200/80 dark:border-white/10 flex items-center gap-1.5 shrink-0 select-none">
+                    <div className="px-3 py-2 bg-stone-100/90 dark:bg-[#07130e]/95 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center gap-2 shrink-0 select-none backdrop-blur-md">
                         {MODES.map((m) => {
                             const IconComponent = m.icon;
                             const isActive = activeMode === m.id;
@@ -1825,14 +1822,14 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     type="button"
                                     onClick={() => handleSwitchMode(m.id)}
                                     title={m.desc}
-                                    className={`flex-1 py-1 px-1.5 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all select-none ${
+                                    className={`flex-1 py-1.5 px-2.5 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none active:scale-98 ${
                                         isActive 
-                                            ? `${m.activeBg} text-white shadow-xs scale-[1.01]` 
-                                            : 'bg-white dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/10 hover:text-stone-900 dark:hover:text-white border border-stone-200/70 dark:border-white/5'
+                                            ? `${m.activeBg} text-white shadow-md shadow-emerald-900/20 ring-1 ring-white/30 scale-[1.02]` 
+                                            : 'bg-white/80 dark:bg-white/5 text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-white/10 hover:text-[#2d5016] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/5 shadow-2xs'
                                     }`}
                                 >
                                     <IconComponent size={13} className={isActive ? 'text-white' : 'opacity-70'} />
-                                    <span className="truncate">{m.label}</span>
+                                    <span className="truncate tracking-tight">{m.label}</span>
                                 </button>
                             );
                         })}
@@ -1841,7 +1838,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     {/* Chat Messages Feed */}
                     <div 
                         ref={chatFeedRef}
-                        className="flex-1 overflow-y-auto p-3.5 space-y-3.5 custom-scrollbar bg-[#f8faf7] dark:bg-[#07120d] scroll-smooth"
+                        className="flex-1 overflow-y-auto p-3.5 space-y-3 custom-scrollbar bg-[#f8f6f0] dark:bg-[#06120c] select-text"
                     >
                         {messages.map((msg, idx) => {
                             const isLatestModel = idx === messages.length - 1 && msg.role === 'model';
@@ -1849,26 +1846,26 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 <div 
                                     key={msg.id || idx}
                                     ref={isLatestModel ? latestModelMsgRef : null}
-                                    className={`scroll-mt-3 ${msg.role === 'user' ? 'flex justify-end' : 'flex gap-2.5 items-start justify-start'}`}
+                                    className={`scroll-mt-3 ${msg.role === 'user' ? 'flex justify-end' : 'flex gap-3 items-start justify-start'}`}
                                 >
                                     {msg.role === 'model' && (
                                         <div 
                                             style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
-                                            className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5"
+                                            className="w-8 h-8 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/25 mt-0.5 border border-white/25 select-none ring-2 ring-emerald-500/10"
                                         >
-                                            <BrainCircuit size={14} />
+                                            <BrainCircuit size={15} />
                                         </div>
                                     )}
 
                                     <div 
                                         style={msg.role === 'user' ? {
-                                            background: 'var(--button-gradient, linear-gradient(135deg, #1e5225 0%, #2e7535 100%))',
+                                            background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))',
                                             color: '#ffffff'
                                         } : undefined}
-                                        className={`relative group transition-colors ${
+                                        className={`relative group transition-all select-text ${
                                             msg.role === 'user' 
-                                                ? 'max-w-[85%] rounded-2xl rounded-tr-xs p-3 text-white shadow-sm' 
-                                                : 'max-w-[88%] bg-white dark:bg-[#0e1d17] border border-stone-200/80 dark:border-white/10 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
+                                                ? 'max-w-[85%] rounded-2xl rounded-tr-xs p-3.5 text-white shadow-xs border border-white/20' 
+                                                : 'max-w-[88%] bg-white dark:bg-[#0c1c15] border border-[#8b6f47]/15 dark:border-emerald-500/20 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
                                         }`}
                                     >
                                         {/* Nút Copy */}
@@ -1877,7 +1874,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                 type="button"
                                                 onClick={() => handleCopy(msg.text, idx)}
                                                 title="Sao chép câu trả lời"
-                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-stone-100/90 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-2xs select-none active:scale-90"
                                             >
                                                 {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
                                             </button>
@@ -1885,29 +1882,29 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
 
                                         {/* User Images */}
                                         {msg.images && msg.images.length > 0 && (
-                                            <div className="flex gap-1.5 mb-2 flex-wrap">
+                                            <div className="flex gap-2 mb-3 flex-wrap select-none">
                                                 {msg.images.map((img, imgIdx) => (
                                                     <img 
                                                         key={imgIdx} 
                                                         src={img} 
                                                         alt="Uploaded crop/leaf" 
-                                                        className="w-16 h-16 object-cover rounded-xl border border-white/20 shadow-xs"
+                                                        className="w-16 h-16 object-cover rounded-xl border-2 border-white/40 dark:border-white/20 shadow-sm"
                                                     />
                                                 ))}
                                             </div>
                                         )}
 
                                         {/* Content */}
-                                        <div className="space-y-0.5">
+                                        <div className="space-y-0.5 select-text">
                                             {msg.role === 'user' ? (
                                                 <p 
                                                     style={{ fontSize: `${fontSize}px`, lineHeight: 1.55 }}
-                                                    className="font-bold whitespace-pre-wrap leading-relaxed"
+                                                    className="font-bold whitespace-pre-wrap leading-relaxed drop-shadow-2xs select-text cursor-text"
                                                 >
                                                     {msg.text}
                                                 </p>
                                             ) : (
-                                                <div>{renderFormattedText(msg.text)}</div>
+                                                <div className="select-text cursor-text">{renderFormattedText(msg.text)}</div>
                                             )}
                                         </div>
 
@@ -1926,22 +1923,22 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                             const inStockCount = displayedProds.filter(p => (p.stock || 0) > 0).length;
 
                                             return (
-                                                <div className="mt-3.5 pt-3 border-t border-stone-200/80 dark:border-white/10 space-y-2.5">
+                                                <div className="mt-3.5 pt-3.5 border-t border-stone-200/80 dark:border-white/10 space-y-2.5 select-none">
                                                     {/* THANH ĐIỀU HƯỚNG TABS: ĐẶC TRỊ CHÍNH vs PHỐI HỢP TĂNG LỰC */}
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1.5 border-b border-emerald-600/15">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#8b6f47]/20 dark:border-white/10">
                                                         <div className="flex items-center gap-1.5 flex-wrap">
                                                             {targetProds.length > 0 && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'target' }))}
                                                                     className={cn(
-                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer",
+                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
                                                                         activeTab === 'target'
-                                                                            ? "bg-amber-500 text-stone-950 shadow-xs ring-1 ring-amber-600/40"
+                                                                            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 shadow-sm shadow-amber-500/20 ring-1 ring-amber-400"
                                                                             : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
                                                                     )}
                                                                 >
-                                                                    <span>⚡ Thuốc đặc trị chính</span>
+                                                                    <span>⚡ Thuốc đặc trị</span>
                                                                     <span className={cn(
                                                                         "px-1.5 py-0.2 rounded-full text-[9px] font-black",
                                                                         activeTab === 'target' ? "bg-black/20 text-stone-950" : "bg-black/10 dark:bg-white/10"
@@ -1955,9 +1952,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                                     type="button"
                                                                     onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'synergy' }))}
                                                                     className={cn(
-                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer",
+                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
                                                                         activeTab === 'synergy'
-                                                                            ? "bg-emerald-700 text-white shadow-xs ring-1 ring-emerald-800"
+                                                                            ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm shadow-emerald-700/20 ring-1 ring-emerald-400/40"
                                                                             : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
                                                                     )}
                                                                 >
@@ -1974,7 +1971,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                                 type="button"
                                                                 onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'all' }))}
                                                                 className={cn(
-                                                                    "px-2 py-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer",
+                                                                    "px-2 py-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95",
                                                                     activeTab === 'all'
                                                                         ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900 shadow-xs"
                                                                         : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
@@ -1988,7 +1985,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                             type="button"
                                                             disabled={inStockCount === 0}
                                                             onClick={() => handleAddAllToCart(displayedProds)}
-                                                            className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white text-[10px] font-black flex items-center gap-1 shadow-2xs transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                                                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#3e6d23] hover:brightness-110 active:scale-95 text-white text-[10px] font-black flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer disabled:opacity-40"
                                                             title={`Thêm ${inStockCount} thuốc còn hàng trong tab này vào đơn hàng POS`}
                                                         >
                                                             <ShoppingCart size={11} />
@@ -2007,24 +2004,24 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                                 <div 
                                                                     key={prod.id}
                                                                     className={cn(
-                                                                        "p-3 rounded-xl border flex flex-col justify-between gap-2 shadow-2xs transition-all",
+                                                                        "p-3 rounded-2xl border flex flex-col justify-between gap-2 shadow-2xs transition-all select-none",
                                                                         isTarget
-                                                                            ? "border-amber-500/30 hover:border-amber-500/50 bg-amber-50/20 dark:bg-[#1a2216]"
-                                                                            : "border-emerald-600/15 hover:border-emerald-600/35 bg-emerald-50/40 dark:bg-[#14281f]"
+                                                                            ? "border-amber-500/35 hover:border-amber-500/60 bg-amber-500/5 dark:bg-[#1a2216]/90"
+                                                                            : "border-emerald-600/25 hover:border-emerald-600/50 bg-emerald-500/5 dark:bg-[#14281f]/90"
                                                                     )}
                                                                 >
                                                                     <div>
                                                                         <div className="flex items-start justify-between gap-2">
-                                                                            <div className="min-w-0 flex-1">
+                                                                            <div className="min-w-0 flex-1 select-text">
                                                                                 <h5 
                                                                                     style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
-                                                                                    className="font-black text-stone-900 dark:text-white leading-snug"
+                                                                                    className="font-black text-stone-900 dark:text-white leading-snug select-text cursor-text"
                                                                                 >
                                                                                     {prod.name}
                                                                                 </h5>
                                                                                 {prod.tier && (
                                                                                     <div className="mt-1">
-                                                                                        <span className={`inline-flex items-center gap-1 text-[9.5px] font-black px-2 py-0.5 rounded-md border ${
+                                                                                        <span className={`inline-flex items-center gap-1 text-[9.5px] font-black px-2 py-0.5 rounded-lg border ${
                                                                                             isTarget
                                                                                                 ? 'bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-500/40'
                                                                                                 : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-200 border-emerald-500/30'
@@ -2035,10 +2032,10 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                                                 )}
                                                                             </div>
                                                                             <span 
-                                                                                className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 border ${
+                                                                                className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 border ${
                                                                                     inStock 
-                                                                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40' 
-                                                                                        : 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40'
+                                                                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300/60 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40' 
+                                                                                        : 'bg-rose-100 text-rose-700 border-rose-300/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40'
                                                                                 }`}
                                                                             >
                                                                                 {inStock ? `Còn ${prod.stock} ${prod.unit || ''}` : 'Hết hàng'}
@@ -2047,41 +2044,44 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                                         {prod.active_ingredient && (
                                                                             <p 
                                                                                 style={{ fontSize: `${Math.max(11, fontSize - 1.5)}px` }}
-                                                                                className="font-bold italic mt-0.5 text-emerald-700 dark:text-emerald-400 line-clamp-1 flex items-center gap-1.5" 
+                                                                                className="font-bold italic mt-1 text-emerald-800 dark:text-emerald-400 line-clamp-1 flex items-center gap-1.5 select-text cursor-text" 
                                                                                 title={prod.active_ingredient}
                                                                             >
-                                                                                <FlaskConical size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                                                                <span>{prod.active_ingredient}</span>
+                                                                                <FlaskConical size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0 select-none" />
+                                                                                <span className="select-text">{prod.active_ingredient}</span>
                                                                             </p>
                                                                         )}
                                                                         {prod.dosage && (
                                                                             <div 
                                                                                 style={{ fontSize: `${Math.max(10.5, fontSize - 1.5)}px` }}
-                                                                                className="mt-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-200 border border-sky-200/70 dark:border-sky-800/40 font-medium flex items-start gap-1.5"
+                                                                                className="mt-1.5 px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-200 border border-sky-200/70 dark:border-sky-800/40 font-medium flex items-start gap-1.5 select-text cursor-text"
                                                                             >
-                                                                                <Droplets size={13} className="text-sky-500 shrink-0 mt-0.5" />
-                                                                                <span className="line-clamp-2">{prod.dosage}</span>
+                                                                                <Droplets size={13} className="text-sky-500 shrink-0 mt-0.5 select-none" />
+                                                                                <span className="line-clamp-2 select-text">{prod.dosage}</span>
                                                                             </div>
                                                                         )}
                                                                     </div>
 
-                                                                    <div className="flex items-center justify-between pt-1.5 border-t border-stone-200/60 dark:border-white/5">
+                                                                    <div className="flex items-center justify-between pt-2 border-t border-stone-200/60 dark:border-white/5">
                                                                         <div 
                                                                             style={{ fontSize: `${Math.max(12, fontSize)}px` }}
-                                                                            className="font-black text-stone-900 dark:text-white"
+                                                                            className="font-black text-[#2d5016] dark:text-emerald-400 select-text cursor-text"
                                                                         >
                                                                             {Number(prod.sale_price || 0).toLocaleString('vi-VN')} đ
-                                                                            {prod.unit && <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400">/{prod.unit}</span>}
+                                                                            {prod.unit && <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400 select-none">/{prod.unit}</span>}
                                                                         </div>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleAddToCartClick(prod)}
                                                                             disabled={!inStock}
-                                                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all ${
+                                                                            style={{
+                                                                                background: inStock && !isAdded ? 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))' : undefined
+                                                                            }}
+                                                                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all select-none cursor-pointer ${
                                                                                 isAdded
                                                                                     ? 'bg-emerald-600 text-white'
                                                                                     : inStock
-                                                                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white cursor-pointer'
+                                                                                        ? 'hover:brightness-110 text-white'
                                                                                         : 'bg-stone-200 dark:bg-white/10 text-stone-400 cursor-not-allowed'
                                                                             }`}
                                                                         >
@@ -2105,18 +2105,18 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                         })}
 
                         {isLoading && (
-                            <div className="flex gap-2.5 justify-start items-center">
+                            <div className="flex gap-3 justify-start items-center select-none">
                                 <div 
                                     style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
-                                    className="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 shadow-xs"
+                                    className="w-8 h-8 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/25 mt-0.5 border border-white/25 select-none ring-2 ring-emerald-500/10"
                                 >
-                                    <BrainCircuit size={14} />
+                                    <BrainCircuit size={15} />
                                 </div>
-                                <div className="bg-white dark:bg-[#0e1d17] border border-emerald-600/20 dark:border-white/10 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-xs flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <div className="bg-white/95 dark:bg-[#0e1d17] border border-[#8b6f47]/20 dark:border-white/10 rounded-2xl rounded-tl-xs px-4 py-3 shadow-sm flex items-center gap-2.5 backdrop-blur-md">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
                                     <p 
                                         style={{ fontSize: `${Math.max(11.5, fontSize - 1)}px` }}
-                                        className="font-bold text-emerald-800 dark:text-emerald-300"
+                                        className="font-bold text-[#2d5016] dark:text-emerald-300"
                                     >
                                         {currentModeConfig.loadingText}
                                     </p>
@@ -2129,16 +2129,16 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
 
                     {/* Preview Selected Images */}
                     {selectedImages.length > 0 && (
-                        <div className="px-3.5 py-2 border-t border-stone-200 dark:border-white/10 bg-emerald-50/50 dark:bg-[#091811] flex items-center justify-between gap-2 shrink-0">
+                        <div className="px-3.5 py-2 border-t border-[#8b6f47]/15 dark:border-white/10 bg-emerald-50/70 dark:bg-[#091811] flex items-center justify-between gap-2 shrink-0 backdrop-blur-md">
                             <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5">
                                 <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 whitespace-nowrap flex items-center gap-1">
                                     <span>📸 Ảnh khám bệnh</span>
-                                    <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/70 dark:bg-emerald-800/60 rounded-full font-black">
+                                    <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/80 dark:bg-emerald-800/60 rounded-full font-black">
                                         {selectedImages.length}/4
                                     </span>
                                 </span>
                                 {selectedImages.map((img, idx) => (
-                                    <div key={idx} className="relative group w-11 h-11 rounded-xl overflow-hidden border-2 border-emerald-500/50 shadow-xs shrink-0 bg-black/5">
+                                    <div key={idx} className="relative group w-12 h-12 rounded-xl overflow-hidden border-2 border-emerald-500/60 shadow-xs shrink-0 bg-black/5">
                                         <img src={img} alt="Preview" className="w-full h-full object-cover" />
                                         <button 
                                             type="button"
@@ -2151,7 +2151,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     </div>
                                 ))}
                             </div>
-                            <span className="text-[9.5px] font-bold text-emerald-700/80 dark:text-emerald-400/80 whitespace-nowrap shrink-0 hidden sm:inline-block">
+                            <span className="text-[9.5px] font-bold text-emerald-700/90 dark:text-emerald-400/90 whitespace-nowrap shrink-0 hidden sm:inline-block">
                                 Nhấn Gửi để chẩn đoán ngay
                             </span>
                         </div>
@@ -2159,9 +2159,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
 
                     {/* Quick Suggestion Chips */}
                     {currentModeConfig.suggestions && currentModeConfig.suggestions.length > 0 && (
-                        <div className="px-3 py-1.5 bg-[#f5f8f4] dark:bg-[#06110c] border-t border-stone-200/60 dark:border-white/5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0 select-none">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500 shrink-0">
-                                Gợi ý:
+                        <div className="px-3 py-2 bg-stone-50/90 dark:bg-[#06110c]/90 border-t border-[#8b6f47]/15 dark:border-white/5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0 select-none backdrop-blur-sm">
+                            <span className="text-[9.5px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500 shrink-0 flex items-center gap-1">
+                                <Sparkles size={11} className="text-amber-500" /> Gợi ý:
                             </span>
                             {currentModeConfig.suggestions.map((sug, sIdx) => (
                                 <button
@@ -2170,7 +2170,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     onClick={() => handleSend(sug.query)}
                                     disabled={isLoading}
                                     title={sug.query}
-                                    className="shrink-0 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-white dark:bg-white/10 text-stone-700 dark:text-stone-200 hover:text-emerald-700 dark:hover:text-emerald-300 border border-stone-200/90 dark:border-white/10 hover:border-emerald-500 dark:hover:border-emerald-400 shadow-2xs active:scale-95 transition-all select-none"
+                                    className="shrink-0 px-3 py-1 rounded-full text-[10.5px] font-bold bg-white/95 dark:bg-white/10 text-stone-700 dark:text-stone-200 hover:text-[#2d5016] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/10 hover:border-emerald-500 dark:hover:border-emerald-400 shadow-2xs hover:shadow-xs active:scale-95 transition-all select-none cursor-pointer"
                                 >
                                     {sug.label}
                                 </button>
@@ -2179,7 +2179,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     )}
 
                     {/* Input Controls */}
-                    <div className="p-2.5 border-t border-stone-200/80 dark:border-white/10 bg-white dark:bg-[#07130e] shrink-0">
+                    <div className="p-3 border-t border-[#8b6f47]/15 dark:border-white/10 bg-white/95 dark:bg-[#07130e]/95 shrink-0 backdrop-blur-md">
                         <form 
                             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                             className="flex items-center gap-2"
@@ -2196,10 +2196,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 title="Tải ảnh hoặc nhấn Ctrl+V để dán ảnh trực tiếp"
-                                className="p-2 rounded-xl bg-stone-100 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-white/10 active:scale-95 transition-all shrink-0 cursor-pointer relative group flex items-center gap-1"
+                                className="p-2.5 rounded-2xl bg-stone-100/90 hover:bg-emerald-50 hover:text-[#2d5016] dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 border border-[#8b6f47]/20 dark:border-white/10 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center shadow-2xs"
                             >
                                 <ImageIcon size={16} />
-                                <span className="text-[9px] font-black uppercase text-stone-400 dark:text-stone-500 group-hover:text-emerald-600 hidden sm:inline">Ctrl+V</span>
                             </button>
 
                             <div className="flex-1 relative">
@@ -2217,7 +2216,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                     style={{
                                         fontSize: `${Math.max(12, Math.min(15, fontSize))}px`
                                     }}
-                                    className="w-full px-3.5 py-2 bg-stone-100/90 dark:bg-white/5 border border-stone-200 dark:border-white/10 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-xl font-medium outline-none focus:bg-white dark:focus:bg-black/30 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                                    className="w-full px-3.5 py-2.5 bg-stone-100/90 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-2xl font-medium outline-none focus:bg-white dark:focus:bg-black/40 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
                                 />
                             </div>
 
@@ -2226,13 +2225,13 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                 disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
                                 style={{
                                     background: (!isLoading && (input.trim() || selectedImages.length > 0)) 
-                                        ? 'var(--button-gradient, linear-gradient(135deg, #16a34a 0%, #0d9488 100%))' 
+                                        ? 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))' 
                                         : undefined
                                 }}
-                                className="px-4 py-2 rounded-xl bg-stone-300 dark:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer"
+                                className="px-4 py-2.5 rounded-2xl bg-stone-300 dark:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition-all shrink-0 cursor-pointer"
                             >
                                 <span>{selectedImages.length > 0 && !input.trim() ? 'Khám ảnh' : 'Gửi'}</span>
-                                <Send size={12} />
+                                <Send size={13} />
                             </button>
                         </form>
                     </div>

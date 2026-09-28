@@ -160,7 +160,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
         color: active ? '#ffffff' : liteTheme.text,
     } : {};
 
-    return (
+    const content = (
         <div className={cn("relative py-0.5", isCollapsed ? "px-0 flex justify-center" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1"))}>
             <Link
                 to={path}
@@ -214,15 +214,18 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                 )}
 
                 <div
-                    className="relative z-10 shrink-0 transition-transform duration-200 group-hover:scale-110"
+                    className={cn(
+                        "relative z-10 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110",
+                        isFlyout ? "w-5 h-5" : "w-6 h-6"
+                    )}
                 >
-                    <Icon size={isFlyout ? 18 : 20} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} />
+                    <Icon size={isFlyout ? 17 : 19} strokeWidth={active ? 2.5 : 2} className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} />
                 </div>
 
                 {!isCollapsed && (
-                    <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
+                    <div className="relative z-10 flex-1 min-w-0 flex items-center overflow-hidden">
                         <span className={cn(
-                            "inline-block font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full",
+                            "inline-block font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full leading-tight",
                             isFlyout ? "text-[11px]" : "text-[12px]"
                         )}>
                             {label}
@@ -245,6 +248,46 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
             </Link>
         </div>
     );
+
+    if (isFlyout) {
+        const flyoutItemVariants = {
+            hidden: { 
+                opacity: 0, 
+                x: -12, 
+                y: -2,
+                filter: "blur(4px)" 
+            },
+            visible: { 
+                opacity: 1, 
+                x: 0, 
+                y: 0,
+                filter: "blur(0px)",
+                transition: { 
+                    type: "spring", 
+                    stiffness: 450, 
+                    damping: 25,
+                    mass: 0.6
+                } 
+            },
+            exit: { 
+                opacity: 0, 
+                x: -10, 
+                filter: "blur(3px)",
+                transition: { 
+                    duration: 0.12, 
+                    ease: "easeIn" 
+                } 
+            }
+        };
+
+        return (
+            <m.div variants={flyoutItemVariants}>
+                {content}
+            </m.div>
+        );
+    }
+
+    return content;
 };
 
 const NavItemMemo = memo(NavItem);
@@ -335,11 +378,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                 : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
                 )}
             >
-                <item.icon size={20} className={cn("shrink-0 transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} />
+                <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+                    <item.icon size={19} className={cn("transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} />
+                </div>
                 {!isCollapsed && (
                     <>
-                        <div className="flex-1 min-w-0 overflow-hidden text-left">
-                            <span className="inline-block text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full">
+                        <div className="flex-1 min-w-0 flex items-center overflow-hidden text-left">
+                            <span className="inline-block text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap truncate w-full leading-tight">
                                 {item.label}
                             </span>
                         </div>
@@ -375,85 +420,158 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
 
             {/* FLYOUT MENU using Portal */}
             <AnimatePresence>
-                {isFlyoutOpen && isCollapsed && (
-                    <Portal>
-                        <m.div
-                            ref={flyoutRef}
-                            initial={{ opacity: 0, x: 8, scale: 0.98 }}
-                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 6, scale: 0.98 }}
-                            transition={{ duration: 0.15, ease: "easeOut" }}
-                            style={{
-                                position: 'fixed',
-                                top: flyoutPos.top,
-                                left: flyoutPos.left,
-                                maxHeight: 'calc(100vh - 32px)'
-                            }}
-                            className="w-72 z-[2000] pointer-events-auto"
-                            data-flyout="true"
-                        >
-                            <div 
-                                style={isLite ? {
-                                    backgroundColor: liteTheme.surface,
-                                    borderColor: liteTheme.border,
-                                    color: liteTheme.text
-                                } : {}}
-                                className={cn(
-                                    "backdrop-blur-2xl rounded-3xl p-3 overflow-hidden shadow-2xl flex flex-col max-h-[70vh] border transition-colors",
-                                    isLite 
-                                        ? "" 
-                                        : "bg-[#fbf8f2]/95 dark:bg-[#141311]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/30"
-                                )}
-                            >
-                                {/* Header */}
-                                <div className={cn(
-                                    "relative z-10 mb-2 px-3.5 py-2.5 rounded-2xl flex items-center justify-between shrink-0 border",
-                                    isLite
-                                        ? "bg-black/5 dark:bg-white/5 border-transparent"
-                                        : "bg-[#2d5016]/10 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
-                                )}>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-7 h-7 rounded-xl bg-[#2d5016] text-white flex items-center justify-center shrink-0 shadow-xs">
-                                            <item.icon size={15} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
-                                                Danh mục
-                                            </h3>
-                                            <p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
-                                                {item.label}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsFlyoutOpen(false)}
-                                        className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors cursor-pointer"
-                                    >
-                                        <X size={15} />
-                                    </button>
-                                </div>
+                {isFlyoutOpen && isCollapsed && (() => {
+                    const flyoutContainerVariants = {
+                        hidden: { 
+                            opacity: 0, 
+                            scale: 0.94, 
+                            x: 12,
+                            y: -6,
+                            transition: {
+                                duration: 0.15,
+                                ease: "easeInOut"
+                            }
+                        },
+                        visible: { 
+                            opacity: 1, 
+                            scale: 1, 
+                            x: 0,
+                            y: 0,
+                            transition: {
+                                duration: 0.22,
+                                ease: [0.16, 1, 0.3, 1],
+                                staggerChildren: 0.04,
+                                delayChildren: 0.02
+                            }
+                        },
+                        exit: { 
+                            opacity: 0, 
+                            scale: 0.95, 
+                            x: 8,
+                            y: -4,
+                            transition: {
+                                duration: 0.2,
+                                ease: "easeInOut",
+                                staggerChildren: 0.025,
+                                staggerDirection: -1
+                            }
+                        }
+                    };
 
-                                {/* Menu Item List with scroll */}
-                                <div className="relative z-10 flex flex-col gap-0.5 overflow-y-auto no-scrollbar flex-1 pr-0.5">
-                                    {item.children.map(child => (
-                                        <NavItemMemo
-                                            key={child.path}
-                                            icon={child.icon}
-                                            label={child.label}
-                                            path={child.path}
-                                            active={isActive(child.path)}
-                                            isCollapsed={false}
+                    const flyoutItemVariants = {
+                        hidden: { 
+                            opacity: 0, 
+                            x: -14, 
+                            y: -2,
+                            filter: "blur(4px)" 
+                        },
+                        visible: { 
+                            opacity: 1, 
+                            x: 0, 
+                            y: 0, 
+                            filter: "blur(0px)",
+                            transition: { 
+                                type: "spring", 
+                                stiffness: 450, 
+                                damping: 25, 
+                                mass: 0.6 
+                            } 
+                        },
+                        exit: { 
+                            opacity: 0, 
+                            x: -10, 
+                            filter: "blur(3px)", 
+                            transition: { 
+                                duration: 0.12, 
+                                ease: "easeIn" 
+                            } 
+                        }
+                    };
+
+                    return (
+                        <Portal>
+                            <m.div
+                                ref={flyoutRef}
+                                variants={flyoutContainerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="exit"
+                                style={{
+                                    position: 'fixed',
+                                    top: flyoutPos.top,
+                                    left: flyoutPos.left,
+                                    maxHeight: 'calc(100vh - 32px)'
+                                }}
+                                className="w-72 z-[2000] pointer-events-auto"
+                                data-flyout="true"
+                            >
+                                <div 
+                                    style={isLite ? {
+                                        backgroundColor: liteTheme.surface,
+                                        borderColor: liteTheme.border,
+                                        color: liteTheme.text
+                                    } : {}}
+                                    className={cn(
+                                        "backdrop-blur-2xl rounded-3xl p-3 overflow-hidden shadow-2xl flex flex-col max-h-[70vh] border transition-colors",
+                                        isLite 
+                                            ? "" 
+                                            : "bg-[#fbf8f2]/95 dark:bg-[#141311]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/30"
+                                    )}
+                                >
+                                    {/* Header */}
+                                    <m.div 
+                                        variants={flyoutItemVariants}
+                                        className={cn(
+                                            "relative z-10 mb-2 px-3.5 py-2.5 rounded-2xl flex items-center justify-between shrink-0 border",
+                                            isLite
+                                                ? "bg-black/5 dark:bg-white/5 border-transparent"
+                                                : "bg-[#2d5016]/10 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-7 h-7 rounded-xl bg-[#2d5016] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                <item.icon size={15} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
+                                                    Danh mục
+                                                </h3>
+                                                <p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
+                                                    {item.label}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
                                             onClick={() => setIsFlyoutOpen(false)}
-                                            liteTheme={liteTheme}
-                                            isFlyout={true}
-                                        />
-                                    ))}
+                                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                                        >
+                                            <X size={15} />
+                                        </button>
+                                    </m.div>
+
+                                    {/* Menu Item List with scroll */}
+                                    <div className="relative z-10 flex flex-col gap-0.5 overflow-y-auto no-scrollbar flex-1 pr-0.5">
+                                        {item.children.map(child => (
+                                            <m.div key={child.path} variants={flyoutItemVariants}>
+                                                <NavItemMemo
+                                                    icon={child.icon}
+                                                    label={child.label}
+                                                    path={child.path}
+                                                    active={isActive(child.path)}
+                                                    isCollapsed={false}
+                                                    onClick={() => setIsFlyoutOpen(false)}
+                                                    liteTheme={liteTheme}
+                                                    isFlyout={true}
+                                                />
+                                            </m.div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        </m.div>
-                    </Portal>
-                )}
+                            </m.div>
+                        </Portal>
+                    );
+                })()}
             </AnimatePresence>
 
             {/* ACCORDION for Expanded Sidebar */}

@@ -2931,6 +2931,11 @@ function POSPage({
               message: "Đã hủy đơn hàng!",
               type: "success"
             }), kt(!1), Ga(), Ua();
+            const r = new BroadcastChannel("pos_data_sync");
+            r.postMessage({
+              type: "ORDER_DELETED",
+              id: t.id
+            }), r.close();
           } catch {
             G({
               message: "Lỗi khi hủy đơn hàng",
@@ -4012,7 +4017,7 @@ function POSPage({
                                       opacity: 1,
                                       scale: 1,
                                       y: 0
-                                    }} className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
+                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-loss" className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
                                       opacity: 0,
                                       scale: 0.8,
                                       y: -5
@@ -4020,7 +4025,7 @@ function POSPage({
                                       opacity: 1,
                                       scale: 1,
                                       y: 0
-                                    }} className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
+                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-below-new" className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
                                       opacity: 0,
                                       scale: 0.8,
                                       y: -5
@@ -4028,7 +4033,7 @@ function POSPage({
                                       opacity: 1,
                                       scale: 1,
                                       y: 0
-                                    }} className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
+                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-low-price" className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
                                       opacity: 0,
                                       scale: 0.8,
                                       y: -5
@@ -4036,7 +4041,7 @@ function POSPage({
                                       opacity: 1,
                                       scale: 1,
                                       y: 0
-                                    }} className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-sync" className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -4239,10 +4244,11 @@ function POSPage({
       window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
     }, 150);
   }}
-  className="group/ai-btn inline-flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-emerald-600/20 hover:from-emerald-600 hover:to-teal-600 text-emerald-700 hover:text-white dark:from-emerald-500/20 dark:to-teal-500/25 dark:text-emerald-300 dark:hover:from-emerald-500 dark:hover:to-teal-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-500 shadow-xs hover:shadow-md hover:shadow-emerald-500/25 transition-all duration-200 hover:scale-115 active:scale-90 shrink-0 cursor-pointer select-none ml-0.5"
-  title="Tra cứu nhanh AI về công dụng, liều dùng & phối hợp thuốc"
+  className="group/ai-btn opacity-0 group-hover:opacity-100 group-hover/marquee-wrap:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-400/20 to-cyan-500/20 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-emerald-700 hover:text-white dark:from-emerald-400/20 dark:via-teal-300/20 dark:to-cyan-400/20 dark:text-emerald-300 dark:hover:from-emerald-400 dark:hover:via-teal-400 dark:hover:to-cyan-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-120 hover:-translate-y-0.5 active:scale-95 shrink-0 cursor-pointer select-none ml-1 relative overflow-hidden backdrop-blur-md"
+  title="Hỏi AI: Tra cứu nhanh công dụng, liều dùng & phối hợp thuốc"
 >
-  <Es size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-transform duration-200 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110" />
+  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/ai-btn:animate-[shimmer_1.2s_infinite] pointer-events-none" />
+  <Es size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-all duration-300 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110 drop-shadow-sm" />
 </button>{t.is_combo && <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>}</div></div>{t.ai_scanned && <div className="mt-1 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI Tự khớp: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
                                         r.stopPropagation();
                                         const s = [...y],
@@ -4356,7 +4362,12 @@ function POSPage({
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      }} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div> : s > 0 && t.price < s && t.price >= t.cost_price ? <x.div initial={{
+                                      }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key={`loss-${t.cartId || a}`} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div> : s > 0 && t.price < s && t.price >= t.cost_price ? <x.div initial={{
+                                        opacity: 0,
+                                        scale: 0.8,
+                                        y: -5
+                                      }} animate={{
+                                      }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key={`below-new-${t.cartId || a}`} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <x.div initial={{
                                         opacity: 0,
                                         scale: 0.8,
                                         y: -5
@@ -4364,23 +4375,12 @@ function POSPage({
                                         opacity: 1,
                                         scale: 1,
                                         y: 0
-                                      }} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div> : r && t.price < r.sale_price && t.price >= (s || t.cost_price) ? <x.div initial={{
+                                      }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key={`low-price-${t.cartId || a}`} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <x.div initial={{
                                         opacity: 0,
                                         scale: 0.8,
                                         y: -5
                                       }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div> : r && p && R[t.product_id] !== void 0 && t.price === r.sale_price ? <x.div initial={{
-                                        opacity: 0,
-                                        scale: 0.8,
-                                        y: -5
-                                      }} animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0
-                                      }} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div> : null;
+                                      }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key={`sync-${t.cartId || a}`} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 "><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div> : null;
                                     })()}</P></div></td><td className="py-2 px-4 text-right"><div style={{ color: (t.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={c("font-black text-lg transition-all", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), bl(a);
                                 }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100" title="Xóa dòng"><Comp_pa size={18} /></button></td></x.tr>)}</P></tbody></table></div></div><P>{ea && <x.div initial={{
@@ -5032,7 +5032,7 @@ function POSPage({
                 message: ye ? "Đã cập nhật phiếu thành công!" : "Đã lập phiếu thành công!",
                 type: "success"
               }), ye && (Ia(null), _a(!1));
-            }} /></Ee><P>{ds && Ta && <Ee><div className="fixed inset-0 z-[1000] flex bg-[radial-gradient(circle_at_25%_center,_#1e293b_0%,_#020617_100%)] animate-in fade-in duration-700 font-sans overflow-hidden"><div className="absolute inset-0 overflow-hidden pointer-events-none"><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" /><div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" /></div><x.div initial={{
+            }} /></Ee><P>{ds && Ta && <Ee><div className="fixed inset-0 z-[1000] flex bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-300 font-sans overflow-hidden"><x.div initial={{
                   x: -100,
                   opacity: 0
                 }} animate={{
@@ -5043,96 +5043,88 @@ function POSPage({
                   opacity: 0
                 }} transition={{
                   type: "spring",
-                  stiffness: 200,
+                  stiffness: 220,
                   damping: 25
-                }} className="w-80 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-50  relative" onClick={t => t.stopPropagation()}><div className="p-8 border-b border-white/10"><h3 className="text-xl font-black text-white uppercase tracking-tighter">Thiết lập in</h3><p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Tùy chỉnh nội dung hiển thị</p></div><div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"><div className="space-y-4"><div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 mb-3 gap-1"><button onClick={() => un("Sale")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", Jt === "Sale" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-white/60 hover:text-white hover:bg-white/5")}><Lo size={14} className="shrink-0" strokeWidth={2.5} /><span>Hóa đơn</span></button><button onClick={() => un("Delivery")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5", Jt === "Delivery" ? "bg-amber-600 text-white shadow-md shadow-amber-600/30" : "text-white/60 hover:text-white hover:bg-white/5")}><ko size={14} className="shrink-0" strokeWidth={2.5} /><span>Xuất kho</span></button></div>{Jt === "Delivery" ? <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-300 font-bold leading-relaxed">Phiếu xuất kho tự động ẩn đơn giá, thành tiền và toàn bộ thông tin công nợ thanh toán.</div> : <div className="space-y-4"><div className="flex items-center justify-between px-2"><label className="text-[10px] font-black text-rose-500/60 uppercase tracking-[0.2em]">Thông tin tài chính</label><div className="h-[1px] flex-1 bg-gradient-to-r from-rose-500/20 to-transparent ml-4" /></div><div className="grid gap-3">{[{
+                }} className="w-80 h-full bg-[#faf8f3] dark:bg-[#0c120c] text-slate-800 dark:text-slate-100 border-r border-[#8b6f47]/20 dark:border-white/10 flex flex-col z-50 relative shadow-2xl" onClick={t => t.stopPropagation()}><div className="p-6 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]"><div className="flex items-center gap-2"><Fa className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /><h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Thiết lập in</h3></div><p className="text-[10.5px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mt-1">Tùy chỉnh nội dung hiển thị</p></div><div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar"><div className="space-y-4"><div className="flex bg-black/[0.04] dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/10 mb-3 gap-1"><button onClick={() => un("Sale")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", Jt === "Sale" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}><Lo size={14} className="shrink-0" strokeWidth={2.5} /><span>Hóa đơn</span></button><button onClick={() => un("Delivery")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", Jt === "Delivery" ? "bg-amber-600 text-white shadow-md shadow-amber-600/30" : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}><ko size={14} className="shrink-0" strokeWidth={2.5} /><span>Xuất kho</span></button></div>{Jt === "Delivery" ? <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">Phiếu xuất kho tự động ẩn đơn giá, thành tiền và toàn bộ thông tin công nợ thanh toán.</div> : <div className="space-y-3"><div className="flex items-center justify-between px-1"><label className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.15em]">Thông tin tài chính</label><div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent ml-3" /></div><div className="grid gap-2.5">{[{
                             id: "showOldDebt",
                             label: "Hiển thị nợ cũ",
                             icon: ua,
-                            color: "text-rose-400",
-                            glow: "shadow-rose-500/20",
-                            baseColor: "rose"
+                            color: "text-rose-600 dark:text-rose-400",
+                            bgActive: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
                           }, {
                             id: "showPayment",
                             label: "Hiển thị thanh toán",
                             icon: Va,
-                            color: "text-emerald-400",
-                            glow: "shadow-emerald-500/20",
-                            baseColor: "emerald"
+                            color: "text-emerald-600 dark:text-emerald-400",
+                            bgActive: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                           }, {
                             id: "showRemaining",
                             label: "Hiển thị còn lại",
                             icon: oa,
-                            color: "text-blue-400",
-                            glow: "shadow-blue-500/20",
-                            baseColor: "blue"
+                            color: "text-blue-600 dark:text-blue-400",
+                            bgActive: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
                           }, {
                             id: "showCashGiven",
                             label: "Hiển thị khách đưa",
                             icon: Id,
-                            color: "text-amber-400",
-                            glow: "shadow-amber-500/20",
-                            baseColor: "amber"
+                            color: "text-amber-600 dark:text-amber-400",
+                            bgActive: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
                           }, {
                             id: "showChange",
                             label: "Hiển thị tiền thối",
                             icon: Dd,
-                            color: "text-cyan-400",
-                            glow: "shadow-cyan-500/20",
-                            baseColor: "cyan"
+                            color: "text-cyan-600 dark:text-cyan-400",
+                            bgActive: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
                           }].map(t => {
                             const IconComp = t.icon,
                               r = Ke[t.id];
                             return <x.button key={t.id} whileHover={{
-                              x: 8,
-                              backgroundColor: "rgba(255,255,255,0.08)"
+                              x: 4
                             }} whileTap={{
-                              scale: 0.96
+                              scale: 0.97
                             }} onClick={() => rl(s => ({
                               ...s,
                               [t.id]: !s[t.id]
-                            }))} className={c("w-full p-4 rounded-[1.8rem] flex items-center justify-between transition-all duration-500 border border-white/5 group relative overflow-hidden", r ? "bg-white/10 " : "bg-transparent")}>{r && <div className={c("absolute inset-0 opacity-5 bg-current", t.color)} />}<div className="flex items-center gap-4 relative z-10"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500", r ? `bg-white/10 ${t.color}  ${t.glow} scale-110` : "bg-white/5 text-white/20 group-hover:text-white/40 dark:text-white/20 group-hover:text-slate-600 dark:group-hover:text-white/40")}><IconComp size={20} strokeWidth={2.5} className={c("transition-transform duration-700", r ? "rotate-0 scale-110" : "rotate-[-10deg]")} /></div><div className="flex flex-col items-start gap-0.5"><span className={c("text-[11px] font-black uppercase tracking-[0.05em] transition-colors duration-500", r ? "text-white" : "text-white/30 group-hover:text-white/60 group-hover:text-slate-600 dark:group-hover:text-white/60")}>{t.label}</span><span className="text-[8px] font-bold text-white/10 uppercase tracking-widest leading-none">{r ? "ĐANG HIỆN" : "ĐANG ẨN"}</span></div></div><div className={c("w-12 h-6 rounded-full relative p-1 transition-all duration-700 overflow-hidden ring-1 ring-white/10", r ? "bg-emerald-500/20 " : "bg-white/5 shadow-none")}><div className={c("absolute top-1/2 left-3 right-3 h-[2px] rounded-full transition-colors duration-700", r ? "bg-emerald-500/40" : "bg-white/10")} /><x.div layout={!0} animate={{
-                                  x: r ? 24 : 0,
-                                  backgroundColor: r ? "#10b981" : "#475569"
+                            }))} className={c("w-full p-3.5 rounded-2xl flex items-center justify-between transition-all duration-200 border group relative cursor-pointer select-none", r ? "bg-white dark:bg-white/[0.08] border-emerald-500/30 dark:border-emerald-500/40 shadow-sm" : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]")}><div className="flex items-center gap-3 relative z-10"><div className={c("w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300", r ? `${t.bgActive} shadow-xs` : "bg-black/[0.05] dark:bg-white/5 text-slate-400 dark:text-white/30")}><IconComp size={18} strokeWidth={2.4} className={c("transition-transform", r ? "scale-105" : "scale-95")} /></div><div className="flex flex-col items-start"><span className={c("text-[12px] font-bold tracking-tight transition-colors", r ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/50")}>{t.label}</span><span className={c("text-[9px] font-black uppercase tracking-wider", r ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-white/30")}>{r ? "ĐANG HIỆN" : "ĐANG ẨN"}</span></div></div><div className={c("w-11 h-6 rounded-full relative p-0.5 transition-colors duration-300", r ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20")}><x.div layout={!0} animate={{
+                                  x: r ? 20 : 0
                                 }} transition={{
                                   type: "spring",
                                   stiffness: 500,
                                   damping: 30
-                                }} className="w-4 h-4 rounded-full  flex items-center justify-center relative z-10"><div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 shadow-none" />{r && <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-10" />}</x.div></div></x.button>;
-                          })}</div></div>}</div></div><div className="p-8 border-t border-white/10 space-y-3 bg-slate-900"><x.button whileHover={{
+                                }} className="w-5 h-5 rounded-full bg-white shadow-md" /></div></x.button>;
+                          })}</div></div>}</div></div><div className="p-6 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-2.5 bg-white/40 dark:bg-white/[0.02]"><x.button whileHover={{
                       scale: 1.02
                     }} whileTap={{
                       scale: 0.98
                     }} onClick={() => {
                       Sa(!1), Re(!0, Jt);
-                    }} className="group w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px]  shadow-emerald-500/20 flex items-center justify-center gap-3"><Fa size={18} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />{Jt === "Delivery" ? "Lưu & In Xuất Kho" : "Lưu & In Ngay"}</x.button><x.button whileHover={{
+                    }} className="group w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 transition-all"><Fa size={16} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />{Jt === "Delivery" ? "Lưu & In Xuất Kho" : "Lưu & In Ngay"}</x.button><x.button whileHover={{
                       scale: 1.02,
                       backgroundColor: "rgba(236, 72, 153, 0.2)"
                     }} whileTap={{
                       scale: 0.98
                     }} onClick={() => {
                       Ta && Ta.details && qn(Ta.details, T);
-                    }} className="w-full py-4 bg-pink-500/10 text-pink-400 hover:text-pink-300 rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-pink-500/20 flex items-center justify-center gap-3"><Comp_la size={18} />Đọc Soạn Hàng</x.button><x.button whileHover={{
-                      scale: 1.02,
-                      backgroundColor: "rgba(255,255,255,0.1)"
+                    }} className="w-full py-3 bg-pink-500/10 text-pink-600 dark:text-pink-300 hover:text-pink-700 dark:hover:text-pink-200 rounded-2xl font-bold uppercase tracking-wider text-xs border border-pink-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"><Comp_la size={16} />Đọc Soạn Hàng</x.button><x.button whileHover={{
+                      scale: 1.02
                     }} whileTap={{
                       scale: 0.98
-                    }} onClick={() => Sa(!1)} className="w-full py-4 bg-white/5 text-white/50 hover:text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-white/5 flex items-center justify-center gap-3"><Comp_ke size={18} />Đóng nhanh</x.button></div></x.div><div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-2 bg-slate-900/80 rounded-[2rem] border border-white/10 "><x.button whileHover={{
+                    }} onClick={() => Sa(!1)} className="w-full py-3 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs border border-black/5 dark:border-white/5 flex items-center justify-center gap-2 transition-all cursor-pointer"><Comp_ke size={16} />Đóng nhanh</x.button></div></x.div><div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-1.5 bg-[#faf8f3]/90 dark:bg-slate-900/90 rounded-2xl border border-[#8b6f47]/20 dark:border-white/15 backdrop-blur-2xl shadow-2xl select-none"><x.button whileHover={{
                     scale: 1.1
                   }} whileTap={{
                     scale: 0.9
-                  }} onClick={() => cs(t => Math.max(0.5, t - 0.1))} className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors" title="Thu nhỏ"><Comp_ui size={20} /></x.button><div className="px-4 text-[13px] font-black text-white min-w-[60px] text-center">{Math.round(cn * 100)}%</div><x.button whileHover={{
+                  }} onClick={() => cs(t => Math.max(0.5, t - 0.1))} className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer" title="Thu nhỏ"><Comp_ui size={16} /></x.button><div className="px-3 text-xs font-black text-slate-800 dark:text-white min-w-[50px] text-center tabular-nums">{Math.round(cn * 100)}%</div><x.button whileHover={{
                     scale: 1.1
                   }} whileTap={{
                     scale: 0.9
-                  }} onClick={() => cs(t => Math.min(2, t + 0.1))} className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors" title="Phóng to"><Ot size={20} /></x.button><div className="w-[1px] h-6 bg-white/10 mx-1" /><x.button whileHover={{
+                  }} onClick={() => cs(t => Math.min(2, t + 0.1))} className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer" title="Phóng to"><Ot size={16} /></x.button><div className="w-[1px] h-5 bg-black/10 dark:bg-white/15 mx-1" /><x.button whileHover={{
                     scale: 1.1
                   }} whileTap={{
                     scale: 0.9
-                  }} onClick={() => cs(1)} className="w-12 h-12 flex items-center justify-center rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-colors" title="Reset"><Ms size={18} /></x.button></div><div className="flex-1 h-full overflow-auto no-scrollbar py-20 px-4 flex flex-col items-center cursor-zoom-out" onClick={() => Sa(!1)}><x.div initial={{
-                    scale: 0.9,
+                  }} onClick={() => cs(1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer" title="Reset 100%"><Ms size={15} /></x.button></div><div className="flex-1 h-full overflow-auto no-scrollbar py-12 px-4 flex flex-col items-center cursor-zoom-out" onClick={() => Sa(!1)}><x.div initial={{
+                    scale: 0.92,
                     opacity: 0,
-                    y: 30
+                    y: 20
                   }} animate={{
                     scale: cn,
                     opacity: 1,
@@ -5140,12 +5132,12 @@ function POSPage({
                   }} exit={{
                     scale: 0.95,
                     opacity: 0,
-                    y: 20
+                    y: 15
                   }} transition={{
                     type: "spring",
-                    stiffness: 200,
+                    stiffness: 220,
                     damping: 25
-                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white  ring-1 ring-black/5 transform-gpu cursor-default origin-top"><PrintTemplate data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
+                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white ring-1 ring-black/10 transform-gpu cursor-default origin-top shadow-2xl rounded-xs"><PrintTemplate data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
               setEditingHistoryOrder(t);
             }} onEditOrder={async t => {
               kt(!1);

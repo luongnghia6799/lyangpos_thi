@@ -3519,6 +3519,24 @@ export default function Purchase() {
                                                                                                 }
                                                                                             }}
                                                                                         />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                const prod = products.find(s => s.id === item.product_id) || item;
+                                                                                                const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
+                                                                                                const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || item.product_name}${ingInfo}`;
+                                                                                                window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
+                                                                                                setTimeout(() => {
+                                                                                                    window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
+                                                                                                }, 150);
+                                                                                            }}
+                                                                                            className="group/ai-btn opacity-0 group-hover:opacity-100 group-hover/marquee-wrap:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-400/20 to-cyan-500/20 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-emerald-700 hover:text-white dark:from-emerald-400/20 dark:via-teal-300/20 dark:to-cyan-400/20 dark:text-emerald-300 dark:hover:from-emerald-400 dark:hover:via-teal-400 dark:hover:to-cyan-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-120 hover:-translate-y-0.5 active:scale-95 shrink-0 cursor-pointer select-none ml-1 relative overflow-hidden backdrop-blur-md"
+                                                                                            title="Hỏi AI: Tra cứu nhanh công dụng, liều dùng & phối hợp thuốc"
+                                                                                        >
+                                                                                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/ai-btn:animate-[shimmer_1.2s_infinite] pointer-events-none" />
+                                                                                            <Bot size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-all duration-300 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110 drop-shadow-sm" />
+                                                                                        </button>
                                                                                         {item.is_combo && (
                                                                                             <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>
                                                                                         )}
@@ -5574,107 +5592,102 @@ export default function Purchase() {
                 <AnimatePresence>
                     {showPreview && previewData && (
                         <Portal>
-                            <div className="fixed inset-0 z-[1000] flex bg-[radial-gradient(circle_at_25%_center,_#1e293b_0%,_#020617_100%)] animate-in fade-in duration-700 font-sans overflow-hidden">
-                                {/* Background ambient glow */}
-                                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden" />
-                                </div>
-
+                            <div className="fixed inset-0 z-[1000] flex bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-300 font-sans overflow-hidden">
                                 {/* Left Sidebar Settings Panel */}
                                 <m.div
                                     initial={{ x: -100, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: -100, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                                    className="w-80 h-full bg-slate-900 border-r border-slate-800 flex flex-col z-50 relative"
+                                    transition={{ type: "spring", stiffness: 220, damping: 25 }}
+                                    className="w-80 h-full bg-[#faf8f3] dark:bg-[#0c120c] text-slate-800 dark:text-slate-100 border-r border-[#8b6f47]/20 dark:border-white/10 flex flex-col z-50 relative shadow-2xl"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className="p-8 border-b border-white/10">
-                                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">
-                                            Thiết lập in
-                                        </h3>
-                                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">
+                                    <div className="p-6 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]">
+                                        <div className="flex items-center gap-2">
+                                            <Printer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                                Thiết lập in
+                                            </h3>
+                                        </div>
+                                        <p className="text-[10.5px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mt-1">
                                             Tùy chỉnh nội dung hiển thị
                                         </p>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                                    <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
                                         <div className="space-y-4">
-                                            <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10 mb-3 gap-1">
+                                            <div className="flex bg-black/[0.04] dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/10 mb-3 gap-1">
                                                 <button
-                                                    className="flex-1 py-2.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                                                    className="flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5"
                                                 >
-                                                    📄 Phiếu nhập hàng
+                                                    <FileText size={14} />
+                                                    <span>Phiếu nhập hàng</span>
                                                 </button>
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between px-2">
-                                                    <label className="text-[10px] font-black text-rose-500/60 uppercase tracking-[0.2em]">
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between px-1">
+                                                    <label className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.15em]">
                                                         Thông tin tài chính
                                                     </label>
-                                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-rose-500/20 to-transparent ml-4" />
+                                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent ml-3" />
                                                 </div>
 
-                                                <div className="grid gap-3">
+                                                <div className="grid gap-2.5">
                                                     {[
-                                                        { id: 'showOldDebt', label: 'Hiển thị nợ cũ', icon: Coins, color: 'text-rose-400', glow: 'shadow-rose-500/20' },
-                                                        { id: 'showPayment', label: 'Hiển thị thanh toán', icon: Wallet, color: 'text-emerald-400', glow: 'shadow-emerald-500/20' },
-                                                        { id: 'showRemaining', label: 'Hiển thị còn lại', icon: FileText, color: 'text-blue-400', glow: 'shadow-blue-500/20' },
+                                                        { id: 'showOldDebt', label: 'Hiển thị nợ cũ', icon: Coins, color: 'text-amber-500 dark:text-amber-400', bgActive: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+                                                        { id: 'showPayment', label: 'Hiển thị thanh toán', icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bgActive: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+                                                        { id: 'showRemaining', label: 'Hiển thị còn lại', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bgActive: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30' },
                                                     ].map(opt => {
                                                         const IconComp = opt.icon;
                                                         const val = printOptions[opt.id];
                                                         return (
                                                             <m.button
                                                                 key={opt.id}
-                                                                whileHover={{ x: 8, backgroundColor: "rgba(255,255,255,0.08)" }}
-                                                                whileTap={{ scale: 0.96 }}
+                                                                whileHover={{ x: 4 }}
+                                                                whileTap={{ scale: 0.97 }}
                                                                 onClick={() => setPrintOptions(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
                                                                 className={cn(
-                                                                    "w-full p-4 rounded-[1.8rem] flex items-center justify-between transition-all duration-500 border border-white/5 group relative overflow-hidden",
-                                                                    val ? "bg-white/10" : "bg-transparent"
+                                                                    "w-full p-3.5 rounded-2xl flex items-center justify-between transition-all duration-200 border group relative cursor-pointer select-none",
+                                                                    val 
+                                                                        ? "bg-white dark:bg-white/[0.08] border-emerald-500/30 dark:border-emerald-500/40 shadow-sm" 
+                                                                        : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
                                                                 )}
                                                             >
-                                                                {val && <div className={cn("absolute inset-0 opacity-5 bg-current", opt.color)} />}
-                                                                <div className="flex items-center gap-4 relative z-10">
+                                                                <div className="flex items-center gap-3 relative z-10">
                                                                     <div className={cn(
-                                                                        "w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-500",
-                                                                        val ? `bg-white/10 ${opt.color} ${opt.glow} scale-110` : "bg-white/5 text-white/20 group-hover:text-white/40"
+                                                                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                                                                        val ? `${opt.bgActive} shadow-xs` : "bg-black/[0.05] dark:bg-white/5 text-slate-400 dark:text-white/30"
                                                                     )}>
-                                                                        <IconComp size={20} strokeWidth={2.5} className={cn("transition-transform duration-700", val ? "rotate-0 scale-110" : "rotate-[-10deg]")} />
+                                                                        <IconComp size={18} strokeWidth={2.4} className={cn("transition-transform", val ? "scale-105" : "scale-95")} />
                                                                     </div>
-                                                                    <div className="flex flex-col items-start gap-0.5">
+                                                                    <div className="flex flex-col items-start">
                                                                         <span className={cn(
-                                                                            "text-[11px] font-black uppercase tracking-[0.05em] transition-colors duration-500",
-                                                                            val ? "text-white" : "text-white/30 group-hover:text-white/60"
+                                                                            "text-[12px] font-bold tracking-tight transition-colors",
+                                                                            val ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/50"
                                                                         )}>
                                                                             {opt.label}
                                                                         </span>
-                                                                        <span className="text-[8px] font-bold text-white/10 uppercase tracking-widest leading-none">
+                                                                        <span className={cn(
+                                                                            "text-[9px] font-black uppercase tracking-wider",
+                                                                            val ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-white/30"
+                                                                        )}>
                                                                             {val ? "ĐANG HIỆN" : "ĐANG ẨN"}
                                                                         </span>
                                                                     </div>
                                                                 </div>
+                                                                
+                                                                {/* Custom Toggle switch */}
                                                                 <div className={cn(
-                                                                    "w-12 h-6 rounded-full relative p-1 transition-all duration-700 overflow-hidden ring-1 ring-white/10",
-                                                                    val ? "bg-emerald-500/20" : "bg-white/5 shadow-none"
+                                                                    "w-11 h-6 rounded-full relative p-0.5 transition-colors duration-300",
+                                                                    val ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20"
                                                                 )}>
-                                                                    <div className={cn(
-                                                                        "absolute top-1/2 left-3 right-3 h-[2px] rounded-full transition-colors duration-700",
-                                                                        val ? "bg-emerald-500/40" : "bg-white/10"
-                                                                    )} />
                                                                     <m.div
                                                                         layout
-                                                                        animate={{
-                                                                            x: val ? 24 : 0,
-                                                                            backgroundColor: val ? "#10b981" : "#475569"
-                                                                        }}
+                                                                        animate={{ x: val ? 20 : 0 }}
                                                                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                                        className="w-4 h-4 rounded-full flex items-center justify-center relative z-10"
-                                                                    >
-                                                                        <div className="w-1.5 h-1.5 rounded-full bg-white opacity-40 shadow-none" />
-                                                                        {val && <div className="absolute inset-0 rounded-full bg-emerald-400 opacity-10" />}
-                                                                    </m.div>
+                                                                        className="w-5 h-5 rounded-full bg-white shadow-md"
+                                                                    />
                                                                 </div>
                                                             </m.button>
                                                         );
@@ -5685,7 +5698,7 @@ export default function Purchase() {
                                     </div>
 
                                     {/* Sidebar Action Buttons */}
-                                    <div className="p-8 border-t border-white/10 space-y-3 bg-slate-900">
+                                    <div className="p-6 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-2.5 bg-white/40 dark:bg-white/[0.02]">
                                         <m.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
@@ -5693,71 +5706,71 @@ export default function Purchase() {
                                                 setShowPreview(false);
                                                 handleSave(true);
                                             }}
-                                            className="group w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-400 text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] shadow-emerald-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                                            className="group w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 transition-all"
                                         >
-                                            <Printer size={18} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />
+                                            <Printer size={16} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />
                                             <span>Lưu & In Ngay</span>
                                         </m.button>
 
                                         <m.button
-                                            whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.1)" }}
+                                            whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
                                             onClick={() => setShowPreview(false)}
-                                            className="w-full py-4 bg-white/5 text-white/50 hover:text-white rounded-[2rem] font-black uppercase tracking-widest text-[11px] border border-white/5 flex items-center justify-center gap-3 transition-all"
+                                            className="w-full py-3 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs border border-black/5 dark:border-white/5 flex items-center justify-center gap-2 transition-all cursor-pointer"
                                         >
-                                            <X size={18} />
+                                            <X size={16} />
                                             <span>Đóng nhanh</span>
                                         </m.button>
                                     </div>
                                 </m.div>
 
                                 {/* Floating Bottom Zoom Controls */}
-                                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-2 bg-slate-900/80 rounded-[2rem] border border-white/10 backdrop-blur-md shadow-2xl">
+                                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-1.5 bg-[#faf8f3]/90 dark:bg-slate-900/90 rounded-2xl border border-[#8b6f47]/20 dark:border-white/15 backdrop-blur-2xl shadow-2xl select-none">
                                     <m.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.1))}
-                                        className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors"
+                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
                                         title="Thu nhỏ"
                                     >
-                                        <Minus size={20} />
+                                        <Minus size={16} />
                                     </m.button>
-                                    <div className="px-4 text-[13px] font-black text-white min-w-[60px] text-center">
+                                    <div className="px-3 text-xs font-black text-slate-800 dark:text-white min-w-[50px] text-center tabular-nums">
                                         {Math.round(zoomScale * 100)}%
                                     </div>
                                     <m.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={() => setZoomScale(prev => Math.min(2, prev + 0.1))}
-                                        className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors"
+                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
                                         title="Phóng to"
                                     >
-                                        <Plus size={20} />
+                                        <Plus size={16} />
                                     </m.button>
-                                    <div className="w-[1px] h-6 bg-white/10 mx-1" />
+                                    <div className="w-[1px] h-5 bg-black/10 dark:bg-white/15 mx-1" />
                                     <m.button
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={() => setZoomScale(1)}
-                                        className="w-12 h-12 flex items-center justify-center rounded-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors"
-                                        title="Reset"
+                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
+                                        title="Reset 100%"
                                     >
-                                        <RotateCcw size={18} />
+                                        <RotateCcw size={15} />
                                     </m.button>
                                 </div>
 
                                 {/* Main Document Canvas */}
                                 <div
-                                    className="flex-1 h-full overflow-auto no-scrollbar py-20 px-4 flex flex-col items-center cursor-zoom-out"
+                                    className="flex-1 h-full overflow-auto no-scrollbar py-12 px-4 flex flex-col items-center cursor-zoom-out"
                                     onClick={() => setShowPreview(false)}
                                 >
                                     <m.div
-                                        initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                                        initial={{ scale: 0.92, opacity: 0, y: 20 }}
                                         animate={{ scale: zoomScale, opacity: 1, y: 0 }}
-                                        exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                                        exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                                        transition={{ type: "spring", stiffness: 220, damping: 25 }}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="relative keep-white bg-white ring-1 ring-black/5 transform-gpu cursor-default origin-top shadow-2xl"
+                                        className="relative keep-white bg-white ring-1 ring-black/10 transform-gpu cursor-default origin-top shadow-2xl rounded-xs"
                                     >
                                         <PrintTemplate
                                             data={previewData}
@@ -5771,7 +5784,7 @@ export default function Purchase() {
                                             showChange={printOptions.showChange}
                                         />
                                     </m.div>
-                                    <p className="mt-10 text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] font-sans">
+                                    <p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">
                                         Cuộn để xem toàn bộ phiếu • LyangPOS Studio
                                     </p>
                                 </div>
@@ -6045,11 +6058,15 @@ export default function Purchase() {
                             window.print();
                         }, 300);
                     }}
-                    onDeleteOrder={async (orderId) => {
+                    onDeleteOrder={async (orderOrId) => {
+                        const targetId = orderOrId?.id || orderOrId;
                         try {
-                            await axios.delete(`/api/orders/${orderId}`);
+                            await axios.delete(`/api/orders/${targetId}`);
                             playPopSound();
                             setToast({ message: "Đã xóa đơn nhập hàng thành công!", type: "success" });
+                            const chan = new BroadcastChannel('pos_data_sync');
+                            chan.postMessage({ type: 'ORDER_DELETED', id: targetId });
+                            chan.close();
                         } catch (e) {
                             console.error(e);
                             setToast({ message: "Không thể xóa đơn nhập.", type: "error" });

@@ -43,7 +43,7 @@ import LyangLogo from '../../assets/logo.png';
 
 import { useProductData, usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
-import ActiveIngredientTooltipContent from '../../components/widgets/ActiveIngredientTooltipContent';
+import ActiveIngredientTooltip, { ActiveIngredientTooltipBody as ActiveIngredientTooltipContent } from '../../components/widgets/ActiveIngredientTooltipContent';
 import DynamicIcon from '../../components/widgets/DynamicIcon';
 
 

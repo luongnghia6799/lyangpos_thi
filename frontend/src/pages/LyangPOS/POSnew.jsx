@@ -153,6 +153,7 @@ const zn = CustomSelect;
 import MarqueeText from "@/components/widgets/MarqueeText";
 const Ps = MarqueeText;
 import ActiveIngredientTooltip from "@/components/widgets/ActiveIngredientTooltipContent";
+import ActionContextMenu from "@/components/widgets/ActionContextMenu";
 
 import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } from "@/queries/useProductData";
 const od = eo;
@@ -1508,7 +1509,8 @@ function POSPage({
       const t = localStorage.getItem("pos_transparent_cart_table");
       return t === null ? true : t === "true";
     }),
-    [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false);
+    [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false),
+    [itemContextMenu, setItemContextMenu] = i.useState(null);
   i.useEffect(() => {
     localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
   }, [Je]);
@@ -2733,7 +2735,7 @@ function POSPage({
         const d = {
           ...l
         };
-        if (a === "secondary_qty" ? (d.secondary_qty = r, d.quantity = r * (d.multiplier || 1)) : a === "quantity" ? (d.quantity = r, d.secondary_qty = r / (d.multiplier || 1)) : a === "price" ? (d.price = r, d.is_manual_price = !0) : d[a] = r, (a === "quantity" || a === "secondary_qty") && !d.is_manual_price) {
+        if (a === "secondary_qty" ? (d.secondary_qty = r, d.quantity = r * (d.multiplier || 1)) : a === "quantity" ? (d.quantity = r, d.secondary_qty = Math.round(((r / (d.multiplier || 1)) + Number.EPSILON) * 1000) / 1000) : a === "price" ? (d.price = r, d.is_manual_price = !0) : d[a] = r, (a === "quantity" || a === "secondary_qty") && !d.is_manual_price) {
           const o = T.find(u => u.id === d.product_id);
           if (o) {
             const hasCustomPrice = Boolean(p && p.id && R && R[o.id] !== void 0);
@@ -3099,10 +3101,39 @@ function POSPage({
                       type: "spring",
                       stiffness: 500,
                       damping: 24
-                    }} className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10"><Ir style={!((g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me) && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "text-white shrink-0 drop-shadow-sm" : "text-[#2d5016] dark:text-[#d4a574] shrink-0"} size={15} strokeWidth={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? 2.8 : 2.5} /></x.div><input type="text" className={c("w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-slate-900 dark:text-white placeholder:text-muted/60 leading-normal", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && "opacity-0 select-none cursor-pointer")} ref={Et} placeholder="Tìm đối tác (F3)..." value={(g === "remote_inspect" ? ze?.name || (k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" ? k.partner_name : "") || yt : p ? p.name : yt) || ""} onFocus={() => {
-                      W(!1), Ue(!0);
-                    }} onDoubleClick={t => {
-                      g === "remote_inspect" ? ze && (t.stopPropagation(), fr(ze), Oa(!0)) : p && (t.stopPropagation(), fr(p), Oa(!0));
+                    }} className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10"><Ir style={!((g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me) && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "text-white shrink-0 drop-shadow-sm" : "text-[#2d5016] dark:text-[#d4a574] shrink-0"} size={15} strokeWidth={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? 2.8 : 2.5} /></x.div><input type="text" className={c("w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-slate-900 dark:text-white placeholder:text-muted/60 leading-normal", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && "opacity-0 select-none cursor-pointer")} ref={Et} placeholder="Tìm đối tác (F3)..." value={(g === "remote_inspect" ? ze?.name || (k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" ? k.partner_name : "") || yt : p ? p.name : yt) || ""} onMouseDown={t => {
+                      if (t.button === 2) {
+                        t.preventDefault();
+                      }
+                    }} onClick={t => {
+                      if (t.button === 0) {
+                        W(!1);
+                        Ue(!0);
+                        t.target.select?.();
+                      }
+                    }} onFocus={t => {
+                      if (window._preventPartnerFocusOpen) {
+                        window._preventPartnerFocusOpen = false;
+                        return;
+                      }
+                      W(!1);
+                      Ue(!0);
+                      t.target.select?.();
+                    }} onContextMenu={t => {
+                      t.preventDefault();
+                      t.stopPropagation();
+                      window._preventPartnerFocusOpen = true;
+                      setTimeout(() => { window._preventPartnerFocusOpen = false; }, 300);
+                      Ue(!1);
+                      W(!1);
+                      const partnerObj = g === "remote_inspect" ? (ze || (k?.partner_name ? { name: k.partner_name, id: k?.partner_id } : null)) : p;
+                      if (partnerObj) {
+                        setItemContextMenu({
+                          type: 'partner',
+                          data: partnerObj,
+                          position: { x: t.clientX, y: t.clientY }
+                        });
+                      }
                     }} onChange={t => {
                       W(!1), Ge(t.target.value), g !== "remote_inspect" && p && F(null), Ue(!0), rs(0);
                     }} onKeyDown={t => {
@@ -3177,6 +3208,14 @@ function POSPage({
                           W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
                         }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => <x.div key={t.id} data-index={yt ? a : a + 1} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
+                        }} onContextMenu={e => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setItemContextMenu({
+                            type: 'partner',
+                            data: t,
+                            position: { x: e.clientX, y: e.clientY }
+                          });
                         }} className={c("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", (yt ? We === a : We === a + 1) && "active")}><div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", (yt ? We === a : We === a + 1) ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm")}><Ir size={22} strokeWidth={2.5} /></div><div className="flex flex-col gap-0.5 min-w-0 py-0.5"><div className="flex items-center gap-2 min-w-0"><span className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", (yt ? We === a : We === a + 1) ? "bg-white/20 border-white/40 text-white" : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : t.is_customer ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400")}>{t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"}</span><p className={c("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5", (yt ? We === a : We === a + 1) ? "text-white" : "text-slate-900 dark:text-white")}>{t.name}</p></div><div className={c("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", (yt ? We === a : We === a + 1) ? "text-white/80" : "text-slate-500 dark:text-slate-400")}><span className="flex items-center gap-1 shrink-0"><Jn size={12} strokeWidth={2.5} className="opacity-60" />{t.phone || "---"}</span>{t.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><Yn size={12} strokeWidth={2.5} className="opacity-60" />{t.address}</span>}</div></div></div><div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2"><p className={c("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", (yt ? We === a : We === a + 1) ? "text-white" : (t.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (t.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>{vl(t.debt_balance || 0)}</p><div className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors border", (yt ? We === a : We === a + 1) ? "bg-white/20 border-white/40 text-white" : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50")}>{(t.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (t.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}</div></div></x.div>)}</div>{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-slate-100 dark:border-slate-800 px-4 py-3 cursor-pointer" onClick={() => {
                           dn(yt), cr(!0), Ue(!1);
                         }}><div className="flex items-center gap-3"><div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center group-hover/add:rotate-90 transition-transform text-primary shrink-0"><Ot size={18} strokeWidth={3} /></div><div className="py-0.5"><p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-normal">Đối tác mới</p><p className="text-sm font-black uppercase tracking-tight text-primary leading-snug pt-0.5">Tạo nhanh "{yt}"</p></div></div><Dr size={18} strokeWidth={3} className="opacity-40 group-hover/add:translate-x-1 transition-transform" /></div>}</x.div>}</Ws></div><x.button whileHover={{
@@ -3765,9 +3804,17 @@ function POSPage({
                                         className="w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                       />
                                     </div>
-                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }} onDoubleClick={() => {
-                            m.product && (Vt(m.product), vt(!0));
-                          }}><td onClick={t => {
+                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }} onContextMenu={e => {
+  if (m.product) {
+    e.preventDefault();
+    e.stopPropagation();
+    setItemContextMenu({
+      type: 'product',
+      data: m.product,
+      position: { x: e.clientX, y: e.clientY }
+    });
+  }
+}}><td onClick={t => {
                               t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
                             }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-2.5 px-1 text-center cursor-pointer select-none group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-primary/10 text-primary dark:text-[#d4a574] border border-primary/20 hover:bg-primary hover:text-white dark:hover:bg-emerald-500 dark:hover:text-white hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200 shadow-xs"><Nd size={15} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td onClick={t => {
                                 t.stopPropagation();
@@ -3928,7 +3975,23 @@ function POSPage({
                                         secondary_qty: s / (t.multiplier || 1),
                                         name: t.name
                                       }), ae(t.name);
-                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+                                    }} onContextMenu={e => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setItemContextMenu({
+                                        type: 'product',
+                                        data: t,
+                                        position: { x: e.clientX, y: e.clientY }
+                                      });
+                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} onContextMenu={e => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setItemContextMenu({
+                                                type: 'product',
+                                                data: t,
+                                                position: { x: e.clientX, y: e.clientY }
+                                              });
+                                            }} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
                                               color: a === De ? Mt.accent : Mt.main,
                                               fontSize: a === De ? "18px" : "16px",
                                               paddingLeft: a === De ? "12px" : "0px"
@@ -3945,7 +4008,7 @@ function POSPage({
                                               color: a === De ? Mt.accent : Mt.main
                                             }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
                                       dn(Z), ur(!0);
-                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty || ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" step="any" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -3973,7 +4036,7 @@ function POSPage({
                                       return {
                                         ...r,
                                         quantity: a,
-                                        secondary_qty: a / s
+                                        secondary_qty: Math.round(((a / s) + Number.EPSILON) * 1000) / 1000
                                       };
                                     });
                                   }} onKeyDown={t => {
@@ -4069,9 +4132,18 @@ function POSPage({
                             }} transition={{
                               duration: 0.22,
                               ease: "easeOut"
-                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onDoubleClick={() => {
-                              const r = T.find(s => s.id === t.product_id);
-                              r && (Vt(r), vt(!0));
+                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
+                              const r = T.find(s => s.id === t.product_id) || t;
+                              if (r) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setItemContextMenu({
+                                  type: 'product',
+                                  data: r,
+                                  position: { x: e.clientX, y: e.clientY },
+                                  onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+                                });
+                              }
                             }}><td onClick={r => {
                                 r.stopPropagation();
                                 const s = T.find(l => l.id === t.product_id) || t,
@@ -4085,10 +4157,18 @@ function POSPage({
                                   : speakAudioSequence([alias, qty]);
                               }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'index') : undefined} className={c("w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95 transition-all duration-200", cartColorConfig?.enableTextPills && "border shadow-xs")}>{a + 1}</div></td><td className="py-2 px-2 text-center"><button onClick={r => {
                                   r.stopPropagation(), xl(a);
-                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative group-hover/search-row:z-[9999]"><div className="relative group/search-row hover:z-[9999]" onDoubleClick={r => {
-                                  r.preventDefault();
-                                  const s = T.find(n => n.id === t.product_id);
-                                  s && (Vt(s), vt(!0));
+                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative group-hover/search-row:z-[9999]"><div className="relative group/search-row hover:z-[9999]" onContextMenu={e => {
+                                  const r = T.find(s => s.id === t.product_id) || t;
+                                  if (r) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setItemContextMenu({
+                                      type: 'product',
+                                      data: r,
+                                      position: { x: e.clientX, y: e.clientY },
+                                      onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+                                    });
+                                  }
                                 }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300", "placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
                                     ct(a), ls(t.product_name), Ca(0), r.target.select(), r.target.scrollIntoView({
                                       block: "nearest",
@@ -4100,9 +4180,18 @@ function POSPage({
                                     setTimeout(() => {
                                       ct(r => r === a ? null : r);
                                     }, 200);
-                                  }} onDoubleClick={() => {
-                                    const r = T.find(s => s.id === t.product_id);
-                                    r && (Vt(r), vt(!0));
+                                  }} onContextMenu={e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const r = T.find(s => s.id === t.product_id) || t;
+                                    if (r) {
+                                      setItemContextMenu({
+                                        type: 'product',
+                                        data: r,
+                                        position: { x: e.clientX, y: e.clientY },
+                                        onDelete: () => bl(a)
+                                      });
+                                    }
                                   }} onKeyDown={r => {
                                     const s = Ba.filter(n => {
                                       const l = zt.toLowerCase(),
@@ -4223,15 +4312,48 @@ function POSPage({
                                       const r = document.getElementById(`row-name-${a}`);
                                       r?.focus(), r?.select?.();
                                     }, 50);
-                                  }} onDoubleClick={() => {
-                                    const r = T.find(s => s.id === t.product_id);
-                                    r && (Vt(r), vt(!0));
+                                  }} onContextMenu={e => {
+                                    const r = T.find(s => s.id === t.product_id) || t;
+                                    if (r) {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setItemContextMenu({
+                                        type: 'product',
+                                        data: r,
+                                        position: { x: e.clientX, y: e.clientY },
+                                        onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+                                      });
+                                    }
                                   }} className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><div className={c("min-w-0 flex items-center gap-2", cartColorConfig?.enableTextPills && "px-2.5 py-1 rounded-2xl border transition-all")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'name') : undefined}>{(t.active_ingredient || T.find(n => n.id === t.product_id)?.active_ingredient) ? (
   <ActiveIngredientTooltip activeIngredient={t.active_ingredient || T.find(n => n.id === t.product_id)?.active_ingredient}>
-    <Ps text={t.product_name} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug cursor-pointer", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title="" />
+    <Ps text={t.product_name} onContextMenu={e => {
+      const r = T.find(s => s.id === t.product_id) || t;
+      if (r) {
+        e.preventDefault();
+        e.stopPropagation();
+        setItemContextMenu({
+          type: 'product',
+          data: r,
+          position: { x: e.clientX, y: e.clientY },
+          onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+        });
+      }
+    }} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug cursor-pointer", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title="" />
   </ActiveIngredientTooltip>
 ) : (
-  <Ps text={t.product_name} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title={t.product_name} />
+  <Ps text={t.product_name} onContextMenu={e => {
+    const r = T.find(s => s.id === t.product_id) || t;
+    if (r) {
+      e.preventDefault();
+      e.stopPropagation();
+      setItemContextMenu({
+        type: 'product',
+        data: r,
+        position: { x: e.clientX, y: e.clientY },
+        onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+      });
+    }
+  }} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title={t.product_name} />
 )}<button
   type="button"
   onClick={r => {
@@ -4318,7 +4440,7 @@ function POSPage({
                                                 }), Dt(!0);
                                               }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div>{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}{r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
                                               color: s === It ? Mt.accent : Mt.main
-                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap mt-0.5">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className={c("flex items-center gap-1 h-10 px-2 rounded-2xl transition-all shadow-none", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
+                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap mt-0.5">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className={c("flex items-center gap-1 h-10 px-2 rounded-2xl transition-all shadow-none", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}><input type="number" step="any" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty !== undefined && t.secondary_qty !== null && t.secondary_qty !== "" ? (typeof t.secondary_qty === 'number' ? Math.round((t.secondary_qty + Number.EPSILON) * 1000) / 1000 : t.secondary_qty) : ""} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;
@@ -6382,6 +6504,49 @@ function POSPage({
               });
             }} onDeleteOrder={t => {
               Sn(t);
-            }} /></Fn></div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
+            }} /></Fn>
+            <ActionContextMenu
+              isOpen={!!itemContextMenu}
+              type={itemContextMenu?.type || 'product'}
+              data={itemContextMenu?.data}
+              position={itemContextMenu?.position}
+              onClose={() => setItemContextMenu(null)}
+              onEdit={item => {
+                if (itemContextMenu?.type === 'partner') {
+                  fr(item);
+                  Oa(!0);
+                } else {
+                  const prod = T.find(s => s.id === (item.id || item.product_id)) || item;
+                  Vt(prod);
+                  vt(!0);
+                }
+              }}
+              onConsultAI={item => {
+                const prod = T.find(s => s.id === (item.id || item.product_id)) || item;
+                const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
+                const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || prod.product_name}${ingInfo}`;
+                window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
+                }, 150);
+              }}
+              onViewHistory={item => {
+                if (itemContextMenu?.type === 'partner') {
+                  setHistoryPartner(item);
+                } else {
+                  const prod = T.find(s => s.id === (item.id || item.product_id)) || item;
+                  Xt(prod);
+                  za({
+                    top: itemContextMenu?.position?.y || 200,
+                    bottom: (itemContextMenu?.position?.y || 200) + 40,
+                    left: itemContextMenu?.position?.x || 300,
+                    right: (itemContextMenu?.position?.x || 300) + 100
+                  });
+                  Dt(!0);
+                }
+              }}
+              onDelete={itemContextMenu?.onDelete}
+            />
+            </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }
 export default POSPage;

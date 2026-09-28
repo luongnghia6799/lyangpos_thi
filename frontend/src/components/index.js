@@ -123,6 +123,8 @@ export { default as MobileProductEditModal } from './mobile/MobileProductEditMod
 // === WIDGETS ===
 export * from './widgets/CategoryIcon';
 export { default as CategoryIcon } from './widgets/CategoryIcon';
+export * from './widgets/ActionContextMenu';
+export { default as ActionContextMenu } from './widgets/ActionContextMenu';
 export * from './widgets/ContextMenu';
 export { default as ContextMenu } from './widgets/ContextMenu';
 export * from './widgets/HeavyClock';

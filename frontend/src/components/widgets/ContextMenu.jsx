@@ -13,10 +13,9 @@ import {
     History, 
     Maximize, 
     Minimize,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Save,
-    PlusCircle
+    PackagePlus,
+    TrendingUp,
+    ChevronRight
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
@@ -31,6 +30,10 @@ const ContextMenu = () => {
     const location = useLocation();
 
     const isPOS = location.pathname === '/pos';
+    const isPurchase = location.pathname === '/purchase';
+    const isAnalysis = location.pathname === '/analysis';
+    const isDashboard = location.pathname === '/';
+    const isHistory = location.pathname === '/history';
 
     const handleContextMenu = useCallback((e) => {
         // If holding Shift key, allow native browser context menu (Inspect Element)
@@ -50,7 +53,7 @@ const ContextMenu = () => {
         let x = e.clientX;
         let y = e.clientY;
         const menuWidth = 240;
-        const menuHeight = 380;
+        const menuHeight = 360;
 
         if (x + menuWidth > window.innerWidth) x -= menuWidth;
         if (y + menuHeight > window.innerHeight) y -= menuHeight;
@@ -134,8 +137,10 @@ const ContextMenu = () => {
                     window.__TAURI__.core.invoke('open_devtools').catch(console.error);
                 }
                 break;
-            case 'pos': navigate('/pos'); break;
             case 'dashboard': navigate('/'); break;
+            case 'pos': navigate('/pos'); break;
+            case 'purchase': navigate('/purchase'); break;
+            case 'analysis': navigate('/analysis'); break;
             case 'history': navigate('/history'); break;
             case 'logout':
                 localStorage.removeItem('user');
@@ -225,9 +230,9 @@ const ContextMenu = () => {
                         left: position.x,
                         zIndex: 999999 
                     }}
-                    className="w-64 bg-white/92 dark:bg-slate-900/92 text-slate-800 dark:text-slate-100 backdrop-blur-2xl rounded-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-2 overflow-hidden select-none"
+                    className="w-64 bg-white/92 dark:bg-[#0c1e15]/95 text-slate-800 dark:text-slate-100 backdrop-blur-2xl rounded-2xl border border-black/10 dark:border-emerald-500/25 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-2 overflow-hidden select-none"
                 >
-                    {/* Navigation Group */}
+                    {/* Navigation Header Group */}
                     <m.div variants={itemVariants} className="flex items-center justify-between px-1.5 py-1.5 mb-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
                         <MenuIconButton icon={ArrowLeft} onClick={() => handleAction('back')} title="Quay lại" />
                         <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Tiến tới" />
@@ -241,26 +246,41 @@ const ContextMenu = () => {
                         />
                     </m.div>
 
+                    {/* Main Actions */}
                     <div className="space-y-0.5">
                         <MenuItem 
                             variants={itemVariants}
                             icon={LayoutDashboard} 
                             label="Tổng quan" 
-                            shortcut="Ctrl+Q"
+                            active={isDashboard}
                             onClick={() => handleAction('dashboard')} 
                         />
                         <MenuItem 
                             variants={itemVariants}
                             icon={ShoppingCart} 
                             label="Bán hàng (POS)" 
-                            shortcut="Ctrl+P"
                             active={isPOS}
                             onClick={() => handleAction('pos')} 
                         />
                         <MenuItem 
                             variants={itemVariants}
+                            icon={PackagePlus} 
+                            label="Nhập hàng" 
+                            active={isPurchase}
+                            onClick={() => handleAction('purchase')} 
+                        />
+                        <MenuItem 
+                            variants={itemVariants}
+                            icon={TrendingUp} 
+                            label="Tổng hợp" 
+                            active={isAnalysis}
+                            onClick={() => handleAction('analysis')} 
+                        />
+                        <MenuItem 
+                            variants={itemVariants}
                             icon={History} 
                             label="Lịch sử đơn" 
+                            active={isHistory}
                             onClick={() => handleAction('history')} 
                         />
                     </div>
@@ -268,35 +288,10 @@ const ContextMenu = () => {
                     <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
 
                     <div className="space-y-0.5">
-                        {isPOS && (
-                            <>
-                                <MenuItem 
-                                    variants={itemVariants}
-                                    icon={Save} 
-                                    label="Lưu hóa đơn" 
-                                    shortcut="F12"
-                                    onClick={() => {
-                                        setIsVisible(false);
-                                        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F12' }));
-                                    }} 
-                                />
-                                <MenuItem 
-                                    variants={itemVariants}
-                                    icon={PlusCircle} 
-                                    label="Tạo đơn mới" 
-                                    shortcut="F4"
-                                    onClick={() => {
-                                        setIsVisible(false);
-                                        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F4' }));
-                                    }} 
-                                />
-                            </>
-                        )}
                         <MenuItem 
                             variants={itemVariants}
                             icon={isFullscreen ? Minimize : Maximize} 
                             label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
-                            shortcut="F11" 
                             onClick={() => handleAction('fullscreen')} 
                         />
                     </div>
@@ -313,7 +308,7 @@ const ContextMenu = () => {
 
                     {/* Logo/Branding footer */}
                     <m.div variants={itemVariants} className="mt-1.5 px-3 py-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5">
-                        <span className="text-[9.5px] font-black text-slate-400 dark:text-white/30 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
+                        <span className="text-[9.5px] font-black text-slate-400 dark:text-emerald-400/50 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
                         <div className="flex gap-1.5 items-center">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
@@ -326,14 +321,14 @@ const ContextMenu = () => {
     );
 };
 
-const MenuItem = ({ icon: Icon, label, shortcut, onClick, active, danger, variants }) => (
+const MenuItem = ({ icon: Icon, label, onClick, active, danger, variants }) => (
     <m.button
         variants={variants}
         whileHover={{ x: 4, scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         className={cn(
-            "w-full flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer",
+            "w-full group flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer",
             active 
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20" 
                 : danger
@@ -344,15 +339,14 @@ const MenuItem = ({ icon: Icon, label, shortcut, onClick, active, danger, varian
         <div className="flex items-center gap-2.5">
             <Icon size={16} className={cn(
                 "shrink-0 transition-transform duration-200", 
-                active ? "text-emerald-600 dark:text-emerald-400 scale-105" : (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400")
+                active ? "text-emerald-600 dark:text-emerald-400 scale-105" : (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400")
             )} />
             <span className="text-xs font-bold tracking-tight">{label}</span>
         </div>
-        {shortcut && (
-            <span className="text-[9px] font-black text-slate-400 dark:text-white/40 uppercase tracking-tight bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-md">
-                {shortcut}
-            </span>
-        )}
+        <ChevronRight size={13} className={cn(
+            "opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all shrink-0",
+            active ? "opacity-70 translate-x-0 text-emerald-600 dark:text-emerald-400" : (danger ? "text-rose-500" : "text-slate-400 dark:text-slate-400")
+        )} />
     </m.button>
 );
 

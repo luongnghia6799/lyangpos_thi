@@ -8,6 +8,7 @@ export const MarqueeText = memo(({
   active = false,
   onClick,
   onDoubleClick,
+  onContextMenu,
   title
 }) => {
   const containerRef = useRef(null);
@@ -52,6 +53,7 @@ export const MarqueeText = memo(({
       ref={containerRef}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onContextMenu={onContextMenu}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       title={title !== undefined ? title : text}

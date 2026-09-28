@@ -21,6 +21,7 @@ import ConsignmentPanel from '../../components/panels/ConsignmentPanel';
 import DailyOrderHistoryModal from '../../components/modals/DailyOrderHistoryModal';
 import PartnerHistoryModal from '../../components/modals/PartnerHistoryModal';
 import MarqueeText from '../../components/widgets/MarqueeText';
+import ActionContextMenu from '../../components/widgets/ActionContextMenu';
 import PartnerInfoHoverCard from '../../components/widgets/PartnerInfoHoverCard';
 import CustomSelect from '../../components/forms/CustomSelect';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
@@ -201,8 +202,6 @@ export default function Purchase() {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState(false);
-    const [selectedDetailOrder, setSelectedDetailOrder] = useState(null);
-    const location = useLocation();
 
     // AI Receipt Scan States
     const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -856,6 +855,7 @@ export default function Purchase() {
 
     const [isPartnerEditModalOpen, setIsPartnerEditModalOpen] = useState(false);
     const [editingPartner, setEditingPartner] = useState(null);
+    const [itemContextMenu, setItemContextMenu] = useState(null);
 
     const [isLoaded, setIsLoaded] = useState(false);
   // HeavyClock handles time
@@ -1348,7 +1348,7 @@ export default function Purchase() {
             item.quantity = value * item.multiplier;
         } else if (field === 'quantity') {
             item.quantity = value;
-            item.secondary_qty = value / item.multiplier;
+            item.secondary_qty = Math.round(((value / item.multiplier) + Number.EPSILON) * 1000) / 1000;
         } else {
             item[field] = value;
         }
@@ -1963,15 +1963,40 @@ export default function Purchase() {
                                     ref={partnerInputRef}
                                     placeholder="Tìm NCC (F3)..."
                                     value={selectedPartner ? selectedPartner.name : partnerSearch}
-                                    onFocus={() => {
+                                    onMouseDown={(e) => {
+                                        if (e.button === 2) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onClick={(e) => {
+                                        if (e.button === 0) {
+                                            setIsPartnerHovered(false);
+                                            setIsPartnerDropdownOpen(true);
+                                            e.target.select?.();
+                                        }
+                                    }}
+                                    onFocus={(e) => {
+                                        if (window._preventPartnerFocusOpen) {
+                                            window._preventPartnerFocusOpen = false;
+                                            return;
+                                        }
                                         setIsPartnerHovered(false);
                                         setIsPartnerDropdownOpen(true);
+                                        e.target.select?.();
                                     }}
-                                    onDoubleClick={(e) => {
+                                    onContextMenu={(e) => {
                                         if (selectedPartner) {
+                                            e.preventDefault();
                                             e.stopPropagation();
-                                            setEditingPartner(selectedPartner);
-                                            setIsPartnerEditModalOpen(true);
+                                            window._preventPartnerFocusOpen = true;
+                                            setTimeout(() => { window._preventPartnerFocusOpen = false; }, 300);
+                                            setIsPartnerDropdownOpen(false);
+                                            setIsPartnerHovered(false);
+                                            setItemContextMenu({
+                                                type: 'partner',
+                                                data: selectedPartner,
+                                                position: { x: e.clientX, y: e.clientY }
+                                            });
                                         }
                                     }}
                                     onChange={(e) => {
@@ -2138,6 +2163,15 @@ export default function Purchase() {
                                                             setPartnerSearch('');
                                                             setIsPartnerDropdownOpen(false);
                                                             setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                        }}
+                                                        onContextMenu={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setItemContextMenu({
+                                                                type: 'partner',
+                                                                data: p,
+                                                                position: { x: e.clientX, y: e.clientY }
+                                                            });
                                                         }}
                                                         className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", isItemActive && "active")}
                                                     >
@@ -2774,10 +2808,15 @@ export default function Purchase() {
                                                 <tr
                                                     className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
                                                     style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
-                                                    onDoubleClick={() => {
+                                                    onContextMenu={(e) => {
                                                         if (workingItem.product) {
-                                                            setEditingProduct(workingItem.product);
-                                                            setIsEditModalOpen(true);
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setItemContextMenu({
+                                                                type: 'product',
+                                                                data: workingItem.product,
+                                                                position: { x: e.clientX, y: e.clientY }
+                                                            });
                                                         }
                                                     }}
                                                 >
@@ -2924,9 +2963,14 @@ export default function Purchase() {
                                                                                             });
                                                                                             setSearchTerm(p.name);
                                                                                         }}
-                                                                                        onDoubleClick={() => {
-                                                                                            setEditingProduct(p);
-                                                                                            setIsEditModalOpen(true);
+                                                                                        onContextMenu={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            setItemContextMenu({
+                                                                                                type: 'product',
+                                                                                                data: p,
+                                                                                                position: { x: e.clientX, y: e.clientY }
+                                                                                            });
                                                                                         }}
                                                                                         className={cn(
                                                                                             "dropdown-item flex justify-between items-center",
@@ -3051,8 +3095,9 @@ export default function Purchase() {
                                                             <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground">
                                                                 <input
                                                                     type="number"
+                                                                    step="any"
                                                                     className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal"
-                                                                    value={workingItem.secondary_qty || ""}
+                                                                    value={workingItem.secondary_qty !== undefined && workingItem.secondary_qty !== null && workingItem.secondary_qty !== "" ? (typeof workingItem.secondary_qty === 'number' ? Math.round((workingItem.secondary_qty + Number.EPSILON) * 1000) / 1000 : workingItem.secondary_qty) : ""}
                                                                     id="working-sec-qty"
                                                                     ref={workingSecQtyRef}
                                                                     autoComplete="off"
@@ -3110,7 +3155,7 @@ export default function Purchase() {
                                                                     return {
                                                                         ...prev,
                                                                         quantity: v,
-                                                                        secondary_qty: v / mult
+                                                                        secondary_qty: Math.round(((v / mult) + Number.EPSILON) * 1000) / 1000
                                                                     };
                                                                 });
                                                             }}
@@ -3260,11 +3305,17 @@ export default function Purchase() {
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
                                                                 }}
-                                                                onDoubleClick={() => {
-                                                                    const p = products.find(prod => prod.id === item.product_id);
+                                                                onContextMenu={(e) => {
+                                                                    const p = products.find(prod => prod.id === item.product_id) || item;
                                                                     if (p) {
-                                                                        setEditingProduct(p);
-                                                                        setIsEditModalOpen(true);
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        setItemContextMenu({
+                                                                            type: 'product',
+                                                                            data: p,
+                                                                            position: { x: e.clientX, y: e.clientY },
+                                                                            onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                        });
                                                                     }
                                                                 }}
                                                             >
@@ -3276,12 +3327,17 @@ export default function Purchase() {
                                                                 <td className="py-2 px-2 relative group-hover/search-row:z-[9999]">
                                                                     <div
                                                                         className="relative group/search-row hover:z-[9999]"
-                                                                        onDoubleClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            const p = products.find(prod => prod.id === item.product_id);
+                                                                        onContextMenu={(e) => {
+                                                                            const p = products.find(prod => prod.id === item.product_id) || item;
                                                                             if (p) {
-                                                                                setEditingProduct(p);
-                                                                                setIsEditModalOpen(true);
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                setItemContextMenu({
+                                                                                    type: 'product',
+                                                                                    data: p,
+                                                                                    position: { x: e.clientX, y: e.clientY },
+                                                                                    onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                                });
                                                                             }
                                                                         }}
                                                                     >
@@ -3510,12 +3566,17 @@ export default function Purchase() {
                                                                                                 ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor)
                                                                                             }}
                                                                                             title={item.product_name}
-                                                                                            onDoubleClick={(e) => {
+                                                                                            onContextMenu={(e) => {
                                                                                                 e.preventDefault();
-                                                                                                const p = products.find(prod => prod.id === item.product_id);
+                                                                                                e.stopPropagation();
+                                                                                                const p = products.find(prod => prod.id === item.product_id) || item;
                                                                                                 if (p) {
-                                                                                                    setEditingProduct(p);
-                                                                                                    setIsEditModalOpen(true);
+                                                                                                    setItemContextMenu({
+                                                                                                        type: 'product',
+                                                                                                        data: p,
+                                                                                                        position: { x: e.clientX, y: e.clientY },
+                                                                                                        onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                                                    });
                                                                                                 }
                                                                                             }}
                                                                                         />
@@ -3810,9 +3871,10 @@ export default function Purchase() {
                                                                         <div className={cn("flex items-center gap-1 h-10 px-2 rounded-2xl shadow-none transition-all text-primary dark:text-emerald-400", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}>
                                                                             <input
                                                                                 type="number"
+                                                                                step="any"
                                                                                 style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
                                                                                 className="w-full min-w-0 bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300"
-                                                                                value={item.secondary_qty}
+                                                                                value={item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== "" ? (typeof item.secondary_qty === 'number' ? Math.round((item.secondary_qty + Number.EPSILON) * 1000) / 1000 : item.secondary_qty) : ""}
                                                                                 onFocus={(e) => e.target.select()}
                                                                                 autoComplete="off"
                                                                                 onChange={(e) => updateCartItem(idx, 'secondary_qty', parseFloat(e.target.value) || 0)}
@@ -6139,6 +6201,86 @@ export default function Purchase() {
                         />
                     )}
                 </Portal>
+
+                {/* Edit Partner Modal */}
+                {isPartnerEditModalOpen && (
+                    <PartnerEditModal
+                        isOpen={isPartnerEditModalOpen}
+                        partner={editingPartner}
+                        onClose={() => {
+                            setIsPartnerEditModalOpen(false);
+                            setEditingPartner(null);
+                        }}
+                        onSave={() => {
+                            fetchPartners();
+                            queryClient.invalidateQueries({ queryKey: ['partners'] });
+                            setIsPartnerEditModalOpen(false);
+                            setEditingPartner(null);
+                        }}
+                    />
+                )}
+
+                {/* Edit Product Modal */}
+                {isEditModalOpen && (
+                    <ProductEditModal
+                        isOpen={isEditModalOpen}
+                        product={editingProduct}
+                        onClose={() => {
+                            setIsEditModalOpen(false);
+                            setEditingProduct(null);
+                        }}
+                        onSave={() => {
+                            fetchProducts();
+                            queryClient.invalidateQueries({ queryKey: ['products'] });
+                            setIsEditModalOpen(false);
+                            setEditingProduct(null);
+                        }}
+                    />
+                )}
+
+                {/* Action Context Menu for Products and Partners */}
+                <ActionContextMenu
+                    isOpen={!!itemContextMenu}
+                    type={itemContextMenu?.type || 'product'}
+                    data={itemContextMenu?.data}
+                    position={itemContextMenu?.position}
+                    onClose={() => setItemContextMenu(null)}
+                    onEdit={item => {
+                        if (itemContextMenu?.type === 'partner') {
+                            setEditingPartner(item);
+                            setIsPartnerEditModalOpen(true);
+                        } else {
+                            const prod = products.find(s => s.id === (item.id || item.product_id)) || item;
+                            setEditingProduct(prod);
+                            setIsEditModalOpen(true);
+                        }
+                    }}
+                    onConsultAI={item => {
+                        const prod = products.find(s => s.id === (item.id || item.product_id)) || item;
+                        const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
+                        const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || prod.product_name}${ingInfo}`;
+                        window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
+                        }, 150);
+                    }}
+                    onViewHistory={item => {
+                        if (itemContextMenu?.type === 'partner') {
+                            setHistoryPartner(item);
+                        } else {
+                            const prod = products.find(s => s.id === (item.id || item.product_id)) || item;
+                            setAuditProduct(prod);
+                            setAuditCoords({
+                                top: itemContextMenu?.position?.y || 200,
+                                bottom: (itemContextMenu?.position?.y || 200) + 40,
+                                left: itemContextMenu?.position?.x || 300,
+                                right: (itemContextMenu?.position?.x || 300) + 100
+                            });
+                            setIsAuditOpen(true);
+                        }
+                    }}
+                    onDelete={itemContextMenu?.onDelete}
+                />
             </div>
         </MotionConfig>
     );

@@ -661,7 +661,7 @@ const PartnerLedger = ({ onEditOrder }) => {
                                     ]}
                                 />
                                 <div className="flex-1" />
-                                <button onClick={handleExport} className="px-3 py-1.5 hover:bg-primary/10 rounded-xl text-primary transition-colors border border-border flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                <button onClick={handleExportLedger} className="px-3 py-1.5 hover:bg-primary/10 rounded-xl text-primary transition-colors border border-border flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
                                     <Download size={14} /> Xuất Excel
                                 </button>
                                 <button onClick={() => selectPartner(selectedPartner)} className="p-2 hover:bg-primary/10 rounded-xl text-primary transition-colors border border-border">

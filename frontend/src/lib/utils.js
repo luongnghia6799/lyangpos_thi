@@ -15,9 +15,9 @@ export const formatCurrency = (value) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 }
 
-export const formatNumber = (value) => {
+export const formatNumber = (value, maxDecimals = 3) => {
     if (value === undefined || value === null || isNaN(value)) return "0";
-    return new Intl.NumberFormat('en-US').format(value);
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: maxDecimals }).format(value);
 }
 
 export const formatDebt = (debt) => {

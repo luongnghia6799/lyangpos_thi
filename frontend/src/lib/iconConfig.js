@@ -1,8 +1,8 @@
-import * as LucideIcons from 'lucide-react';
-
-if (typeof window !== 'undefined') {
-    window.__LUCIDE_ICONS__ = LucideIcons;
-}
+import dynamicIconImports from 'lucide-react/dist/esm/dynamicIconImports.js';
+import { toPascalCase, toKebabCase } from 'lucide-react/dist/esm/shared/src/utils.js';
+import { preloadIconNode } from './customIcon.js';
+import { createElement, useState, useEffect } from 'react';
+import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
 
 export const POPULAR_ICONS = [
     // Điều hướng & Chức năng chính
@@ -92,6 +92,7 @@ export const POPULAR_ICONS = [
 ];
 
 const STORAGE_KEY = 'app_custom_icons';
+const CLIENT_ID = Math.random().toString(36).substring(2);
 
 export const getStoredCustomIcons = () => {
     try {
@@ -105,8 +106,6 @@ export const getStoredCustomIcons = () => {
     }
     return {};
 };
-
-const CLIENT_ID = Math.random().toString(36).substring(2);
 
 export const setStoredCustomIcon = (iconId, iconData) => {
     try {
@@ -152,13 +151,50 @@ export const resetStoredCustomIcons = () => {
     }
 };
 
+// Component render icon động siêu nhẹ từ dynamicIconImports (Zero heap saturation)
+const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'currentColor', className = '', ...props }) => {
+    const [node, setNode] = useState(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        preloadIconNode(name).then((resNode) => {
+            if (isMounted && resNode) {
+                setNode(resNode);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [name]);
+
+    if (!node) {
+        return createElement('span', {
+            className: `inline-block animate-pulse bg-slate-200 dark:bg-slate-700 rounded ${className}`,
+            style: { width: size, height: size }
+        });
+    }
+
+    return createElement(
+        'svg',
+        {
+            ...defaultAttributes,
+            width: size,
+            height: size,
+            stroke: color,
+            strokeWidth,
+            className: `lucide lucide-${toKebabCase(name)} ${className}`,
+            ...props
+        },
+        node.map(([tag, attrs], idx) => createElement(tag, { ...attrs, key: attrs.key || idx }))
+    );
+};
 
 export const getLucideIconComponent = (name) => {
     if (!name) return null;
-    return LucideIcons[name] || (typeof window !== 'undefined' && window.__LUCIDE_ICONS__ ? window.__LUCIDE_ICONS__[name] : null) || null;
+    return (props) => createElement(DynamicIconRenderer, { name, ...props });
 };
 
-// Lazy getter tránh lỗi Circular TDZ (Temporal Dead Zone)
+// Khởi tạo danh sách 1,900+ icon từ dynamicIconImports (Không tốn RAM, không load file thừa)
 let cachedAllIcons = null;
 
 export const getAllLucideIcons = () => {
@@ -168,21 +204,22 @@ export const getAllLucideIcons = () => {
     const seen = new Set(POPULAR_ICONS.map(i => i.name));
 
     try {
-        const iconsSource = (typeof window !== 'undefined' && window.__LUCIDE_ICONS__) || LucideIcons;
-        if (iconsSource) {
-            Object.keys(iconsSource).forEach(key => {
+        if (dynamicIconImports) {
+            Object.keys(dynamicIconImports).forEach(kebabKey => {
+                const pascalKey = toPascalCase(kebabKey);
                 if (
-                    /^[A-Z]/.test(key) &&
-                    key !== 'Icon' &&
-                    key !== 'Lucide' &&
-                    key !== 'LucideIcon' &&
-                    !key.endsWith('Icon')
+                    /^[A-Z]/.test(pascalKey) &&
+                    pascalKey !== 'Icon' &&
+                    pascalKey !== 'Lucide' &&
+                    pascalKey !== 'LucideIcon' &&
+                    !pascalKey.endsWith('Icon')
                 ) {
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        const friendlyLabel = key.replace(/([A-Z])/g, ' $1').trim();
+                    if (!seen.has(pascalKey)) {
+                        seen.add(pascalKey);
+                        const friendlyLabel = pascalKey.replace(/([A-Z])/g, ' $1').trim();
                         list.push({
-                            name: key,
+                            name: pascalKey,
+                            kebab: kebabKey,
                             label: friendlyLabel,
                             category: 'Kho Icon Khác'
                         });
@@ -191,7 +228,7 @@ export const getAllLucideIcons = () => {
             });
         }
     } catch (e) {
-        console.warn('Lazy loading lucide icons:', e);
+        console.warn('Loading dynamic lucide icons list:', e);
     }
 
     if (list.length > POPULAR_ICONS.length) {

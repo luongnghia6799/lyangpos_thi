@@ -6,22 +6,6 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const lucideIconInterceptorPlugin = () => {
-  const customIconFile = path.resolve(__dirname, './src/lib/customLucideIcon.js');
-  return {
-    name: 'lucide-icon-interceptor',
-    enforce: 'pre',
-    resolveId(id, importer) {
-      if (id.endsWith('createLucideIcon.js') || id.endsWith('createLucideIcon')) {
-        if (importer && (importer.includes('lucide-react') || importer.includes('lucide'))) {
-          return customIconFile;
-        }
-      }
-      return null;
-    }
-  };
-};
-
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const backendPort = process.env.VITE_BACKEND_PORT || (mode === 'development' ? '3580' : '3579');
@@ -31,7 +15,6 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     plugins: [
-      lucideIconInterceptorPlugin(),
       react({
         babel: {
           compact: false
@@ -41,8 +24,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: [
         {
-          find: /^lucide-react\/dist\/esm\/createLucideIcon(\.js)?$/,
-          replacement: path.resolve(__dirname, "./src/lib/customLucideIcon.js")
+          find: /^lucide-react\/dist\/esm\/Icon(\.js)?$/,
+          replacement: path.resolve(__dirname, "./src/lib/customIcon.js")
         },
         {
           find: "@",

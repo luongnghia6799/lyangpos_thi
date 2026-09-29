@@ -214,6 +214,7 @@ export default function Purchase() {
     const [bankAccounts, setBankAccounts] = useState([]);
     const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
     const [isOrderDetailModalOpen, setIsOrderDetailModalOpen] = useState(false);
+    const [selectedDetailOrder, setSelectedDetailOrder] = useState(null);
 
     // AI Receipt Scan States
     const [isScanModalOpen, setIsScanModalOpen] = useState(false);
@@ -2093,7 +2094,7 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                        className="dropdown-premium !bg-[#fbf9f4]/95 dark:!bg-[#141a12]/95 backdrop-blur-3xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
                                         <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">
@@ -2102,7 +2103,8 @@ export default function Purchase() {
                                                     data-index={0}
                                                     className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
                                                     onMouseMove={() => { if (activeIndex !== 0) setActiveIndex(0); }}
-                                                    onClick={() => {
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
                                                         setIsPartnerHovered(false);
                                                         setSelectedPartner(null);
                                                         setPartnerSearch('');
@@ -2127,7 +2129,8 @@ export default function Purchase() {
                                                         key={p.id}
                                                         data-index={targetIndex}
                                                         onMouseMove={() => { if (activeIndex !== targetIndex) setActiveIndex(targetIndex); }}
-                                                        onClick={() => {
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
                                                             setIsPartnerHovered(false);
                                                             setSelectedPartner(p);
                                                             setPartnerSearch('');
@@ -5989,9 +5992,13 @@ export default function Purchase() {
                 isOpen={Boolean(isOrderDetailModalOpen && selectedDetailOrder)}
                 order={selectedDetailOrder}
                 partner={partners.find(p => p.id === selectedDetailOrder?.partner_id)}
-                onClose={() => setIsOrderDetailModalOpen(false)}
+                onClose={() => {
+                    setIsOrderDetailModalOpen(false);
+                    setSelectedDetailOrder(null);
+                }}
                 onSave={() => {
                     setIsOrderDetailModalOpen(false);
+                    setSelectedDetailOrder(null);
                     queryClient.invalidateQueries(['orders']);
                     refreshConsignmentStatus(selectedPartner?.id);
                 }}

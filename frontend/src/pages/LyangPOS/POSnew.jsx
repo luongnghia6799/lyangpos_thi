@@ -1276,6 +1276,7 @@ function POSPage({
       }
     }),
     [productSearchCoords, setProductSearchCoords] = i.useState({ top: 0, left: 0, width: 700 }),
+    [cartRowSearchCoords, setCartRowSearchCoords] = i.useState({ top: 0, left: 0, width: 700 }),
     [hr, qa] = i.useState([]),
     [q, br] = i.useState(null),
     [Zt, Ma] = i.useState(!1),
@@ -1298,6 +1299,34 @@ function POSPage({
       });
       gr(!1), Wa("");
     };
+  i.useLayoutEffect(() => {
+    if (Tt !== null && zt) {
+      const updateCartCoords = () => {
+        const el = document.getElementById(`row-name-${Tt}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.bottom > 0) {
+            const nextTop = Math.round(rect.bottom + 6),
+              nextLeft = Math.round(rect.left),
+              nextWidth = Math.round(Math.max(rect.width, 700));
+            setCartRowSearchCoords(prev => {
+              if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) {
+                return prev;
+              }
+              return { top: nextTop, left: nextLeft, width: nextWidth };
+            });
+          }
+        }
+      };
+      updateCartCoords();
+      window.addEventListener("resize", updateCartCoords);
+      window.addEventListener("scroll", updateCartCoords, true);
+      return () => {
+        window.removeEventListener("resize", updateCartCoords);
+        window.removeEventListener("scroll", updateCartCoords, true);
+      };
+    }
+  }, [Tt, zt]);
   i.useLayoutEffect(() => {
     if (Z && !m?.product) {
       const updateCoords = () => {
@@ -3044,6 +3073,18 @@ function POSPage({
       _lowCode: (t.code || "").toLowerCase(),
       _lowActive: (t.active_ingredient || "").toLowerCase()
     })), [T]),
+    cartFilteredProducts = i.useMemo(() => {
+      const t = (zt || "").toLowerCase().trim(),
+        a = xt(t);
+      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
+        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
+          l = n(r),
+          d = n(s);
+        return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
+          sensitivity: "base"
+        });
+      }).slice(0, 50) : Ba.slice(0, 50);
+    }, [Ba, zt]),
     wt = i.useMemo(() => {
       const t = Z.toLowerCase(),
         a = xt(t);
@@ -4100,7 +4141,140 @@ function POSPage({
                                               color: a === De ? Mt.accent : Mt.main
                                             }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}</div>{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
                                       dn(Z), ur(!0);
-                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" step="any" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</x.div>}
+{Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && <x.div key="cart-row-product-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="fixed dropdown-premium backdrop-blur-2xl !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
+  top: cartRowSearchCoords.top,
+  left: cartRowSearchCoords.left,
+  width: Math.min(cartRowSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (cartRowSearchCoords.left || 0) - 16 : 700),
+  maxHeight: Math.min(480, typeof window !== "undefined" ? window.innerHeight - (cartRowSearchCoords.top || 0) - 16 : 480)
+}}><div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar" ref={Ea}>{cartFilteredProducts.map((r, s) => {
+  const curRow = ve[Tt];
+  const hasCustomPrice = Boolean(p && p.id && R && R[r.id] !== void 0);
+  const displayPrice = hasCustomPrice ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price);
+  return (
+    <div key={r.id} onMouseMove={() => { if (It !== s) Ca(s); }} onMouseDown={e => {
+      e.preventDefault();
+      if (!curRow) return;
+      let n = [...y];
+      const l = n.findIndex(u => u.cartId === curRow.cartId);
+      if (l === -1) return;
+      const d = n[l].quantity;
+      const o = n.findIndex((u, h) => h !== l && u.product_id === r.id);
+      if (o > -1) {
+        n[o].quantity += d;
+        n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
+        n.splice(l, 1);
+      } else {
+        n[l] = {
+          ...n[l],
+          product_id: r.id,
+          product_name: r.name,
+          unit: r.unit,
+          secondary_unit: r.secondary_unit,
+          multiplier: r.multiplier || 1,
+          price: displayPrice,
+          cost_price: r.cost_price,
+          latest_cost_price: r.latest_cost_price,
+          stock: r.stock,
+          is_combo: r.is_combo,
+          active_ingredient: r.active_ingredient,
+          is_manual_price: false
+        };
+        delete n[l]?.ai_scanned;
+      }
+      H(n);
+      ct(null);
+      ls("");
+      setTimeout(() => {
+        const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
+        const b = ve.findIndex(O => O.cartId === targetCartId);
+        const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
+        const w = document.getElementById(`qty-sec-${S}`);
+        if (Te === "Wholesale" && w && !w.disabled) {
+          w.focus();
+          w.select?.();
+        } else {
+          const O = document.getElementById(`qty-main-${S}`);
+          O?.focus();
+          O?.select?.();
+        }
+      }, 100);
+    }} onContextMenu={e => {
+      e.preventDefault();
+      e.stopPropagation();
+      setItemContextMenu({
+        type: 'product',
+        data: r,
+        position: { x: e.clientX, y: e.clientY }
+      });
+    }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}>
+      <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <Ps text={r.name} onContextMenu={e => {
+              e.preventDefault();
+              e.stopPropagation();
+              setItemContextMenu({
+                type: 'product',
+                data: r,
+                position: { x: e.clientX, y: e.clientY }
+              });
+            }} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+              color: s === It ? Mt.accent : Mt.main,
+              fontSize: s === It ? "18px" : "16px",
+              paddingLeft: s === It ? "12px" : "0px"
+            }} />
+          </div>
+          {r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}
+          {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && (
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}>
+              <Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap">
+          <div onClick={n => {
+            n.stopPropagation();
+            const l = n.currentTarget.getBoundingClientRect();
+            Xt(r), za({
+              top: l.top,
+              bottom: l.bottom,
+              left: l.left,
+              right: l.right
+            }), Dt(!0);
+          }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh">
+            <div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", r.stock < 10 && r.stock > 0 ? "text-slate-950" : "text-white")}>{r.stock}</span></div>
+            {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
+              <>
+                <span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} />
+                <div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div>
+              </>
+            )}
+          </div>
+          {r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}
+          <span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>
+          {r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}
+          {r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-4 relative z-10 shrink-0">
+        <div className="flex flex-col items-end gap-1">
+          <div className="text-[22px] font-black tracking-tighter tabular-nums" style={{ color: s === It ? Mt.accent : Mt.main }}>{z(displayPrice)}</div>
+          <div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div>
+        </div>
+      </div>
+    </div>
+  );
+})}</div>
+{zt && cartFilteredProducts.length === 0 && (
+  <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
+    dn(zt), ur(!0);
+  }}>
+    <Ot size={18} strokeWidth={3} />
+    <span>Thêm sản phẩm mới: "{zt}"</span>
+  </div>
+)}
+</x.div>}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground"><input type="number" step="any" className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -4262,10 +4436,15 @@ function POSPage({
                                     });
                                   }
                                 }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300", "placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
-                                    ct(a), ls(t.product_name), Ca(0), r.target.select(), r.target.scrollIntoView({
-                                      block: "nearest",
-                                      behavior: "smooth"
-                                    });
+                                    ct(a), ls(t.product_name), Ca(0), r.target.select();
+                                    const rect = r.target.getBoundingClientRect();
+                                    if (rect.width > 0 && rect.bottom > 0) {
+                                      setCartRowSearchCoords({
+                                        top: Math.round(rect.bottom + 6),
+                                        left: Math.round(rect.left),
+                                        width: Math.round(Math.max(rect.width, 700))
+                                      });
+                                    }
                                   }} onChange={r => {
                                     ls(r.target.value), Ca(0);
                                   }} onBlur={() => {
@@ -4285,119 +4464,110 @@ function POSPage({
                                       });
                                     }
                                   }} onKeyDown={r => {
-                                    const s = Ba.filter(n => {
-                                      const l = zt.toLowerCase(),
-                                        d = xt(l);
-                                      return n._lowName.includes(l) || n._normName.includes(d) || n._lowCode.includes(l) || n._normCode.includes(d) || n._lowActive.includes(l) || n._normActive.includes(d);
-                                    }).sort((n, l) => {
-                                      const d = zt.toLowerCase(),
-                                        o = n._lowName.startsWith(d),
-                                        u = l._lowName.startsWith(d);
-                                      return o && !u ? -1 : !o && u ? 1 : n._lowCode === d && l._lowCode !== d ? -1 : n._lowCode !== d && l._lowCode === d ? 1 : n._lowName.localeCompare(l._lowName, "vi", {
-                                        sensitivity: "base"
-                                      });
-                                    }).slice(0, 10);
+                                    const s = cartFilteredProducts;
                                     if (r.key === "ArrowDown") {
-                                      if (Tt === a && s.length > 0) r.preventDefault(), Ca(n => {
-                                        const l = Math.min(n + 1, s.length - 1);
-                                        if (Ea.current) {
-                                          const d = Ea.current.children[l];
-                                          d && d.scrollIntoView({
-                                            block: "nearest"
-                                          });
-                                        }
-                                        return l;
-                                      });else {
+                                      if (Tt === a && s.length > 0) {
+                                        r.preventDefault();
+                                        Ca(n => {
+                                          const l = Math.min(n + 1, s.length - 1);
+                                          if (Ea.current) {
+                                            const d = Ea.current.children[l];
+                                            d && d.scrollIntoView({ block: "nearest" });
+                                          }
+                                          return l;
+                                        });
+                                      } else {
                                         r.preventDefault();
                                         const n = a + 1;
                                         n < ve.length && document.getElementById(`row-name-${n}`)?.focus();
                                       }
                                     } else if (r.key === "ArrowUp") {
-                                      if (Tt === a && s.length > 0) r.preventDefault(), Ca(n => {
-                                        const l = Math.max(n - 1, 0);
-                                        if (Ea.current) {
-                                          const d = Ea.current.children[l];
-                                          d && d.scrollIntoView({
-                                            block: "nearest"
-                                          });
-                                        }
-                                        return l;
-                                      });else {
+                                      if (Tt === a && s.length > 0) {
+                                        r.preventDefault();
+                                        Ca(n => {
+                                          const l = Math.max(n - 1, 0);
+                                          if (Ea.current) {
+                                            const d = Ea.current.children[l];
+                                            d && d.scrollIntoView({ block: "nearest" });
+                                          }
+                                          return l;
+                                        });
+                                      } else {
                                         r.preventDefault();
                                         const n = a - 1;
                                         n >= 0 ? document.getElementById(`row-name-${n}`)?.focus() : se.current?.focus();
                                       }
-                                    } else if (r.key === "Enter") {
-                                      if (r.preventDefault(), s[It]) {
-                                        const n = s[It];
-                                        let l = [...y];
-                                        const d = t.quantity,
-                                          o = l.findIndex(h => h.cartId !== t.cartId && h.product_id === n.id),
-                                          u = l.findIndex(h => h.cartId === t.cartId);
-                                        u > -1 && (o > -1 ? (l[o].quantity += d, l[o].secondary_qty = l[o].quantity / (l[o].multiplier || 1), l.splice(u, 1)) : l[u] = {
-                                          ...l[u],
-                                          product_id: n.id,
-                                          product_name: n.name,
-                                          unit: n.unit,
-                                          secondary_unit: n.secondary_unit,
-                                          multiplier: n.multiplier || 1,
-                                          price: (p && p.id && R && R[n.id] !== void 0) ? R[n.id] : n.sale_price,
-                                          cost_price: n.cost_price,
-                                          latest_cost_price: n.latest_cost_price,
-                                          stock: n.stock,
-                                          latest_stock_entry: n.latest_stock_entry,
-                                          is_combo: n.is_combo,
-                                          secondary_qty: d / (n.multiplier || 1),
-                                          active_ingredient: n.active_ingredient
-                                        }, delete l[u]?.ai_scanned, H(l), ct(null));
-                                      }
-                                      se.current?.focus();
-                                    } else if (r.key === "Tab") {
+                                    } else if (r.key === "Enter" || r.key === "Tab") {
                                       r.preventDefault();
-                                      const n = s.length > 0 ? s : [];
-                                      if (n[It]) {
-                                        const l = n[It];
+                                      if (s[It]) {
+                                        const l = s[It];
                                         let d = [...y];
                                         const o = t.quantity,
+                                          hasCust = Boolean(p && p.id && R && R[l.id] !== void 0),
+                                          unitPrice = hasCust ? R[l.id] : ((Te === "Wholesale" && l.bulk_price) || l.sale_price),
                                           u = d.findIndex(b => b.cartId !== t.cartId && b.product_id === l.id),
                                           h = d.findIndex(b => b.cartId === t.cartId);
-                                        h > -1 && (u > -1 ? (d[u].quantity += o, d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1), d.splice(h, 1), H(d), ct(null), setTimeout(() => {
-                                          const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
-                                            S = b > -1 ? b : u > h ? u - 1 : u,
-                                            w = document.getElementById(`qty-sec-${S}`);
-                                          if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();else {
-                                            const O = document.getElementById(`qty-main-${S}`);
-                                            O?.focus(), O?.select?.();
+                                        if (h > -1) {
+                                          if (u > -1) {
+                                            d[u].quantity += o;
+                                            d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1);
+                                            d.splice(h, 1);
+                                            H(d);
+                                            ct(null);
+                                            ls("");
+                                            setTimeout(() => {
+                                              const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
+                                                S = b > -1 ? b : (u > h ? u - 1 : u),
+                                                w = document.getElementById(`qty-sec-${S}`);
+                                              if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+                                              else {
+                                                const O = document.getElementById(`qty-main-${S}`);
+                                                O?.focus(), O?.select?.();
+                                              }
+                                            }, 100);
+                                          } else {
+                                            d[h] = {
+                                              ...d[h],
+                                              product_id: l.id,
+                                              product_name: l.name,
+                                              unit: l.unit,
+                                              secondary_unit: l.secondary_unit,
+                                              multiplier: l.multiplier || 1,
+                                              price: unitPrice,
+                                              cost_price: l.cost_price,
+                                              latest_cost_price: l.latest_cost_price,
+                                              stock: l.stock,
+                                              latest_stock_entry: l.latest_stock_entry,
+                                              is_combo: l.is_combo,
+                                              secondary_qty: o / (l.multiplier || 1),
+                                              active_ingredient: l.active_ingredient,
+                                              is_manual_price: false
+                                            };
+                                            delete d[h]?.ai_scanned;
+                                            H(d);
+                                            ct(null);
+                                            ls("");
+                                            setTimeout(() => {
+                                              const w = document.getElementById(`qty-sec-${a}`);
+                                              if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+                                              else {
+                                                const S = document.getElementById(`qty-main-${a}`);
+                                                S?.focus(), S?.select?.();
+                                              }
+                                            }, 100);
                                           }
-                                        }, 200)) : (d[h] = {
-                                          ...d[h],
-                                          product_id: l.id,
-                                          product_name: l.name,
-                                          unit: l.unit,
-                                          secondary_unit: l.secondary_unit,
-                                          multiplier: l.multiplier || 1,
-                                          price: (p && p.id && R && R[l.id] !== void 0) ? R[l.id] : l.sale_price,
-                                          cost_price: l.cost_price,
-                                          latest_cost_price: l.latest_cost_price,
-                                          stock: l.stock,
-                                          latest_stock_entry: l.latest_stock_entry,
-                                          is_combo: l.is_combo,
-                                          secondary_qty: o / (l.multiplier || 1),
-                                          active_ingredient: l.active_ingredient
-                                        }, delete d[h]?.ai_scanned, H(d), ct(null), setTimeout(() => {
-                                          const b = document.getElementById(`qty-sec-${a}`);
-                                          if (Te === "Wholesale" && b && !b.disabled) b.focus(), b.select?.();else {
+                                        }
+                                      } else {
+                                        ct(null);
+                                        setTimeout(() => {
+                                          const w = document.getElementById(`qty-sec-${a}`);
+                                          if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+                                          else {
                                             const S = document.getElementById(`qty-main-${a}`);
                                             S?.focus(), S?.select?.();
                                           }
-                                        }, 200)));
-                                      } else ct(null), setTimeout(() => {
-                                        const l = document.getElementById(`qty-sec-${a}`);
-                                        if (Te === "Wholesale" && l && !l.disabled) l.focus(), l.select?.();else {
-                                          const d = document.getElementById(`qty-main-${a}`);
-                                          d?.focus(), d?.select?.();
-                                        }
-                                      }, 200);
+                                        }, 100);
+                                      }
                                     }
                                   }} id={`row-name-${a}`} /> : <div onClick={() => {
                                     ct(a), ls(t.product_name), Ca(0), setTimeout(() => {
@@ -4485,54 +4655,7 @@ function POSPage({
                                           right: n.right
                                         }), Dt(!0);
                                       }
-                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}{Tt === a && zt && <div className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-2xl !z-[1000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden"><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div ref={Ea} className="max-h-[480px] overflow-y-auto custom-scrollbar">{Ba.filter(r => {
-                                          const s = zt.toLowerCase(),
-                                            n = xt(s);
-                                          return r._lowName.includes(s) || r._normName.includes(n) || r._lowCode.includes(s) || r._normCode.includes(n) || r._lowActive.includes(s) || r._normActive.includes(n);
-                                        }).sort((r, s) => {
-                                          const n = zt.toLowerCase(),
-                                            l = r._lowName.startsWith(n),
-                                            d = s._lowName.startsWith(n);
-                                          return l && !d ? -1 : !l && d ? 1 : r._lowCode === n && s._lowCode !== n ? -1 : r._lowCode !== n && s._lowCode === n ? 1 : r._lowName.localeCompare(s._lowName, "vi", {
-                                            sensitivity: "base"
-                                          });
-                                        }).slice(0, 50).map((r, s) => <div key={r.id} onMouseMove={() => { if (Ja !== s) Ca(s); }} onClick={() => {
-                                          let n = [...y];
-                                          const l = n.findIndex(u => u.cartId === t.cartId);
-                                          if (l === -1) return;
-                                          const d = n[l].quantity,
-                                            o = n.findIndex((u, h) => h !== l && u.product_id === r.id);
-                                          o > -1 ? (n[o].quantity += d, n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1), n.splice(l, 1)) : (n[l] = {
-                                            ...n[l],
-                                            product_id: r.id,
-                                            product_name: r.name,
-                                            unit: r.unit,
-                                            secondary_unit: r.secondary_unit,
-                                            multiplier: r.multiplier || 1,
-                                            price: (p && p.id && R && R[r.id] !== void 0) ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price),
-                                            cost_price: r.cost_price,
-                                            latest_cost_price: r.latest_cost_price,
-                                            stock: r.stock,
-                                            is_combo: r.is_combo,
-                                            active_ingredient: r.active_ingredient,
-                                            is_manual_price: !1
-                                          }), H(n), ct(null), ls("");
-                                        }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={r.name} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
-                                              color: s === It ? Mt.accent : Mt.main,
-                                              fontSize: s === It ? "18px" : "16px",
-                                              paddingLeft: s === It ? "12px" : "0px"
-                                            }} /></div>{r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={n => {
-                                                n.stopPropagation();
-                                                const l = n.currentTarget.getBoundingClientRect();
-                                                Xt(r), za({
-                                                  top: l.top,
-                                                  bottom: l.bottom,
-                                                  left: l.left,
-                                                  right: l.right
-                                                }), Dt(!0);
-                                              }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{r.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div></>}</div>{r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>{r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}{r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums" style={{
-                                              color: s === It ? Mt.accent : Mt.main
-                                            }}>{z(r.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div></div></div></div>)}</div></div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap mt-0.5">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className={c("flex items-center gap-1 h-10 px-2 rounded-2xl transition-all shadow-none", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}><input type="number" step="any" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty !== undefined && t.secondary_qty !== null && t.secondary_qty !== "" ? (typeof t.secondary_qty === 'number' ? Math.round((t.secondary_qty + Number.EPSILON) * 1000) / 1000 : t.secondary_qty) : ""} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
+                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap mt-0.5">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className={c("flex items-center gap-1 h-10 px-2 rounded-2xl transition-all shadow-none", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}><input type="number" step="any" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty !== undefined && t.secondary_qty !== null && t.secondary_qty !== "" ? (typeof t.secondary_qty === 'number' ? Math.round((t.secondary_qty + Number.EPSILON) * 1000) / 1000 : t.secondary_qty) : ""} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
                                     if (r.key === "ArrowDown") {
                                       r.preventDefault();
                                       const s = a + 1;

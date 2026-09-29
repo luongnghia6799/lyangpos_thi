@@ -2065,7 +2065,7 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="dropdown-premium !bg-transparent backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                        className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
                                         <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">
@@ -2540,7 +2540,7 @@ export default function Purchase() {
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"
+                                        className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"
                                     >
                                         <div className="relative w-16 h-16 flex items-center justify-center">
                                             <div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" />
@@ -2553,7 +2553,7 @@ export default function Purchase() {
                                             <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
                                                 Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
                                             </span>
-                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">
+                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">
                                                 Đang đồng bộ dữ liệu...
                                             </span>
                                         </div>
@@ -2881,7 +2881,7 @@ export default function Purchase() {
                                                                             transition={{
                                                                                 duration: 0.15
                                                                             }}
-                                                                            className="dropdown-premium !bg-transparent backdrop-blur-2xl fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                            className="dropdown-premium backdrop-blur-2xl fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
                                                                                 left: workingSearchCoords.left,
@@ -3211,7 +3211,7 @@ export default function Purchase() {
                                                 </tr>
 
                                                 <AnimatePresence initial={false}>
-                                                    {!historyLoading && cart.length > 0 && cart.map((item, idx) => (
+                                                    {cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
                                                             key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
                                                             layout="position"
@@ -3652,7 +3652,7 @@ export default function Purchase() {
                                                                                 transition={{
                                                                                     duration: 0.15
                                                                                 }}
-                                                                                className="dropdown-premium !bg-transparent backdrop-blur-2xl absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                                className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                                                             >
                                                                             <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 ">
                                                                                 {products.filter(p => {
@@ -4071,21 +4071,32 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
+                                            layout
                                             initial={{
                                                 opacity: 0,
-                                                y: 20,
-                                                filter: "blur(10px)",
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)"
                                             }}
                                             animate={{
                                                 opacity: 1,
+                                                scale: 1,
                                                 y: 0,
-                                                filter: "blur(0.01px)",
+                                                filter: "blur(0.01px)"
                                             }}
                                             exit={{
                                                 opacity: 0,
-                                                y: 20,
-                                                filter: "blur(10px)",
-                                                transition: { duration: 0.15, ease: "easeOut" }
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)",
+                                                transition: { duration: 0.2, ease: "easeInOut" }
+                                            }}
+                                            transition={{
+                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+                                                type: "spring",
+                                                stiffness: 350,
+                                                damping: 26,
+                                                mass: 0.8
                                             }}
                                             className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
                                         >
@@ -4094,7 +4105,17 @@ export default function Purchase() {
                                                     const partnerStyle = getBubbleComputedStyle(cartColorConfig, 'partner');
                                                     const tc = partnerStyle?.color;
                                                     return (
-                                                        <div 
+                                                        <m.div 
+                                                            layout
+                                                            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                                                            transition={{
+                                                                layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                                type: "spring",
+                                                                stiffness: 400,
+                                                                damping: 28
+                                                            }}
                                                             onClick={() => {
                                                                 if (selectedPartner) {
                                                                     setIsHistoryPanelOpen(true);
@@ -4103,10 +4124,10 @@ export default function Purchase() {
                                                                 }
                                                             }}
                                                             style={partnerStyle}
-                                                            className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
+                                                            className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
                                                         >
                                                             <Truck className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={tc ? { color: tc, opacity: 0.1 } : undefined} />
-                                                            <div className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
+                                                            <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
                                                                 <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
                                                                     Nhà cung cấp / Đối tác
                                                                 </div>
@@ -4124,8 +4145,22 @@ export default function Purchase() {
                                                                     </div>
                                                                 </div>
 
+                                                                <AnimatePresence>
                                                                 {selectedPartner && (
-                                                                    <div className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5" style={tc ? { borderColor: `${tc}40` } : undefined}>
+                                                                    <m.div
+                                                                        layout
+                                                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                                                                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                                        transition={{
+                                                                            layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                                            type: "spring",
+                                                                            stiffness: 380,
+                                                                            damping: 26
+                                                                        }}
+                                                                        className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
+                                                                        style={tc ? { borderColor: `${tc}40` } : undefined}
+                                                                    >
                                                                         {(selectedPartner.phone || selectedPartner.tax_code || selectedPartner.cccd) && (
                                                                             <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
                                                                                 {selectedPartner.phone && (
@@ -4221,23 +4256,36 @@ export default function Purchase() {
                                                                                 })()}
                                                                             </div>
                                                                         )}
-                                                                    </div>
+                                                                    </m.div>
                                                                 )}
-                                                            </div>
-                                                        </div>
+                                                                </AnimatePresence>
+                                                            </m.div>
+                                                        </m.div>
                                                     );
                                                 })()}
 
                                                 {/* Mini Action Icons Next to Supplier */}
-                                                <div className="relative group/note-container pointer-events-auto">
-                                                    <div 
+                                                <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/note-container pointer-events-auto">
+                                                    <m.div 
+                                                        layout
+                                                        initial={{ opacity: 0, scale: 0.85 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.85 }}
+                                                        whileHover={{ scale: 1.08 }}
+                                                        whileTap={{ scale: 0.92 }}
+                                                        transition={{
+                                                            layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                            type: "spring",
+                                                            stiffness: 450,
+                                                            damping: 25
+                                                        }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setIsNoteModalOpen(!isNoteModalOpen);
                                                         }}
                                                         style={getButtonComputedStyle(cartColorConfig, 'note')}
                                                         className={cn(
-                                                            "w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]",
+                                                            "w-11 h-11 rounded-2xl flex items-center justify-center transition-colors transition-shadow cursor-pointer border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]",
                                                             note || isNoteModalOpen
                                                                 ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25"
                                                                 : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400"
@@ -4246,14 +4294,15 @@ export default function Purchase() {
                                                     >
                                                         <FileText size={18} className={note || isNoteModalOpen ? "text-white" : "transition-colors"} strokeWidth={2.5} />
                                                         {note && !isNoteModalOpen && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}
-                                                    </div>
+                                                    </m.div>
 
                                                     <AnimatePresence>
                                                         {isNoteModalOpen && (
                                                             <m.div
-                                                                initial={{ opacity: 0, scale: 0.9, x: -20, y: 20 }}
-                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                                                                exit={{ opacity: 0, scale: 0.9, x: -20, y: 20 }}
+                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)" }}
+                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)" }}
+                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)", transition: { duration: 0.16, ease: "easeOut" } }}
+                                                                transition={{ type: "spring", stiffness: 420, damping: 26 }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
                                                             >
@@ -4279,38 +4328,64 @@ export default function Purchase() {
                                                             </m.div>
                                                         )}
                                                     </AnimatePresence>
-                                                </div>
+                                                </m.div>
                                             </div>
                                         </m.div>
 
                                         {/* Floating Total & Payment Bubble - Bottom Right */}
                                         <m.div
                                             key="total-bubble"
+                                            layout
                                             initial={{
                                                 opacity: 0,
-                                                y: 20,
-                                                filter: "blur(10px)",
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)"
                                             }}
                                             animate={{
                                                 opacity: 1,
+                                                scale: 1,
                                                 y: 0,
-                                                filter: "blur(0.01px)",
+                                                filter: "blur(0.01px)"
                                             }}
                                             exit={{
                                                 opacity: 0,
-                                                y: 20,
-                                                filter: "blur(10px)",
-                                                transition: { duration: 0.15, ease: "easeOut" }
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)",
+                                                transition: { duration: 0.2, ease: "easeInOut" }
+                                            }}
+                                            transition={{
+                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+                                                type: "spring",
+                                                stiffness: 350,
+                                                damping: 26,
+                                                mass: 0.8
                                             }}
                                             className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
                                         >
                                             {/* Tiền trả NCC (F1) / Đã trả */}
+                                            <AnimatePresence>
                                             {paymentMethod === 'Cash' && (
-                                                <div style={getBubbleComputedStyle(cartColorConfig, 'cash')} className="pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] transition-all duration-300">
+                                                <m.div
+                                                    key="purchase-cash-bubble"
+                                                    layout
+                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
+                                                    transition={{
+                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                        type: "spring",
+                                                        stiffness: 400,
+                                                        damping: 28
+                                                    }}
+                                                    style={getBubbleComputedStyle(cartColorConfig, 'cash')}
+                                                    className="pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300"
+                                                >
                                                     <div style={getBubbleBadgeStyle(cartColorConfig, 'cash')} className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md shrink-0 group-hover/cash-calculator:rotate-12 transition-transform">
                                                         <Coins size={20} style={{ color: getBubbleBadgeStyle(cartColorConfig, 'cash').color || '#ffffff' }} />
                                                     </div>
-                                                    <div className="flex flex-col ml-3">
+                                                    <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col ml-3">
                                                         <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, "cash").color ? { color: getBubbleComputedStyle(cartColorConfig, "cash").color } : undefined}>
                                                             Tiền trả NCC (F1)
                                                         </span>
@@ -4331,13 +4406,29 @@ export default function Purchase() {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
+                                                    </m.div>
+                                                </m.div>
                                             )}
+                                            </AnimatePresence>
 
                                             {/* Payment Method Toggle */}
+                                            <AnimatePresence>
                                             {selectedPartner && (
-                                                <div style={getBubbleComputedStyle(cartColorConfig, 'payment')} className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-all duration-300">
+                                                <m.div
+                                                    key="purchase-payment-toggle-bubble"
+                                                    layout
+                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
+                                                    transition={{
+                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                        type: "spring",
+                                                        stiffness: 400,
+                                                        damping: 28
+                                                    }}
+                                                    style={getBubbleComputedStyle(cartColorConfig, 'payment')}
+                                                    className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
+                                                >
                                                     <m.div 
                                                         layout
                                                         className="absolute inset-y-1 rounded-xl shadow-md z-0"
@@ -4360,7 +4451,7 @@ export default function Purchase() {
                                                                 : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
                                                         }}
                                                         className={cn(
-                                                            "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5",
+                                                            "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5",
                                                             paymentMethod === 'Cash' ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400"
                                                         )}
                                                     >
@@ -4379,23 +4470,34 @@ export default function Purchase() {
                                                                 : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
                                                         }}
                                                         className={cn(
-                                                            "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5",
+                                                            "flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5",
                                                             paymentMethod === 'Debt' ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400"
                                                         )}
                                                     >
                                                         <CreditCard size={13} className={cn(paymentMethod === 'Debt' ? "opacity-100" : "opacity-40")} />
                                                         <span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span>
                                                     </button>
-                                                </div>
+                                                </m.div>
                                             )}
+                                            </AnimatePresence>
 
                                             {/* Big Total Bubble */}
-                                            <div 
+                                            <m.div 
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                                                transition={{
+                                                    layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                    type: "spring",
+                                                    stiffness: 400,
+                                                    damping: 28
+                                                }}
                                                 style={getBubbleComputedStyle(cartColorConfig, 'total')}
-                                                className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"
+                                                className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-shadow transition-border duration-300 hover:scale-[1.02] active:scale-[0.99]"
                                             >
                                                 <Wallet className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" />
-                                                <div className="flex items-center gap-1.5 mb-0.5 z-10 relative">
+                                                <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex items-center gap-1.5 mb-0.5 z-10 relative">
                                                     <div 
                                                         className="w-2 h-2 rounded-full animate-pulse" 
                                                         style={{ 
@@ -4409,14 +4511,14 @@ export default function Purchase() {
                                                     <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                         Tổng cộng tiền nhập
                                                     </span>
-                                                </div>
-                                                <div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
+                                                </m.div>
+                                                <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                     {formatNumber(totalAmount)}
                                                     <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
                                                         đ
                                                     </span>
-                                                </div>
-                                            </div>
+                                                </m.div>
+                                            </m.div>
                                         </m.div>
                                     </>
                                 )}

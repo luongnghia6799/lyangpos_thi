@@ -13,7 +13,7 @@ import { Edit3 } from 'lucide-react';
  * @param {string} className - Class CSS tùy biến
  * @param {boolean} allowEdit - Cho phép click đổi icon khi bật edit mode (mặc định true)
  */
-export default function DynamicIcon({
+function DynamicIconComponent({
     id,
     defaultIcon: DefaultIcon,
     label,
@@ -63,3 +63,5 @@ export default function DynamicIcon({
 
     return <ActiveIcon size={size} className={className} {...props} />;
 }
+
+export default React.memo(DynamicIconComponent);

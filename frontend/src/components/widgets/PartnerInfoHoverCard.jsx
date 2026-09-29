@@ -7,7 +7,7 @@ const formatNumber = (num) => {
     return Number(num).toLocaleString('vi-VN');
 };
 
-export const PartnerInfoHoverCard = ({ partner, isVisible, position = 'bottom' }) => {
+export const PartnerInfoHoverCard = React.memo(({ partner, isVisible, position = 'bottom' }) => {
     if (!partner || !isVisible) return null;
 
     const isCustomer = partner.is_customer !== false;
@@ -33,7 +33,7 @@ export const PartnerInfoHoverCard = ({ partner, isVisible, position = 'bottom' }
                 transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
                 className={`absolute ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'} left-0 w-72 md:w-80 z-[4500] pointer-events-none select-none`}
             >
-                <div className="dropdown-premium !bg-[#faf8f3] dark:!bg-[#161a22] border border-[#8b6f47]/30 dark:border-white/10 p-3.5 rounded-2xl !relative text-foreground flex flex-col gap-2.5 shadow-xl">
+                <div className="dropdown-premium  border border-[#8b6f47]/30 dark:border-white/10 p-3.5 rounded-2xl !relative text-foreground flex flex-col gap-2.5 shadow-xl">
                     
                     {/* Header: Name + Badge */}
                     <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-800/80 pb-2">
@@ -146,6 +146,6 @@ export const PartnerInfoHoverCard = ({ partner, isVisible, position = 'bottom' }
             </motion.div>
         </AnimatePresence>
     );
-};
+});
 
 export default PartnerInfoHoverCard;

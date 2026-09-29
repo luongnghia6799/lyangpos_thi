@@ -1294,7 +1294,7 @@ function POSPage({
         if (typeof document !== "undefined" && document.hidden) return;
         const s = localStorage.getItem("pos_terminal_id"),
           l = ((await Vn.get("/api/pos/terminals")).data.terminals || []).filter(d => d.terminal_id !== s);
-        qa(l);
+        qa(prev => (JSON.stringify(prev) === JSON.stringify(l) ? prev : l));
       } catch {}
     };
     t();
@@ -1746,7 +1746,7 @@ function POSPage({
       }, 150);
       return () => clearTimeout(t);
     }
-  }, [$, p]);
+  }, [$, p?.name]);
   const vs = i.useMemo(() => {
       const t = y.reduce((r, s) => {
           const n = s.product_id == null ? s.price : s.cost_price || 0;
@@ -3022,9 +3022,16 @@ function POSPage({
     window.addEventListener('pos_add_product_by_id', handleAddProduct);
     return () => window.removeEventListener('pos_add_product_by_id', handleAddProduct);
   }, [ia, T]);
-  return i.useEffect(() => (window.addEventListener("mousemove", Cs), window.addEventListener("mouseup", Ns), () => {
-    window.removeEventListener("mousemove", Cs), window.removeEventListener("mouseup", Ns);
-  }), [Cs, Ns]), <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
+  i.useEffect(() => {
+    if (!wa) return;
+    window.addEventListener("mousemove", Cs);
+    window.addEventListener("mouseup", Ns);
+    return () => {
+      window.removeEventListener("mousemove", Cs);
+      window.removeEventListener("mouseup", Ns);
+    };
+  }, [wa, Cs, Ns]);
+  return <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
     type: "just"
   } : void 0}><><div id="pos-root-container" className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode")}><style>{`
           :root {
@@ -3210,7 +3217,7 @@ function POSPage({
                         damping: 25
                       }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
                           t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
-                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <x.div key="pos-partner-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="absolute top-full left-0 mt-2 dropdown-premium !bg-transparent backdrop-blur-2xl !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
+                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <x.div key="pos-partner-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="absolute top-full left-0 mt-2 dropdown-premium backdrop-blur-2xl !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" ref={xs}><div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 divide-y divide-[#8b6f47]/10 dark:divide-white/5">{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
                         }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0", We === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => <x.div key={t.id} data-index={yt ? a : a + 1} onClick={() => {
                           W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
@@ -3557,7 +3564,7 @@ function POSPage({
                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                 boxShadow: getCartBoxShadow(cartColorConfig)
               }}
-            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent backdrop-blur-sm select-none rounded-3xl"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-transparent border border-[#8b6f47]/25 dark:border-white/10 shadow-xs backdrop-blur-md">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
+            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
                 initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -3964,8 +3971,8 @@ function POSPage({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="fixed dropdown-premium !bg-transparent backdrop-blur-2xl !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
-                                  backgroundColor: "transparent",
+                                }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && <x.div key="pos-product-dropdown" initial={{ opacity: 0, y: 8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.96 }} transition={{ duration: 0.16, ease: "easeOut" }} className="fixed dropdown-premium backdrop-blur-2xl !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden" style={{
+                                  
                                   top: productSearchCoords.top,
                                   left: productSearchCoords.left,
                                   width: Math.min(productSearchCoords.width || 700, typeof window !== "undefined" ? window.innerWidth - (productSearchCoords.left || 0) - 16 : 700),
@@ -4119,7 +4126,7 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && !fn && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
                               opacity: 0,
                               x: -20
                             }} animate={{
@@ -4398,7 +4405,7 @@ function POSPage({
                                           right: n.right
                                         }), Dt(!0);
                                       }
-                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}{Tt === a && zt && <div className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium !bg-transparent backdrop-blur-2xl !z-[1000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden"><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div ref={Ea} className="max-h-[480px] overflow-y-auto custom-scrollbar">{Ba.filter(r => {
+                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}{Tt === a && zt && <div className="absolute left-0 top-full mt-2 w-full min-w-[700px] dropdown-premium backdrop-blur-2xl !z-[1000] shadow-2xl rounded-2xl border-2 border-[#8b6f47]/40 dark:border-white/15 overflow-hidden"><div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" /><div ref={Ea} className="max-h-[480px] overflow-y-auto custom-scrollbar">{Ba.filter(r => {
                                           const s = zt.toLowerCase(),
                                             n = xt(s);
                                           return r._lowName.includes(s) || r._normName.includes(n) || r._lowCode.includes(s) || r._normCode.includes(n) || r._lowActive.includes(s) || r._normActive.includes(n);
@@ -4532,254 +4539,606 @@ function POSPage({
                           }} transition={{
                             duration: 0.85,
                             ease: "easeInOut"
-                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <><x.div key="partner-bubble" initial={{
-                    opacity: 0,
-                    y: 20,
-                    filter: "blur(10px)"
-                  }} animate={{
-                    opacity: 1,
-                    y: 0,
-                    filter: "blur(0.01px)"
-                  }} exit={{
-                    opacity: 0,
-                    y: 20,
-                    filter: "blur(10px)",
-                    transition: {
-                      duration: 0.15,
-                      ease: "easeOut"
-                    }
-                  }} className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"><div className="flex items-center gap-2.5 pointer-events-auto">{(() => {
-                        const partnerStyle = getBubbleComputedStyle(cartColorConfig, 'partner');
-                        const tc = partnerStyle?.color;
+                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
+  <x.div
+    key="partner-bubble"
+    layout
+    initial={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)"
+    }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      filter: "blur(0.01px)"
+    }}
+    exit={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)",
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }}
+    transition={{
+      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+      type: "spring",
+      stiffness: 350,
+      damping: 26,
+      mass: 0.8
+    }}
+    className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
+  >
+    <div className="flex items-center gap-2.5 pointer-events-auto">
+      <x.div
+        key="partner-card-bubble"
+        layout
+        initial={{ opacity: 0, scale: 0.92, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 12 }}
+        transition={{
+          layout: { type: "spring", stiffness: 350, damping: 28 },
+          type: "spring",
+          stiffness: 400,
+          damping: 28
+        }}
+        onClick={t => {
+          t.stopPropagation(), p ? setIsHistoryPanelOpen(true) : Xr(!0);
+        }}
+        style={getBubbleComputedStyle(cartColorConfig, 'partner')}
+        className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
+      >
+        <Gn className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color, opacity: 0.1 } : undefined} />
+        <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
+          <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+            Đối tác / Khách hàng
+          </div>
+          <div className="flex items-center gap-1.5 mb-1">
+            {g === "remote_inspect" ? (
+              <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-md text-[9px] font-black tracking-wider shrink-0 border border-emerald-500/20">
+                MÁY TRẠM
+              </span>
+            ) : (
+              p && (
+                <span 
+                  className={c("px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", !getBubbleComputedStyle(cartColorConfig, 'partner')?.color && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30")}
+                  style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color, borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}40`, backgroundColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}20` } : undefined}
+                >
+                  ID: {p.id}
+                </span>
+              )
+            )}
+            <div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+              {g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}
+            </div>
+          </div>
+          <P>
+            {Pe && (
+              <x.div
+                layout
+                initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                animate={{ opacity: 1, height: "auto", scale: 1 }}
+                exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                transition={{
+                  layout: { type: "spring", stiffness: 350, damping: 28 },
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 26
+                }}
+                className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
+                style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}40` } : undefined}
+              >
+                {(Pe.phone || Pe.cccd) && (
+                  <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+                    {Pe.phone && (
+                      <div className="flex items-center gap-1" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+                        <Mr size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
+                        <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.phone}</span>
+                      </div>
+                    )}
+                    {Pe.cccd && (
+                      <div className="flex items-center gap-1" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+                        <Comp_ca size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
+                        <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.cccd}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {Pe.address && (
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
+                    <Us size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
+                    <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.address}</span>
+                  </div>
+                )}
+                {(g === "remote_inspect" ? Pe.debt_balance || 0 : (it !== 0 || de !== 0)) && (
+                  <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}25` } : undefined}>
+                    {(() => {
+                      const tc = getBubbleComputedStyle(cartColorConfig, 'partner')?.color;
+                      if (g === "remote_inspect") {
+                        const a = Pe.debt_balance || 0;
                         return (
-                          <div onClick={t => {
-                            t.stopPropagation(), p ? setIsHistoryPanelOpen(true) : Xr(!0);
-                          }} style={partnerStyle} className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden">
-                            <Gn className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={tc ? { color: tc, opacity: 0.1 } : undefined} />
-                            <div className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
-                              <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
-                                Đối tác / Khách hàng
-                              </div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                {g === "remote_inspect" ? (
-                                  <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-md text-[9px] font-black tracking-wider shrink-0 border border-emerald-500/20">
-                                    MÁY TRẠM
-                                  </span>
-                                ) : (
-                                  p && (
-                                    <span 
-                                      className={c("px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", !tc && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30")}
-                                      style={tc ? { color: tc, borderColor: `${tc}40`, backgroundColor: `${tc}20` } : undefined}
-                                    >
-                                      ID: {p.id}
-                                    </span>
-                                  )
-                                )}
-                                <div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" style={tc ? { color: tc } : undefined}>
-                                  {g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}
-                                </div>
-                              </div>
-                              {Pe && (
-                                <div className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5" style={tc ? { borderColor: `${tc}40` } : undefined}>
-                                  {(Pe.phone || Pe.cccd) && (
-                                    <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
-                                      {Pe.phone && (
-                                        <div className="flex items-center gap-1" style={tc ? { color: tc } : undefined}>
-                                          <Mr size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
-                                          <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{Pe.phone}</span>
-                                        </div>
-                                      )}
-                                      {Pe.cccd && (
-                                        <div className="flex items-center gap-1" style={tc ? { color: tc } : undefined}>
-                                          <Comp_ca size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
-                                          <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{Pe.cccd}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                  {Pe.address && (
-                                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
-                                      <Us size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={tc ? { color: tc } : undefined} />
-                                      <span className="truncate leading-normal" style={tc ? { color: tc } : undefined}>{Pe.address}</span>
-                                    </div>
-                                  )}
-                                  {(g === "remote_inspect" ? Pe.debt_balance || 0 : (it !== 0 || de !== 0)) && (
-                                    <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15" style={tc ? { borderColor: `${tc}25` } : undefined}>
-                                      {(() => {
-                                        if (g === "remote_inspect") {
-                                          const a = Pe.debt_balance || 0;
-                                          return (
-                                            <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                                              <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                                                <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
-                                                <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
-                                              </div>
-                                              <div className="flex items-center gap-1">
-                                                <span className={c("text-xs font-black tabular-nums", a > 0 ? "text-rose-600 dark:text-rose-400" : a < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
-                                                  {z(Math.abs(a))}đ
-                                                </span>
-                                                <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", a > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : a < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                                                  {a > 0 ? "Khách nợ" : a < 0 ? "Mình nợ" : "Hết nợ"}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-                                        if (it - de === 0) {
-                                          return (
-                                            <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                                              <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                                                <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
-                                                <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
-                                              </div>
-                                              <div className="flex items-center gap-1">
-                                                <span className={c("text-xs font-black tabular-nums", de > 0 ? "text-rose-600 dark:text-rose-400" : de < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
-                                                  {z(Math.abs(de))}đ
-                                                </span>
-                                                <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", de > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : de < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                                                  {de > 0 ? "Khách nợ" : de < 0 ? "Mình nợ" : "Hết nợ"}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-                                        const S_delta = it - de;
-                                        return (
-                                          <div className="flex flex-col gap-1 w-full">
-                                            <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                                              <span className="flex items-center gap-1">
-                                                <Va size={11} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined} />
-                                                <span style={tc ? { color: tc } : undefined}>Biến động nợ</span>
-                                              </span>
-                                              <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", it > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : it < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                                                {it > 0 ? "Khách nợ" : it < 0 ? "Mình nợ" : "Hết nợ"}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                                              <div className="flex flex-col">
-                                                <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mb-0.5" style={tc ? { color: tc, opacity: 0.7 } : undefined}>
-                                                  Hiện tại
-                                                </span>
-                                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-through decoration-rose-400/60 tabular-nums" style={tc ? { color: tc, opacity: 0.8 } : undefined}>
-                                                  {z(Math.abs(de))}đ
-                                                </span>
-                                              </div>
-                                              <div className={c("flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-tight", S_delta > 0 ? "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25")}>
-                                                <span>➔</span>
-                                                <span>{S_delta > 0 ? `+${z(S_delta)}` : `-${z(Math.abs(S_delta))}`}</span>
-                                              </div>
-                                              <div className="flex flex-col items-end">
-                                                <span className="text-[8px] font-bold text-rose-500/80 dark:text-rose-400/80 uppercase leading-none mb-0.5">
-                                                  Sau đơn
-                                                </span>
-                                                <span className={c("text-[11px] font-black tabular-nums", it > 0 ? "text-rose-600 dark:text-rose-400" : it < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#2d5016] dark:text-emerald-400")}>
-                                                  {z(Math.abs(it))}đ
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                          <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
+                              <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
+                              <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className={c("text-xs font-black tabular-nums", a > 0 ? "text-rose-600 dark:text-rose-400" : a < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
+                                {z(Math.abs(a))}đ
+                              </span>
+                              <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", a > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : a < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
+                                {a > 0 ? "Khách nợ" : a < 0 ? "Mình nợ" : "Hết nợ"}
+                              </span>
                             </div>
                           </div>
                         );
-                      })()}<div className="relative group/note-container pointer-events-auto"><div onClick={t => {
-                            t.stopPropagation(), as(!lr);
-                          }} style={getButtonComputedStyle(cartColorConfig, 'note')} className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", K || lr ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")} title="Ghi chú hóa đơn"><Comp_ca size={18} className={K || lr ? "text-white" : "transition-colors"} strokeWidth={2.5} />{K && !lr && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}</div><P>{lr && <x.div initial={{
-                              opacity: 0,
-                              scale: 0.9,
-                              x: -20,
-                              y: 20
-                            }} animate={{
-                              opacity: 1,
-                              scale: 1,
-                              x: 0,
-                              y: 0
-                            }} exit={{
-                              opacity: 0,
-                              scale: 0.9,
-                              x: -20,
-                              y: 20
-                            }} onClick={t => t.stopPropagation()} className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"><div className="flex justify-between items-center mb-2"><div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest">Ghi chú đơn</div><button onClick={t => {
-                                  t.stopPropagation(), as(!1);
-                                }} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><textarea autoFocus={!0} placeholder="Nhập ghi chú cho hóa đơn này..." rows={3} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar text-slate-800 dark:text-white placeholder:text-slate-400" value={K} onChange={t => $e(t.target.value)} /></x.div>}</P></div><div className="relative group/ship-container pointer-events-auto"><div onClick={t => {
-                            t.stopPropagation(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
-                          }} style={getButtonComputedStyle(cartColorConfig, 'ship')} className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", tt ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")} title="Giao hàng tận nơi"><Comp_u_t size={18} strokeWidth={2.5} className={tt ? "text-white" : "transition-colors"} />{tt && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-800" />}</div><P>{tt && <x.div initial={{
-                              opacity: 0,
-                              scale: 0.9,
-                              x: -20,
-                              y: 20
-                            }} animate={{
-                              opacity: 1,
-                              scale: 1,
-                              x: 0,
-                              y: 0
-                            }} exit={{
-                              opacity: 0,
-                              scale: 0.9,
-                              x: -20,
-                              y: 20
-                            }} onClick={t => t.stopPropagation()} className="absolute bottom-full left-0 mb-3 w-[320px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-5 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"><div className="flex justify-between items-center mb-4"><div className="flex items-center gap-2"><Comp_u_t size={16} className="text-[#2d5016] dark:text-emerald-400" /><div className="text-[10px] font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-widest">Thông tin giao hàng</div></div><button onClick={t => {
-                                  t.stopPropagation(), qt(null);
-                                }} className="text-slate-400 hover:text-rose-500 transition-colors"><Comp_ke size={14} strokeWidth={3} /></button></div><div className="space-y-4"><div className="space-y-1"><label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Địa chỉ giao hàng</label><textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all resize-none text-slate-800 dark:text-white placeholder:text-slate-400" value={vr} onChange={t => ra(t.target.value)} /></div><div className="space-y-1"><label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Số điện thoại nhận</label><div className="relative"><Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all text-slate-800 dark:text-white placeholder:text-slate-400" value={kr} onChange={t => sa(t.target.value)} /></div></div></div></x.div>}</P></div></div></x.div><x.div key="total-bubble" initial={{
-                    opacity: 0,
-                    y: 20,
-                    filter: "blur(10px)"
-                  }} animate={{
-                    opacity: 1,
-                    y: 0,
-                    filter: "blur(0.01px)"
-                  }} exit={{
-                    opacity: 0,
-                    y: 20,
-                    filter: "blur(10px)",
-                    transition: {
-                      duration: 0.15,
-                      ease: "easeOut"
-                    }
-                  }} className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5">{I === "Cash" && (() => {
-                    const cashStyle = getBubbleComputedStyle(cartColorConfig, 'cash');
-                    const tc = cashStyle?.color;
-                    return (
-                      <div style={cashStyle} className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer hover:scale-[1.02] transition-all duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]">
-                        <Comp_oa className="absolute -right-3 -bottom-3 w-24 h-24 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/cash-calculator:scale-110 group-hover/cash-calculator:-rotate-6 pointer-events-none select-none" style={tc ? { color: tc, opacity: 0.1 } : undefined} />
-                        <div className="flex flex-col relative z-10 w-full">
-                          <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5 whitespace-nowrap" style={tc ? { color: tc } : undefined}>Khách đưa (F1)</span>
-                          <div className="flex items-center gap-2.5">
-                            <div className="relative flex items-center min-w-[70px] group/input-wrapper h-full">
-                              <span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span>
-                              <input id="cash-given-compact" ref={xr} type="text" style={tc ? { color: tc } : undefined} className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} />
+                      }
+                      if (it - de === 0) {
+                        return (
+                          <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
+                            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
+                              <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
+                              <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
                             </div>
-                            {V > 0 && <div className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5"><span className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap" style={tc ? { color: tc } : undefined}>Tiền thối</span><span className={c("text-xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span></div>}
+                            <div className="flex items-center gap-1">
+                              <span className={c("text-xs font-black tabular-nums", de > 0 ? "text-rose-600 dark:text-rose-400" : de < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
+                                {z(Math.abs(de))}đ
+                              </span>
+                              <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", de > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : de < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
+                                {de > 0 ? "Khách nợ" : de < 0 ? "Mình nợ" : "Hết nợ"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      const S_delta = it - de;
+                      return (
+                        <div className="flex flex-col gap-1 w-full">
+                          <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
+                            <span className="flex items-center gap-1">
+                              <Va size={11} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined} />
+                              <span style={tc ? { color: tc } : undefined}>Biến động nợ</span>
+                            </span>
+                            <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", it > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : it < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
+                              {it > 0 ? "Khách nợ" : it < 0 ? "Mình nợ" : "Hết nợ"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
+                            <div className="flex flex-col">
+                              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mb-0.5" style={tc ? { color: tc, opacity: 0.7 } : undefined}>
+                                Hiện tại
+                              </span>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-through decoration-rose-400/60 tabular-nums" style={tc ? { color: tc, opacity: 0.8 } : undefined}>
+                                {z(Math.abs(de))}đ
+                              </span>
+                            </div>
+                            <div className={c("flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-tight", S_delta > 0 ? "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25")}>
+                              <span>➔</span>
+                              <span>{S_delta > 0 ? `+${z(S_delta)}` : `-${z(Math.abs(S_delta))}`}</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <span className="text-[8px] font-bold text-rose-500/80 dark:text-rose-400/80 uppercase leading-none mb-0.5">
+                                Sau đơn
+                              </span>
+                              <span className={c("text-[11px] font-black tabular-nums", it > 0 ? "text-rose-600 dark:text-rose-400" : it < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#2d5016] dark:text-emerald-400")}>
+                                {z(Math.abs(it))}đ
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })()}{(p || g === "remote_inspect") && <div style={getBubbleComputedStyle(cartColorConfig, 'payment')} className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-all duration-300"><x.div layout={!0} className="absolute inset-y-1 rounded-xl shadow-md z-0" style={{
-                        width: "calc(50% - 4px)",
-                        left: (g === "remote_inspect" ? k?.payment_method || "Cash" : I) === "Cash" ? "4px" : "calc(50%)",
-                        ...getBubbleBadgeStyle(cartColorConfig, 'payment')
-                      }} transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30
-                      }} /><button onClick={t => {
-                        t.stopPropagation(), ge("Cash"), re($);
-                      }} style={{
-                        color: I === "Cash" 
-                          ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
-                          : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
-                      }} className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Cash" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}><Comp_oa size={13} className={c(I === "Cash" ? "opacity-100" : "opacity-40")} /><span className="text-[9px] font-black uppercase tracking-wider">Tiền mặt</span></button><button onClick={t => {
-                        t.stopPropagation(), ge("Debt"), re(0);
-                      }} style={{
-                        color: I === "Debt" 
-                          ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
-                          : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
-                      }} className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-all duration-300 relative z-10 gap-0.5", I === "Debt" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}><Comp_ua size={13} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} /><span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span></button></div>}<div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} style={getBubbleComputedStyle(cartColorConfig, 'total')} className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-all duration-300 hover:scale-[1.02]"><Va className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" /><div className="flex items-center gap-1.5 mb-0.5 z-10 relative"><div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: (cartColorConfig?.bubbleBorderColor && cartColorConfig.bubbleBorderColor !== 'default') ? cartColorConfig.bubbleBorderColor : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#10b981' }} /><span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>Tổng cộng thanh toán</span></div><div className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>{z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}<span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>đ</span></div>{Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && <div className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative"><Kn size={12} className="text-emerald-600 dark:text-emerald-400" /><span className="text-[10px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span></div>}</div></x.div></>}</P></div></div>{Ze === "bottom" && (() => {
+                      );
+                    })()}
+                  </div>
+                )}
+              </x.div>
+            )}
+          </P>
+        </x.div>
+      </x.div>
+      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/note-container pointer-events-auto">
+        <x.div
+          layout
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 450,
+            damping: 25
+          }}
+          onClick={t => {
+            t.stopPropagation(), as(!lr);
+          }}
+          style={getButtonComputedStyle(cartColorConfig, 'note')}
+          className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-colors transition-shadow cursor-pointer border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", K || lr ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")}
+          title="Ghi chú hóa đơn"
+        >
+          <Comp_ca size={18} className={K || lr ? "text-white" : "transition-colors"} strokeWidth={2.5} />
+          {K && !lr && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}
+        </x.div>
+        <P>
+          {lr && (
+            <x.div
+              initial={{
+                opacity: 0,
+                scale: 0.85,
+                x: -10,
+                y: 15,
+                filter: "blur(8px)"
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                x: 0,
+                y: 0,
+                filter: "blur(0px)"
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.85,
+                x: -10,
+                y: 15,
+                filter: "blur(8px)",
+                transition: {
+                  duration: 0.16,
+                  ease: "easeOut"
+                }
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 420,
+                damping: 26
+              }}
+              onClick={t => t.stopPropagation()}
+              className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest">Ghi chú đơn</div>
+                <button onClick={t => {
+                  t.stopPropagation(), as(!1);
+                }} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
+                  <Comp_ke size={14} strokeWidth={3} />
+                </button>
+              </div>
+              <textarea autoFocus={!0} placeholder="Nhập ghi chú cho hóa đơn này..." rows={3} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar text-slate-800 dark:text-white placeholder:text-slate-400" value={K} onChange={t => $e(t.target.value)} />
+            </x.div>
+          )}
+        </P>
+      </x.div>
+      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/ship-container pointer-events-auto">
+        <x.div
+          layout
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 450,
+            damping: 25
+          }}
+          onClick={t => {
+            t.stopPropagation(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
+          }}
+          style={getButtonComputedStyle(cartColorConfig, 'ship')}
+          className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-colors transition-shadow cursor-pointer border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", tt ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")}
+          title="Giao hàng tận nơi"
+        >
+          <Comp_u_t size={18} strokeWidth={2.5} className={tt ? "text-white" : "transition-colors"} />
+          {tt && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-800" />}
+        </x.div>
+        <P>
+          {tt && (
+            <x.div
+              initial={{
+                opacity: 0,
+                scale: 0.85,
+                x: -10,
+                y: 15,
+                filter: "blur(8px)"
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                x: 0,
+                y: 0,
+                filter: "blur(0px)"
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.85,
+                x: -10,
+                y: 15,
+                filter: "blur(8px)",
+                transition: {
+                  duration: 0.16,
+                  ease: "easeOut"
+                }
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 420,
+                damping: 26
+              }}
+              onClick={t => t.stopPropagation()}
+              className="absolute bottom-full left-0 mb-3 w-[320px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-5 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <Comp_u_t size={16} className="text-[#2d5016] dark:text-emerald-400" />
+                  <div className="text-[10px] font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-widest">Thông tin giao hàng</div>
+                </div>
+                <button onClick={t => {
+                  t.stopPropagation(), qt(null);
+                }} className="text-slate-400 hover:text-rose-500 transition-colors">
+                  <Comp_ke size={14} strokeWidth={3} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Địa chỉ giao hàng</label>
+                  <textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all resize-none text-slate-800 dark:text-white placeholder:text-slate-400" value={vr} onChange={t => ra(t.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Số điện thoại nhận</label>
+                  <div className="relative">
+                    <Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all text-slate-800 dark:text-white placeholder:text-slate-400" value={kr} onChange={t => sa(t.target.value)} />
+                  </div>
+                </div>
+              </div>
+            </x.div>
+          )}
+        </P>
+      </x.div>
+    </div>
+  </x.div>
+  <x.div
+    key="total-bubble"
+    layout
+    initial={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)"
+    }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      filter: "blur(0.01px)"
+    }}
+    exit={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)",
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }}
+    transition={{
+      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+      type: "spring",
+      stiffness: 350,
+      damping: 26,
+      mass: 0.8
+    }}
+    className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
+  >
+    <P mode="popLayout">
+      {I === "Cash" && (
+        <x.div
+          key="cash-bubble"
+          layout
+          initial={{
+            opacity: 0,
+            scale: 0.85,
+            x: 30,
+            filter: "blur(8px)"
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            x: 0,
+            filter: "blur(0px)"
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.85,
+            x: 30,
+            filter: "blur(8px)",
+            transition: {
+              duration: 0.2,
+              ease: "easeInOut"
+            }
+          }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 400,
+            damping: 28
+          }}
+          style={getBubbleComputedStyle(cartColorConfig, 'cash')}
+          className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
+        >
+          <Comp_oa className="absolute -right-3 -bottom-3 w-24 h-24 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/cash-calculator:scale-110 group-hover/cash-calculator:-rotate-6 pointer-events-none select-none" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color, opacity: 0.1 } : undefined} />
+          <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col relative z-10 w-full">
+            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined}>Khách đưa (F1)</span>
+            <div className="flex items-center gap-2.5">
+              <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative flex items-center min-w-[70px] group/input-wrapper h-full">
+                <span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span>
+                <input id="cash-given-compact" ref={xr} type="text" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined} className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} />
+              </x.div>
+              <P>
+                {V > 0 && (
+                  <x.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
+                    animate={{ opacity: 1, scale: 1, width: "auto", x: 0 }}
+                    exit={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
+                    transition={{
+                      layout: { type: "spring", stiffness: 350, damping: 28 },
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 26
+                    }}
+                    className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5 overflow-hidden"
+                  >
+                    <span className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined}>Tiền thối</span>
+                    <span className={c("text-xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span>
+                  </x.div>
+                )}
+              </P>
+            </div>
+          </x.div>
+        </x.div>
+      )}
+    </P>
+    <P mode="popLayout">
+      {(p || g === "remote_inspect") && (
+        <x.div
+          key="payment-toggle-bubble"
+          layout
+          initial={{
+            opacity: 0,
+            scale: 0.85,
+            x: 25,
+            filter: "blur(8px)"
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            x: 0,
+            filter: "blur(0px)"
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.85,
+            x: 25,
+            filter: "blur(8px)",
+            transition: {
+              duration: 0.18,
+              ease: "easeOut"
+            }
+          }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 400,
+            damping: 28
+          }}
+          style={getBubbleComputedStyle(cartColorConfig, 'payment')}
+          className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
+        >
+          <x.div
+            layout={!0}
+            className="absolute inset-y-1 rounded-xl shadow-md z-0"
+            style={{
+              width: "calc(50% - 4px)",
+              left: (g === "remote_inspect" ? k?.payment_method || "Cash" : I) === "Cash" ? "4px" : "calc(50%)",
+              ...getBubbleBadgeStyle(cartColorConfig, 'payment')
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30
+            }}
+          />
+          <button
+            onClick={t => {
+              t.stopPropagation(), ge("Cash"), re($);
+            }}
+            style={{
+              color: I === "Cash" 
+                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
+                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
+            }}
+            className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5", I === "Cash" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}
+          >
+            <Comp_oa size={13} className={c(I === "Cash" ? "opacity-100" : "opacity-40")} />
+            <span className="text-[9px] font-black uppercase tracking-wider">Tiền mặt</span>
+          </button>
+          <button
+            onClick={t => {
+              t.stopPropagation(), ge("Debt"), re(0);
+            }}
+            style={{
+              color: I === "Debt" 
+                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
+                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
+            }}
+            className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5", I === "Debt" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}
+          >
+            <Comp_ua size={13} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} />
+            <span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span>
+          </button>
+        </x.div>
+      )}
+    </P>
+    <x.div
+      key="total-amount-bubble"
+      layout
+      initial={{ opacity: 0, scale: 0.92, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.92, y: 12 }}
+      transition={{
+        layout: { type: "spring", stiffness: 350, damping: 28 },
+        type: "spring",
+        stiffness: 400,
+        damping: 28
+      }}
+      onMouseDown={yr}
+      onMouseUp={aa}
+      onMouseLeave={aa}
+      onTouchStart={yr}
+      onTouchEnd={aa}
+      style={getBubbleComputedStyle(cartColorConfig, 'total')}
+      className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-shadow transition-border duration-300 hover:scale-[1.02] active:scale-[0.99]"
+    >
+      <Va className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" />
+      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex items-center gap-1.5 mb-0.5 z-10 relative">
+        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: (cartColorConfig?.bubbleBorderColor && cartColorConfig.bubbleBorderColor !== 'default') ? cartColorConfig.bubbleBorderColor : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#10b981' }} />
+        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>Tổng cộng thanh toán</span>
+      </x.div>
+      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
+        {z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}
+        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>đ</span>
+      </x.div>
+      <P>
+        {Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && (
+          <x.div
+            layout
+            initial={{ opacity: 0, height: 0, scale: 0.9 }}
+            animate={{ opacity: 1, height: "auto", scale: 1 }}
+            exit={{ opacity: 0, height: 0, scale: 0.9 }}
+            transition={{
+              layout: { type: "spring", stiffness: 350, damping: 28 },
+              type: "spring",
+              stiffness: 380,
+              damping: 26
+            }}
+            className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative overflow-hidden"
+          >
+            <Kn size={12} className="text-emerald-600 dark:text-emerald-400" />
+            <span className="text-[10px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span>
+          </x.div>
+        )}
+      </P>
+    </x.div>
+  </x.div>
+</>}</P></div></div>{Ze === "bottom" && (() => {
                 const t = k?.total_amount || (k?.cart || []).reduce((S, w) => S + (Number(w.price || w.sale_price) || 0) * (Number(w.quantity) || 1), 0),
                   a = g === "remote_inspect" ? Pe || k?.partner : p,
                   r = g === "remote_inspect" ? k?.partner_name || a?.name || "Khách máy trạm" : p ? p.name : "Khách bán lẻ",

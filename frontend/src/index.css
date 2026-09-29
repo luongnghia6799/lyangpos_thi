@@ -357,21 +357,30 @@ input, button, select, textarea, optgroup, option {
 
 .dropdown-premium {
   @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-0 overflow-hidden;
-  background: transparent !important;
+  background: #fbf9f4 !important;
   border: 1px solid rgba(139, 111, 71, 0.25) !important;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.18) !important;
-  backdrop-filter: blur(28px) !important;
-  -webkit-backdrop-filter: blur(28px) !important;
+  box-shadow: 0 20px 50px -10px rgba(45, 80, 22, 0.12), 0 10px 25px -5px rgba(139, 111, 71, 0.08) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
   overscroll-behavior: contain !important;
 }
 
 .dark .dropdown-premium {
-  background: transparent !important;
+  @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-0 overflow-hidden;
+  background: #161a14 !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8) !important;
-  backdrop-filter: blur(28px) !important;
-  -webkit-backdrop-filter: blur(28px) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
   overscroll-behavior: contain !important;
+}
+
+html.has-wallpaper .dropdown-premium {
+  background: rgba(251, 249, 244, 0.96) !important;
+}
+
+html.has-wallpaper.dark .dropdown-premium {
+  background: rgba(22, 26, 20, 0.96) !important;
 }
 
 .modal-premium {
@@ -528,8 +537,8 @@ body {
 }
 
 .dark .dropdown-premium {
-  background: transparent !important;
-  border: none !important;
+  background: #161a14 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 .dark body {

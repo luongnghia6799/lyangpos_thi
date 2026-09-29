@@ -357,30 +357,36 @@ input, button, select, textarea, optgroup, option {
 
 .dropdown-premium {
   @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-0 overflow-hidden;
-  background: rgba(251, 249, 244, 0.72) !important;
+  background: rgba(251, 249, 244, 0.65) !important;
   border: 1px solid rgba(139, 111, 71, 0.25) !important;
   box-shadow: 0 20px 50px -10px rgba(45, 80, 22, 0.12), 0 10px 25px -5px rgba(139, 111, 71, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  backdrop-filter: blur(50px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(200%) !important;
   overscroll-behavior: contain !important;
 }
 
 .dark .dropdown-premium {
   @apply absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] border-0 overflow-hidden;
-  background: rgba(18, 22, 16, 0.72) !important;
+  background: rgba(18, 22, 16, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  backdrop-filter: blur(50px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(200%) !important;
   overscroll-behavior: contain !important;
 }
 
+.dropdown-premium.blur-max,
+.blur-max {
+  backdrop-filter: blur(72px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(72px) saturate(220%) !important;
+}
+
 html.has-wallpaper .dropdown-premium {
-  background: rgba(251, 249, 244, 0.72) !important;
+  background: rgba(251, 249, 244, 0.65) !important;
 }
 
 html.has-wallpaper.dark .dropdown-premium {
-  background: rgba(18, 22, 16, 0.72) !important;
+  background: rgba(18, 22, 16, 0.65) !important;
 }
 
 .modal-premium {

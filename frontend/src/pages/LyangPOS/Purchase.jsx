@@ -2094,7 +2094,7 @@ export default function Purchase() {
                                         transition={{
                                             duration: 0.15
                                         }}
-                                        className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                        className="dropdown-premium !bg-[#fbf9f4] dark:!bg-[#141a12] backdrop-blur-2xl absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
                                         <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">

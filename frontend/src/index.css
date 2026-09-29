@@ -389,6 +389,14 @@ html.has-wallpaper.dark .dropdown-premium {
   background: rgba(18, 22, 16, 0.65) !important;
 }
 
+.dropdown-app-bg {
+  background: var(--main-gradient, var(--bg-color, #faf8f3)) !important;
+}
+
+.dark .dropdown-app-bg {
+  background: var(--main-gradient, var(--bg-color, #000000)) !important;
+}
+
 .modal-premium {
   background: rgba(255, 255, 255, 0.75) !important;
   border-color: var(--border-color) !important;

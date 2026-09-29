@@ -3564,21 +3564,7 @@ function POSPage({
                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                 boxShadow: getCartBoxShadow(cartColorConfig)
               }}
-            ><P>{fn && (
-              <x.div
-                key="history-sync-overlay"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.12 }}
-                className="absolute inset-0 z-[200] flex items-center justify-center select-none pointer-events-none"
-              >
-                <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-card/95 border border-[#8b6f47]/25 dark:border-white/15 shadow-lg text-[#2d5016] dark:text-[#d4a574]">
-                  <Comp_ai size={16} className="animate-spin text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span className="text-xs font-black uppercase tracking-wider">Đang tải đơn...</span>
-                </div>
-              </x.div>
-            )}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
+            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
               <x.div
                 key="pos-empty-cart-overlay"
                 initial={{ opacity: 0, scale: 0.92, y: 15 }}
@@ -4140,26 +4126,25 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} initial={{
-  opacity: 0,
-  y: 8,
-  x: -8
-}} animate={{
-  opacity: 1,
-  y: 0,
-  x: 0
-}} exit={{
-  opacity: 0,
-  x: 20,
-  transition: {
-    duration: 0.12,
-    ease: "easeIn"
-  }
-}} transition={{
-  duration: 0.22,
-  delay: Math.min(a * 0.016, 0.22),
-  ease: [0.22, 1, 0.36, 1]
-}} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
+                              opacity: 0,
+                              x: -20
+                            }} animate={{
+                              opacity: 1,
+                              x: 0
+                            }} exit={{
+                              opacity: 0,
+                              x: 50,
+                              scale: 0.95,
+                              backgroundColor: "rgba(0,0,0,0)",
+                              transition: {
+                                duration: 0.2,
+                                ease: "easeIn"
+                              }
+                            }} transition={{
+                              duration: 0.22,
+                              ease: "easeOut"
+                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
                               const r = T.find(s => s.id === t.product_id) || t;
                               if (r) {
                                 e.preventDefault();
@@ -4557,10 +4542,36 @@ function POSPage({
                           }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
   <x.div
     key="partner-bubble"
-    initial={{ opacity: 0, scale: 0.95, y: 16 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    exit={{ opacity: 0, scale: 0.95, y: 16 }}
-    transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
+    layout
+    initial={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)"
+    }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      filter: "blur(0.01px)"
+    }}
+    exit={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)",
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }}
+    transition={{
+      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+      type: "spring",
+      stiffness: 350,
+      damping: 26,
+      mass: 0.8
+    }}
     className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
   >
     <div className="flex items-center gap-2.5 pointer-events-auto">
@@ -4761,21 +4772,21 @@ function POSPage({
                 scale: 0.85,
                 x: -10,
                 y: 15,
-                filter: "none"
+                filter: "blur(8px)"
               }}
               animate={{
                 opacity: 1,
                 scale: 1,
                 x: 0,
                 y: 0,
-                filter: "none"
+                filter: "blur(0px)"
               }}
               exit={{
                 opacity: 0,
                 scale: 0.85,
                 x: -10,
                 y: 15,
-                filter: "none",
+                filter: "blur(8px)",
                 transition: {
                   duration: 0.16,
                   ease: "easeOut"
@@ -4834,21 +4845,21 @@ function POSPage({
                 scale: 0.85,
                 x: -10,
                 y: 15,
-                filter: "none"
+                filter: "blur(8px)"
               }}
               animate={{
                 opacity: 1,
                 scale: 1,
                 x: 0,
                 y: 0,
-                filter: "none"
+                filter: "blur(0px)"
               }}
               exit={{
                 opacity: 0,
                 scale: 0.85,
                 x: -10,
                 y: 15,
-                filter: "none",
+                filter: "blur(8px)",
                 transition: {
                   duration: 0.16,
                   ease: "easeOut"
@@ -4894,21 +4905,71 @@ function POSPage({
   </x.div>
   <x.div
     key="total-bubble"
-    initial={{ opacity: 0, scale: 0.95, y: 16 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    exit={{ opacity: 0, scale: 0.95, y: 16 }}
-    transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
+    layout
+    initial={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)"
+    }}
+    animate={{
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      filter: "blur(0.01px)"
+    }}
+    exit={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)",
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }}
+    transition={{
+      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+      type: "spring",
+      stiffness: 350,
+      damping: 26,
+      mass: 0.8
+    }}
     className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
   >
     <P mode="popLayout">
       {I === "Cash" && (
         <x.div
           key="cash-bubble"
-          layout="position"
-          initial={{ opacity: 0, scale: 0.92, x: 20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
-          transition={{ type: "spring", stiffness: 420, damping: 30 }}
+          layout
+          initial={{
+            opacity: 0,
+            scale: 0.85,
+            x: 30,
+            filter: "blur(8px)"
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            x: 0,
+            filter: "blur(0px)"
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.85,
+            x: 30,
+            filter: "blur(8px)",
+            transition: {
+              duration: 0.2,
+              ease: "easeInOut"
+            }
+          }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 400,
+            damping: 28
+          }}
           style={getBubbleComputedStyle(cartColorConfig, 'cash')}
           className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
         >
@@ -4949,11 +5010,35 @@ function POSPage({
       {(p || g === "remote_inspect") && (
         <x.div
           key="payment-toggle-bubble"
-          layout="position"
-          initial={{ opacity: 0, scale: 0.92, x: 20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
-          transition={{ type: "spring", stiffness: 420, damping: 30 }}
+          layout
+          initial={{
+            opacity: 0,
+            scale: 0.85,
+            x: 25,
+            filter: "blur(8px)"
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            x: 0,
+            filter: "blur(0px)"
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.85,
+            x: 25,
+            filter: "blur(8px)",
+            transition: {
+              duration: 0.18,
+              ease: "easeOut"
+            }
+          }}
+          transition={{
+            layout: { type: "spring", stiffness: 350, damping: 28 },
+            type: "spring",
+            stiffness: 400,
+            damping: 28
+          }}
           style={getBubbleComputedStyle(cartColorConfig, 'payment')}
           className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
         >

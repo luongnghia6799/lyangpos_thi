@@ -2536,15 +2536,26 @@ export default function Purchase() {
                                 {historyLoading && (
                                     <m.div
                                         key="purchase-history-sync-overlay"
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.12 }}
-                                        className="absolute inset-0 z-[200] flex items-center justify-center select-none pointer-events-none"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"
                                     >
-                                        <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-card/95 border border-primary/25 dark:border-white/15 shadow-lg text-[#2d5016] dark:text-[#d4a574]">
-                                            <Loader2 size={16} className="animate-spin text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <span className="text-xs font-black uppercase tracking-wider">Đang tải đơn...</span>
+                                        <div className="relative w-16 h-16 flex items-center justify-center">
+                                            <div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" />
+                                            <div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" />
+                                            <div className="w-9 h-9 flex items-center justify-center relative z-10">
+                                                <img src={LyangLogo} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
+                                                Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
+                                            </span>
+                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">
+                                                Đang đồng bộ dữ liệu...
+                                            </span>
                                         </div>
                                     </m.div>
                                 )}
@@ -3201,32 +3212,32 @@ export default function Purchase() {
 
                                                 <AnimatePresence initial={false}>
                                                     {cart.length > 0 && cart.map((item, idx) => (
-  <m.tr
-    key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
-    initial={{
-      opacity: 0,
-      y: 8,
-      x: -8
-    }}
-    animate={{
-      opacity: 1,
-      y: 0,
-      x: 0
-    }}
-    exit={{
-      opacity: 0,
-      x: 20,
-      transition: {
-        duration: 0.12,
-        ease: "easeIn"
-      }
-    }}
-    transition={{
-      duration: 0.22,
-      delay: Math.min(idx * 0.016, 0.22),
-      ease: [0.22, 1, 0.36, 1]
-    }}
-    className={cn(
+                                                        <m.tr
+                                                            key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
+                                                            layout="position"
+                                                            initial={{
+                                                                opacity: 0,
+                                                                x: -20
+                                                            }}
+                                                            animate={{
+                                                                opacity: 1,
+                                                                x: 0
+                                                            }}
+                                                            exit={{
+                                                                opacity: 0,
+                                                                x: 50,
+                                                                scale: 0.95,
+                                                                backgroundColor: "rgba(0,0,0,0)",
+                                                                transition: {
+                                                                    duration: 0.2,
+                                                                    ease: "easeIn"
+                                                                }
+                                                            }}
+                                                            transition={{
+                                                                duration: 0.22,
+                                                                ease: "easeOut"
+                                                            }}
+                                                                className={cn(
                                                                     "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
@@ -4060,10 +4071,33 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
-                                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
+                                            layout
+                                            initial={{
+                                                opacity: 0,
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)"
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                scale: 1,
+                                                y: 0,
+                                                filter: "blur(0.01px)"
+                                            }}
+                                            exit={{
+                                                opacity: 0,
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)",
+                                                transition: { duration: 0.2, ease: "easeInOut" }
+                                            }}
+                                            transition={{
+                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+                                                type: "spring",
+                                                stiffness: 350,
+                                                damping: 26,
+                                                mass: 0.8
+                                            }}
                                             className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
                                         >
                                             <div className="flex items-center gap-2.5 pointer-events-auto">
@@ -4265,9 +4299,9 @@ export default function Purchase() {
                                                     <AnimatePresence>
                                                         {isNoteModalOpen && (
                                                             <m.div
-                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "none" }}
-                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "none" }}
-                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "none", transition: { duration: 0.16, ease: "easeOut" } }}
+                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)" }}
+                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)" }}
+                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)", transition: { duration: 0.16, ease: "easeOut" } }}
                                                                 transition={{ type: "spring", stiffness: 420, damping: 26 }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
@@ -4301,10 +4335,33 @@ export default function Purchase() {
                                         {/* Floating Total & Payment Bubble - Bottom Right */}
                                         <m.div
                                             key="total-bubble"
-                                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
-                                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
+                                            layout
+                                            initial={{
+                                                opacity: 0,
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)"
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                scale: 1,
+                                                y: 0,
+                                                filter: "blur(0.01px)"
+                                            }}
+                                            exit={{
+                                                opacity: 0,
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)",
+                                                transition: { duration: 0.2, ease: "easeInOut" }
+                                            }}
+                                            transition={{
+                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+                                                type: "spring",
+                                                stiffness: 350,
+                                                damping: 26,
+                                                mass: 0.8
+                                            }}
                                             className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
                                         >
                                             {/* Tiền trả NCC (F1) / Đã trả */}
@@ -4312,11 +4369,16 @@ export default function Purchase() {
                                             {paymentMethod === 'Cash' && (
                                                 <m.div
                                                     key="purchase-cash-bubble"
-                                                    layout="position"
-                                                    initial={{ opacity: 0, scale: 0.92, x: 20 }}
-                                                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
-                                                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                                                    layout
+                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
+                                                    transition={{
+                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                        type: "spring",
+                                                        stiffness: 400,
+                                                        damping: 28
+                                                    }}
                                                     style={getBubbleComputedStyle(cartColorConfig, 'cash')}
                                                     className="pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300"
                                                 >
@@ -4354,11 +4416,16 @@ export default function Purchase() {
                                             {selectedPartner && (
                                                 <m.div
                                                     key="purchase-payment-toggle-bubble"
-                                                    layout="position"
-                                                    initial={{ opacity: 0, scale: 0.92, x: 20 }}
-                                                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
-                                                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                                                    layout
+                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
+                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
+                                                    transition={{
+                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                        type: "spring",
+                                                        stiffness: 400,
+                                                        damping: 28
+                                                    }}
                                                     style={getBubbleComputedStyle(cartColorConfig, 'payment')}
                                                     className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
                                                 >

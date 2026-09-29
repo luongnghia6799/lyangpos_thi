@@ -4140,25 +4140,26 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
-                              opacity: 0,
-                              x: -20
-                            }} animate={{
-                              opacity: 1,
-                              x: 0
-                            }} exit={{
-                              opacity: 0,
-                              x: 50,
-                              scale: 0.95,
-                              backgroundColor: "rgba(0,0,0,0)",
-                              transition: {
-                                duration: 0.2,
-                                ease: "easeIn"
-                              }
-                            }} transition={{
-                              duration: 0.22,
-                              ease: "easeOut"
-                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} initial={{
+  opacity: 0,
+  y: 8,
+  x: -8
+}} animate={{
+  opacity: 1,
+  y: 0,
+  x: 0
+}} exit={{
+  opacity: 0,
+  x: 20,
+  transition: {
+    duration: 0.12,
+    ease: "easeIn"
+  }
+}} transition={{
+  duration: 0.22,
+  delay: Math.min(a * 0.016, 0.22),
+  ease: [0.22, 1, 0.36, 1]
+}} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
                               const r = T.find(s => s.id === t.product_id) || t;
                               if (r) {
                                 e.preventDefault();

@@ -3201,32 +3201,32 @@ export default function Purchase() {
 
                                                 <AnimatePresence initial={false}>
                                                     {cart.length > 0 && cart.map((item, idx) => (
-                                                        <m.tr
-                                                            key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
-                                                            layout="position"
-                                                            initial={{
-                                                                opacity: 0,
-                                                                x: -20
-                                                            }}
-                                                            animate={{
-                                                                opacity: 1,
-                                                                x: 0
-                                                            }}
-                                                            exit={{
-                                                                opacity: 0,
-                                                                x: 50,
-                                                                scale: 0.95,
-                                                                backgroundColor: "rgba(0,0,0,0)",
-                                                                transition: {
-                                                                    duration: 0.2,
-                                                                    ease: "easeIn"
-                                                                }
-                                                            }}
-                                                            transition={{
-                                                                duration: 0.22,
-                                                                ease: "easeOut"
-                                                            }}
-                                                                className={cn(
+  <m.tr
+    key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
+    initial={{
+      opacity: 0,
+      y: 8,
+      x: -8
+    }}
+    animate={{
+      opacity: 1,
+      y: 0,
+      x: 0
+    }}
+    exit={{
+      opacity: 0,
+      x: 20,
+      transition: {
+        duration: 0.12,
+        ease: "easeIn"
+      }
+    }}
+    transition={{
+      duration: 0.22,
+      delay: Math.min(idx * 0.016, 0.22),
+      ease: [0.22, 1, 0.36, 1]
+    }}
+    className={cn(
                                                                     "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx

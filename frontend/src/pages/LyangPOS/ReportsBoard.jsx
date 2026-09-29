@@ -1094,14 +1094,13 @@ export default function ReportsBoard() {
                 </AnimatePresence>
             </Portal>
 
-            {/* Order Edit Popup Portal */}
-            <Portal>
-                <AnimatePresence>
-                    {viewingOrder && (
-                        <OrderEditPopup order={viewingOrder} onClose={() => setViewingOrder(null)} onSave={() => { fetchReportData(); setViewingOrder(null); }} />
-                    )}
-                </AnimatePresence>
-            </Portal>
+            {/* Order Edit Popup */}
+            <OrderEditPopup 
+                isOpen={Boolean(viewingOrder)}
+                order={viewingOrder} 
+                onClose={() => setViewingOrder(null)} 
+                onSave={() => { fetchReportData(); setViewingOrder(null); }} 
+            />
         </div>
     </div>
     );

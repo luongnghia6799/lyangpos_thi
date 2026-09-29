@@ -2539,6 +2539,10 @@ pub async fn update_order_status(
     .fetch_one(&pool)
     .await?;
 
+    if let Some(p_id) = order.partner_id {
+        let _ = recalculate_partner_debt_internal(&pool, p_id).await;
+    }
+
     let resp = populate_order_details_response(&pool, &order).await?;
     Ok(Json(resp))
 }

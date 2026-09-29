@@ -290,13 +290,38 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
     ).execute(pool).await?;
 
     sqlx::query(
-        "CREATE TABLE IF NOT EXISTS custom_price (
+        "CREATE TABLE IF NOT EXISTS customer_price (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             partner_id INTEGER NOT NULL,
             product_id INTEGER NOT NULL,
-            custom_price FLOAT NOT NULL
+            price FLOAT NOT NULL,
+            UNIQUE(partner_id, product_id)
         )"
     ).execute(pool).await?;
+
+    let _ = sqlx::query(
+        "DELETE FROM customer_price WHERE id NOT IN (
+            SELECT MAX(id) FROM customer_price GROUP BY partner_id, product_id
+        )"
+    ).execute(pool).await;
+
+    let _ = sqlx::query(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_price_partner_product ON customer_price (partner_id, product_id)"
+    ).execute(pool).await;
+
+    let has_old_custom_price: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='custom_price'"
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap_or(false);
+
+    if has_old_custom_price {
+        let _ = sqlx::query(
+            "INSERT OR IGNORE INTO customer_price (partner_id, product_id, price) 
+             SELECT partner_id, product_id, custom_price FROM custom_price"
+        ).execute(pool).await;
+    }
 
     // Tự tạo tài khoản Admin mặc định nếu chưa có tài khoản nào
     let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM user")

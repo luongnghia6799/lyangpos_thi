@@ -732,21 +732,20 @@ export default function PartnerHistoryModal({ isOpen, partner, onClose }) {
             </div >
 
             {/* Order Edit Popup */}
-            < Portal >
+            <OrderEditPopup
+                isOpen={Boolean(editingOrder)}
+                order={editingOrder}
+                partner={currentPartner}
+                onClose={() => setEditingOrder(null)}
+                onSave={() => {
+                    fetchOrders();
+                    fetchDebtCycles();
+                    fetchPartner();
+                    setEditingOrder(null);
+                }}
+            />
+            <Portal>
                 <AnimatePresence>
-                    {editingOrder && (
-                        <OrderEditPopup
-                            order={editingOrder}
-                            partner={currentPartner}
-                            onClose={() => setEditingOrder(null)}
-                            onSave={() => {
-                                fetchOrders();
-                                fetchDebtCycles();
-                                fetchPartner();
-                                setEditingOrder(null);
-                            }}
-                        />
-                    )}
                     {editingVoucher && (
                         <QuickDebtModal
                             isOpen={!!editingVoucher}

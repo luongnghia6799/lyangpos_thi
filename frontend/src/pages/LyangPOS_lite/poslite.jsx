@@ -273,31 +273,52 @@ const POSLite = () => {
     }
   };
 
-  const handleReloadOrder = (order) => {
+  const location = useLocation();
+
+  const handleReloadOrder = async (order) => {
+    if (!order) return;
+    let orderObj = order;
+    if ((!orderObj.details || orderObj.details.length === 0) && orderObj.id) {
+      try {
+        const res = await axios.get(`/api/orders/${orderObj.id}`);
+        if (res.data) orderObj = res.data;
+      } catch (e) {
+        console.error("Error fetching order in poslite", e);
+      }
+    }
     if (lastSpokenProductIdRef.current !== undefined) {
       lastSpokenProductIdRef.current = null;
     }
-    setCart(order.details.map(d => ({
+    const detailsList = orderObj.details || orderObj.items || [];
+    setCart(detailsList.map(d => ({
       id: Math.random().toString(36).substr(2, 9),
       product_id: d.product_id,
-      name: d.product_name,
-      price: d.price,
-      quantity: d.quantity,
+      name: d.product_name || d.name || "Sản phẩm",
+      price: d.price !== undefined ? d.price : 0,
+      quantity: d.quantity !== undefined ? d.quantity : 1,
       unit: d.product_unit || d.unit || "",
       stock: d.product_stock || d.stock || 0
     })));
-    if (order.partner_id) {
-      const matchedPartner = partners.find(p => p.id === order.partner_id);
+    if (orderObj.partner) {
+      setSelectedPartner(orderObj.partner);
+    } else if (orderObj.partner_id) {
+      const matchedPartner = partners.find(p => p.id === orderObj.partner_id);
       if (matchedPartner) setSelectedPartner(matchedPartner);
     } else {
       setSelectedPartner(null);
     }
-    setPaymentMethod(order.payment_method || "Cash");
-    setNote(order.note || "");
-    setEditOrderId(order.id);
+    setPaymentMethod(orderObj.payment_method || "Cash");
+    setNote(orderObj.note || "");
+    setEditOrderId(orderObj.id);
     setIsHistoryDrawerOpen(false);
     showToast("ĐÃ NẠP ĐƠN HÀNG LÊN MÀN HÌNH CHỈNH SỬA!");
   };
+
+  useEffect(() => {
+    if (location.state?.editOrder) {
+      handleReloadOrder(location.state.editOrder);
+    }
+  }, [location.state]);
 
   const lastActiveIndexRef = useRef(-1);
   const lastSpokenProductIdRef = useRef(null);
@@ -622,6 +643,13 @@ const POSLite = () => {
   // Fetch custom prices and purchase history when partner changes
   useEffect(() => {
     if (selectedPartner?.id) {
+      axios.post(`/api/partners/${selectedPartner.id}/recalculate-debt`)
+        .then(res => {
+          if (res.data?.new_balance !== undefined) {
+            setSelectedPartner(prev => prev && prev.id === selectedPartner.id ? { ...prev, debt_balance: res.data.new_balance } : prev);
+          }
+        })
+        .catch(() => {});
       axios.get(`/api/custom-prices/${selectedPartner.id}`)
         .then(res => setCustomPrices(res.data || {}))
         .catch(err => {
@@ -639,6 +667,34 @@ const POSLite = () => {
       setPartnerPurchases({});
     }
   }, [selectedPartner?.id]);
+
+  useEffect(() => {
+    const syncChan = new BroadcastChannel('pos_data_sync');
+    const handleSync = async (e) => {
+      const data = e.data || e.detail || {};
+      if (data.type === 'PARTNER_UPDATED' || data.type === 'ORDER_SAVED') {
+        queryClient.invalidateQueries({ queryKey: ['partners'] });
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        if (selectedPartner?.id && (data.partnerId === selectedPartner.id || !data.partnerId)) {
+          try {
+            const res = await axios.post(`/api/partners/${selectedPartner.id}/recalculate-debt`);
+            if (res.data?.new_balance !== undefined) {
+              setSelectedPartner(prev => prev && prev.id === selectedPartner.id ? { ...prev, debt_balance: res.data.new_balance } : prev);
+            }
+          } catch {}
+        }
+      } else if (data.type === 'PRODUCT_UPDATED') {
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+      }
+    };
+    syncChan.onmessage = handleSync;
+    window.addEventListener('pos_data_sync', handleSync);
+    return () => {
+      syncChan.close();
+      window.removeEventListener('pos_data_sync', handleSync);
+    };
+  }, [selectedPartner?.id, queryClient]);
 
   // Sync cart prices when customPrices or products change
   useEffect(() => {
@@ -697,6 +753,16 @@ const POSLite = () => {
 
       showToast("LƯU ĐƠN THÀNH CÔNG!");
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      try {
+        const syncChan = new BroadcastChannel('pos_data_sync');
+        syncChan.postMessage({ type: 'ORDER_SAVED', partnerId: selectedPartner?.id });
+        if (selectedPartner?.id) syncChan.postMessage({ type: 'PARTNER_UPDATED', partnerId: selectedPartner.id });
+        syncChan.close();
+        window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'ORDER_SAVED', partnerId: selectedPartner?.id } }));
+        if (selectedPartner?.id) window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PARTNER_UPDATED', partnerId: selectedPartner.id } }));
+      } catch (e) {}
 
       if (selectedPartner?.id) {
         const customPriceItems = cart.filter(i => i.product_id).map(i => ({
@@ -1467,9 +1533,12 @@ const POSLite = () => {
           width: 215px;
           max-height: 460px;
           overflow-y: auto;
-          background: var(--lite-surface);
+          background: rgba(251, 249, 244, 0.8);
+          backdrop-filter: blur(24px) saturate(180%);
+          -webkit-backdrop-filter: blur(24px) saturate(180%);
           border: 1px solid var(--lite-border);
-          box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+          border-radius: 12px;
           z-index: 200;
           display: flex;
           flex-direction: column;

@@ -823,19 +823,17 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                 </div>
             )}
         </AnimatePresence>
-        <AnimatePresence>
-            {editingOrder && (
-                <OrderEditPopup
-                    order={editingOrder}
-                    partner={partner || editingOrder.partner}
-                    onClose={() => setEditingOrder(null)}
-                    onSave={() => {
-                        setEditingOrder(null);
-                        fetchHistory(1);
-                    }}
-                />
-            )}
-        </AnimatePresence>
+        <OrderEditPopup
+            isOpen={Boolean(editingOrder)}
+            order={editingOrder}
+            partner={partner || editingOrder?.partner}
+            onClose={() => setEditingOrder(null)}
+            onSave={() => {
+                setEditingOrder(null);
+                notifyPartnerUpdated();
+                fetchHistory(1);
+            }}
+        />
         <AnimatePresence>
             {editingVoucher && (
                 <QuickVoucherModal

@@ -761,11 +761,27 @@ function POSPage({
     pRef.current = p;
   }, [p]);
   i.useEffect(() => {
-    if (p?.id && Array.isArray(Y) && Y.length > 0) {
-      const freshPartner = Y.find(item => item.id === p.id);
-      if (freshPartner && (freshPartner.debt_balance !== p.debt_balance || freshPartner.name !== p.name || freshPartner.phone !== p.phone)) {
-        F(freshPartner);
+    if (Array.isArray(Y) && Y.length > 0) {
+      if (p?.id) {
+        const freshPartner = Y.find(item => item.id === p.id);
+        if (freshPartner && (freshPartner.debt_balance !== p.debt_balance || freshPartner.name !== p.name || freshPartner.phone !== p.phone)) {
+          F(freshPartner);
+        }
       }
+      _((prevTabs) => {
+        let changed = false;
+        const nextTabs = prevTabs.map(tab => {
+          if (tab.selectedPartner?.id) {
+            const fresh = Y.find(item => item.id === tab.selectedPartner.id);
+            if (fresh && (fresh.debt_balance !== tab.selectedPartner.debt_balance || fresh.name !== tab.selectedPartner.name || fresh.phone !== tab.selectedPartner.phone)) {
+              changed = true;
+              return { ...tab, selectedPartner: fresh };
+            }
+          }
+          return tab;
+        });
+        return changed ? nextTabs : prevTabs;
+      });
     }
   }, [Y, p]);
   const [st, Hr] = i.useState(null),
@@ -933,10 +949,39 @@ function POSPage({
       paymentMethod: I
     } : r),
     es = t => {
-      t !== g && _(a => {
+      if (t === g) return;
+      _(a => {
         const r = Zr(a, g),
           s = r.find(n => n.id === t);
-        return s && (H(s.cart), F(s.selectedPartner), $e(s.note), re(s.amountPaid), Ye(s.cashGiven), ge(s.paymentMethod), f(t)), r;
+        if (s) {
+          let partnerToSet = s.selectedPartner;
+          if (partnerToSet?.id && Array.isArray(Y) && Y.length > 0) {
+            const fresh = Y.find(item => item.id === partnerToSet.id);
+            if (fresh) partnerToSet = fresh;
+          }
+          H(s.cart);
+          F(partnerToSet);
+          $e(s.note);
+          re(s.amountPaid);
+          Ye(s.cashGiven);
+          ge(s.paymentMethod);
+          f(t);
+          if (partnerToSet?.id) {
+            M.post(`/api/partners/${partnerToSet.id}/recalculate-debt`).then(res => {
+              if (res.data?.new_balance !== undefined) {
+                F(prev => prev && prev.id === partnerToSet.id ? { ...prev, debt_balance: res.data.new_balance } : prev);
+                _((prevTabs) =>
+                  prevTabs.map((tab) =>
+                    tab.selectedPartner?.id === partnerToSet.id
+                      ? { ...tab, selectedPartner: { ...tab.selectedPartner, debt_balance: res.data.new_balance } }
+                      : tab
+                  )
+                );
+              }
+            }).catch(() => {});
+          }
+        }
+        return r;
       });
     },
     Pi = () => {
@@ -1566,26 +1611,46 @@ function POSPage({
     const t = new BroadcastChannel("pos_data_sync");
     const handleSync = async a => {
       const data = a.data || a.detail || {};
-      if (data.type === "PARTNER_UPDATED") {
+      if (data.type === "PARTNER_UPDATED" || data.type === "ORDER_SAVED") {
+        E.invalidateQueries({ queryKey: ["shippingSummary"] });
         E.invalidateQueries({ queryKey: ["partners"] });
-        if (pRef.current?.id) {
+        E.invalidateQueries({ queryKey: ["products"] });
+        E.invalidateQueries({ queryKey: ["orders"] });
+        const targetPartnerId = data.partnerId || pRef.current?.id;
+        if (targetPartnerId) {
           try {
-            const res = await M.get(`/api/partners/${pRef.current.id}`);
-            if (res.data) F(res.data);
+            const res = await M.post(`/api/partners/${targetPartnerId}/recalculate-debt`);
+            const newBal = res.data?.new_balance;
+            if (newBal !== undefined) {
+              if (pRef.current?.id === targetPartnerId) {
+                F(prev => prev && prev.id === targetPartnerId ? { ...prev, debt_balance: newBal } : prev);
+              }
+              _((prevTabs) =>
+                prevTabs.map((tab) =>
+                  tab.selectedPartner?.id === targetPartnerId
+                    ? { ...tab, selectedPartner: { ...tab.selectedPartner, debt_balance: newBal } }
+                    : tab
+                )
+              );
+            } else {
+              const pRes = await M.get(`/api/partners/${targetPartnerId}`);
+              if (pRes.data) {
+                if (pRef.current?.id === targetPartnerId) {
+                  F(pRes.data);
+                }
+                _((prevTabs) =>
+                  prevTabs.map((tab) =>
+                    tab.selectedPartner?.id === targetPartnerId
+                      ? { ...tab, selectedPartner: pRes.data }
+                      : tab
+                  )
+                );
+              }
+            }
           } catch {}
         }
       } else if (data.type === "PRODUCT_UPDATED") {
         E.invalidateQueries({ queryKey: ["products"] });
-      } else if (data.type === "ORDER_SAVED") {
-        E.invalidateQueries({ queryKey: ["shippingSummary"] });
-        E.invalidateQueries({ queryKey: ["partners"] });
-        E.invalidateQueries({ queryKey: ["products"] });
-        if (pRef.current?.id) {
-          try {
-            const res = await M.get(`/api/partners/${pRef.current.id}`);
-            if (res.data) F(res.data);
-          } catch {}
-        }
       } else if (data.type === "SETTINGS_UPDATED") {
         _n();
         Nn();
@@ -1929,7 +1994,20 @@ function POSPage({
               console.error("Failed to save custom prices:", u);
             }
           }
-          if (pn(a || "Sale"), E.invalidateQueries(["shippingSummary"]), t) {
+          pn(a || "Sale");
+          E.invalidateQueries({ queryKey: ["shippingSummary"] });
+          E.invalidateQueries({ queryKey: ["partners"] });
+          E.invalidateQueries({ queryKey: ["products"] });
+          E.invalidateQueries({ queryKey: ["orders"] });
+          try {
+            const syncChan = new BroadcastChannel("pos_data_sync");
+            syncChan.postMessage({ type: "ORDER_SAVED", partnerId: p?.id });
+            if (p?.id) syncChan.postMessage({ type: "PARTNER_UPDATED", partnerId: p.id });
+            syncChan.close();
+            window.dispatchEvent(new CustomEvent("pos_data_sync", { detail: { type: "ORDER_SAVED", partnerId: p?.id } }));
+            if (p?.id) window.dispatchEvent(new CustomEvent("pos_data_sync", { detail: { type: "PARTNER_UPDATED", partnerId: p.id } }));
+          } catch (e) {}
+          if (t) {
             const printFn = async () => {
               try {
                 await ensureFontLoaded(J?.invoice_font_family, J?.invoice_custom_font_name);
@@ -1942,19 +2020,12 @@ function POSPage({
               window.print();
               setTimeout(() => {
                 ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
-                const o = new BroadcastChannel("pos_data_sync");
-                o.postMessage({
-                  type: "ORDER_SAVED"
-                }), o.close();
               }, 1e3);
             };
             setTimeout(printFn, 300);
           } else {
             ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
-            const o = new BroadcastChannel("pos_data_sync");
-            o.postMessage({
-              type: "ORDER_SAVED"
-            }), o.close(), Is();
+            Is();
           }
         } catch (s) {
           G({
@@ -2417,15 +2488,24 @@ function POSPage({
     p?.id && !Q && (async () => {
       try {
         const t = await M.post(`/api/partners/${p.id}/recalculate-debt`);
-        t.data.new_balance !== void 0 && F(a => !a || a.id !== p.id ? a : {
-          ...a,
-          debt_balance: t.data.new_balance
-        });
+        if (t.data.new_balance !== void 0) {
+          F(a => !a || a.id !== p.id ? a : {
+            ...a,
+            debt_balance: t.data.new_balance
+          });
+          _((prevTabs) =>
+            prevTabs.map((tab) =>
+              tab.selectedPartner?.id === p.id
+                ? { ...tab, selectedPartner: { ...tab.selectedPartner, debt_balance: t.data.new_balance } }
+                : tab
+            )
+          );
+        }
       } catch (t) {
         console.error("Error auto-syncing debt:", t);
       }
     })();
-  }, [p?.id, Q]);
+  }, [p?.id, g, Q]);
   const ml = async t => {
       try {
         await M.post("/api/inventory/audit", t), G({

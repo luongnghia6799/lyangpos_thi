@@ -724,7 +724,7 @@ export default function StockConversion() {
                                                     initial={{ opacity: 0, y: 8 }}
                                                     animate={{ opacity: 1, y: 0 }}
                                                     exit={{ opacity: 0, y: 8 }}
-                                                    className="dropdown-premium !bg-[#faf8f3] dark:!bg-[#161a22] border border-[#8b6f47]/30 dark:border-white/10 shadow-2xl absolute left-0 mt-2 w-[340px] p-5 z-50 flex flex-col gap-4"
+                                                    className="dropdown-premium backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 shadow-2xl absolute left-0 mt-2 w-[340px] p-5 z-50 flex flex-col gap-4"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <h4 className="font-black text-xs uppercase tracking-wider text-primary">Bộ lọc ngày</h4>

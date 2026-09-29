@@ -1133,25 +1133,20 @@ export default function Reports() {
                 </AnimatePresence>
             </Portal>
 
-            <Portal>
-                <AnimatePresence>
-                    {editingOrder && (
-                        <OrderEditPopup
-                            order={editingOrder}
-                            partner={(tab === 'customers' || tab === 'suppliers') ? selectedItem : null}
-                            onClose={() => setEditingOrder(null)}
-                            onSave={() => {
-                                // Update the itemOrders list locally or fetch
-                                if (showItemOrders && selectedItem) {
-                                    viewItemOrders(selectedItem, itemOrdersPage);
-                                }
-                                fetchData(); // Update totals
-                                setEditingOrder(null);
-                            }}
-                        />
-                    )}
-                </AnimatePresence>
-            </Portal>
+            <OrderEditPopup
+                isOpen={Boolean(editingOrder)}
+                order={editingOrder}
+                partner={(tab === 'customers' || tab === 'suppliers') ? selectedItem : null}
+                onClose={() => setEditingOrder(null)}
+                onSave={() => {
+                    // Update the itemOrders list locally or fetch
+                    if (showItemOrders && selectedItem) {
+                        viewItemOrders(selectedItem, itemOrdersPage);
+                    }
+                    fetchData(); // Update totals
+                    setEditingOrder(null);
+                }}
+            />
 
             <Portal>
                 <AnimatePresence>

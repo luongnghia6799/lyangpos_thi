@@ -178,44 +178,55 @@ export default function HistoryLite() {
     });
   };
 
-  const handleReloadOrder = (order) => {
-    if (order.type === 'Sale') {
-      const cartData = order.details.map(d => ({
+  const handleReloadOrder = async (order) => {
+    if (!order) return;
+    let orderToLoad = order;
+    if ((!orderToLoad.details || orderToLoad.details.length === 0) && orderToLoad.id) {
+      try {
+        const res = await axios.get(`/api/orders/${orderToLoad.id}`);
+        if (res.data) orderToLoad = res.data;
+      } catch (e) {
+        console.error("Could not fetch order details", e);
+      }
+    }
+    const detailsList = orderToLoad.details || orderToLoad.items || [];
+    if (orderToLoad.type === 'Sale') {
+      const cartData = detailsList.map(d => ({
         id: Math.random().toString(36).substr(2, 9),
         product_id: d.product_id,
-        name: d.product_name,
-        price: d.price,
-        quantity: d.quantity,
+        name: d.product_name || d.name || "Sản phẩm",
+        price: d.price !== undefined ? d.price : 0,
+        quantity: d.quantity !== undefined ? d.quantity : 1,
         unit: d.product_unit || d.unit || "",
         stock: d.product_stock || d.stock || 0
       }));
       localStorage.setItem('pos_lite_cart', JSON.stringify(cartData));
       
-      const partner = order.partner_id ? { id: order.partner_id, name: order.partner_name, phone: order.partner_phone, address: order.partner_address } : null;
+      const partner = orderToLoad.partner || (orderToLoad.partner_id ? { id: orderToLoad.partner_id, name: orderToLoad.partner_name, phone: orderToLoad.partner_phone, address: orderToLoad.partner_address } : null);
       localStorage.setItem('pos_lite_partner', JSON.stringify(partner));
-      localStorage.setItem('pos_lite_payment_method', order.payment_method || "Cash");
-      localStorage.setItem('pos_lite_note', order.note || "");
+      localStorage.setItem('pos_lite_payment_method', orderToLoad.payment_method || "Cash");
+      localStorage.setItem('pos_lite_note', orderToLoad.note || "");
       
-      navigate("/pos");
+      navigate("/pos", { state: { editOrder: orderToLoad } });
       showToast("ĐÃ NẠP ĐƠN HÀNG LÊN MÀN HÌNH BÁN HÀNG LITE!");
     } else {
-      const cartData = order.details.map(d => ({
+      const cartData = detailsList.map(d => ({
         id: Math.random().toString(36).substr(2, 9),
         product_id: d.product_id,
-        name: d.product_name,
-        price: d.price,
-        quantity: d.quantity,
+        name: d.product_name || d.name || "Sản phẩm",
+        price: d.price !== undefined ? d.price : 0,
+        quantity: d.quantity !== undefined ? d.quantity : 1,
         unit: d.product_unit || d.unit || "",
         stock: d.product_stock || d.stock || 0
       }));
       localStorage.setItem('purchase_lite_cart', JSON.stringify(cartData));
       
-      const partner = order.partner_id ? { id: order.partner_id, name: order.partner_name, phone: order.partner_phone, address: order.partner_address } : null;
+      const partner = orderToLoad.partner || (orderToLoad.partner_id ? { id: orderToLoad.partner_id, name: orderToLoad.partner_name, phone: orderToLoad.partner_phone, address: orderToLoad.partner_address } : null);
       localStorage.setItem('purchase_lite_partner', JSON.stringify(partner));
-      localStorage.setItem('purchase_lite_payment_method', order.payment_method || "Cash");
-      localStorage.setItem('purchase_lite_note', order.note || "");
+      localStorage.setItem('purchase_lite_payment_method', orderToLoad.payment_method || "Cash");
+      localStorage.setItem('purchase_lite_note', orderToLoad.note || "");
       
-      navigate("/purchase");
+      navigate("/purchase", { state: { editOrder: orderToLoad } });
       showToast("ĐÃ NẠP ĐƠN HÀNG LÊN MÀN HÌNH NHẬP HÀNG LITE!");
     }
   };

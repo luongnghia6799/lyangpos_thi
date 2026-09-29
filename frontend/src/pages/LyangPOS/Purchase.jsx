@@ -139,6 +139,7 @@ const SearchableProductSelect = ({ value, onChange, products }) => {
 };
 
 export default function Purchase() {
+    const location = useLocation();
     const { data: productsData, isLoading: isLoadingProducts } = useProductData();
     const [gpuDisabled, setGpuDisabled] = useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
 
@@ -740,28 +741,46 @@ export default function Purchase() {
 
     useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
-        syncChan.onmessage = (e) => {
-            if (e.data?.type === 'UI_SETTING_UPDATED') {
-                if (e.data.key === 'pos_keep_order_after_save') {
-                    setKeepOrderAfterSave(e.data.value === 'true');
-                } else if (e.data.key === 'pos_save_notice_style') {
-                    setSaveNoticeStyle(e.data.value);
-                } else if (e.data.key === 'pos_transparent_cart_table') {
-                    setTransparentCartTable(e.data.value === 'true');
-                } else if (e.data.key === 'pos_typing_sound_enabled') {
-                    setTypingSoundEnabled(e.data.value !== 'false');
-                } else if (e.data.key === 'pos_show_empty_cart_guide') {
-                    setShowEmptyCartGuide(e.data.value !== 'false');
+        const handleSync = async (e) => {
+            const data = e.data || e.detail || {};
+            if (data.type === 'PARTNER_UPDATED' || data.type === 'ORDER_SAVED') {
+                queryClient.invalidateQueries({ queryKey: ['partners'] });
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
+                if (selectedPartner?.id && (data.partnerId === selectedPartner.id || !data.partnerId)) {
+                    try {
+                        const res = await axios.post(`/api/partners/${selectedPartner.id}/recalculate-debt`);
+                        if (res.data?.new_balance !== undefined) {
+                            setSelectedPartner(prev => prev && prev.id === selectedPartner.id ? { ...prev, debt_balance: res.data.new_balance } : prev);
+                        }
+                    } catch {}
                 }
-            } else if (e.data?.type === 'CART_COLOR_CONFIG_UPDATED' || (e.data?.type === 'UI_SETTING_UPDATED' && e.data.key === 'pos_cart_color_config')) {
+            } else if (data.type === 'UI_SETTING_UPDATED') {
+                if (data.key === 'pos_keep_order_after_save') {
+                    setKeepOrderAfterSave(data.value === 'true');
+                } else if (data.key === 'pos_save_notice_style') {
+                    setSaveNoticeStyle(data.value);
+                } else if (data.key === 'pos_transparent_cart_table') {
+                    setTransparentCartTable(data.value === 'true');
+                } else if (data.key === 'pos_typing_sound_enabled') {
+                    setTypingSoundEnabled(data.value !== 'false');
+                } else if (data.key === 'pos_show_empty_cart_guide') {
+                    setShowEmptyCartGuide(data.value !== 'false');
+                }
+            } else if (data.type === 'CART_COLOR_CONFIG_UPDATED' || (data.type === 'UI_SETTING_UPDATED' && data.key === 'pos_cart_color_config')) {
                 try {
-                    const cfg = typeof e.data.value === 'string' ? JSON.parse(e.data.value) : (e.data.config || e.data.value);
+                    const cfg = typeof data.value === 'string' ? JSON.parse(data.value) : (data.config || data.value);
                     if (cfg) setCartColorConfig(cfg);
                 } catch {}
             }
         };
-        return () => syncChan.close();
-    }, []);
+        syncChan.onmessage = handleSync;
+        window.addEventListener('pos_data_sync', handleSync);
+        return () => {
+            syncChan.close();
+            window.removeEventListener('pos_data_sync', handleSync);
+        };
+    }, [selectedPartner?.id]);
     const toggleSummaryLayout = () => {
         const next = summaryLayoutMode === 'sidebar' ? 'bottom' : 'sidebar';
         setSummaryLayoutMode(next);
@@ -1054,23 +1073,34 @@ export default function Purchase() {
         return false;
     };
 
-    const loadOrder = (order) => {
+    const loadOrder = async (order) => {
         if (!order) return;
-        setEditOrderId(order.id);
-        setEditingOriginalOrder(order);
-        const detailsList = order.details || order.items || [];
+        let orderObj = order;
+        if ((!orderObj.details || orderObj.details.length === 0) && orderObj.id) {
+            try {
+                const res = await axios.get(`/api/orders/${orderObj.id}`);
+                if (res.data) orderObj = res.data;
+            } catch (e) {
+                console.error("Error fetching full order details in Purchase", e);
+            }
+        }
+        setEditOrderId(orderObj.id);
+        setEditingOriginalOrder(orderObj);
+        const detailsList = orderObj.details || orderObj.items || [];
         setCart(detailsList.map(d => {
             const matchedProd = products.find(p => p.id === d.product_id);
             const multiplier = d.multiplier || matchedProd?.multiplier || 1;
             const qty = d.quantity !== undefined ? d.quantity : 1;
+            const price = d.price !== undefined ? d.price : (d.unit_price !== undefined ? d.unit_price : (matchedProd?.cost_price || 0));
             return {
                 cartId: Math.random().toString(36).substr(2, 9),
                 product_id: d.product_id,
-                product_name: d.product_name || d.product?.name || matchedProd?.name || 'Sản phẩm',
+                name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
+                product_name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
                 unit: d.product_unit || d.unit || d.product?.unit || matchedProd?.unit || 'Cái',
                 secondary_unit: d.secondary_unit || d.product?.secondary_unit || matchedProd?.secondary_unit,
                 multiplier: multiplier,
-                price: d.price !== undefined ? d.price : (d.unit_price !== undefined ? d.unit_price : (matchedProd?.cost_price || 0)),
+                price: price,
                 quantity: qty,
                 secondary_qty: d.secondary_qty !== undefined ? d.secondary_qty : (qty / multiplier),
                 stock: d.stock !== undefined ? d.stock : (d.product?.stock !== undefined ? d.product.stock : (matchedProd?.stock || 0)),
@@ -1080,12 +1110,22 @@ export default function Purchase() {
         }));
         setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
         setRowSearchIdx(null);
-        setNote(order.note || '');
-        setAmountPaid(order.amount_paid || 0);
-        setPaymentMethod(order.payment_method || 'Cash');
-        setIsConsignment(order.is_consignment || false);
-        setPendingPartnerId(order.partner_id);
-        setCustomOrderDate(order.date ? order.date.slice(0, 10) : '');
+        setNote(orderObj.note || '');
+        setAmountPaid(orderObj.amount_paid || 0);
+        setPaymentMethod(orderObj.payment_method || 'Cash');
+        setIsConsignment(orderObj.is_consignment || false);
+        if (orderObj.partner) {
+            setSelectedPartner(orderObj.partner);
+            setPendingPartnerId(null);
+        } else if (orderObj.partner_id) {
+            setPendingPartnerId(orderObj.partner_id);
+            const matchedPartner = partners.find(p => p.id === orderObj.partner_id);
+            if (matchedPartner) setSelectedPartner(matchedPartner);
+        } else {
+            setSelectedPartner(null);
+            setPendingPartnerId(null);
+        }
+        setCustomOrderDate(orderObj.date ? orderObj.date.slice(0, 10) : '');
         setPartnerSearch('');
         setSearchTerm('');
         setIsPartnerDropdownOpen(false);
@@ -1095,13 +1135,7 @@ export default function Purchase() {
         try {
             const res = await axios.get(`/api/orders/${id}`);
             if (res.data) {
-                loadOrder(res.data);
-                if (res.data.partner) {
-                    setSelectedPartner(res.data.partner);
-                } else if (res.data.partner_id) {
-                    const partner = partners.find(p => p.id === res.data.partner_id);
-                    setSelectedPartner(partner || null);
-                }
+                await loadOrder(res.data);
             }
         } catch (e) {
             console.error("Error fetching order", e);
@@ -1110,8 +1144,6 @@ export default function Purchase() {
     };
 
     useEffect(() => {
-        // fetchProducts(); - Removed, using React Query
-        // fetchPartners(); - Removed, using React Query
         fetchSettings();
         fetchBankAccounts();
 
@@ -1122,12 +1154,6 @@ export default function Purchase() {
             }
         };
 
-        // Load Draft
-        if (!location.state?.editOrder) {
-            loadDraft();
-        }
-
-        // Handle Edit Mode
         if (location.state?.editOrder) {
             loadOrder(location.state.editOrder);
         } else {
@@ -1135,9 +1161,8 @@ export default function Purchase() {
             const editId = params.get('edit');
             if (editId) {
                 fetchOrder(editId);
-            } else if (editOrderId) {
-                // Not in edit mode - if we were previously editing, we should restore our draft
-                if (!loadDraft()) resetForm(false);
+            } else if (!editOrderId) {
+                loadDraft();
             }
         }
         setIsLoaded(true);
@@ -1438,8 +1463,11 @@ export default function Purchase() {
             // Broadcast data sync
             try {
                 const syncChan = new BroadcastChannel('pos_data_sync');
-                syncChan.postMessage({ type: 'ORDER_SAVED' });
+                syncChan.postMessage({ type: 'ORDER_SAVED', partnerId: selectedPartner?.id });
+                if (selectedPartner?.id) syncChan.postMessage({ type: 'PARTNER_UPDATED', partnerId: selectedPartner.id });
                 syncChan.close();
+                window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'ORDER_SAVED', partnerId: selectedPartner?.id } }));
+                if (selectedPartner?.id) window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PARTNER_UPDATED', partnerId: selectedPartner.id } }));
             } catch (e) {
                 console.error("BroadcastChannel error:", e);
             }
@@ -5957,20 +5985,17 @@ export default function Purchase() {
                     </div>
                 )
             }
-            <AnimatePresence>
-                {isOrderDetailModalOpen && selectedDetailOrder && (
-                    <OrderEditPopup
-                        order={selectedDetailOrder}
-                        partner={partners.find(p => p.id === selectedDetailOrder.partner_id)}
-                        onClose={() => setIsOrderDetailModalOpen(false)}
-                        onSave={() => {
-                            setIsOrderDetailModalOpen(false);
-                            queryClient.invalidateQueries(['orders']);
-                            refreshConsignmentStatus(selectedPartner?.id);
-                        }}
-                    />
-                )}
-            </AnimatePresence>
+            <OrderEditPopup
+                isOpen={Boolean(isOrderDetailModalOpen && selectedDetailOrder)}
+                order={selectedDetailOrder}
+                partner={partners.find(p => p.id === selectedDetailOrder?.partner_id)}
+                onClose={() => setIsOrderDetailModalOpen(false)}
+                onSave={() => {
+                    setIsOrderDetailModalOpen(false);
+                    queryClient.invalidateQueries(['orders']);
+                    refreshConsignmentStatus(selectedPartner?.id);
+                }}
+            />
             <AnimatePresence>
                 {confirm && (
                     <ConfirmModal

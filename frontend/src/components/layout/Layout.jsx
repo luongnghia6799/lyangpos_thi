@@ -2251,19 +2251,18 @@ export default function Layout({ children }) {
                 )}
             </AnimatePresence>
 
-            {globalEditingOrder && (
-                <OrderEditPopup
-                    order={globalEditingOrder}
-                    onClose={() => setGlobalEditingOrder(null)}
-                    onSave={() => {
-                        setGlobalEditingOrder(null);
-                        // Send data sync broadcast so other active pages auto-update!
-                        const syncChannel = new BroadcastChannel('pos_data_sync');
-                        syncChannel.postMessage({ type: 'ORDER_UPDATED' });
-                        syncChannel.close();
-                    }}
-                />
-            )}
+            <OrderEditPopup
+                isOpen={Boolean(globalEditingOrder)}
+                order={globalEditingOrder}
+                onClose={() => setGlobalEditingOrder(null)}
+                onSave={() => {
+                    setGlobalEditingOrder(null);
+                    // Send data sync broadcast so other active pages auto-update!
+                    const syncChannel = new BroadcastChannel('pos_data_sync');
+                    syncChannel.postMessage({ type: 'ORDER_UPDATED' });
+                    syncChannel.close();
+                }}
+            />
         </div>
     );
 }

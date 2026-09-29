@@ -1258,17 +1258,16 @@ export default function PartnerProfile() {
                 )}
             </div>
 
-            {editingOrder && (
-                <OrderEditPopup
-                    order={editingOrder}
-                    onClose={() => setEditingOrder(null)}
-                    onSave={() => {
-                        setEditingOrder(null);
-                        fetchPartnerDetails();
-                        fetchDebtCycles();
-                    }}
-                />
-            )}
+            <OrderEditPopup
+                isOpen={Boolean(editingOrder)}
+                order={editingOrder}
+                onClose={() => setEditingOrder(null)}
+                onSave={() => {
+                    setEditingOrder(null);
+                    fetchPartnerDetails();
+                    fetchDebtCycles();
+                }}
+            />
             <AnimatePresence>{toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}</AnimatePresence>
             <LoadingOverlay isVisible={loadingDetails && ledger.length === 0} message="Đang phân tích hồ sơ đối tác..." />
         </div>

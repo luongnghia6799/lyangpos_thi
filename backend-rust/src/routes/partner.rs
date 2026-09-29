@@ -460,68 +460,180 @@ pub async fn save_custom_price(
 }
 
 pub async fn recalculate_partner_debt_internal(pool: &SqlitePool, partner_id: i64) -> anyhow::Result<()> {
-    // 1. Debt from Orders
-    let sale_debt: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE partner_id = ? AND payment_method = 'Debt' AND type = 'Sale'"
+    // 1. Fetch Orders for this partner
+    let orders = sqlx::query(
+        "SELECT id, date, type, payment_method, CAST(total_amount AS REAL) as total_amount, status \
+         FROM \"order\" WHERE partner_id = ? ORDER BY date ASC, id ASC"
     )
     .bind(partner_id)
-    .fetch_one(pool)
+    .fetch_all(pool)
     .await?;
 
-    let purchase_debt: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(total_amount) AS REAL) FROM \"order\" WHERE partner_id = ? AND payment_method = 'Debt' AND type = 'Purchase'"
+    // 2. Fetch Vouchers for this partner
+    let vouchers = sqlx::query(
+        "SELECT id, date, type, CAST(amount AS REAL) as amount \
+         FROM cash_voucher WHERE partner_id = ? AND source != 'auto' ORDER BY date ASC, id ASC"
     )
     .bind(partner_id)
-    .fetch_one(pool)
+    .fetch_all(pool)
     .await?;
 
-    // 2. Debt from Cash Vouchers (non-auto)
-    let receipts: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(amount) AS REAL) FROM cash_voucher WHERE partner_id = ? AND type = 'Receipt' AND source != 'auto'"
+    // 3. Fetch Bank Transactions for this partner
+    let banks = sqlx::query(
+        "SELECT id, date, type, CAST(amount AS REAL) as amount, order_id \
+         FROM bank_transaction WHERE partner_id = ? ORDER BY date ASC, id ASC"
     )
     .bind(partner_id)
-    .fetch_one(pool)
+    .fetch_all(pool)
     .await?;
 
-    let payments: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(amount) AS REAL) FROM cash_voucher WHERE partner_id = ? AND type = 'Payment' AND source != 'auto'"
-    )
-    .bind(partner_id)
-    .fetch_one(pool)
-    .await?;
+    let mut order_debt_map: HashMap<i64, bool> = HashMap::new();
+    for o in &orders {
+        let o_id: i64 = o.get("id");
+        let pm: Option<String> = o.get("payment_method");
+        let status: Option<String> = o.get("status");
+        let is_debt = pm.as_deref() == Some("Debt") && status.as_deref() != Some("Draft");
+        order_debt_map.insert(o_id, is_debt);
+    }
 
-    let debt_increases: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(amount) AS REAL) FROM cash_voucher WHERE partner_id = ? AND type = 'DebtIncrease'"
-    )
-    .bind(partner_id)
-    .fetch_one(pool)
-    .await?;
+    enum EventType {
+        Order { id: i64, o_type: String, payment_method: String, total_amount: f64, is_draft: bool },
+        Voucher { v_type: String, amount: f64 },
+        Bank { b_type: String, amount: f64, is_debt: bool },
+    }
 
-    // 3. Bank Transactions
-    let bank_deposits: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(amount) AS REAL) FROM bank_transaction WHERE partner_id = ? AND type = 'Deposit'"
-    )
-    .bind(partner_id)
-    .fetch_one(pool)
-    .await?;
+    struct DebtEvent {
+        date: NaiveDateTime,
+        priority: u8,
+        id: i64,
+        event: EventType,
+    }
 
-    let bank_withdrawals: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(SUM(amount) AS REAL) FROM bank_transaction WHERE partner_id = ? AND type = 'Withdrawal'"
-    )
-    .bind(partner_id)
-    .fetch_one(pool)
-    .await?;
+    let mut events: Vec<DebtEvent> = Vec::new();
 
-    let total_balance = (sale_debt.unwrap_or(0.0) - purchase_debt.unwrap_or(0.0))
-        - (receipts.unwrap_or(0.0) - payments.unwrap_or(0.0))
-        + debt_increases.unwrap_or(0.0)
-        - (bank_deposits.unwrap_or(0.0) - bank_withdrawals.unwrap_or(0.0));
+    for o in orders {
+        let o_id: i64 = o.get("id");
+        let date: Option<NaiveDateTime> = o.get("date");
+        let o_type: String = o.get("type");
+        let pm: Option<String> = o.get("payment_method");
+        let total: f64 = o.get::<Option<f64>, _>("total_amount").unwrap_or(0.0);
+        let status: Option<String> = o.get("status");
+        let is_draft = status.as_deref() == Some("Draft");
 
+        if let Some(d) = date {
+            events.push(DebtEvent {
+                date: d,
+                priority: 0,
+                id: o_id,
+                event: EventType::Order {
+                    id: o_id,
+                    o_type,
+                    payment_method: pm.unwrap_or_else(|| "Cash".into()),
+                    total_amount: total,
+                    is_draft,
+                },
+            });
+        }
+    }
+
+    for v in vouchers {
+        let v_id: i64 = v.get("id");
+        let date: Option<NaiveDateTime> = v.get("date");
+        let v_type: String = v.get("type");
+        let amount: f64 = v.get::<Option<f64>, _>("amount").unwrap_or(0.0);
+
+        if let Some(d) = date {
+            events.push(DebtEvent {
+                date: d,
+                priority: 1,
+                id: v_id,
+                event: EventType::Voucher { v_type, amount },
+            });
+        }
+    }
+
+    for b in banks {
+        let b_id: i64 = b.get("id");
+        let date: Option<NaiveDateTime> = b.get("date");
+        let b_type: String = b.get("type");
+        let amount: f64 = b.get::<Option<f64>, _>("amount").unwrap_or(0.0);
+        let order_id: Option<i64> = b.get("order_id");
+
+        let mut is_debt = true;
+        if let Some(oid) = order_id {
+            if let Some(&order_is_debt) = order_debt_map.get(&oid) {
+                if !order_is_debt {
+                    is_debt = false;
+                }
+            }
+        }
+
+        if let Some(d) = date {
+            events.push(DebtEvent {
+                date: d,
+                priority: 1,
+                id: b_id,
+                event: EventType::Bank { b_type, amount, is_debt },
+            });
+        }
+    }
+
+    // Sort chronologically
+    events.sort_by(|a, b| {
+        a.date.cmp(&b.date)
+            .then_with(|| a.priority.cmp(&b.priority))
+            .then_with(|| a.id.cmp(&b.id))
+    });
+
+    let mut running_balance: f64 = 0.0;
+    let mut order_old_debts: Vec<(i64, f64)> = Vec::new();
+
+    for ev in events {
+        match ev.event {
+            EventType::Order { id, o_type, payment_method, total_amount, is_draft } => {
+                order_old_debts.push((id, running_balance));
+                if !is_draft && payment_method == "Debt" {
+                    if o_type == "Sale" {
+                        running_balance += total_amount;
+                    } else {
+                        running_balance -= total_amount;
+                    }
+                }
+            }
+            EventType::Voucher { v_type, amount } => {
+                if v_type == "Receipt" {
+                    running_balance -= amount;
+                } else if v_type == "Payment" || v_type == "DebtIncrease" {
+                    running_balance += amount;
+                }
+            }
+            EventType::Bank { b_type, amount, is_debt } => {
+                if is_debt {
+                    if b_type == "Deposit" {
+                        running_balance -= amount;
+                    } else if b_type == "Withdrawal" {
+                        running_balance += amount;
+                    }
+                }
+            }
+        }
+    }
+
+    // Update partner debt_balance
     sqlx::query("UPDATE partner SET debt_balance = ? WHERE id = ?")
-        .bind(total_balance)
+        .bind(running_balance)
         .bind(partner_id)
         .execute(pool)
         .await?;
+
+    // Update all order old_debts for this partner
+    for (order_id, old_debt) in order_old_debts {
+        sqlx::query("UPDATE \"order\" SET old_debt = ? WHERE id = ?")
+            .bind(old_debt)
+            .bind(order_id)
+            .execute(pool)
+            .await?;
+    }
 
     Ok(())
 }
@@ -1151,6 +1263,15 @@ pub async fn save_custom_prices_bulk(
                     entries.push((p, pr, price));
                 }
             }
+        } else if let Some(prices_map) = obj.get("prices").and_then(|v| v.as_object()) {
+            if let Some(pid) = global_partner_id {
+                for (prod_key, price_val) in prices_map {
+                    if let Ok(prid) = prod_key.parse::<i64>() {
+                        let price = price_val.as_f64().or_else(|| price_val.as_str().and_then(|s| s.replace(',', "").trim().parse::<f64>().ok())).unwrap_or(0.0);
+                        entries.push((pid, prid, price));
+                    }
+                }
+            }
         }
     }
 
@@ -1181,7 +1302,7 @@ pub async fn save_custom_prices_bulk(
                 .execute(&pool)
                 .await;
         } else {
-            let _ = sqlx::query(
+            let res = sqlx::query(
                 "INSERT INTO customer_price (partner_id, product_id, price) VALUES (?, ?, ?) \
                  ON CONFLICT(partner_id, product_id) DO UPDATE SET price = excluded.price"
             )
@@ -1190,6 +1311,9 @@ pub async fn save_custom_prices_bulk(
             .bind(price)
             .execute(&pool)
             .await;
+            if let Err(e) = res {
+                tracing::error!("Error saving customer_price (partner_id={}, product_id={}): {:?}", p, pr, e);
+            }
         }
     }
 

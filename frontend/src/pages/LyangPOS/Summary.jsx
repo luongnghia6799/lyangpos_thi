@@ -163,21 +163,16 @@ const Summary = () => {
                 </div>
             </div>
 
-            <Portal>
-                <AnimatePresence>
-                    {editingOrder && (
-                        <OrderEditPopup 
-                            order={editingOrder} 
-                            partner={editingOrder.partner} 
-                            onClose={() => setEditingOrder(null)} 
-                            onSave={() => {
-                                setEditingOrder(null);
-                                setToast({ message: "Đã cập nhật đơn hàng thành công!", type: "success" });
-                            }} 
-                        />
-                    )}
-                </AnimatePresence>
-            </Portal>
+            <OrderEditPopup 
+                isOpen={Boolean(editingOrder)}
+                order={editingOrder} 
+                partner={editingOrder?.partner} 
+                onClose={() => setEditingOrder(null)} 
+                onSave={() => {
+                    setEditingOrder(null);
+                    setToast({ message: "Đã cập nhật đơn hàng thành công!", type: "success" });
+                }} 
+            />
             <AnimatePresence>
                 {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             </AnimatePresence>

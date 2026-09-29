@@ -4060,33 +4060,10 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
-                                            layout
-                                            initial={{
-                                                opacity: 0,
-                                                scale: 0.92,
-                                                y: 24,
-                                                filter: "blur(12px)"
-                                            }}
-                                            animate={{
-                                                opacity: 1,
-                                                scale: 1,
-                                                y: 0,
-                                                filter: "blur(0.01px)"
-                                            }}
-                                            exit={{
-                                                opacity: 0,
-                                                scale: 0.92,
-                                                y: 24,
-                                                filter: "blur(12px)",
-                                                transition: { duration: 0.2, ease: "easeInOut" }
-                                            }}
-                                            transition={{
-                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
-                                                type: "spring",
-                                                stiffness: 350,
-                                                damping: 26,
-                                                mass: 0.8
-                                            }}
+                                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
                                             className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
                                         >
                                             <div className="flex items-center gap-2.5 pointer-events-auto">
@@ -4288,9 +4265,9 @@ export default function Purchase() {
                                                     <AnimatePresence>
                                                         {isNoteModalOpen && (
                                                             <m.div
-                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)" }}
-                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)" }}
-                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)", transition: { duration: 0.16, ease: "easeOut" } }}
+                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "none" }}
+                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "none" }}
+                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "none", transition: { duration: 0.16, ease: "easeOut" } }}
                                                                 transition={{ type: "spring", stiffness: 420, damping: 26 }}
                                                                 onClick={(e) => e.stopPropagation()}
                                                                 className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
@@ -4324,33 +4301,10 @@ export default function Purchase() {
                                         {/* Floating Total & Payment Bubble - Bottom Right */}
                                         <m.div
                                             key="total-bubble"
-                                            layout
-                                            initial={{
-                                                opacity: 0,
-                                                scale: 0.92,
-                                                y: 24,
-                                                filter: "blur(12px)"
-                                            }}
-                                            animate={{
-                                                opacity: 1,
-                                                scale: 1,
-                                                y: 0,
-                                                filter: "blur(0.01px)"
-                                            }}
-                                            exit={{
-                                                opacity: 0,
-                                                scale: 0.92,
-                                                y: 24,
-                                                filter: "blur(12px)",
-                                                transition: { duration: 0.2, ease: "easeInOut" }
-                                            }}
-                                            transition={{
-                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
-                                                type: "spring",
-                                                stiffness: 350,
-                                                damping: 26,
-                                                mass: 0.8
-                                            }}
+                                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.6 }}
                                             className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
                                         >
                                             {/* Tiền trả NCC (F1) / Đã trả */}
@@ -4358,16 +4312,11 @@ export default function Purchase() {
                                             {paymentMethod === 'Cash' && (
                                                 <m.div
                                                     key="purchase-cash-bubble"
-                                                    layout
-                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
-                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
-                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
-                                                    transition={{
-                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
-                                                        type: "spring",
-                                                        stiffness: 400,
-                                                        damping: 28
-                                                    }}
+                                                    layout="position"
+                                                    initial={{ opacity: 0, scale: 0.92, x: 20 }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
+                                                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
                                                     style={getBubbleComputedStyle(cartColorConfig, 'cash')}
                                                     className="pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-3 pr-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/cash-calculator relative min-w-[200px] hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300"
                                                 >
@@ -4405,16 +4354,11 @@ export default function Purchase() {
                                             {selectedPartner && (
                                                 <m.div
                                                     key="purchase-payment-toggle-bubble"
-                                                    layout
-                                                    initial={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)" }}
-                                                    animate={{ opacity: 1, scale: 1, x: 0, filter: "blur(0px)" }}
-                                                    exit={{ opacity: 0, scale: 0.85, x: 25, filter: "blur(8px)", transition: { duration: 0.18, ease: "easeOut" } }}
-                                                    transition={{
-                                                        layout: { type: "spring", stiffness: 350, damping: 28 },
-                                                        type: "spring",
-                                                        stiffness: 400,
-                                                        damping: 28
-                                                    }}
+                                                    layout="position"
+                                                    initial={{ opacity: 0, scale: 0.92, x: 20 }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.15, ease: "easeOut" } }}
+                                                    transition={{ type: "spring", stiffness: 420, damping: 30 }}
                                                     style={getBubbleComputedStyle(cartColorConfig, 'payment')}
                                                     className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
                                                 >

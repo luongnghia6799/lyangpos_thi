@@ -2536,26 +2536,15 @@ export default function Purchase() {
                                 {historyLoading && (
                                     <m.div
                                         key="purchase-history-sync-overlay"
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{ duration: 0.15 }}
-                                        className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        transition={{ duration: 0.12 }}
+                                        className="absolute inset-0 z-[200] flex items-center justify-center select-none pointer-events-none"
                                     >
-                                        <div className="relative w-16 h-16 flex items-center justify-center">
-                                            <div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" />
-                                            <div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" />
-                                            <div className="w-9 h-9 flex items-center justify-center relative z-10">
-                                                <img src={LyangLogo} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" />
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
-                                                Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
-                                            </span>
-                                            <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">
-                                                Đang đồng bộ dữ liệu...
-                                            </span>
+                                        <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-card/95 border border-primary/25 dark:border-white/15 shadow-lg text-[#2d5016] dark:text-[#d4a574]">
+                                            <Loader2 size={16} className="animate-spin text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                            <span className="text-xs font-black uppercase tracking-wider">Đang tải đơn...</span>
                                         </div>
                                     </m.div>
                                 )}

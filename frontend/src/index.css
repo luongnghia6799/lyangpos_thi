@@ -404,45 +404,39 @@ html.has-wallpaper.dark .dropdown-premium {
   border-radius: var(--radius-pos, 0.75rem) !important;
 }
 
-/* Authentic Apple-grade Frosted Glass matching App Background Theme */
+/* Premium Dropdown with solid opaque theme background - zero bleed-through from underlying text */
 .frosted-glass,
 .dropdown-frosted-glass,
 .dropdown-premium {
-  background: color-mix(in srgb, var(--bg-color, #faf8f3) 72%, transparent) !important;
-  backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
-  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  background: var(--bg-color, #faf8f3) !important;
+  border: 1px solid var(--border-color, rgba(139, 111, 71, 0.25)) !important;
   box-shadow: 
-    0 25px 60px -10px rgba(0, 0, 0, 0.18),
-    0 10px 25px -5px rgba(0, 0, 0, 0.08),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
-    inset 0 0 24px 0 rgba(255, 255, 255, 0.25) !important;
+    0 25px 60px -10px rgba(0, 0, 0, 0.22),
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 
 .dark .frosted-glass,
 .dark .dropdown-frosted-glass,
 .dark .dropdown-premium {
-  background: color-mix(in srgb, var(--bg-color, #0a0e14) 75%, transparent) !important;
-  backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
-  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: var(--bg-color, #0a0e14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 
-    0 30px 70px -10px rgba(0, 0, 0, 0.75),
-    0 12px 28px -6px rgba(0, 0, 0, 0.45),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 0 24px 0 rgba(255, 255, 255, 0.04) !important;
+    0 30px 70px -10px rgba(0, 0, 0, 0.85),
+    0 12px 28px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
 html.has-wallpaper .frosted-glass,
 html.has-wallpaper .dropdown-frosted-glass,
 html.has-wallpaper .dropdown-premium {
-  background: color-mix(in srgb, var(--bg-color, #faf8f3) 60%, transparent) !important;
+  background: var(--bg-color, #faf8f3) !important;
 }
 
 html.has-wallpaper.dark .frosted-glass,
 html.has-wallpaper.dark .dropdown-frosted-glass,
 html.has-wallpaper.dark .dropdown-premium {
-  background: color-mix(in srgb, var(--bg-color, #0a0e14) 65%, transparent) !important;
+  background: var(--bg-color, #0a0e14) !important;
 }
 
 .modal-premium {

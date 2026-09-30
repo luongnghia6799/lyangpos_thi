@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, memo } from 'react';
+import React, { useRef, useState, useLayoutEffect, memo } from 'react';
 
 export const MarqueeText = memo(({
   text,
@@ -15,31 +15,51 @@ export const MarqueeText = memo(({
   const textRef = useRef(null);
   const [overflowDist, setOverflowDist] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const isCurrentlyActive = isActive || active || isHovered;
+  const isCurrentlyActive = Boolean(isActive || active || isHovered);
 
-  const checkOverflow = () => {
+  const measure = () => {
     if (containerRef.current && textRef.current) {
       const containerW = containerRef.current.clientWidth;
       const textW = textRef.current.scrollWidth;
-      const newDist = textW > containerW + 2 ? textW - containerW : 0;
-      if (newDist !== overflowDist) {
-        setOverflowDist(newDist);
-      }
+      const dist = textW > containerW + 2 ? textW - containerW : 0;
+      setOverflowDist(dist);
     }
   };
 
+  useLayoutEffect(() => {
+    measure();
+    const el = containerRef.current;
+    if (!el) return;
+
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => {
+        measure();
+      });
+      ro.observe(el);
+      if (textRef.current) ro.observe(textRef.current);
+    }
+
+    const timer = setTimeout(measure, 100);
+
+    return () => {
+      if (ro) ro.disconnect();
+      clearTimeout(timer);
+    };
+  }, [text]);
+
   const handleMouseEnter = () => {
     setIsHovered(true);
-    checkOverflow();
+    measure();
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-    if (overflowDist !== 0) setOverflowDist(0);
   };
 
-  const isOverflowing = isHovered && overflowDist > 0;
-  const duration = Math.max(3, Math.min(10, (overflowDist / 35) + 2));
+  const isOverflowing = overflowDist > 0;
+  const shouldAnimate = isCurrentlyActive && isOverflowing;
+  const duration = Math.max(2.8, Math.min(9, (overflowDist / 30) + 1.8));
 
   return (
     <div
@@ -51,17 +71,17 @@ export const MarqueeText = memo(({
       onMouseLeave={handleMouseLeave}
       title={title !== undefined ? title : text}
       style={style}
-      className={`w-full overflow-hidden whitespace-nowrap relative select-none py-1 leading-normal ${className}`}
+      className={`w-full overflow-hidden whitespace-nowrap relative select-none py-0.5 leading-normal ${className}`}
     >
       <span
         ref={textRef}
         className={`inline-block whitespace-nowrap leading-normal ${
-          isOverflowing ? 'animate-marquee-on-hover is-overflowing is-active' : ''
+          shouldAnimate ? 'animate-marquee-on-hover is-overflowing is-active' : ''
         }`}
         style={
-          isOverflowing
+          shouldAnimate
             ? {
-                '--marquee-scroll': `-${overflowDist + 14}px`,
+                '--marquee-scroll': `-${overflowDist + 16}px`,
                 '--marquee-duration': `${duration}s`,
               }
             : undefined
@@ -74,3 +94,4 @@ export const MarqueeText = memo(({
 });
 
 export default MarqueeText;
+

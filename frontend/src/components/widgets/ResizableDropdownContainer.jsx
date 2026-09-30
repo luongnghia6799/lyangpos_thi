@@ -177,10 +177,10 @@ function ResizableDropdownContainer({
       <div
         onPointerDown={(e) => startDrag(e, "width")}
         onDoubleClick={() => resetSize("width")}
-        className="absolute top-0 right-0 w-3 h-full cursor-ew-resize hover:bg-[#8b6f47]/15 dark:hover:bg-[#d4a574]/15 transition-colors z-30 flex items-center justify-center group/sidehandle"
+        className="absolute top-0 right-0 w-3 h-full cursor-ew-resize hover:bg-primary/15 transition-colors z-30 flex items-center justify-center group/sidehandle"
         title="Kéo mép phải để đổi chiều rộng (Nhấp đúp để đặt lại)"
       >
-        <div className="w-0.5 h-8 rounded-full bg-slate-300/40 dark:bg-slate-700/40 group-hover/sidehandle:bg-[#8b6f47] dark:group-hover/sidehandle:bg-[#d4a574] group-hover/sidehandle:scale-y-125 transition-all" />
+        <div className="w-0.5 h-8 rounded-full bg-slate-300/40 dark:bg-slate-700/40 group-hover/sidehandle:bg-primary group-hover/sidehandle:scale-y-125 transition-all" />
       </div>
 
       {/* Scrollable list container - lightweight, instant height, zero layout lag */}
@@ -202,10 +202,10 @@ function ResizableDropdownContainer({
             <button
               onClick={() => resetSize("both")}
               type="button"
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47] dark:hover:bg-[#d4a574] hover:text-white text-[#8b6f47] dark:text-[#d4a574] transition-all cursor-pointer"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-primary/10 hover:bg-primary text-primary hover:text-white dark:bg-primary/15 dark:text-primary-light border border-primary/20 hover:border-primary transition-all cursor-pointer shadow-2xs"
               title="Đặt lại kích thước mặc định"
             >
-              <RotateCcw size={8} />
+              <RotateCcw size={8} strokeWidth={2.5} />
               <span>Đặt lại</span>
             </button>
           )}
@@ -218,14 +218,14 @@ function ResizableDropdownContainer({
           className="group/handle py-1.5 px-6 cursor-ns-resize flex items-center justify-center -my-1"
           title="Kéo để chỉnh chiều cao (Nhấp đúp để đặt lại)"
         >
-          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 group-hover/handle:bg-[#8b6f47] dark:group-hover/handle:bg-[#d4a574] group-hover/handle:scale-y-125 transition-all" />
+          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 group-hover/handle:bg-primary group-hover/handle:scale-y-125 transition-all" />
         </div>
 
         {/* Right: Corner diagonal grip for simultaneous width + height resize */}
         <div
           onPointerDown={(e) => startDrag(e, "both")}
           onDoubleClick={() => resetSize("both")}
-          className="group/corner -mr-1 p-1 cursor-nwse-resize text-slate-400 dark:text-slate-600 hover:text-[#8b6f47] dark:hover:text-[#d4a574] transition-colors flex items-center justify-center"
+          className="group/corner -mr-1 p-1 cursor-nwse-resize text-slate-400 dark:text-slate-600 hover:text-primary transition-colors flex items-center justify-center"
           title="Kéo góc để chỉnh rộng + cao (Nhấp đúp để đặt lại)"
         >
           <svg
@@ -248,7 +248,7 @@ function ResizableDropdownContainer({
       {/* Floating Dimension Badge while dragging */}
       {isDragging && (
         <div className="absolute top-3 right-4 z-40 pointer-events-none flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/85 dark:bg-black/95 text-white font-mono text-xs font-black shadow-2xl border border-white/20 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100 select-none">
-          <Sliders size={12} className="text-[#d4a574]" />
+          <Sliders size={12} className="text-primary" />
           <span>
             {Math.round(effectiveWidth)} × {Math.round(customSize.maxHeight)} px
           </span>

@@ -28,14 +28,6 @@ export const MarqueeText = memo(({
     }
   };
 
-  useEffect(() => {
-    if (!isCurrentlyActive) {
-      if (overflowDist !== 0) setOverflowDist(0);
-      return;
-    }
-    checkOverflow();
-  }, [text, isCurrentlyActive]);
-
   const handleMouseEnter = () => {
     setIsHovered(true);
     checkOverflow();
@@ -43,9 +35,10 @@ export const MarqueeText = memo(({
 
   const handleMouseLeave = () => {
     setIsHovered(false);
+    if (overflowDist !== 0) setOverflowDist(0);
   };
 
-  const isOverflowing = isCurrentlyActive && overflowDist > 0;
+  const isOverflowing = isHovered && overflowDist > 0;
   const duration = Math.max(3, Math.min(10, (overflowDist / 35) + 2));
 
   return (

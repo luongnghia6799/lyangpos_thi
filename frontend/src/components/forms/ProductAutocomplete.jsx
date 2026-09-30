@@ -162,10 +162,7 @@ const ProductAutocomplete = React.forwardRef(({
                                                     <MarqueeText
                                                         text={p.name}
                                                         isActive={index === highlightedIndex}
-                                                        className="font-black uppercase tracking-tight transition-all duration-300"
-                                                        style={{
-                                                            paddingLeft: index === highlightedIndex ? '12px' : '0px'
-                                                        }}
+                                                        className="font-black uppercase tracking-tight leading-normal"
                                                     />
                                                 </div>
                                                 {p.is_combo && (

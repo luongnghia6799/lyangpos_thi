@@ -4156,11 +4156,10 @@ function POSPage({
                                                 data: t,
                                                 position: { x: e.clientX, y: e.clientY }
                                               });
-                                            }} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+                                            }} isActive={a === De} className="font-black tracking-tight leading-relaxed" style={{
                                               color: a === De ? Mt.accent : Mt.main,
-                                              fontSize: "16px",
-                                              paddingLeft: a === De ? "12px" : "0px"
-                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
+                                              fontSize: "16px"
+                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
                                             r.stopPropagation();
                                             const s = r.currentTarget.getBoundingClientRect();
                                             Xt(t), za({
@@ -4258,15 +4257,14 @@ function POSPage({
                 data: r,
                 position: { x: e.clientX, y: e.clientY }
               });
-            }} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
+            }} isActive={s === It} className="font-black tracking-tight leading-relaxed" style={{
               color: s === It ? Mt.accent : Mt.main,
-              fontSize: "16px",
-              paddingLeft: s === It ? "12px" : "0px"
+              fontSize: "16px"
             }} />
           </div>
           {r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}
           {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}>
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}>
               <Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}
             </span>
           )}

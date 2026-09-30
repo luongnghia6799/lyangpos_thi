@@ -195,14 +195,14 @@ function ResizableDropdownContainer({
       </div>
 
       {/* Sleek Minimal Bottom Handle Bar */}
-      <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015] flex items-center justify-between px-2.5 select-none transition-colors">
+      <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-transparent flex items-center justify-between px-2.5 select-none transition-colors">
         {/* Left: subtle reset button when customized */}
         <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
           {isCustomized && (
             <button
               onClick={() => resetSize("both")}
               type="button"
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-primary/10 hover:bg-primary text-primary hover:text-white dark:bg-primary/15 dark:text-primary-light border border-primary/20 hover:border-primary transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider text-primary hover:opacity-75 transition-all cursor-pointer bg-transparent border-0 p-0 shadow-none"
               title="Đặt lại kích thước mặc định"
             >
               <RotateCcw size={8} strokeWidth={2.5} />

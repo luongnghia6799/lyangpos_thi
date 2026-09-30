@@ -404,13 +404,13 @@ html.has-wallpaper.dark .dropdown-premium {
   border-radius: var(--radius-pos, 0.75rem) !important;
 }
 
-/* Authentic Apple-grade Frosted Glass */
+/* Authentic Apple-grade Frosted Glass matching App Background Theme */
 .frosted-glass,
 .dropdown-frosted-glass,
 .dropdown-premium {
-  background: rgba(255, 255, 255, 0.52) !important;
-  backdrop-filter: blur(48px) saturate(210%) brightness(104%) !important;
-  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(104%) !important;
+  background: color-mix(in srgb, var(--bg-color, #faf8f3) 72%, transparent) !important;
+  backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
   border: 1px solid rgba(255, 255, 255, 0.65) !important;
   box-shadow: 
     0 25px 60px -10px rgba(0, 0, 0, 0.18),
@@ -422,9 +422,9 @@ html.has-wallpaper.dark .dropdown-premium {
 .dark .frosted-glass,
 .dark .dropdown-frosted-glass,
 .dark .dropdown-premium {
-  background: rgba(15, 20, 18, 0.58) !important;
-  backdrop-filter: blur(48px) saturate(210%) brightness(104%) !important;
-  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(104%) !important;
+  background: color-mix(in srgb, var(--bg-color, #0a0e14) 75%, transparent) !important;
+  backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(210%) brightness(102%) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   box-shadow: 
     0 30px 70px -10px rgba(0, 0, 0, 0.75),
@@ -436,13 +436,13 @@ html.has-wallpaper.dark .dropdown-premium {
 html.has-wallpaper .frosted-glass,
 html.has-wallpaper .dropdown-frosted-glass,
 html.has-wallpaper .dropdown-premium {
-  background: rgba(255, 255, 255, 0.45) !important;
+  background: color-mix(in srgb, var(--bg-color, #faf8f3) 60%, transparent) !important;
 }
 
 html.has-wallpaper.dark .frosted-glass,
 html.has-wallpaper.dark .dropdown-frosted-glass,
 html.has-wallpaper.dark .dropdown-premium {
-  background: rgba(15, 20, 18, 0.52) !important;
+  background: color-mix(in srgb, var(--bg-color, #0a0e14) 65%, transparent) !important;
 }
 
 .modal-premium {

@@ -267,7 +267,7 @@ export default function SearchableSelect({
                         exit={{ opacity: 0, y: 5, scale: 0.95 }}
                         transition={{ duration: 0.1 }}
                         className={cn(
-                            "absolute top-full left-0 z-50 mt-1 rounded-2xl border overflow-hidden shadow-2xl bg-white/40 dark:bg-black/40 backdrop-blur-xl backdrop-saturate-150 border-white/50 dark:border-white/10",
+                            "absolute top-full left-0 z-50 mt-1 rounded-2xl border overflow-hidden shadow-2xl frosted-glass dropdown-frosted-glass",
                             isPartnerSelect ? "min-w-[480px]" : "w-full min-w-[220px]"
                         )}
                     >

@@ -50,7 +50,9 @@ import {
     Keyboard,
     Sparkles,
     Wrench,
-    Bell
+    Bell,
+    Palette,
+    MoreHorizontal
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 
@@ -64,6 +66,7 @@ import ContextMenu from '../widgets/ContextMenu';
 import { getLiteTheme } from '../../lib/liteTheme';
 import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
+import CartColorCustomizerModal from '../modals/CartColorCustomizerModal';
 import DynamicIcon from '../widgets/DynamicIcon';
 
 const Portal = ({ children }) => {
@@ -780,6 +783,26 @@ export default function Layout({ children }) {
     const cartColorConfig = useCartColorConfig();
     const hasCustomAccent = !isLiteMode && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
     const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+    const [showCartColorCustomizer, setShowCartColorCustomizer] = useState(false);
+
+    useEffect(() => {
+        const handleOpen = () => setShowCartColorCustomizer(true);
+        window.addEventListener("app_open_cart_color_customizer", handleOpen);
+        return () => window.removeEventListener("app_open_cart_color_customizer", handleOpen);
+    }, []);
+
+    const handleCartColorConfigChange = (newCfg) => {
+        localStorage.setItem("pos_cart_color_config", JSON.stringify(newCfg));
+        try {
+            const syncChan = new BroadcastChannel("pos_data_sync");
+            syncChan.postMessage({
+                type: "CART_COLOR_CONFIG_UPDATED",
+                key: "pos_cart_color_config",
+                value: JSON.stringify(newCfg)
+            });
+            syncChan.close();
+        } catch (e) {}
+    };
 
     const activeTabLabel = useMemo(() => {
         if (import.meta.env.VITE_APP_MODE === 'lite') {
@@ -1038,6 +1061,18 @@ export default function Layout({ children }) {
     const [isMuted, setIsMuted] = useState(() => {
         return localStorage.getItem('pos_notifications_muted') === 'true';
     });
+
+    const [isExtraActionsExpanded, setIsExtraActionsExpanded] = useState(() => {
+        return localStorage.getItem('pos_dock_extra_expanded') === 'true';
+    });
+
+    const toggleExtraActions = () => {
+        setIsExtraActionsExpanded(prev => {
+            const next = !prev;
+            try { localStorage.setItem('pos_dock_extra_expanded', String(next)); } catch (e) {}
+            return next;
+        });
+    };
 
     const [reminderCount, setReminderCount] = useState(0);
 
@@ -1872,113 +1907,226 @@ export default function Layout({ children }) {
                     } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
                 >
                     {/* Footer Actions (Reminder, Volume, Theme, Close) */}
-                    <div className={cn(
-                        "grid justify-items-center transition-all duration-300 w-full",
-                        isSidebarCollapsed ? "grid-cols-1 gap-1.5" : "grid-cols-4 gap-1.5"
-                    )}>
-                        {/* 1. Reminders */}
-                        <m.button
-                            whileHover={{ scale: 1.08 }}
-                            whileTap={{ scale: 0.92 }}
-                            onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
-                            style={isLiteMode ? {
-                                backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
-                                color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
-                            } : {}}
-                            className={cn(
-                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative cursor-pointer",
-                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11",
-                                isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
-                            )}
-                            title="Nhắc nhở & Lịch hẹn"
-                        >
-                            <div className="relative flex items-center justify-center">
-                                <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
-                                {reminderCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
-                                        {reminderCount > 9 ? '9+' : reminderCount}
-                                    </span>
+                    {isSidebarCollapsed ? (
+                        <div className="flex flex-col items-center gap-1.5 w-full">
+                            {/* 1. Reminders */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
+                                style={isLiteMode ? {
+                                    backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
+                                    color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
+                                } : {}}
+                                className={cn(
+                                    "w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative cursor-pointer",
+                                    isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
                                 )}
-                            </div>
-                            {!isSidebarCollapsed && (
+                                title="Nhắc nhở & Lịch hẹn"
+                            >
+                                <div className="relative flex items-center justify-center">
+                                    <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
+                                    {reminderCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
+                                            {reminderCount > 9 ? '9+' : reminderCount}
+                                        </span>
+                                    )}
+                                </div>
+                            </m.button>
+
+                            {/* Toggle Extra Actions Button */}
+                            <m.button
+                                whileHover={{ scale: 1.12 }}
+                                whileTap={{ scale: 0.88 }}
+                                onClick={toggleExtraActions}
+                                className={cn(
+                                    "w-9 h-9 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer",
+                                    isExtraActionsExpanded 
+                                        ? "bg-white/20 text-emerald-200 shadow-inner" 
+                                        : "bg-white/5 hover:bg-white/15 text-white/75 hover:text-white"
+                                )}
+                                title={isExtraActionsExpanded ? "Thu gọn bớt tiện ích" : "Mở rộng thêm tiện ích (Loa, Phông, Màu giỏ, Đóng...)"}
+                            >
+                                {isExtraActionsExpanded ? (
+                                    <ChevronUp size={16} className="text-emerald-300" />
+                                ) : (
+                                    <MoreHorizontal size={16} />
+                                )}
+                            </m.button>
+
+                            {/* Extra Collapsible Action Buttons */}
+                            <AnimatePresence initial={false}>
+                                {isExtraActionsExpanded && (
+                                    <m.div
+                                        key="extra-dock-items-collapsed"
+                                        initial={{ opacity: 0, height: 0, scale: 0.85 }}
+                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
+                                        exit={{ opacity: 0, height: 0, scale: 0.85 }}
+                                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                        className="flex flex-col items-center gap-1.5 w-full overflow-hidden"
+                                    >
+                                        {/* 2. Sound Volume */}
+                                        <m.button
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={toggleMute}
+                                            style={isLiteMode ? {
+                                                backgroundColor: isMuted ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                                                color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
+                                            } : {}}
+                                            className={cn(
+                                                "w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none cursor-pointer",
+                                                isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
+                                            )}
+                                            title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
+                                        >
+                                            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                                        </m.button>
+
+                                        {/* 3. Theme */}
+                                        <m.button
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={toggleTheme}
+                                            className="w-9 h-9 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                            title="Sáng / Tối"
+                                        >
+                                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                                        </m.button>
+
+                                        {/* 4. Cart Color Customizer */}
+                                        <m.button
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setShowCartColorCustomizer(true)}
+                                            className="w-9 h-9 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-amber-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                            title="Tùy chỉnh màu sắc & giao diện giỏ hàng"
+                                        >
+                                            <Palette size={16} />
+                                        </m.button>
+
+                                        {/* 5. Hide Sidebar */}
+                                        <m.button
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setIsSidebarHidden(true)}
+                                            style={isLiteMode ? {
+                                                backgroundColor: "rgba(239, 68, 68, 0.12)",
+                                                color: "rgb(239, 68, 68)"
+                                            } : {}}
+                                            className="w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer"
+                                            title="Đóng / Ẩn hoàn toàn menu"
+                                        >
+                                            <X size={16} strokeWidth={2.5} />
+                                        </m.button>
+                                    </m.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-5 gap-1 justify-items-center transition-all duration-300 w-full">
+                            {/* 1. Reminders */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
+                                style={isLiteMode ? {
+                                    backgroundColor: reminderCount > 0 ? "rgba(245, 158, 11, 0.15)" : "rgba(16, 185, 129, 0.12)",
+                                    color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
+                                } : {}}
+                                className={cn(
+                                    "w-full h-11 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative cursor-pointer",
+                                    isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
+                                )}
+                                title="Nhắc nhở & Lịch hẹn"
+                            >
+                                <div className="relative flex items-center justify-center">
+                                    <Bell size={16} className={reminderCount > 0 ? "text-amber-300" : ""} />
+                                    {reminderCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-white font-mono font-black text-[8.5px] flex items-center justify-center shadow-md border border-[#2d5016] dark:border-slate-900 leading-none">
+                                            {reminderCount > 9 ? '9+' : reminderCount}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className={cn(
                                     "text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap",
                                     reminderCount > 0 ? "text-amber-300 font-extrabold" : "text-emerald-100/90"
                                 )}>
                                     Nhắc
                                 </span>
-                            )}
-                        </m.button>
+                            </m.button>
 
-                        {/* 2. Sound Volume */}
-                        <m.button
-                            whileHover={{ scale: 1.08 }}
-                            whileTap={{ scale: 0.92 }}
-                            onClick={toggleMute}
-                            style={isLiteMode ? {
-                                backgroundColor: isMuted ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
-                                color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
-                            } : {}}
-                            className={cn(
-                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none cursor-pointer",
-                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11",
-                                isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
-                            )}
-                            title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
-                        >
-                            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                            {!isSidebarCollapsed && (
+                            {/* 2. Sound Volume */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={toggleMute}
+                                style={isLiteMode ? {
+                                    backgroundColor: isMuted ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+                                    color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
+                                } : {}}
+                                className={cn(
+                                    "w-full h-11 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none cursor-pointer",
+                                    isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
+                                )}
+                                title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
+                            >
+                                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                                 <span className={cn(
                                     "text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap",
                                     isLiteMode ? (isMuted ? "text-rose-600" : "text-emerald-700") : (isMuted ? "text-rose-300" : "text-emerald-100/90")
                                 )}>
                                     {isMuted ? "Tắt" : "Bật"}
                                 </span>
-                            )}
-                        </m.button>
+                            </m.button>
 
-                        {/* 3. Theme */}
-                        <m.button
-                            whileHover={{ scale: 1.08 }}
-                            whileTap={{ scale: 0.92 }}
-                            onClick={toggleTheme}
-                            className={cn(
-                                "rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer",
-                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11"
-                            )}
-                            title="Sáng / Tối"
-                        >
-                            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-                            {!isSidebarCollapsed && (
+                            {/* 3. Theme */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={toggleTheme}
+                                className="w-full h-11 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                title="Sáng / Tối"
+                            >
+                                {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
                                 <span className="text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap text-emerald-100/90">
                                     Phông
                                 </span>
-                            )}
-                        </m.button>
+                            </m.button>
 
-                        {/* 4. Hide Sidebar */}
-                        <m.button
-                            whileHover={{ scale: 1.08 }}
-                            whileTap={{ scale: 0.92 }}
-                            onClick={() => setIsSidebarHidden(true)}
-                            style={isLiteMode ? {
-                                backgroundColor: "rgba(239, 68, 68, 0.12)",
-                                color: "rgb(239, 68, 68)"
-                            } : {}}
-                            className={cn(
-                                "rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer",
-                                isSidebarCollapsed ? "w-9 h-9" : "w-11 h-11"
-                            )}
-                            title="Đóng / Ẩn hoàn toàn menu"
-                        >
-                            <X size={16} strokeWidth={2.5} />
-                            {!isSidebarCollapsed && (
+                            {/* 4. Cart Color Customizer */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => setShowCartColorCustomizer(true)}
+                                className="w-full h-11 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-amber-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                title="Tùy chỉnh màu sắc & giao diện giỏ hàng"
+                            >
+                                <Palette size={16} />
+                                <span className="text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap text-emerald-100/90">
+                                    Màu giỏ
+                                </span>
+                            </m.button>
+
+                            {/* 5. Hide Sidebar */}
+                            <m.button
+                                whileHover={{ scale: 1.08 }}
+                                whileTap={{ scale: 0.92 }}
+                                onClick={() => setIsSidebarHidden(true)}
+                                style={isLiteMode ? {
+                                    backgroundColor: "rgba(239, 68, 68, 0.12)",
+                                    color: "rgb(239, 68, 68)"
+                                } : {}}
+                                className="w-full h-11 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer"
+                                title="Đóng / Ẩn hoàn toàn menu"
+                            >
+                                <X size={16} strokeWidth={2.5} />
                                 <span className="text-[7.5px] font-black uppercase tracking-widest leading-none mt-0.5 whitespace-nowrap text-rose-300">
                                     Đóng
                                 </span>
-                            )}
-                        </m.button>
-                    </div>
+                            </m.button>
+                        </div>
+                    )}
 
                     {/* Collapse / Expand Toggle Button */}
                     <m.button
@@ -2262,6 +2410,13 @@ export default function Layout({ children }) {
                     syncChannel.postMessage({ type: 'ORDER_UPDATED' });
                     syncChannel.close();
                 }}
+            />
+
+            <CartColorCustomizerModal
+                isOpen={showCartColorCustomizer}
+                config={cartColorConfig}
+                onClose={() => setShowCartColorCustomizer(false)}
+                onChangeConfig={handleCartColorConfigChange}
             />
         </div>
     );

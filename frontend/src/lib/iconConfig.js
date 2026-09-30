@@ -152,20 +152,24 @@ export const resetStoredCustomIcons = () => {
 
 // Component render icon động siêu nhẹ từ dynamicIconImports (Zero heap saturation)
 const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'currentColor', className = '', ...props }) => {
-    const kebab = getIconKebabKey(name);
+    const rawName = typeof name === 'object' && name !== null ? name.name : name;
+    const defaultStroke = typeof name === 'object' && name !== null && name.strokeWidth != null ? parseFloat(name.strokeWidth) : 2;
+    const effectiveStroke = strokeWidth !== undefined ? strokeWidth : defaultStroke;
+    const kebab = getIconKebabKey(rawName);
     const pascal = toPascalCase(kebab);
     const [node, setNode] = useState(() => {
         return iconNodeCache.get(pascal) || iconNodeCache.get(kebab) || null;
     });
 
     useEffect(() => {
+        if (!kebab || !pascal) return;
         const cached = iconNodeCache.get(pascal) || iconNodeCache.get(kebab);
         if (cached) {
             setNode(cached);
             return;
         }
         let isMounted = true;
-        preloadIconNode(name).then((resNode) => {
+        preloadIconNode(rawName).then((resNode) => {
             if (isMounted && resNode) {
                 setNode(resNode);
             }
@@ -173,7 +177,7 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
         return () => {
             isMounted = false;
         };
-    }, [name, kebab, pascal]);
+    }, [rawName, kebab, pascal]);
 
     if (!node) {
         return createElement('span', {
@@ -189,7 +193,7 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
             width: size,
             height: size,
             stroke: color,
-            strokeWidth,
+            strokeWidth: effectiveStroke,
             className: `lucide lucide-${kebab} ${className}`,
             ...props
         },
@@ -199,7 +203,9 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
 
 export const getLucideIconComponent = (name) => {
     if (!name) return null;
-    return (props) => createElement(DynamicIconRenderer, { name, ...props });
+    const rawName = typeof name === 'object' && name !== null ? name.name : name;
+    if (!rawName || typeof rawName !== 'string') return null;
+    return (props) => createElement(DynamicIconRenderer, { name: rawName, ...props });
 };
 
 // Khởi tạo danh sách 1,900+ icon từ dynamicIconImports (Không tốn RAM, không load file thừa)

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIconContext } from '../../context/IconContext';
+import { getLucideIconComponent } from '../../lib/iconConfig';
 import Toast from '../../components/widgets/Toast';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 import PasswordConfirmModal from '../../components/modals/PasswordConfirmModal';
@@ -37,7 +38,7 @@ const WALLPAPER_PRESETS = [
 ];
 
 export default function Settings() {
-    const { customIcons, editMode, toggleEditMode, resetIcons } = useIconContext();
+    const { customIcons, editMode, toggleEditMode, resetIcons, updateIcon } = useIconContext();
     const [settings, setSettings] = useState({
         shop_name: 'Lyang Nghĩa',
         shop_address: '',
@@ -1274,8 +1275,12 @@ export default function Settings() {
 
                                                 {/* Danh sách các icon đã tùy chỉnh */}
                                                 <div className="pt-2">
-                                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">
-                                                        Danh sách Icon Đã Tùy Chỉnh ({Object.keys(customIcons).length})
+                                                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3 flex items-center justify-between">
+                                                        <span>
+                                                            Danh sách Icon Đã Tùy Chỉnh ({
+                                                                Object.keys(customIcons).filter(k => k.startsWith('icon.') || !customIcons[`icon.${k}`]).length
+                                                            })
+                                                        </span>
                                                     </h4>
                                                     {Object.keys(customIcons).length === 0 ? (
                                                         <div className="p-6 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-400 text-xs">
@@ -1283,14 +1288,41 @@ export default function Settings() {
                                                         </div>
                                                     ) : (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                                                            {Object.entries(customIcons).map(([id, name]) => (
-                                                                <div key={id} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                                                                    <div className="min-w-0">
-                                                                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{id}</div>
-                                                                        <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono truncate">{name}</div>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                            {Object.entries(customIcons)
+                                                                .filter(([id]) => id.startsWith('icon.') || !customIcons[`icon.${id}`])
+                                                                .map(([id, config]) => {
+                                                                    const iconName = typeof config === 'object' && config !== null ? config.name : config;
+                                                                    const strokeWidth = typeof config === 'object' && config !== null && config.strokeWidth != null ? config.strokeWidth : null;
+                                                                    const IconPreview = iconName ? getLucideIconComponent(iconName) : null;
+                                                                    const displayName = id.replace(/^icon\./, '');
+
+                                                                    return (
+                                                                        <div key={id} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-xs">
+                                                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                                                                                    {IconPreview ? <IconPreview size={18} strokeWidth={strokeWidth || 2} /> : <Sparkles size={16} />}
+                                                                                </div>
+                                                                                <div className="min-w-0">
+                                                                                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" title={id}>{displayName}</div>
+                                                                                    <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono truncate">
+                                                                                        {iconName || 'Chưa đặt'} {strokeWidth ? `(${strokeWidth}px)` : ''}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    updateIcon(id, null);
+                                                                                    setToast({ message: `Đã khôi phục icon mặc định cho "${displayName}"`, type: "info" });
+                                                                                }}
+                                                                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer"
+                                                                                title="Khôi phục mặc định cho icon này"
+                                                                            >
+                                                                                <Trash2 size={13} />
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                         </div>
                                                     )}
                                                 </div>

@@ -3,7 +3,8 @@ import { motion as m, AnimatePresence } from 'framer-motion';
 import { 
     Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, ShoppingCart, Clock, Bell, Image as ImageIcon,
-    SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet
+    SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet,
+    Bookmark, Plus, Trash2, ChevronDown, ChevronUp, FolderHeart
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Portal from '../widgets/Portal';
@@ -467,6 +468,19 @@ export default function CartColorCustomizerModal({
     const [mascotWatermarkOffsetX, setMascotWatermarkOffsetX] = useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10"));
     const [mascotWatermarkOffsetY, setMascotWatermarkOffsetY] = useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10"));
 
+    // Custom presets list & UI states
+    const [customPresets, setCustomPresets] = useState(() => {
+        try {
+            const saved = localStorage.getItem("pos_cart_custom_presets");
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+    const [isSavingPreset, setIsSavingPreset] = useState(false);
+    const [presetNameInput, setPresetNameInput] = useState('');
+    const [showAllBuiltinPresets, setShowAllBuiltinPresets] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
             setTransparentCartTable(localStorage.getItem("pos_transparent_cart_table") === "true");
@@ -479,11 +493,24 @@ export default function CartColorCustomizerModal({
             setMascotWatermarkRotate(parseFloat(localStorage.getItem("pos_mascot_watermark_rotate") || "-6"));
             setMascotWatermarkOffsetX(parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10"));
             setMascotWatermarkOffsetY(parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10"));
+            try {
+                const saved = localStorage.getItem("pos_cart_custom_presets");
+                if (saved) setCustomPresets(JSON.parse(saved));
+            } catch (e) {}
             if (initialTab) setActiveTab(initialTab);
         }
     }, [isOpen, initialTab]);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                onClose?.();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     const currentConfig = { ...DEFAULT_CART_COLOR_CONFIG, ...config };
 
@@ -493,6 +520,46 @@ export default function CartColorCustomizerModal({
             syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key, value });
             syncChan.close();
         } catch (e) {}
+    };
+
+    const saveCustomPresetsToStorage = (newList) => {
+        setCustomPresets(newList);
+        localStorage.setItem("pos_cart_custom_presets", JSON.stringify(newList));
+        broadcastSetting("pos_cart_custom_presets", JSON.stringify(newList));
+    };
+
+    const handleSaveCustomPreset = () => {
+        const trimmed = presetNameInput.trim() || `Theme Tự Tạo #${customPresets.length + 1}`;
+        const newPreset = {
+            id: `custom_preset_${Date.now()}`,
+            name: trimmed,
+            desc: `Tự tạo ngày ${new Date().toLocaleDateString('vi-VN')}`,
+            headerBg: currentConfig.headerBg,
+            headerText: currentConfig.headerText,
+            borderColor: currentConfig.borderColor,
+            borderWidth: currentConfig.borderWidth,
+            accentColor: currentConfig.accentColor || 'default',
+            productTextColor: currentConfig.productTextColor || 'default',
+            cartValuesColor: currentConfig.cartValuesColor || 'default',
+            previewHeaderBg: currentConfig.headerBg !== 'default' ? currentConfig.headerBg : '#8b6f47',
+            previewBorder: currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f47',
+            previewAccent: currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016',
+            fullConfig: { ...currentConfig },
+            isCustom: true,
+            createdAt: Date.now()
+        };
+        const updated = [newPreset, ...customPresets];
+        saveCustomPresetsToStorage(updated);
+        setIsSavingPreset(false);
+        setPresetNameInput('');
+    };
+
+    const handleDeleteCustomPreset = (presetId, e) => {
+        e?.stopPropagation?.();
+        if (window.confirm("Bạn có chắc chắn muốn xóa preset này?")) {
+            const updated = customPresets.filter(p => p.id !== presetId);
+            saveCustomPresetsToStorage(updated);
+        }
     };
 
     const handleToggleTransparent = () => {
@@ -524,17 +591,32 @@ export default function CartColorCustomizerModal({
     };
 
     const handleApplyPreset = (preset) => {
-        const newCfg = {
-            ...currentConfig,
-            headerBg: preset.headerBg,
-            headerText: preset.headerText,
-            borderColor: preset.borderColor,
-            borderWidth: preset.borderWidth,
-            accentColor: preset.accentColor || 'default',
-            productTextColor: preset.productTextColor || 'default'
-        };
-        onChangeConfig(newCfg);
-        applyCartThemeToDom(newCfg);
+        if (preset.fullConfig) {
+            onChangeConfig({ ...preset.fullConfig });
+            applyCartThemeToDom(preset.fullConfig);
+        } else {
+            const newCfg = {
+                ...currentConfig,
+                headerBg: preset.headerBg,
+                headerText: preset.headerText,
+                borderColor: preset.borderColor,
+                borderWidth: preset.borderWidth,
+                accentColor: preset.accentColor || 'default',
+                productTextColor: preset.productTextColor || 'default',
+                cartValuesColor: preset.cartValuesColor || currentConfig.cartValuesColor || 'default'
+            };
+            onChangeConfig(newCfg);
+            applyCartThemeToDom(newCfg);
+        }
+    };
+
+    const isPresetSelected = (preset) => {
+        return currentConfig.headerBg === preset.headerBg && 
+               currentConfig.headerText === preset.headerText && 
+               currentConfig.borderColor === preset.borderColor &&
+               (currentConfig.accentColor || 'default') === (preset.accentColor || 'default') &&
+               (currentConfig.productTextColor || 'default') === (preset.productTextColor || 'default') &&
+               (currentConfig.borderWidth || '1') === preset.borderWidth;
     };
 
     const handleResetColors = () => {
@@ -571,20 +653,27 @@ export default function CartColorCustomizerModal({
         <Portal>
             <AnimatePresence>
                 {isOpen && (
-                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 select-none">
+                    <m.div 
+                        key="cart-color-customizer-modal-wrapper"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 select-none"
+                    >
                         <m.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.22 }}
+                            transition={{ duration: 0.2 }}
                             onClick={onClose}
                             className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
                         />
 
                         <m.div
-                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                            initial={{ opacity: 0, scale: 0.94, y: 15 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                            exit={{ opacity: 0, scale: 0.94, y: 15 }}
                             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                             className="relative w-full max-w-3xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
                         >
@@ -878,76 +967,232 @@ export default function CartColorCustomizerModal({
                     {activeTab === 'colors' && (
                         <div className="space-y-6">
                             {/* Presets Grid */}
-                            <div className="space-y-2.5">
-                                <div className="flex items-center justify-between">
+                            <div className="space-y-3.5">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
                                     <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                                         <Sparkles size={14} className="text-amber-500" />
                                         Bộ sưu tập Theme mẫu (Presets)
                                     </h4>
-                                    <button
-                                        type="button"
-                                        onClick={handleResetColors}
-                                        className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                                    >
-                                        <RotateCcw size={11} />
-                                        <span>Khôi phục mặc định</span>
-                                    </button>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPresetNameInput(`Theme #${customPresets.length + 1}`);
+                                                setIsSavingPreset(prev => !prev);
+                                            }}
+                                            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                            title="Lưu bảng màu đang phối thành một Preset cá nhân"
+                                        >
+                                            <Plus size={12} strokeWidth={3} />
+                                            <span>Lưu Theme Hiện Tại</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetColors}
+                                            className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                            title="Khôi phục màu mặc định ban đầu"
+                                        >
+                                            <RotateCcw size={11} />
+                                            <span>Mặc định</span>
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                    {CART_COLOR_PRESETS.map((preset) => {
-                                        const isSelected = currentConfig.headerBg === preset.headerBg && 
-                                                           currentConfig.headerText === preset.headerText && 
-                                                           currentConfig.borderColor === preset.borderColor &&
-                                                           (currentConfig.accentColor || 'default') === (preset.accentColor || 'default') &&
-                                                           (currentConfig.productTextColor || 'default') === (preset.productTextColor || 'default') &&
-                                                           (currentConfig.borderWidth || '1') === preset.borderWidth;
-                                        return (
-                                            <button
-                                                key={preset.id}
-                                                type="button"
-                                                onClick={() => handleApplyPreset(preset)}
-                                                className={cn(
-                                                    "relative flex flex-col p-2.5 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 group",
-                                                    isSelected
-                                                        ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
-                                                        : "border-black/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/40 hover:border-black/20 dark:hover:border-white/20"
-                                                )}
-                                            >
-                                                <div className="flex items-center justify-between w-full mb-1.5">
-                                                    <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
-                                                        {preset.name}
-                                                    </span>
-                                                    {isSelected && (
-                                                        <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                                            <Check size={10} strokeWidth={3} />
-                                                        </div>
-                                                    )}
+                                {/* Form lưu theme hiện tại */}
+                                <AnimatePresence>
+                                    {isSavingPreset && (
+                                        <m.div
+                                            initial={{ opacity: 0, height: 0, y: -6 }}
+                                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                            exit={{ opacity: 0, height: 0, y: -6 }}
+                                            transition={{ duration: 0.18 }}
+                                            className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs"
+                                        >
+                                            <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1">
+                                                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                    <Bookmark size={15} />
                                                 </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-[10.5px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                                                        Tên Theme Preset Mới:
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={presetNameInput}
+                                                        onChange={(e) => setPresetNameInput(e.target.value)}
+                                                        placeholder="VD: Xanh Neon, Theme Tết, Nâu Cổ Điển..."
+                                                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/30 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleSaveCustomPreset();
+                                                            if (e.key === 'Escape') setIsSavingPreset(false);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsSavingPreset(false)}
+                                                    className="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs font-bold cursor-pointer transition-colors"
+                                                >
+                                                    Hủy
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveCustomPreset}
+                                                    className="px-4 py-1.5 rounded-xl bg-[#2d5016] hover:bg-[#3d6b20] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                                                >
+                                                    <Check size={13} strokeWidth={3} />
+                                                    <span>Lưu Mẫu</span>
+                                                </button>
+                                            </div>
+                                        </m.div>
+                                    )}
+                                </AnimatePresence>
 
-                                                <div className="flex items-center gap-1.5">
-                                                    <div 
-                                                        className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
-                                                        style={{ backgroundColor: preset.previewHeaderBg }}
-                                                        title="Màu nền Header"
-                                                    />
-                                                    <div 
-                                                        className="w-4 h-4 rounded-md border-2 shrink-0" 
-                                                        style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
-                                                        title="Màu viền"
-                                                    />
-                                                    <div 
-                                                        className="w-4 h-4 rounded-md shadow-xs shrink-0" 
-                                                        style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
-                                                        title="Màu nút & Active"
-                                                    />
-                                                    <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
-                                                        {preset.desc}
-                                                    </span>
-                                                </div>
+                                {/* Danh sách Presets Tự Lưu (Custom Presets) */}
+                                {customPresets.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                            <span className="flex items-center gap-1">
+                                                <FolderHeart size={12} />
+                                                Theme Tự Thiết Kế Của Bạn ({customPresets.length})
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                            {customPresets.map((preset) => {
+                                                const isSelected = isPresetSelected(preset);
+                                                return (
+                                                    <div
+                                                        key={preset.id}
+                                                        onClick={() => handleApplyPreset(preset)}
+                                                        className={cn(
+                                                            "group relative flex flex-col p-2.5 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98",
+                                                            isSelected
+                                                                ? "border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-950/40 ring-2 ring-amber-500/30"
+                                                                : "border-amber-500/20 dark:border-amber-500/20 bg-amber-500/5 dark:bg-amber-950/20 hover:border-amber-500/40"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center justify-between w-full mb-1.5">
+                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
+                                                                    {preset.name}
+                                                                </span>
+                                                                <span className="px-1.5 py-0.2 rounded-full text-[8.5px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                                                                    Tự tạo
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                                {isSelected && (
+                                                                    <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                                                        <Check size={10} strokeWidth={3} />
+                                                                    </div>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => handleDeleteCustomPreset(preset.id, e)}
+                                                                    className="w-5 h-5 rounded-lg opacity-60 hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-500 text-slate-400 flex items-center justify-center transition-all cursor-pointer"
+                                                                    title="Xóa preset này"
+                                                                >
+                                                                    <Trash2 size={11} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div 
+                                                                className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
+                                                                style={{ backgroundColor: preset.previewHeaderBg }}
+                                                                title="Màu nền Header"
+                                                            />
+                                                            <div 
+                                                                className="w-4 h-4 rounded-md border-2 shrink-0" 
+                                                                style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
+                                                                title="Màu viền"
+                                                            />
+                                                            <div 
+                                                                className="w-4 h-4 rounded-md shadow-xs shrink-0" 
+                                                                style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
+                                                                title="Màu nút & Active"
+                                                            />
+                                                            <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
+                                                                {preset.desc || 'Tự thiết kế'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Built-in Presets: Chỉ hiện 3 cái đầu tiên theo yêu cầu, có nút mở rộng nếu cần */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                        <span>Theme Mẫu Hệ Thống (3 Mẫu Chuẩn)</span>
+                                        {CART_COLOR_PRESETS.length > 3 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAllBuiltinPresets(prev => !prev)}
+                                                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                                            >
+                                                <span>{showAllBuiltinPresets ? "Thu gọn 3 mẫu" : `Xem thêm ${CART_COLOR_PRESETS.length - 3} mẫu khác`}</span>
+                                                {showAllBuiltinPresets ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                             </button>
-                                        );
-                                    })}
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        {(showAllBuiltinPresets ? CART_COLOR_PRESETS : CART_COLOR_PRESETS.slice(0, 3)).map((preset) => {
+                                            const isSelected = isPresetSelected(preset);
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => handleApplyPreset(preset)}
+                                                    className={cn(
+                                                        "relative flex flex-col p-2.5 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 group",
+                                                        isSelected
+                                                            ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
+                                                            : "border-black/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/40 hover:border-black/20 dark:hover:border-white/20"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center justify-between w-full mb-1.5">
+                                                        <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
+                                                            {preset.name}
+                                                        </span>
+                                                        {isSelected && (
+                                                            <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                                                <Check size={10} strokeWidth={3} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1.5">
+                                                        <div 
+                                                            className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
+                                                            style={{ backgroundColor: preset.previewHeaderBg }}
+                                                            title="Màu nền Header"
+                                                        />
+                                                        <div 
+                                                            className="w-4 h-4 rounded-md border-2 shrink-0" 
+                                                            style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
+                                                            title="Màu viền"
+                                                        />
+                                                        <div 
+                                                            className="w-4 h-4 rounded-md shadow-xs shrink-0" 
+                                                            style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
+                                                            title="Màu nút & Active"
+                                                        />
+                                                        <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
+                                                            {preset.desc}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
 
@@ -2561,7 +2806,7 @@ export default function CartColorCustomizerModal({
                     </button>
                 </div>
             </m.div>
-                    </div>
+                    </m.div>
                 )}
             </AnimatePresence>
         </Portal>

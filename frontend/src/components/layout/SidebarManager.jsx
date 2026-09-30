@@ -639,10 +639,14 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                         type="button"
                                         onClick={(e) => {
                                             const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+                                            const rawGroup = customIcons[`nav.group.${section.label}`];
+                                            const groupName = typeof rawGroup === 'object' && rawGroup !== null ? rawGroup.name : rawGroup;
+                                            const groupStroke = typeof rawGroup === 'object' && rawGroup !== null && rawGroup.strokeWidth != null ? parseFloat(rawGroup.strokeWidth) : 2;
                                             openPicker({
                                                 id: `nav.group.${section.label}`,
                                                 label: `Nhóm: ${section.label}`,
-                                                currentIconName: customIcons[`nav.group.${section.label}`] || section.icon?.displayName || section.icon?.name,
+                                                currentIconName: groupName || section.icon?.displayName || section.icon?.name,
+                                                currentStrokeWidth: groupStroke || 2,
                                                 anchorRect: rect ? {
                                                     top: rect.top,
                                                     bottom: rect.bottom,
@@ -741,10 +745,14 @@ export default function SidebarManager({ onToast, onUpdateSetting }) {
                                                     type="button"
                                                     onClick={(e) => {
                                                         const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : null;
+                                                        const rawItem = customIcons[`nav.${item.path}`];
+                                                        const itemName = typeof rawItem === 'object' && rawItem !== null ? rawItem.name : rawItem;
+                                                        const itemStroke = typeof rawItem === 'object' && rawItem !== null && rawItem.strokeWidth != null ? parseFloat(rawItem.strokeWidth) : 2;
                                                         openPicker({
                                                             id: `nav.${item.path}`,
                                                             label: item.label,
-                                                            currentIconName: customIcons[`nav.${item.path}`] || item.icon?.displayName || item.icon?.name,
+                                                            currentIconName: itemName || item.icon?.displayName || item.icon?.name,
+                                                            currentStrokeWidth: itemStroke || 2,
                                                             anchorRect: rect ? {
                                                                 top: rect.top,
                                                                 bottom: rect.bottom,

@@ -19,7 +19,12 @@ if (dynamicIconImports) {
 
 export function getIconKebabKey(iconName) {
     if (!iconName) return '';
-    return nameToKebabMap.get(iconName) || nameToKebabMap.get(iconName.toLowerCase()) || toKebabCase(iconName);
+    let name = iconName;
+    if (typeof name === 'object' && name !== null) {
+        name = name.name || '';
+    }
+    if (typeof name !== 'string') return '';
+    return nameToKebabMap.get(name) || nameToKebabMap.get(name.toLowerCase()) || toKebabCase(name);
 }
 
 // Global node cache and subscribers
@@ -36,7 +41,12 @@ function notifyNodeLoaded(iconName) {
 
 export function preloadIconNode(iconName) {
     if (!iconName) return Promise.resolve(null);
-    const kebab = getIconKebabKey(iconName);
+    let name = iconName;
+    if (typeof name === 'object' && name !== null) {
+        name = name.name;
+    }
+    if (!name || typeof name !== 'string') return Promise.resolve(null);
+    const kebab = getIconKebabKey(name);
     const pascal = toPascalCase(kebab);
 
     if (iconNodeCache.has(pascal)) return Promise.resolve(iconNodeCache.get(pascal));

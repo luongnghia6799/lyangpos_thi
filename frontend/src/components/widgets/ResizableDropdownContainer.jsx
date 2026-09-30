@@ -49,11 +49,11 @@ function ResizableDropdownContainer({
   const getEffectiveWidth = useCallback(() => {
     const screenMaxW =
       typeof window !== "undefined"
-        ? window.innerWidth - (coords?.left || 0) - 16
-        : defaultWidth;
-    const baseW = coords?.width ? Math.max(coords.width, customSize.width) : customSize.width;
-    return Math.min(baseW, Math.max(screenMaxW, 480));
-  }, [coords?.left, coords?.width, customSize.width, defaultWidth]);
+        ? Math.max(window.innerWidth - (coords?.left || 0) - 12, 200)
+        : 1920;
+    const requestedW = customSize.width || defaultWidth;
+    return Math.min(Math.max(requestedW, 200), screenMaxW);
+  }, [coords?.left, customSize.width, defaultWidth]);
 
   // Handle Drag to Resize
   const startDrag = useCallback(
@@ -83,14 +83,14 @@ function ResizableDropdownContainer({
         const deltaY = ev.clientY - startY;
 
         if (direction === "both" || direction === "width") {
-          const minW = 480;
-          const maxW = Math.max(window.innerWidth - (coords?.left || 0) - 16, 500);
+          const minW = 200; // Tự do co nhỏ từ 200px
+          const maxW = Math.max(window.innerWidth - (coords?.left || 0) - 12, 260);
           latestW = Math.min(Math.max(initialW + deltaX, minW), maxW);
         }
 
         if (direction === "both" || direction === "height") {
-          const minH = 160;
-          const maxH = Math.max(window.innerHeight - (coords?.top || 0) - 30, 200);
+          const minH = 100; // Tự do co nhỏ từ 100px
+          const maxH = Math.max(window.innerHeight - (coords?.top || 0) - 20, 140);
           latestH = Math.min(Math.max(initialH + deltaY, minH), maxH);
         }
 
@@ -177,9 +177,11 @@ function ResizableDropdownContainer({
       <div
         onPointerDown={(e) => startDrag(e, "width")}
         onDoubleClick={() => resetSize("width")}
-        className="absolute top-0 right-0 w-2 h-full cursor-ew-resize hover:bg-[#8b6f47]/20 dark:hover:bg-[#d4a574]/20 transition-colors z-30"
+        className="absolute top-0 right-0 w-3 h-full cursor-ew-resize hover:bg-[#8b6f47]/15 dark:hover:bg-[#d4a574]/15 transition-colors z-30 flex items-center justify-center group/sidehandle"
         title="Kéo mép phải để đổi chiều rộng (Nhấp đúp để đặt lại)"
-      />
+      >
+        <div className="w-0.5 h-8 rounded-full bg-slate-300/40 dark:bg-slate-700/40 group-hover/sidehandle:bg-[#8b6f47] dark:group-hover/sidehandle:bg-[#d4a574] group-hover/sidehandle:scale-y-125 transition-all" />
+      </div>
 
       {/* Scrollable list container - lightweight, instant height, zero layout lag */}
       <div

@@ -397,6 +397,13 @@ html.has-wallpaper.dark .dropdown-premium {
   background: var(--main-gradient, var(--bg-color, #000000)) !important;
 }
 
+/* Base POS panel styling */
+.pos- {
+  backdrop-filter: blur(var(--bg-transparent-blur, 16px)) !important;
+  -webkit-backdrop-filter: blur(var(--bg-transparent-blur, 16px)) !important;
+  border-radius: var(--radius-pos, 0.75rem) !important;
+}
+
 /* Authentic Apple-grade Frosted Glass */
 .frosted-glass,
 .dropdown-frosted-glass {

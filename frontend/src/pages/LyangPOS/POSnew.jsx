@@ -763,9 +763,10 @@ function POSPage({
   }, [p]);
   i.useEffect(() => {
     if (Array.isArray(Y) && Y.length > 0) {
-      if (p?.id) {
-        const freshPartner = Y.find(item => item.id === p.id);
-        if (freshPartner && (freshPartner.debt_balance !== p.debt_balance || freshPartner.name !== p.name || freshPartner.phone !== p.phone)) {
+      const curPartner = pRef.current;
+      if (curPartner?.id) {
+        const freshPartner = Y.find(item => item.id === curPartner.id);
+        if (freshPartner && (freshPartner.debt_balance !== curPartner.debt_balance || freshPartner.name !== curPartner.name || freshPartner.phone !== curPartner.phone)) {
           F(freshPartner);
         }
       }
@@ -784,7 +785,7 @@ function POSPage({
         return changed ? nextTabs : prevTabs;
       });
     }
-  }, [Y, p]);
+  }, [Y]);
   const [st, Hr] = i.useState(null),
     [nt, Kr] = i.useState(null),
     [Ne, Kt] = i.useState("debt"),
@@ -1595,7 +1596,12 @@ function POSPage({
     [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false),
     [itemContextMenu, setItemContextMenu] = i.useState(null);
   i.useEffect(() => {
-    localStorage.setItem("pos_new_style", JSON.stringify(Je)), document.documentElement.style.setProperty("--pos-accent", Je.accent), document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg), document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
+    localStorage.setItem("pos_new_style", JSON.stringify(Je));
+    document.documentElement.style.setProperty("--pos-accent", Je.accent);
+    document.documentElement.style.setProperty("--dropdown-bg", Je.dropdownBg);
+    document.documentElement.style.setProperty("--dropdown-accent", Je.dropdownAccent);
+    document.documentElement.style.setProperty("--radius-pos", `${Je.radius}rem`);
+    document.documentElement.style.setProperty("--bg-transparent-blur", `${Je.blur}px`);
   }, [Je]);
   const kn = t => {
       if (!t) return "#000000";
@@ -2521,17 +2527,19 @@ function POSPage({
       try {
         const t = await M.post(`/api/partners/${p.id}/recalculate-debt`);
         if (t.data.new_balance !== void 0) {
-          F(a => !a || a.id !== p.id ? a : {
+          F(a => !a || a.id !== p.id || a.debt_balance === t.data.new_balance ? a : {
             ...a,
             debt_balance: t.data.new_balance
           });
-          _((prevTabs) =>
-            prevTabs.map((tab) =>
+          _((prevTabs) => {
+            const hasChange = prevTabs.some((tab) => tab.selectedPartner?.id === p.id && tab.selectedPartner?.debt_balance !== t.data.new_balance);
+            if (!hasChange) return prevTabs;
+            return prevTabs.map((tab) =>
               tab.selectedPartner?.id === p.id
                 ? { ...tab, selectedPartner: { ...tab.selectedPartner, debt_balance: t.data.new_balance } }
                 : tab
-            )
-          );
+            );
+          });
         }
       } catch (t) {
         console.error("Error auto-syncing debt:", t);
@@ -3157,17 +3165,11 @@ function POSPage({
   }, [wa, Cs, Ns]);
   return <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
     type: "just"
-  } : void 0}><><div id="pos-root-container" className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode")}><style>{`
-          :root {
-            --pos-accent: ${Je.accent};
-            --radius-pos: ${Je.radius}rem;
-            --bg-transparent-blur: ${Je.blur}px;
-          }
-          .pos- {
-            backdrop-filter: blur(var(--bg-transparent-blur)) !important;
-            border-radius: var(--radius-pos) !important;
-          }
-        `}</style><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><P mode="popLayout" initial={!1}><x.div key={le?.id || Ce || "draft"} initial={{
+  } : void 0}><><div id="pos-root-container" style={{
+    '--pos-accent': Je.accent,
+    '--radius-pos': `${Je.radius}rem`,
+    '--bg-transparent-blur': `${Je.blur}px`
+  }} className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode")}><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><P mode="popLayout" initial={!1}><x.div key={le?.id || Ce || "draft"} initial={{
                     opacity: 0
                   }} animate={{
                     opacity: 1

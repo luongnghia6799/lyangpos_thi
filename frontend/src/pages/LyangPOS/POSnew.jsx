@@ -1300,8 +1300,9 @@ function POSPage({
       });
       gr(!1), Wa("");
     };
+  const isCartRowDropdownOpen = Boolean(Tt !== null && zt);
   i.useLayoutEffect(() => {
-    if (Tt !== null && zt) {
+    if (isCartRowDropdownOpen) {
       const updateCartCoords = () => {
         const el = document.getElementById(`row-name-${Tt}`);
         if (el) {
@@ -1327,9 +1328,10 @@ function POSPage({
         window.removeEventListener("scroll", updateCartCoords, true);
       };
     }
-  }, [Tt, zt]);
+  }, [isCartRowDropdownOpen, Tt]);
+  const isProductSearchOpen = Boolean(Z && !m?.product);
   i.useLayoutEffect(() => {
-    if (Z && !m?.product) {
+    if (isProductSearchOpen) {
       const updateCoords = () => {
         if (se.current) {
           const rect = se.current.getBoundingClientRect();
@@ -1354,7 +1356,7 @@ function POSPage({
         window.removeEventListener("scroll", updateCoords, true);
       };
     }
-  }, [Z, m?.product]);
+  }, [isProductSearchOpen]);
   i.useEffect(() => {
     if (!Zt) return;
     const t = a => {
@@ -3084,7 +3086,7 @@ function POSPage({
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
           sensitivity: "base"
         });
-      }).slice(0, 50) : Ba.slice(0, 50);
+      }).slice(0, 20) : Ba.slice(0, 20);
     }, [Ba, zt]),
     wt = i.useMemo(() => {
       const t = Z.toLowerCase(),
@@ -3096,7 +3098,7 @@ function POSPage({
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
           sensitivity: "base"
         });
-      }).slice(0, 50) : Ba.slice(0, 50);
+      }).slice(0, 20) : Ba.slice(0, 20);
     }, [Ba, Z]),
     Cr = i.useMemo(() => {
       const t = yt.toLowerCase(),
@@ -3118,7 +3120,7 @@ function POSPage({
         return o && !u ? -1 : !o && u ? 1 : l.localeCompare(d, "vi", {
           sensitivity: "base"
         });
-      }).slice(0, 50);
+      }).slice(0, 25);
     }, [Y, yt]),
     fl = i.useCallback(() => {
       nn(!0);
@@ -3339,7 +3341,7 @@ function POSPage({
                         damping: 25
                       }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
                           t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
-                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <ResizableDropdownContainer id="pos-partner-dropdown" dropdownKey="pos-partner-dropdown" storageKey="pos_partner_dropdown_size" coords={null} defaultWidth={600} defaultMaxHeight={500} className="dropdown-app-bg !z-[3000]" scrollRef={xs} itemCount={Cr.length + (yt ? 1 : 0)}>{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onMouseMove={() => { if (We !== 0) rs(0); }} onMouseDown={e => {
+                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <ResizableDropdownContainer key="pos-partner-dropdown" id="pos-partner-dropdown" dropdownKey="pos-partner-dropdown" storageKey="pos_partner_dropdown_size" coords={null} defaultWidth={600} defaultMaxHeight={500} className="!z-[3000]" scrollRef={xs} itemCount={Cr.length + (yt ? 1 : 0)}>{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onMouseMove={() => { if (We !== 0) rs(0); }} onMouseDown={e => {
                           e.preventDefault();
                           W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
                         }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0 border border-slate-100 dark:border-slate-800", We === 0 ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-sm")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => {
@@ -3974,16 +3976,6 @@ function POSPage({
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
-                                      if (se.current) {
-                                        const rect = se.current.getBoundingClientRect();
-                                        if (rect.width > 0 && rect.bottom > 0) {
-                                          setProductSearchCoords({
-                                            top: rect.bottom + 6,
-                                            left: rect.left,
-                                            width: Math.max(rect.width, 700)
-                                          });
-                                        }
-                                      }
                                       if (!a || a.trim() === "") {
                                         He({
                                           product: null,
@@ -4093,6 +4085,18 @@ function POSPage({
                                       }
                                     }} onFocus={t => {
                                       t.target.select();
+                                      if (se.current) {
+                                        const rect = se.current.getBoundingClientRect();
+                                        if (rect.width > 0 && rect.bottom > 0) {
+                                          const nextTop = Math.round(rect.bottom + 6),
+                                            nextLeft = Math.round(rect.left),
+                                            nextWidth = Math.round(Math.max(rect.width, 700));
+                                          setProductSearchCoords(prev => {
+                                            if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) return prev;
+                                            return { top: nextTop, left: nextLeft, width: nextWidth };
+                                          });
+                                        }
+                                      }
                                     }} ref={se} />{m.product && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5"><div className="flex items-center gap-2 relative z-[200]"><div onClick={t => {
                                       t.stopPropagation();
                                       const a = t.currentTarget.getBoundingClientRect();
@@ -4113,6 +4117,7 @@ function POSPage({
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
                                 }} tabIndex={-1} className="h-8 px-2 bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1 shadow-xs border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-[#2d5016]/10 text-[#2d5016] group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
   <ResizableDropdownContainer
+    key="pos-product-dropdown"
     id="pos-product-dropdown"
     dropdownKey="pos-product-dropdown"
     storageKey="pos_product_dropdown_size"
@@ -4151,7 +4156,7 @@ function POSPage({
                                               });
                                             }} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
                                               color: a === De ? Mt.accent : Mt.main,
-                                              fontSize: a === De ? "18px" : "16px",
+                                              fontSize: "16px",
                                               paddingLeft: a === De ? "12px" : "0px"
                                             }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
                                             r.stopPropagation();
@@ -4169,6 +4174,7 @@ function POSPage({
                                     }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</ResizableDropdownContainer>)}
 {Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && (
   <ResizableDropdownContainer
+    key="cart-row-product-dropdown"
     id="cart-row-product-dropdown"
     dropdownKey="cart-row-product-dropdown"
     storageKey="pos_product_dropdown_size"
@@ -4252,7 +4258,7 @@ function POSPage({
               });
             }} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
               color: s === It ? Mt.accent : Mt.main,
-              fontSize: s === It ? "18px" : "16px",
+              fontSize: "16px",
               paddingLeft: s === It ? "12px" : "0px"
             }} />
           </div>

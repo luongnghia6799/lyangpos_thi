@@ -9,7 +9,7 @@ import { Sliders, RotateCcw } from "lucide-react";
  * - Remembers user's custom size preference in localStorage
  * - Double-click or button to reset to default
  */
-export default function ResizableDropdownContainer({
+function ResizableDropdownContainer({
   id,
   storageKey = "pos_product_dropdown_size",
   coords, // { top, left, width } for fixed position, or null for absolute
@@ -44,27 +44,6 @@ export default function ResizableDropdownContainer({
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragDirection, setDragDirection] = useState(null);
-  const [contentHeight, setContentHeight] = useState(null);
-  const [isReadyForTransition, setIsReadyForTransition] = useState(false);
-
-  // Enable height transition shortly after mount to avoid initial layout jump
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsReadyForTransition(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Measure content height dynamically as items change
-  useLayoutEffect(() => {
-    if (!scrollRef || !scrollRef.current) return;
-    const el = scrollRef.current;
-    let total = 0;
-    for (let i = 0; i < el.children.length; i++) {
-      total += el.children[i].offsetHeight;
-    }
-    setContentHeight(total);
-  }, [scrollRef, itemCount, children]);
 
   // Compute effective width constrained to screen bounds
   const getEffectiveWidth = useCallback(() => {
@@ -171,25 +150,18 @@ export default function ResizableDropdownContainer({
   const isCustomized =
     customSize.width !== defaultWidth || customSize.maxHeight !== defaultMaxHeight;
 
-  // Auto-calculated height: if content is shorter than maxHeight, shrink to content; otherwise cap at maxHeight
-  const computedHeight =
-    contentHeight !== null && contentHeight > 0
-      ? Math.min(contentHeight, customSize.maxHeight)
-      : "auto";
-
   const isFixed = Boolean(coords);
 
   return (
     <x.div
-      key={dropdownKey}
       id={id}
-      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      initial={{ opacity: 0, y: 6, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 8, scale: 0.96 }}
-      transition={{ duration: 0.16, ease: "easeOut" }}
+      exit={{ opacity: 0, y: 4, scale: 0.98 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
       className={`${
         isFixed ? "fixed" : "absolute top-full left-0 mt-2"
-      } dropdown-premium backdrop-blur-2xl !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden flex flex-col ${className}`}
+      } frosted-glass !z-[400000] rounded-2xl overflow-hidden flex flex-col ${className}`}
       style={{
         ...(isFixed
           ? {
@@ -205,41 +177,33 @@ export default function ResizableDropdownContainer({
       <div
         onPointerDown={(e) => startDrag(e, "width")}
         onDoubleClick={() => resetSize("width")}
-        className="absolute top-0 right-0 w-2.5 h-full cursor-ew-resize hover:bg-[#8b6f47]/20 dark:hover:bg-[#d4a574]/20 transition-colors z-30"
+        className="absolute top-0 right-0 w-2 h-full cursor-ew-resize hover:bg-[#8b6f47]/20 dark:hover:bg-[#d4a574]/20 transition-colors z-30"
         title="Kéo mép phải để đổi chiều rộng (Nhấp đúp để đặt lại)"
       />
 
-      {/* Scrollable list container with smooth height transitions */}
+      {/* Scrollable list container - lightweight, instant height, zero layout lag */}
       <div
         ref={scrollRef}
-        className="overflow-y-auto overscroll-contain custom-scrollbar flex-1"
+        className="overflow-y-auto overscroll-contain no-scrollbar flex-1"
         style={{
-          height: isDragging ? customSize.maxHeight : computedHeight,
           maxHeight: customSize.maxHeight,
-          transition:
-            !isDragging && isReadyForTransition
-              ? "height 0.22s cubic-bezier(0.16, 1, 0.3, 1)"
-              : "none",
-          overflowY: contentHeight && contentHeight > customSize.maxHeight ? "auto" : "hidden",
         }}
       >
         {children}
       </div>
 
-      {/* Sleek Bottom Resize Bar */}
-      <div className="relative shrink-0 h-6 border-t border-[#8b6f47]/15 dark:border-white/10 bg-[#8b6f47]/[0.03] dark:bg-white/[0.02] flex items-center justify-between px-3 select-none transition-colors">
-        {/* Left: subtle hint & reset button */}
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
-          <Sliders size={10} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
-          <span className="hidden sm:inline opacity-70">Kéo viền đổi cỡ</span>
+      {/* Sleek Minimal Bottom Handle Bar */}
+      <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015] flex items-center justify-between px-2.5 select-none transition-colors">
+        {/* Left: subtle reset button when customized */}
+        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
           {isCustomized && (
             <button
               onClick={() => resetSize("both")}
               type="button"
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47] dark:hover:bg-[#d4a574] hover:text-white text-[#8b6f47] dark:text-[#d4a574] transition-all cursor-pointer"
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47] dark:hover:bg-[#d4a574] hover:text-white text-[#8b6f47] dark:text-[#d4a574] transition-all cursor-pointer"
               title="Đặt lại kích thước mặc định"
             >
-              <RotateCcw size={9} />
+              <RotateCcw size={8} />
               <span>Đặt lại</span>
             </button>
           )}
@@ -291,3 +255,5 @@ export default function ResizableDropdownContainer({
     </x.div>
   );
 }
+
+export default React.memo(ResizableDropdownContainer);

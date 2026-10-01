@@ -4183,14 +4183,8 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
-                                            ref={partnerBubbleRef}
                                             layout
-                                            initial={{
-                                                opacity: 0,
-                                                scale: 0.92,
-                                                y: 24,
-                                                filter: "blur(12px)"
-                                            }}
+                                            initial={false}
                                             animate={{
                                                 opacity: 1,
                                                 scale: 1,
@@ -4219,6 +4213,8 @@ export default function Purchase() {
                                                     const tc = partnerStyle?.color;
                                                     return (
                                                         <m.div 
+                                                            key="supplier-card-bubble"
+                                                            ref={partnerBubbleRef}
                                                             layout
                                                             initial={false}
                                                             animate={{ opacity: 1, scale: 1, y: 0 }}

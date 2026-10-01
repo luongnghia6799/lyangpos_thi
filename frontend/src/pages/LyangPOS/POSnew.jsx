@@ -4885,14 +4885,8 @@ function POSPage({
                           }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
   <x.div
     key="partner-bubble"
-    ref={partnerBubbleRef}
     layout
-    initial={{
-      opacity: 0,
-      scale: 0.92,
-      y: 24,
-      filter: "blur(12px)"
-    }}
+    initial={false}
     animate={{
       opacity: 1,
       scale: 1,
@@ -4921,8 +4915,9 @@ function POSPage({
     <div className="flex items-center gap-2.5 pointer-events-auto">
       <x.div
         key="partner-card-bubble"
+        ref={partnerBubbleRef}
         layout
-        initial={{ opacity: 0, scale: 0.92, y: 12 }}
+        initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 12 }}
         transition={{

@@ -55,6 +55,7 @@ import QuickProductCreateModal from "../../components/modals/QuickProductCreateM
 import PackingDisplayModeModal from "../../components/modals/PackingDisplayModeModal";
 import ProductSearchItem from "../../components/pos/ProductSearchItem";
 import PartnerSearchItem from "../../components/pos/PartnerSearchItem";
+import POSSummaryPanel from "../../components/pos/POSSummaryPanel";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -5300,339 +5301,233 @@ function POSPage({
       </x.button>
     )}
   </P>
-</>}</P></div></div>{Ze === "bottom" && (() => {
-                const t = k?.total_amount || (k?.cart || []).reduce((S, w) => S + (Number(w.price || w.sale_price) || 0) * (Number(w.quantity) || 1), 0),
-                  a = g === "remote_inspect" ? Pe || k?.partner : p,
-                  r = g === "remote_inspect" ? k?.partner_name || a?.name || "Khách máy trạm" : p ? p.name : "Khách bán lẻ",
-                  s = a?.debt_balance || 0,
-                  n = g === "remote_inspect" ? k?.payment_method || "Cash" : I,
-                  l = g === "remote_inspect" ? t : $,
-                  d = g === "remote_inspect" ? (k?.cart || []).length : y.length,
-                  o = g === "remote_inspect" ? n === "Cash" ? l : k?.amount_paid || 0 : oe,
-                  u = g === "remote_inspect" ? k?.cash_given || 0 : V,
-                  h = g === "remote_inspect" ? s : de,
-                  b = g === "remote_inspect" ? n === "Debt" ? h + (l >= 0 ? l - o : l + o) : h : it;
-                return <div style={{
-                  minHeight: `${Jr}px`,
-                  height: `${Jr}px`
-                }} className={c("relative mt-1 p-1 px-1.5 rounded-2xl shrink-0 no-print flex flex-col justify-center overflow-visible transition-[height] duration-75 bg-transparent border-0 shadow-none", tn && "select-none")}><div onMouseDown={Ii} onDoubleClick={() => {
-                    Yr(105), localStorage.setItem("pos_bottom_summary_height", "105");
-                  }} className="absolute -top-1.5 left-0 right-0 h-3 cursor-row-resize flex items-center justify-center group/resize-bar z-30 select-none" title="Kéo lên/xuống để chỉnh chiều cao (Nhấp đúp để đặt lại mặc định)"><div className={c("w-16 h-1 rounded-full transition-all shadow-sm", tn ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50" : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20")} /></div><div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-stretch w-full h-full relative z-10"><x.div initial={{
-                      opacity: 0,
-                      y: 10
-                    }} animate={{
-                      opacity: 1,
-                      y: 0
-                    }} transition={{
-                      duration: 0.3
-                    }} className="md:col-span-2 flex flex-col justify-between gap-1 min-w-0 h-full"><div onClick={() => {
-                        a ? setIsHistoryPanelOpen(true) : zt.current?.focus();
-                      }} className={c("flex-1 min-h-[34px] relative overflow-hidden p-1 px-2.5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 flex flex-col justify-between group/debt-card select-none", s > 0 ? "bg-gradient-to-br from-[#7f1d1d] via-[#991b1b] to-[#881337] dark:from-[#4c0519] dark:via-[#881337] dark:to-[#4c0519] text-white border-rose-400/50 shadow-[0_0_18px_rgba(244,63,94,0.35)] hover:shadow-[0_0_25px_rgba(244,63,94,0.55)]" : s < 0 ? "bg-gradient-to-br from-[#14532d] via-[#166534] to-[#14532d] text-white border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)]" : "bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] dark:from-[#0d281e] dark:via-[#164230] dark:to-[#0d281e] text-white border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]")} style={{
-                        ...getBubbleComputedStyle(cartColorConfig, 'partner'),
-                        ...(s <= 0 && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`, boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined } : {})
-                      }} title={a ? `Xem lịch sử nợ của ${r}` : "Chưa chọn đối tác"}><div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-1.5 -bottom-2 opacity-15 text-white pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none"><Va size={42} strokeWidth={1.5} /></div><div className="flex items-center justify-between w-full relative z-10 pt-0.5"><span className={c("text-[9px] font-black uppercase tracking-wider leading-normal", s > 0 ? "text-rose-200" : "text-emerald-200")} style={getBubbleComputedStyle(cartColorConfig, "partner").color ? { color: getBubbleComputedStyle(cartColorConfig, "partner").color } : undefined}>DƯ NỢ</span>{a && s !== 0 && <x.span initial={{
-                            opacity: 0,
-                            scale: 0.8
-                          }} animate={{
-                            opacity: 1,
-                            scale: 1
-                          }} className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal border shadow-xs", s > 0 ? "bg-white/20 text-rose-100 border-white/30" : "bg-white/20 text-emerald-100 border-white/30")}>{s > 0 ? "Khách nợ" : "Mình nợ"}</x.span>}</div><x.div key={Math.abs(s || 0)} initial={{
-                          opacity: 0,
-                          y: -3
-                        }} animate={{
-                          opacity: 1,
-                          y: 0
-                        }} transition={{
-                          duration: 0.25
-                        }} style={getBubbleComputedStyle(cartColorConfig, "partner").color ? { color: getBubbleComputedStyle(cartColorConfig, "partner").color } : undefined} className="text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)] relative z-10">{z(Math.abs(s || 0))}<span className="text-[10px] font-normal ml-0.5 opacity-85">đ</span></x.div></div><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch gap-1"><button onClick={() => ja(!0)} style={getButtonComputedStyle(cartColorConfig, 'buttons')} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm" title="Sổ ghi nợ"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none"><Comp_ti size={30} strokeWidth={1.8} /></div><span className="relative z-10">SỔ NỢ</span></button><button onClick={() => _a(!0)} style={getButtonComputedStyle(cartColorConfig, 'buttons')} className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/thuchi backdrop-blur-sm" title="Thu / Chi"><div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/thuchi:scale-115 select-none"><Rs size={30} strokeWidth={1.8} /></div><span className="relative z-10">THU/CHI</span></button></div></x.div><x.div initial={{
-                      opacity: 0,
-                      y: 10
-                    }} animate={{
-                      opacity: 1,
-                      y: 0
-                    }} transition={{
-                      duration: 0.3,
-                      delay: 0.05
-                    }} className="md:col-span-3 flex flex-col justify-between gap-1 h-full"><div className="flex-1 min-h-[26px] max-h-9 flex items-stretch w-full gap-1"><button onClick={() => {
-                          g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
-                            ...w,
-                            payment_method: "Cash"
-                          } : w)), M.post("/api/pos/terminal-state/edit-cart", {
-                            terminal_id: q,
-                            payment_method: "Cash",
-                            cart: k?.cart || []
-                          }).catch(() => {})) : (ge("Cash"), re($));
-                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm", n === "Cash" ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")} style={n === 'Cash' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`, borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`, boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined } : undefined}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none", n === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Do size={34} strokeWidth={1.8} /></div><span className="relative z-10">TIỀN MẶT</span></button><button onClick={() => {
-                          g === "remote_inspect" ? (qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? {
-                            ...w,
-                            payment_method: "Debt"
-                          } : w)), M.post("/api/pos/terminal-state/edit-cart", {
-                            terminal_id: q,
-                            payment_method: "Debt",
-                            cart: k?.cart || []
-                          }).catch(() => {})) : (ge("Debt"), re(0));
-                        }} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm", n === "Debt" ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60" : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none", n === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Po size={34} strokeWidth={1.8} /></div><span className="relative z-10">CÔNG NỢ</span></button><button onClick={() => ge("Transfer")} className={c("relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm", n === "Transfer" ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60" : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20")}><div className={c("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none", n === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}><Es size={34} strokeWidth={1.8} /></div><span className="relative z-10">C/K</span></button></div>{n === "Transfer" ? <Comp_zn className="flex-1 min-h-[30px] max-h-10 w-full p-1 bg-card/40 border border-primary/25 dark:border-primary/30 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm" value={ss} onChange={S => ns(S.target.value)} options={ln.map(S => ({
-                        value: S.id,
-                        label: `${S.bank_name} - ${S.account_number}`
-                      }))} /> : <div className="flex-1 min-h-[30px] max-h-10 relative overflow-hidden flex items-center bg-card/40 rounded-xl border border-primary/25 dark:border-primary/30 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm"><div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none"><Comp_ca size={42} strokeWidth={1.5} /></div><span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-muted-foreground uppercase tracking-widest pointer-events-none z-10">Thanh toán:</span><input type="text" readOnly={n === "Cash" || n === "Pending" || g === "remote_inspect"} className={c("w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none !border-none !shadow-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10", n === "Cash" || n === "Pending" || g === "remote_inspect" ? "text-primary/70 cursor-not-allowed" : "text-primary")} value={z(o)} onChange={S => re(parseFloat(S.target.value.replace(/,/g, "")) || 0)} />{g !== "remote_inspect" && (n === "Debt" || n === "Transfer" || n === "Combined" || I === "Debt" || I === "Transfer") && <button type="button" onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-md border border-white/40 dark:border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-200 active:scale-95 z-30 cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</button>}</div>}</x.div><x.div initial={{
-                      opacity: 0,
-                      y: 10
-                    }} animate={{
-                      opacity: 1,
-                      y: 0
-                    }} transition={{
-                      duration: 0.3,
-                      delay: 0.1
-                    }} className="md:col-span-3 h-full p-1.5 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"><div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none"><Bn size={48} strokeWidth={1.5} /></div><div className="flex items-center justify-between relative z-10 pt-0.5"><span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">{u > l ? "Tiền thừa" : "Biến động nợ"}</span>{u > l ? <x.span initial={{
-                          opacity: 0,
-                          scale: 0.85
-                        }} animate={{
-                          opacity: 1,
-                          scale: 1
-                        }} className="text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] leading-normal">Thối lại</x.span> : <x.span key={b > h ? "up" : b < h ? "down" : "same"} initial={{
-                          opacity: 0,
-                          scale: 0.85
-                        }} animate={{
-                          opacity: 1,
-                          scale: 1
-                        }} className={c("text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal", b > h ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" : b < h ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground")}>{b > h ? "+ Tăng nợ" : b < h ? "- Giảm nợ" : "Không đổi"}</x.span>}</div><div className="flex items-center justify-between gap-1.5 mt-auto relative z-10"><div className="flex-1 min-w-0"><div className="flex items-center gap-1 leading-normal mb-0.5"><span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>{h !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", h > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{h > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>}</div><x.div key={Math.abs(h)} initial={{
-                            opacity: 0,
-                            scale: 0.95
-                          }} animate={{
-                            opacity: 1,
-                            scale: 1
-                          }} transition={{
-                            duration: 0.25
-                          }} className={c("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", h > 0 ? "text-rose-500" : h < 0 ? "text-emerald-500" : "text-muted-foreground")}>{z(Math.abs(h))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div><div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0"><Comp_qo size={11} strokeWidth={2.5} /></div><div className="flex-1 min-w-0 text-right"><div className="flex items-center justify-end gap-1 leading-normal mb-0.5">{u > l ? <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">Thối lại</span> : b !== 0 ? <span className={c("text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0", b > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400")}>{b > 0 ? "Khách nợ" : "Mình nợ"}</span> : <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>}<span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span></div><x.div key={u > l ? Math.max(0, u - l) : Math.abs(b)} initial={{
-                            opacity: 0,
-                            scale: 0.95
-                          }} animate={{
-                            opacity: 1,
-                            scale: 1
-                          }} transition={{
-                            duration: 0.25
-                          }} className={c("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", u > l ? "text-amber-700 dark:text-amber-400" : b > 0 ? "text-rose-600 dark:text-rose-400" : b < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}>{z(u > l ? Math.max(0, u - l) : Math.abs(b))}<span className="text-[9px] font-normal ml-0.5">đ</span></x.div></div></div></x.div><x.div initial={{
-                      opacity: 0,
-                      y: 10
-                    }} animate={{
-                      opacity: 1,
-                      y: 0
-                    }} transition={{
-                      duration: 0.3,
-                      delay: 0.15
-                    }} className="md:col-span-4 flex items-stretch gap-1.5 h-full"><div onMouseDown={yr} onMouseUp={aa} onMouseLeave={aa} onTouchStart={yr} onTouchEnd={aa} onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main" style={{
-                        ...getBubbleComputedStyle(cartColorConfig, 'total'),
-                        ...(cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`, boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined } : {})
-                      }} title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"><div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" /><div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none"><Comp_pi size={76} strokeWidth={1.2} /></div><div className="flex items-center justify-between relative z-10"><span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>{Ha ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}</span>{Ha ? <span className="px-1.5 py-0.2 bg-white/20 rounded-lg text-[7px] font-black tracking-widest">BÍ MẬT</span> : <x.span key={d} initial={{
-                            opacity: 0,
-                            scale: 0.8
-                          }} animate={{
-                            opacity: 1,
-                            scale: 1
-                          }} transition={{
-                            duration: 0.2
-                          }} className="text-[8px] font-bold px-1.5 py-0.5 rounded-lg bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]">{d} món</x.span>}</div><x.div key={Ha ? vs : l} initial={{
-                          opacity: 0,
-                          y: -4,
-                          scale: 0.98
-                        }} animate={{
-                          opacity: 1,
-                          y: 0,
-                          scale: 1
-                        }} transition={{
-                          type: "spring",
-                          stiffness: 450,
-                          damping: 25
-                        }} style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined} className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{z(Ha ? vs : l)}<span className="text-xs font-normal ml-0.5 opacity-90">đ</span></x.div></div><div className="flex flex-col justify-between gap-1 shrink-0 min-w-[135px] h-full"><div className="flex-1 min-h-[28px] max-h-11 flex items-stretch gap-1 justify-between"><x.button whileTap={{
-                            scale: 0.95
-                          }} disabled={d === 0 || g === "remote_inspect"} onClick={wr} style={getButtonComputedStyle(cartColorConfig, 'hold')} className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm" title="Tạm đơn [F4]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none"><Comp_jt size={28} strokeWidth={1.8} /></div><DynamicIcon id="pos.hold_btn" defaultIcon={Comp_jt} label="Nút Tạm Đơn POS" size={16} strokeWidth={2.5} className="relative z-10" /></x.button><x.button whileTap={{
-                            scale: 0.95
-                          }} disabled={d === 0 || Be} onClick={() => {
-                            g === "remote_inspect" ? et({
-                              title: "Xác nhận lưu hóa đơn",
-                              message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
-                              onConfirm: () => {
-                                et(null), M.post("/api/pos/terminal-state/action", {
-                                  terminal_id: q,
-                                  action: "save_order"
-                                }).then(() => {
-                                  Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
-                                }).catch(() => {
-                                  Ve.error("Không thể gửi lệnh lưu hóa đơn!");
-                                });
-                              }
-                            }) : Re(!1);
-                          }} style={getButtonComputedStyle(cartColorConfig, 'save')} className="relative overflow-hidden flex-1 h-full bg-card/40 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all shadow-xs group/btn-save backdrop-blur-sm" title="Lưu đơn [Ctrl+S]"><div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none"><Er size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <DynamicIcon id="pos.save_btn" defaultIcon={Er} label="Nút Lưu Đơn POS" size={16} strokeWidth={2.5} className="relative z-10" />}</x.button><x.button whileTap={{
-                            scale: 0.95
-                          }} disabled={d === 0 || Be} onClick={() => {
-                            g === "remote_inspect" ? et({
-                              title: "Xác nhận lưu hóa đơn",
-                              message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
-                              onConfirm: () => {
-                                et(null), M.post("/api/pos/terminal-state/action", {
-                                  terminal_id: q,
-                                  action: "save_order"
-                                }).then(() => {
-                                  Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!");
-                                }).catch(() => {
-                                  Ve.error("Không thể gửi lệnh lưu hóa đơn!");
-                                });
-                              }
-                            }) : Re(!0);
-                          }} style={getButtonComputedStyle(cartColorConfig, 'save_print')} className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print" title="Lưu và In hóa đơn [F9]"><div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none"><Fa size={28} strokeWidth={1.8} /></div>{Be ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <DynamicIcon id="pos.print_btn" defaultIcon={Fa} label="Nút Lưu & In Đơn POS" size={17} strokeWidth={2.5} className="relative z-10" />}</x.button></div><div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full"><x.button onClick={() => na("prev")} whileHover={{
-                            scale: 1.03
-                          }} whileTap={{
-                            scale: 0.95
-                          }} className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer" title="Xem đơn trước"><Comp_qs size={18} strokeWidth={2.8} /></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileHover={Ce === 0 ? {} : {
-                            scale: 1.03
-                          }} whileTap={Ce === 0 ? {} : {
-                            scale: 0.95
-                          }} className={c("flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all", Ce === 0 ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed" : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer")} title="Xem đơn kế tiếp"><Dr size={18} strokeWidth={2.8} /></x.button></div></div></x.div></div></div>;
-              })()}</x.div>{Ze === "sidebar" && <x.div initial={!1} animate={{
-              width: ka ? "360px" : "90px"
-            }} transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30
-            }} className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0"><div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0"><P mode="wait">{ka ? <x.div key="expanded-sidebar" initial={{
-                    opacity: 0,
-                    x: 20
-                  }} animate={{
-                    opacity: 1,
-                    x: 0
-                  }} exit={{
-                    opacity: 0,
-                    x: 20
-                  }} transition={{
-                    type: "tween",
-                    duration: 0.2
-                  }} className="h-full flex flex-col relative bg-transparent border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/20 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 text-slate-800 dark:text-white"><x.button whileHover={{
-                      scale: 1.15,
-                      x: 2
-                    }} whileTap={{
-                      scale: 0.9
-                    }} onClick={() => en(!1)} className="absolute -left-5 top-7 w-9 h-9 bg-[#f6f2ea] dark:bg-[#151311] hover:bg-[#8b6f47] hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-slate-900 rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 z-[60] shadow-md hover:border-[#8b6f47] dark:hover:border-[#d4a574] transition-all cursor-pointer" title="Thu gọn bảng thanh toán"><Dr size={18} strokeWidth={3.5} /></x.button><div className="flex flex-col gap-3 relative z-10 flex-1 overflow-y-auto pr-1 pb-1 scroll-smooth custom-scrollbar"><div className="space-y-2.5"><div onClick={() => {
-                          p ? setIsHistoryPanelOpen(true) : Et.current?.focus();
-                        }} className="bg-transparent p-3 rounded-2xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 shadow-sm hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40 transition-colors group/partner-sidebar cursor-pointer relative overflow-hidden"><To className="absolute -right-3 -bottom-3 w-20 h-20 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 pointer-events-none select-none" /><div className="flex-1 min-w-0 relative z-10"><div className="flex items-center justify-between gap-2 mb-1"><div className="flex items-center gap-1.5"><span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.15em] whitespace-nowrap">KHÁCH HÀNG</span>{p && <span className="bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-[#d4a574]/30 text-[10px] font-black px-2 py-0.5 rounded-full">#{p.id}</span>}</div>{p && <button onClick={t => {
-                                  t.stopPropagation(), setIsHistoryPanelOpen(true);
-                                }} className="w-7 h-7 rounded-full bg-[#8b6f47]/15 hover:bg-[#2d5016] hover:text-white text-[#8b6f47] dark:text-[#d4a574] flex items-center justify-center border border-[#8b6f47]/30 dark:border-[#d4a574]/30 transition-all cursor-pointer shrink-0 z-20 partner-popout-trigger shadow-xs" title="Xem lịch sử giao dịch"><Ja size={13} strokeWidth={2.8} /></button>}</div><div className="font-black text-[#2d5016] dark:text-emerald-400 text-lg uppercase leading-normal"><Ps text={p ? p.name : "KHÁCH BÁN LẺ"} isActive={!0} className="font-black text-[#2d5016] dark:text-emerald-400 text-lg uppercase leading-normal" /></div>{p && <div className="flex flex-col gap-1.5 mt-2">{(Pe.phone || p.phone) && <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden"><Mr size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" /><div className="min-w-0 flex-1 overflow-hidden"><Ps text={Pe.phone || p.phone || "N/A"} isActive={!0} className="text-xs font-bold text-slate-700 dark:text-slate-200" /></div></div>}{(Pe.address || p.address) && <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden"><Us size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" /><div className="min-w-0 flex-1 overflow-hidden"><Ps text={Pe.address || p.address} isActive={!0} className="text-xs font-bold text-slate-700 dark:text-slate-200" /></div></div>}{p.cccd && <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden"><Comp_ca size={11} strokeWidth={3} className="shrink-0 text-indigo-500" /><div className="min-w-0 flex-1 overflow-hidden"><Ps text={`CCCD: ${p.cccd}`} isActive={!0} className="text-xs font-bold text-slate-700 dark:text-slate-200" /></div></div>}</div>}</div>{p && <div ref={Rr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-60 p-4 rounded-2xl bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-2xl shadow-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-white partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-[#8b6f47]/20 dark:border-white/10 pb-2 mb-2.5"><div className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-black/40 p-0.5 rounded-xl mb-2.5"><button onClick={() => Kt("debt")} className={c("flex-1 py-1 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer", Ne === "debt" ? "bg-[#8b6f47] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-1 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer", Ne === "cash" ? "bg-[#2d5016] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-3 font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-emerald-300"><Un size={14} className="animate-spin text-[#2d5016] dark:text-emerald-400" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
-                                  const t = Ne === "debt" ? st : nt;
-                                  t && t.obj && (mr(t.obj), Yt(!0));
-                                }} className="space-y-2 py-1.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 rounded-xl p-2 transition-all active:scale-[0.98] border border-transparent hover:border-[#8b6f47]/20"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Comp_oa size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">SỐ TIỀN</div><div className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">{(() => {
-                                          const t = Ne === "debt" ? st : nt;
-                                          return lt(t.increase || t.obj?.total_amount || 0);
-                                        })()}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Comp_ca size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div className="min-w-0 flex-1"><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">NỘI DUNG</div><div className="text-[10px] font-black uppercase truncate text-slate-800 dark:text-slate-200">{(Ne === "debt" ? st : nt).desc}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Ja size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">THỜI GIAN</div><div className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">{ot((Ne === "debt" ? st : nt).date)}</div></div></div></div> : <div className="py-4 text-center font-black uppercase text-[11px] tracking-wider text-slate-400 italic">Không có giao dịch {Ne === "debt" ? "nợ" : "tiền mặt"} gần đây</div>}</div>}</div><div className="relative bg-transparent rounded-xl border border-[#8b6f47]/20 dark:border-[#d4a574]/20 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400/50 focus-within:ring-2 focus-within:ring-[#2d5016]/10 transition-colors shadow-2xs"><div className="absolute left-3 top-3 text-[#8b6f47] dark:text-[#d4a574] z-10"><ri size={16} /></div><textarea placeholder="Ghi chú đơn bán..." className="w-full pl-9 pr-3 py-2.5 bg-transparent outline-none resize-none h-14 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 italic" value={K} onChange={t => $e(t.target.value)} /></div></div><div className="space-y-2.5 pt-0.5"><div onClick={() => p ? setIsHistoryPanelOpen(true) : Xr(!0)} className="bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] text-white p-4.5 rounded-2xl border-2 border-emerald-400/50 relative overflow-hidden group/total-card flex flex-col justify-between cursor-pointer shadow-xl shadow-[#2d5016]/20" title={p ? "Xem lịch sử giao dịch khách hàng" : "Xem lịch sử đơn hàng trong ngày"}><div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" /><Mo size={84} strokeWidth={1} className="absolute -right-3 -bottom-4 text-white/[0.08] pointer-events-none -rotate-12 select-none" /><div className="w-full flex items-center justify-start relative z-10 mb-1"><div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200/90 flex items-center gap-1.5"><Es size={12} className="text-emerald-300" />TỔNG CỘNG ĐƠN HÀNG</div></div><div className="text-3xl lg:text-4xl font-black text-center text-white tracking-tight drop-shadow-md whitespace-nowrap overflow-hidden relative z-10">{z($)}<span className="text-base font-bold opacity-80 ml-1">đ</span></div></div><div className="space-y-2"><div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors"><span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ TRƯỚC ĐƠN:</span><span className="font-black text-sm text-rose-600 dark:text-rose-400 tabular-nums">{z(de)}</span></div>{p && <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors"><span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ HIỆN TẠI:</span><span className="font-black text-sm text-amber-600 dark:text-amber-400 tabular-nums">{z(p.debt_balance || 0)}</span></div>}<div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors"><div className="flex items-center gap-2"><Comp_u_t size={16} className="text-[#2d5016] dark:text-emerald-400" /><span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">GIAO HÀNG TẬN NƠI:</span></div><label onClick={t => {
-                                  t.preventDefault(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
-                                }} className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={!!tt} readOnly={!0} className="sr-only" /><div className={c("w-10 h-5.5 rounded-full transition-colors duration-200 relative border", tt ? "bg-[#2d5016] border-[#2d5016]" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600")}><div className={c("absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-md", tt ? "translate-x-[18px]" : "translate-x-0")} /></div></label></div><div className={c("overflow-hidden space-y-2 bg-black/[0.03] dark:bg-white/[0.04] rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/30", tt === "Shipping" ? "max-h-[160px] p-3 border mt-2 opacity-100 shadow-xs" : "max-h-0 p-0 border-0 opacity-0 pointer-events-none")}><input type="text" placeholder="Địa chỉ giao hàng..." className="w-full p-2.5 bg-transparent border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-white placeholder-slate-400 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none" value={vr} onChange={t => ra(t.target.value)} /><input type="text" placeholder="Số điện thoại nhận hàng..." className="w-full p-2.5 bg-transparent border border-[#8b6f47]/20 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-800 dark:text-white placeholder-slate-400 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none" value={kr} onChange={t => sa(t.target.value)} /></div><div className={c("grid grid-cols-2 gap-2", p ? "max-h-[60px] mt-1.5 opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden pointer-events-none")}><x.button whileHover={{
-                                  y: -2,
-                                  scale: 1.02
-                                }} whileTap={{
-                                  scale: 0.96
-                                }} onClick={() => ja(!0)} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-black/[0.03] dark:bg-white/[0.04] text-[#2d5016] dark:text-emerald-300 border border-[#8b6f47]/30 dark:border-emerald-500/50 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-xs cursor-pointer"><Hs size={14} strokeWidth={2.5} /><span>Ghi nợ</span></x.button><x.button whileHover={{
-                                  y: -2,
-                                  scale: 1.02
-                                }} whileTap={{
-                                  scale: 0.96
-                                }} onClick={() => _a(!0)} className="flex items-center justify-center gap-1.5 py-2 px-3 bg-black/[0.03] dark:bg-white/[0.04] text-[#2d5016] dark:text-emerald-300 border border-[#8b6f47]/30 dark:border-emerald-500/50 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-xs cursor-pointer"><Ks size={14} strokeWidth={2.5} /><span>Thu/Chi</span></x.button></div><div className="flex flex-col gap-2.5 pt-1"><div className="flex bg-black/[0.03] dark:bg-white/[0.04] p-1.5 rounded-xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 gap-1.5 shadow-inner"><button onClick={() => {
-                                    ge("Cash"), re($);
-                                  }} className={c("flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer", I === "Cash" ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-md shadow-[#2d5016]/25 border border-emerald-400/30" : "text-[#8b6f47] dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}>TIỀN MẶT</button><button onClick={() => {
-                                    ge("Debt"), re(0);
-                                  }} className={c("flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer", I === "Debt" ? "bg-gradient-to-r from-[#8b6f47] to-[#b38f5d] dark:from-[#b38f5d] dark:to-[#d4a574] text-white shadow-md shadow-[#8b6f47]/25 border border-amber-300/30" : "text-[#8b6f47] dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}>CÔNG NỢ</button><button onClick={() => ge("Transfer")} className={c("flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer", I === "Transfer" ? "bg-gradient-to-r from-blue-700 to-indigo-600 text-white shadow-md shadow-blue-600/25 border border-blue-400/30" : "text-[#8b6f47] dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}>C/K</button></div><P>{I === "Transfer" && <x.div initial={{
-                                    opacity: 0,
-                                    height: 0
-                                  }} animate={{
-                                    opacity: 1,
-                                    height: "auto"
-                                  }} exit={{
-                                    opacity: 0,
-                                    height: 0
-                                  }} className="relative overflow-hidden flex items-center justify-between p-2.5 pl-3.5 bg-transparent border-2 border-blue-400/30 dark:border-blue-500/30 rounded-xl shadow-2xs"><div className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">TK Nhận:</div><Comp_zn className="w-full min-w-0 border-none shadow-none text-right justify-end font-bold text-xs bg-transparent text-slate-800 dark:text-white outline-none" value={ss} onChange={t => ns(t.target.value)} options={ln.map(t => ({
-                                      value: t.id,
-                                      label: `${t.bank_name} - ${t.account_number}`
-                                    }))} /></x.div>}</P><div className="relative bg-transparent border-2 border-[#8b6f47]/25 dark:border-[#d4a574]/25 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-[#2d5016]/15 rounded-xl shadow-2xs"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#8b6f47] dark:text-emerald-300 uppercase z-10">KHÁCH ĐƯA (F1):</div><input ref={xr} type="number" className="w-full p-2.5 pl-36 text-right rounded-xl font-black text-xl outline-none bg-transparent text-[#2d5016] dark:text-white tabular-nums" value={V === 0 ? "" : V} placeholder="0" id="cash-given-sidebar" autoComplete="off" onChange={t => Ye(parseFloat(t.target.value) || 0)} onFocus={t => t.target.select()} /></div><div className="relative group/pay-sidebar bg-transparent border-2 border-[#8b6f47]/25 dark:border-[#d4a574]/25 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-[#2d5016]/15 rounded-xl shadow-2xs"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#8b6f47] dark:text-emerald-300 uppercase z-10">THANH TOÁN:</div><input type="text" readOnly={I === "Cash" || I === "Pending"} className={c("w-full p-2.5 pl-28 pr-4 text-right rounded-xl font-black text-xl outline-none bg-transparent tabular-nums", I === "Cash" || I === "Pending" ? "text-slate-400 dark:text-emerald-400/50 cursor-not-allowed" : "text-[#2d5016] dark:text-white")} value={z(oe)} autoComplete="off" onChange={t => re(parseFloat(t.target.value.replace(/,/g, "")) || 0)} /><P>{(I === "Debt" || I === "Transfer") && <x.button initial={{
-                                    opacity: 0
-                                  }} animate={{
-                                    opacity: 1
-                                  }} exit={{
-                                    opacity: 0
-                                  }} onClick={() => re($ + (de > 0 ? de : 0))} className="absolute right-3 -top-2.5 opacity-0 group-hover/pay-sidebar:opacity-100 focus-within:opacity-100 px-2.5 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black rounded-full border border-emerald-400/40 shadow-md hover:scale-105 active:scale-95 z-30 uppercase cursor-pointer" title="Thanh toán toàn bộ đơn hàng và nợ cũ">Trả hết</x.button>}</P></div><P>{V > $ && <x.div initial={{
-                                    opacity: 0,
-                                    height: 0
-                                  }} animate={{
-                                    opacity: 1,
-                                    height: "auto"
-                                  }} exit={{
-                                    opacity: 0,
-                                    height: 0
-                                  }} className="flex justify-between items-center bg-gradient-to-r from-emerald-100 via-teal-50 to-emerald-100 dark:from-emerald-900/60 dark:via-teal-900/40 dark:to-emerald-900/60 border-2 border-emerald-500/50 text-emerald-800 dark:text-emerald-300 p-3 px-4 rounded-xl shadow-xs overflow-hidden"><span className="text-[10px] font-black uppercase tracking-wider">TIỀN THỐI LẠI:</span><span className="font-black text-base text-emerald-800 dark:text-emerald-300 tabular-nums">{z(Math.max(0, V - $))}đ</span></x.div>}</P></div></div></div></div><div className="pt-2 space-y-2 border-t border-[#8b6f47]/20 dark:border-white/10 shrink-0"><div className={c("py-3.5 px-4.5 rounded-2xl flex items-center justify-between shadow-xl relative overflow-hidden group/debt-card transition-all", it > 0 ? "bg-gradient-to-br from-rose-600 via-rose-700 to-rose-800 text-white border-2 border-rose-400/50 shadow-rose-600/30" : "bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] text-white border-2 border-emerald-400/50 shadow-[#2d5016]/20")}><div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" /><div className="min-w-0 flex flex-col justify-center relative z-10"><span className={c("text-[10px] font-black uppercase tracking-[0.2em] block mb-0.5 leading-tight", it > 0 ? "text-rose-200/90" : "text-emerald-200/90")}>NỢ SAU ĐƠN:</span><span className="text-3xl font-black tracking-tight block leading-tight tabular-nums text-white drop-shadow-md">{z(Math.abs(it))}<span className="text-base font-bold opacity-80 ml-1">đ</span></span></div><Comp_oa className="text-white/20 shrink-0 ml-2 select-none relative z-10" size={36} /></div><div className="flex flex-col gap-2"><div className="flex gap-2"><x.button whileHover={{
-                            scale: 1.02
-                          }} whileTap={{
-                            scale: 0.95
-                          }} disabled={y.length === 0} onClick={wr} className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"><Comp_jt size={18} strokeWidth={2.5} /><span>TẠM</span></x.button><x.button whileHover={{
-                            scale: 1.02
-                          }} whileTap={{
-                            scale: 0.95
-                          }} disabled={y.length === 0 || Be} onClick={() => Re(!1)} className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"><Er size={18} strokeWidth={2.5} /><span>LƯU</span></x.button></div><x.button whileHover={{
-                          scale: 1.01
-                        }} whileTap={{
-                          scale: 0.98
-                        }} disabled={y.length === 0 || Be} onClick={() => Re(!0)} className="w-full bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-2xl font-black uppercase tracking-widest gap-2.5 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer">{Be ? <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" /> : <><Fa size={24} strokeWidth={2.5} /><span>IN</span></>}</x.button></div></div></x.div> : <x.div key="mini-sidebar" initial={{
-                    opacity: 0,
-                    x: -20
-                  }} animate={{
-                    opacity: 1,
-                    x: 0
-                  }} exit={{
-                    opacity: 0,
-                    x: -20
-                  }} transition={{
-                    type: "tween",
-                    duration: 0.2
-                  }} className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"><div onClick={() => p && Gr(!sr)} style={getButtonComputedStyle(cartColorConfig, 'partner')} className={c("w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-colors relative cursor-pointer partner-popout-trigger shadow-md shadow-[#8b6f47]/5", p ? "bg-transparent text-[#2d5016] dark:text-emerald-400 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-[#8b6f47]/10" : "bg-transparent text-[#8b6f47]/70 dark:text-[#d4a574]/70 border-[#8b6f47]/25 dark:border-[#d4a574]/25 hover:bg-black/5 dark:hover:bg-white/10")} title={p ? `Khách: ${p.name}` : "Chưa chọn khách"}><Gn size={24} />{p && <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs transition-transform z-20">#{p.id}</div>}{p && <div ref={Wr} onClick={t => t.stopPropagation()} className={c("absolute right-full top-1/2 -translate-y-1/2 mr-3 w-56 p-3.5 rounded-2xl bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-2xl shadow-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 transition-all duration-300 z-[9999] text-left text-slate-800 dark:text-white partner-popout-container", sr ? "pointer-events-auto opacity-100 translate-x-0" : "pointer-events-none opacity-0 translate-x-2")}><div className="border-b border-[#8b6f47]/20 dark:border-white/10 pb-1.5 mb-2"><div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]">LỊCH SỬ GIAO DỊCH</div></div><div className="flex bg-black/5 dark:bg-black/40 p-0.5 rounded-xl mb-2"><button onClick={() => Kt("debt")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "debt" ? "bg-[#8b6f47] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua nợ</button><button onClick={() => Kt("cash")} className={c("flex-1 py-1 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer", Ne === "cash" ? "bg-[#2d5016] text-white shadow-sm" : "text-[#8b6f47] dark:text-[#d4a574] hover:bg-black/5")}>Mua tiền</button></div>{Xs ? <div className="flex items-center gap-2 py-2 font-black uppercase text-[10px] tracking-wider text-[#8b6f47] dark:text-emerald-300"><Un size={14} className="animate-spin text-[#2d5016] dark:text-emerald-400" /><span>Đang tải...</span></div> : (Ne === "debt" ? st : nt) ? <div onClick={() => {
-                          const t = Ne === "debt" ? st : nt;
-                          t && t.obj && (mr(t.obj), Yt(!0));
-                        }} className="space-y-2 py-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 rounded-xl transition-all active:scale-[0.98] border border-transparent hover:border-[#8b6f47]/20"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Comp_oa size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">SỐ TIỀN</div><div className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">{(() => {
-                                  const t = Ne === "debt" ? st : nt;
-                                  return lt(t.increase || t.obj?.total_amount || 0);
-})()}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Comp_ca size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div className="min-w-0 flex-1"><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">NỘI DUNG</div><div className="text-[10px] font-black uppercase truncate text-slate-800 dark:text-slate-200">{(Ne === "debt" ? st : nt).desc}</div></div></div><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-lg bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center shrink-0"><Ja size={15} className="text-[#8b6f47] dark:text-[#d4a574]" /></div><div><div className="text-[8px] font-black uppercase tracking-wider text-slate-400">THỜI GIAN</div><div className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">{ot((Ne === "debt" ? st : nt).date)}</div></div></div></div> : <div className="py-4 text-center font-black uppercase text-xs tracking-wider text-slate-400 italic">Không có giao dịch {Ne === "debt" ? "nợ" : "tiền mặt"} gần đây</div>}</div>}</div><div className="flex flex-col items-center gap-3.5 shrink-0 relative z-[50]">{p && <x.button whileHover={{
-                        scale: 1.08,
-                        rotate: 5
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={() => ja(!0)} style={getButtonComputedStyle(cartColorConfig, 'quick_debt')} className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group/qd relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer" title="Ghi nợ nhanh"><Hs size={22} strokeWidth={2.5} className="relative z-20" style={getButtonComputedStyle(cartColorConfig, "quick_debt").color ? { color: getButtonComputedStyle(cartColorConfig, "quick_debt").color } : undefined} /></x.button>}{p && <x.button whileHover={{
-                        scale: 1.08,
-                        rotate: -5
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={() => _a(!0)} style={getButtonComputedStyle(cartColorConfig, 'quick_voucher')} className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group/qv relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer" title="Lập phiếu nhanh"><Ks size={22} strokeWidth={2.5} className="relative z-20" style={getButtonComputedStyle(cartColorConfig, "quick_voucher").color ? { color: getButtonComputedStyle(cartColorConfig, "quick_voucher").color } : undefined} /></x.button>}<div className="relative group/ship-mini"><x.button whileHover={{
-                          scale: 1.08,
-                          rotate: 8
-                        }} whileTap={{
-                          scale: 0.92
-                        }} onClick={() => vn(!0)} className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-[#2d5016] transition-colors group/ship relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer" title="Quản lý giao hàng"><Comp_u_t size={22} strokeWidth={2.5} className="relative z-20" /></x.button>{D > 0 && <div className="absolute -top-1.5 -right-2 min-w-[20px] h-[20px] bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider rounded-full border border-white/40 shadow-xs flex items-center justify-center px-1.5 z-20"><span className="relative flex h-1.5 w-1.5 mr-0.5"><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-200" /></span>{D}</div>}</div></div><div className="flex-1 flex items-center justify-center w-full min-h-[60px] relative"><x.button whileHover={{
-                        scale: 1.08,
-                        x: -2
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={() => en(!0)} style={getButtonComputedStyle(cartColorConfig, 'toggle')} className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400 border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 rounded-2xl flex items-center justify-center transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10" title="Mở rộng bảng thanh toán"><Comp_qs size={28} strokeWidth={3.5} style={getButtonComputedStyle(cartColorConfig, "toggle").color ? { color: getButtonComputedStyle(cartColorConfig, "toggle").color } : undefined} /></x.button></div><div className="flex flex-col gap-3 pb-4 px-3"><x.button whileHover={{
-                        scale: 1.08
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={wr} disabled={y.length === 0} style={getButtonComputedStyle(cartColorConfig, 'hold')} className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10" title="Treo đơn"><Comp_jt size={20} strokeWidth={2.5} style={getButtonComputedStyle(cartColorConfig, "hold").color ? { color: getButtonComputedStyle(cartColorConfig, "hold").color } : undefined} /></x.button><x.button whileHover={{
-                        scale: 1.08
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={() => Re(!1)} disabled={y.length === 0 || Be} style={getButtonComputedStyle(cartColorConfig, 'save')} className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10" title="Lưu đơn">{Be ? <div className="w-5 h-5 border-2 border-[#2d5016]/20 border-t-[#2d5016] dark:border-emerald-400/20 dark:border-t-emerald-400 rounded-full animate-spin" /> : <Er size={22} strokeWidth={2.5} style={getButtonComputedStyle(cartColorConfig, "save").color ? { color: getButtonComputedStyle(cartColorConfig, "save").color } : undefined} />}</x.button><x.button whileHover={{
-                        scale: 1.08,
-                        y: -1
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={() => Re(!0)} disabled={y.length === 0 || Be} style={getButtonComputedStyle(cartColorConfig, 'save_print')} className="w-14 h-14 bg-gradient-to-tr from-[#2d5016] to-emerald-600 dark:from-emerald-700 dark:to-teal-600 text-white rounded-2xl flex items-center justify-center shadow-[0_10px_22px_rgba(45,80,22,0.35)] dark:shadow-[0_10px_22px_rgba(16,185,129,0.35)] hover:shadow-[0_14px_28px_rgba(45,80,22,0.45)] hover:from-emerald-700 hover:to-emerald-500 disabled:opacity-30 disabled:pointer-events-none transition-all relative overflow-hidden group/print-mini border-2 border-emerald-500/50 dark:border-emerald-400/50" title="Lưu & In đơn">{Be ? <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Fa size={24} strokeWidth={2.5} className="relative z-10" style={getButtonComputedStyle(cartColorConfig, "save_print").color ? { color: getButtonComputedStyle(cartColorConfig, "save_print").color } : undefined} />}</x.button>{v && <x.button whileHover={{
-                        scale: 1.08,
-                        rotate: 180
-                      }} whileTap={{
-                        scale: 0.92
-                      }} onClick={v} style={getButtonComputedStyle(cartColorConfig, 'theme')} className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 rounded-2xl flex items-center justify-center" title="Chuyển đổi giao diện Sáng / Tối"><Bn size={20} strokeWidth={2.5} style={getButtonComputedStyle(cartColorConfig, "theme").color ? { color: getButtonComputedStyle(cartColorConfig, "theme").color } : undefined} /></x.button>}</div></x.div>}</P></div></x.div>}</div><P>{dr && <Wn isOpen={dr} partner={{
+</>}</P></div></div>{Ze === "bottom" && (
+              <POSSummaryPanel
+              mode={Ze}
+              isSidebarExpanded={ka}
+              onToggleSidebar={en}
+              bottomHeight={Jr}
+              onBottomHeightResize={Ii}
+              onResetBottomHeight={() => { Yr(105); localStorage.setItem("pos_bottom_summary_height", "105"); }}
+              isResizingBottom={tn}
+              partner={p}
+              partnerDebt={p?.debt_balance || 0}
+              debtBeforeOrder={de}
+              debtAfterOrder={it}
+              onOpenPartnerHistory={(ptn) => setIsHistoryPanelOpen(true)}
+              onFocusPartnerSearch={() => Et.current?.focus()}
+              isRemoteInspect={g === "remote_inspect"}
+              remoteState={k}
+              activeTerminalId={q}
+              onRemoteAction={(actionData) => {
+                if (actionData.payment_method) {
+                  qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? { ...w, payment_method: actionData.payment_method } : w));
+                  M.post("/api/pos/terminal-state/edit-cart", {
+                    terminal_id: q,
+                    payment_method: actionData.payment_method,
+                    cart: k?.cart || []
+                  }).catch(() => {});
+                }
+              }}
+              cart={y}
+              totalAmount={$}
+              isProfitRevealed={Ha}
+              orderProfit={vs}
+              onMouseDownProfit={yr}
+              onMouseUpProfit={aa}
+              paymentMethod={I}
+              onSelectPaymentMethod={ge}
+              amountPaid={oe}
+              onChangeAmountPaid={re}
+              cashGiven={V}
+              onChangeCashGiven={Ye}
+              cashGivenInputRef={xr}
+              selectedBankId={ss}
+              onChangeBankId={ns}
+              bankList={ln}
+              shippingActive={tt === "Shipping"}
+              onToggleShipping={() => {
+                tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
+              }}
+              shippingAddress={vr}
+              onChangeShippingAddress={ra}
+              shippingPhone={kr}
+              onChangeShippingPhone={sa}
+              shippingCount={D}
+              onOpenShippingPanel={() => vn(!0)}
+              orderNote={K}
+              onChangeOrderNote={$e}
+              onOpenQuickDebt={() => ja(!0)}
+              onOpenQuickVoucher={() => _a(!0)}
+              onHoldOrder={wr}
+              onSaveOrder={(print) => {
+                if (g === "remote_inspect") {
+                  et({
+                    title: "Xác nhận lưu hóa đơn",
+                    message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                    onConfirm: () => {
+                      et(null);
+                      M.post("/api/pos/terminal-state/action", { terminal_id: q, action: "save_order" })
+                        .then(() => Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!"))
+                        .catch(() => Ve.error("Không thể gửi lệnh lưu hóa đơn!"));
+                    }
+                  });
+                } else {
+                  Re(print);
+                }
+              }}
+              onSaveAndPrintOrder={(print) => {
+                if (g === "remote_inspect") {
+                  et({
+                    title: "Xác nhận lưu hóa đơn",
+                    message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                    onConfirm: () => {
+                      et(null);
+                      M.post("/api/pos/terminal-state/action", { terminal_id: q, action: "save_order" })
+                        .then(() => Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!"))
+                        .catch(() => Ve.error("Không thể gửi lệnh lưu hóa đơn!"));
+                    }
+                  });
+                } else {
+                  Re(print);
+                }
+              }}
+              isSaving={Be}
+              onNavigateOrder={na}
+              historyOrderIndex={Ce}
+              cartColorConfig={cartColorConfig}
+              onToggleTheme={v}
+              partnerPopoutOpen={sr}
+              onTogglePartnerPopout={() => p && Gr(!sr)}
+              partnerPopoutRef={Rr}
+              partnerPopoutType={Ne}
+              onChangePartnerPopoutType={Kt}
+              isPartnerHistoryLoading={Xs}
+              lastDebtTx={st}
+              lastCashTx={nt}
+              onSelectHistoryTx={(t) => {
+                if (t?.obj) {
+                  mr(t.obj);
+                  Yt(!0);
+                }
+              }}
+            />
+            )}
+            </x.div>
+            {Ze === "sidebar" && (
+              <POSSummaryPanel
+              mode={Ze}
+              isSidebarExpanded={ka}
+              onToggleSidebar={en}
+              bottomHeight={Jr}
+              onBottomHeightResize={Ii}
+              onResetBottomHeight={() => { Yr(105); localStorage.setItem("pos_bottom_summary_height", "105"); }}
+              isResizingBottom={tn}
+              partner={p}
+              partnerDebt={p?.debt_balance || 0}
+              debtBeforeOrder={de}
+              debtAfterOrder={it}
+              onOpenPartnerHistory={(ptn) => setIsHistoryPanelOpen(true)}
+              onFocusPartnerSearch={() => Et.current?.focus()}
+              isRemoteInspect={g === "remote_inspect"}
+              remoteState={k}
+              activeTerminalId={q}
+              onRemoteAction={(actionData) => {
+                if (actionData.payment_method) {
+                  qa(S => S.map(w => w.terminal_id === q || w.ip_address === q ? { ...w, payment_method: actionData.payment_method } : w));
+                  M.post("/api/pos/terminal-state/edit-cart", {
+                    terminal_id: q,
+                    payment_method: actionData.payment_method,
+                    cart: k?.cart || []
+                  }).catch(() => {});
+                }
+              }}
+              cart={y}
+              totalAmount={$}
+              isProfitRevealed={Ha}
+              orderProfit={vs}
+              onMouseDownProfit={yr}
+              onMouseUpProfit={aa}
+              paymentMethod={I}
+              onSelectPaymentMethod={ge}
+              amountPaid={oe}
+              onChangeAmountPaid={re}
+              cashGiven={V}
+              onChangeCashGiven={Ye}
+              cashGivenInputRef={xr}
+              selectedBankId={ss}
+              onChangeBankId={ns}
+              bankList={ln}
+              shippingActive={tt === "Shipping"}
+              onToggleShipping={() => {
+                tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
+              }}
+              shippingAddress={vr}
+              onChangeShippingAddress={ra}
+              shippingPhone={kr}
+              onChangeShippingPhone={sa}
+              shippingCount={D}
+              onOpenShippingPanel={() => vn(!0)}
+              orderNote={K}
+              onChangeOrderNote={$e}
+              onOpenQuickDebt={() => ja(!0)}
+              onOpenQuickVoucher={() => _a(!0)}
+              onHoldOrder={wr}
+              onSaveOrder={(print) => {
+                if (g === "remote_inspect") {
+                  et({
+                    title: "Xác nhận lưu hóa đơn",
+                    message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                    onConfirm: () => {
+                      et(null);
+                      M.post("/api/pos/terminal-state/action", { terminal_id: q, action: "save_order" })
+                        .then(() => Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!"))
+                        .catch(() => Ve.error("Không thể gửi lệnh lưu hóa đơn!"));
+                    }
+                  });
+                } else {
+                  Re(print);
+                }
+              }}
+              onSaveAndPrintOrder={(print) => {
+                if (g === "remote_inspect") {
+                  et({
+                    title: "Xác nhận lưu hóa đơn",
+                    message: "Bạn có chắc chắn muốn lưu hóa đơn trên máy trạm này?",
+                    onConfirm: () => {
+                      et(null);
+                      M.post("/api/pos/terminal-state/action", { terminal_id: q, action: "save_order" })
+                        .then(() => Ve.success("Đã gửi lệnh lưu hóa đơn tới máy trạm!"))
+                        .catch(() => Ve.error("Không thể gửi lệnh lưu hóa đơn!"));
+                    }
+                  });
+                } else {
+                  Re(print);
+                }
+              }}
+              isSaving={Be}
+              onNavigateOrder={na}
+              historyOrderIndex={Ce}
+              cartColorConfig={cartColorConfig}
+              onToggleTheme={v}
+              partnerPopoutOpen={sr}
+              onTogglePartnerPopout={() => p && Gr(!sr)}
+              partnerPopoutRef={Rr}
+              partnerPopoutType={Ne}
+              onChangePartnerPopoutType={Kt}
+              isPartnerHistoryLoading={Xs}
+              lastDebtTx={st}
+              lastCashTx={nt}
+              onSelectHistoryTx={(t) => {
+                if (t?.obj) {
+                  mr(t.obj);
+                  Yt(!0);
+                }
+              }}
+            />
+            )}
+          </div>
+<P>{dr && <Wn isOpen={dr} partner={{
               name: on,
               is_customer: !0,
               is_supplier: !1

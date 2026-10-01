@@ -50,6 +50,9 @@ import CartTableRow from "../../components/pos/CartTableRow";
 import SoundVoiceSettingsModal from "../../components/modals/SoundVoiceSettingsModal";
 import MascotWatermarkCustomizer from "../../components/widgets/MascotWatermarkCustomizer";
 import AIScanInvoiceModal from "../../components/modals/AIScanInvoiceModal";
+import POSPrintPreviewModal from "../../components/modals/POSPrintPreviewModal";
+import QuickProductCreateModal from "../../components/modals/QuickProductCreateModal";
+import PackingDisplayModeModal from "../../components/modals/PackingDisplayModeModal";
 import ProductSearchItem from "../../components/pos/ProductSearchItem";
 import PartnerSearchItem from "../../components/pos/PartnerSearchItem";
 
@@ -5672,112 +5675,18 @@ function POSPage({
                 message: ye ? "Đã cập nhật phiếu thành công!" : "Đã lập phiếu thành công!",
                 type: "success"
               }), ye && (Ia(null), _a(!1));
-            }} /></Ee><P>{ds && Ta && <Ee><div className="fixed inset-0 z-[1000] flex bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-300 font-sans overflow-hidden"><x.div initial={{
-                  x: -100,
-                  opacity: 0
-                }} animate={{
-                  x: 0,
-                  opacity: 1
-                }} exit={{
-                  x: -100,
-                  opacity: 0
-                }} transition={{
-                  type: "spring",
-                  stiffness: 220,
-                  damping: 25
-                }} className="w-80 h-full bg-[#faf8f3] dark:bg-[#0c120c] text-slate-800 dark:text-slate-100 border-r border-[#8b6f47]/20 dark:border-white/10 flex flex-col z-50 relative shadow-2xl" onClick={t => t.stopPropagation()}><div className="p-6 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]"><div className="flex items-center gap-2"><Fa className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /><h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Thiết lập in</h3></div><p className="text-[10.5px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mt-1">Tùy chỉnh nội dung hiển thị</p></div><div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar"><div className="space-y-4"><div className="flex bg-black/[0.04] dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/10 mb-3 gap-1"><button onClick={() => un("Sale")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", Jt === "Sale" ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30" : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}><Lo size={14} className="shrink-0" strokeWidth={2.5} /><span>Hóa đơn</span></button><button onClick={() => un("Delivery")} className={c("flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer", Jt === "Delivery" ? "bg-amber-600 text-white shadow-md shadow-amber-600/30" : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5")}><ko size={14} className="shrink-0" strokeWidth={2.5} /><span>Xuất kho</span></button></div>{Jt === "Delivery" ? <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[11px] text-amber-800 dark:text-amber-300 font-bold leading-relaxed">Phiếu xuất kho tự động ẩn đơn giá, thành tiền và toàn bộ thông tin công nợ thanh toán.</div> : <div className="space-y-3"><div className="flex items-center justify-between px-1"><label className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.15em]">Thông tin tài chính</label><div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent ml-3" /></div><div className="grid gap-2.5">{[{
-                            id: "showOldDebt",
-                            label: "Hiển thị nợ cũ",
-                            icon: ua,
-                            color: "text-rose-600 dark:text-rose-400",
-                            bgActive: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
-                          }, {
-                            id: "showPayment",
-                            label: "Hiển thị thanh toán",
-                            icon: Va,
-                            color: "text-emerald-600 dark:text-emerald-400",
-                            bgActive: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                          }, {
-                            id: "showRemaining",
-                            label: "Hiển thị còn lại",
-                            icon: oa,
-                            color: "text-blue-600 dark:text-blue-400",
-                            bgActive: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
-                          }, {
-                            id: "showCashGiven",
-                            label: "Hiển thị khách đưa",
-                            icon: Id,
-                            color: "text-amber-600 dark:text-amber-400",
-                            bgActive: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
-                          }, {
-                            id: "showChange",
-                            label: "Hiển thị tiền thối",
-                            icon: Dd,
-                            color: "text-cyan-600 dark:text-cyan-400",
-                            bgActive: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
-                          }].map(t => {
-                            const IconComp = t.icon,
-                              r = Ke[t.id];
-                            return <x.button key={t.id} whileHover={{
-                              x: 4
-                            }} whileTap={{
-                              scale: 0.97
-                            }} onClick={() => rl(s => ({
-                              ...s,
-                              [t.id]: !s[t.id]
-                            }))} className={c("w-full p-3.5 rounded-2xl flex items-center justify-between transition-all duration-200 border group relative cursor-pointer select-none", r ? "bg-white dark:bg-white/[0.08] border-emerald-500/30 dark:border-emerald-500/40 shadow-sm" : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]")}><div className="flex items-center gap-3 relative z-10"><div className={c("w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300", r ? `${t.bgActive} shadow-xs` : "bg-black/[0.05] dark:bg-white/5 text-slate-400 dark:text-white/30")}><IconComp size={18} strokeWidth={2.4} className={c("transition-transform", r ? "scale-105" : "scale-95")} /></div><div className="flex flex-col items-start"><span className={c("text-[12px] font-bold tracking-tight transition-colors", r ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/50")}>{t.label}</span><span className={c("text-[9px] font-black uppercase tracking-wider", r ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-white/30")}>{r ? "ĐANG HIỆN" : "ĐANG ẨN"}</span></div></div><div className={c("w-11 h-6 rounded-full relative p-0.5 transition-colors duration-300", r ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20")}><x.div layout={!0} animate={{
-                                  x: r ? 20 : 0
-                                }} transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 30
-                                }} className="w-5 h-5 rounded-full bg-white shadow-md" /></div></x.button>;
-                          })}</div></div>}</div></div><div className="p-6 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-2.5 bg-white/40 dark:bg-white/[0.02]"><x.button whileHover={{
-                      scale: 1.02
-                    }} whileTap={{
-                      scale: 0.98
-                    }} onClick={() => {
-                      Sa(!1), Re(!0, Jt);
-                    }} className="group w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 transition-all"><Fa size={16} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />{Jt === "Delivery" ? "Lưu & In Xuất Kho" : "Lưu & In Ngay"}</x.button><x.button whileHover={{
-                      scale: 1.02,
-                      backgroundColor: "rgba(236, 72, 153, 0.2)"
-                    }} whileTap={{
-                      scale: 0.98
-                    }} onClick={() => {
-                      Ta && Ta.details && qn(Ta.details, T);
-                    }} className="w-full py-3 bg-pink-500/10 text-pink-600 dark:text-pink-300 hover:text-pink-700 dark:hover:text-pink-200 rounded-2xl font-bold uppercase tracking-wider text-xs border border-pink-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer"><Comp_la size={16} />Đọc Soạn Hàng</x.button><x.button whileHover={{
-                      scale: 1.02
-                    }} whileTap={{
-                      scale: 0.98
-                    }} onClick={() => Sa(!1)} className="w-full py-3 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs border border-black/5 dark:border-white/5 flex items-center justify-center gap-2 transition-all cursor-pointer"><Comp_ke size={16} />Đóng nhanh</x.button></div></x.div><div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-1.5 bg-[#faf8f3]/90 dark:bg-slate-900/90 rounded-2xl border border-[#8b6f47]/20 dark:border-white/15 backdrop-blur-2xl shadow-2xl select-none"><x.button whileHover={{
-                    scale: 1.1
-                  }} whileTap={{
-                    scale: 0.9
-                  }} onClick={() => cs(t => Math.max(0.5, t - 0.1))} className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer" title="Thu nhỏ"><Comp_ui size={16} /></x.button><div className="px-3 text-xs font-black text-slate-800 dark:text-white min-w-[50px] text-center tabular-nums">{Math.round(cn * 100)}%</div><x.button whileHover={{
-                    scale: 1.1
-                  }} whileTap={{
-                    scale: 0.9
-                  }} onClick={() => cs(t => Math.min(2, t + 0.1))} className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer" title="Phóng to"><Ot size={16} /></x.button><div className="w-[1px] h-5 bg-black/10 dark:bg-white/15 mx-1" /><x.button whileHover={{
-                    scale: 1.1
-                  }} whileTap={{
-                    scale: 0.9
-                  }} onClick={() => cs(1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer" title="Reset 100%"><Ms size={15} /></x.button></div><div className="flex-1 h-full overflow-auto no-scrollbar py-12 px-4 flex flex-col items-center cursor-zoom-out" onClick={() => Sa(!1)}><x.div initial={{
-                    scale: 0.92,
-                    opacity: 0,
-                    y: 20
-                  }} animate={{
-                    scale: cn,
-                    opacity: 1,
-                    y: 0
-                  }} exit={{
-                    scale: 0.95,
-                    opacity: 0,
-                    y: 15
-                  }} transition={{
-                    type: "spring",
-                    stiffness: 220,
-                    damping: 25
-                  }} onClick={t => t.stopPropagation()} className="relative keep-white bg-white ring-1 ring-black/10 transform-gpu cursor-default origin-top shadow-2xl rounded-xs"><PrintTemplate data={Ta} settings={J} type={Jt || "Sale"} isPreview={!0} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></x.div><p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">Cuộn để xem toàn bộ hóa đơn • LyangPOS Studio</p></div></div></Ee>}</P><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
+            }} /></Ee><POSPrintPreviewModal
+              isOpen={ds && !!Ta}
+              orderData={Ta}
+              settings={J}
+              invoiceType={Jt}
+              onChangeInvoiceType={un}
+              printOptions={Ke}
+              onTogglePrintOption={(key) => rl(s => ({ ...s, [key]: !s[key] }))}
+              onConfirmPrint={(type) => { Sa(!1); Re(!0, type); }}
+              onReadPacking={() => { if (Ta?.details) qn(Ta.details, T); }}
+              onClose={() => Sa(!1)}
+            /><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
               setEditingHistoryOrder(t);
             }} onEditOrder={async t => {
               kt(!1);
@@ -5805,32 +5714,13 @@ function POSPage({
                 message: "Đã cập nhật hóa đơn thành công!",
                 type: "success"
               });
-            }} />}</Ws><P>{gs && <Ee><div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/40 dark:bg-black/60 overflow-y-auto"><x.div initial={{
-                  scale: 0.95,
-                  opacity: 0,
-                  y: 10
-                }} animate={{
-                  scale: 1,
-                  opacity: 1,
-                  y: 0
-                }} exit={{
-                  scale: 0.95,
-                  opacity: 0,
-                  y: 10
-                }} className="bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl w-full max-w-md rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl flex flex-col relative z-10 overflow-hidden"><div className="p-5 flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#2d5016]/10 dark:bg-[#d4a574]/15 rounded-xl flex items-center justify-center border border-[#8b6f47]/20 text-[#2d5016] dark:text-[#d4a574]"><Ot size={20} /></div><div><h3 className="text-base font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-wide leading-tight">Thêm món ngoài</h3><p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">Phím tắt F6</p></div></div><button onClick={() => La(!1)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-rose-500/15 text-slate-400 hover:text-rose-500 transition-colors"><Comp_ke size={16} strokeWidth={2.5} /></button></div><div className="p-5 space-y-4"><div className="space-y-1"><label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider ml-1">Tên món / Nội dung</label><input ref={ys} type="text" className="w-full h-12 px-4 bg-white/70 dark:bg-slate-900/70 border border-[#8b6f47]/25 dark:border-white/10 focus:border-[#2d5016] dark:focus:border-[#d4a574] rounded-xl font-bold text-foreground outline-none transition-all placeholder:text-muted-foreground uppercase shadow-inner" placeholder="GÕ TÊN MÓN..." value={ut.name} onChange={t => $a({
-                        ...ut,
-                        name: t.target.value
-                      })} onKeyDown={t => {
-                        t.key === "Enter" && (t.preventDefault(), bn.current?.focus());
-                      }} /></div><div className="space-y-1"><label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider ml-1">Giá tiền</label><input ref={bn} type="text" className="w-full h-12 px-4 bg-white/70 dark:bg-slate-900/70 border border-[#8b6f47]/25 dark:border-white/10 focus:border-[#2d5016] dark:focus:border-[#d4a574] rounded-xl font-black text-xl text-[#2d5016] dark:text-[#d4a574] outline-none transition-all shadow-inner" placeholder="0" value={ut.price ? parseFloat(ut.price).toLocaleString("en-US") : ""} onChange={t => {
-                        const a = t.target.value.replace(/,/g, "");
-                        /^\d*$/.test(a) && $a({
-                          ...ut,
-                          price: a
-                        });
-                      }} onKeyDown={t => {
-                        t.key === "Enter" && (t.preventDefault(), Cn(ut.name, parseFloat(ut.price) || 0));
-                      }} /></div></div><div className="p-5 border-t border-[#8b6f47]/15 dark:border-white/10 flex flex-col items-center"><button onClick={() => Cn(ut.name, parseFloat(ut.price) || 0)} className="w-full py-3.5 bg-[#2d5016] hover:bg-[#3d6820] text-white rounded-xl font-black uppercase text-xs tracking-wider transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-md shadow-[#2d5016]/20 cursor-pointer"><Ot size={18} /> THÊM VÀO GIỎ (ENTER)</button></div></x.div></div></Ee>}</P><P>{Ui && us && <Comp_rd order={us} partner={Y.find(t => t.id === us.partner_id)} onClose={() => Yt(!1)} onSave={() => {
+            }} />}</Ws><QuickProductCreateModal
+              isOpen={gs}
+              initialName={ut.name}
+              initialPrice={ut.price}
+              onClose={() => La(!1)}
+              onConfirm={(name, price) => Cn(name, price)}
+            /><P>{Ui && us && <Comp_rd order={us} partner={Y.find(t => t.id === us.partner_id)} onClose={() => Yt(!1)} onSave={() => {
               Yt(!1), _e && E.invalidateQueries(["orders"]);
             }} />}</P><P>{Da && <Comp_sd isOpen={!!Da} title={Da.title} message={Da.message} onConfirm={Da.onConfirm} onCancel={() => et(null)} />}</P><Ee><P>{Qt && pt && <Comp_ld product={pt} isOpen={Qt} onClose={() => Dt(!1)} onSave={ml} coordinates={Ki} />}</P></Ee><Ee><P>{Fi && <x.div initial={{
                 opacity: 0,
@@ -5856,102 +5746,10 @@ function POSPage({
               onClose={() => Bt(!1)}
               onSave={newNote => $e(newNote)}
             />
-            <Ee><P>{Yi && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"><x.div initial={{
-                  scale: 0.9,
-                  opacity: 0,
-                  y: 20
-                }} animate={{
-                  scale: 1,
-                  opacity: 1,
-                  y: 0
-                }} exit={{
-                  scale: 0.9,
-                  opacity: 0,
-                  y: 20
-                }} className="bg-white dark:bg-slate-900 backdrop-blur-2xl w-full max-w-sm rounded-[2rem] border border-white dark:border-white/10 overflow-hidden relative p-6 space-y-4"><div className="flex justify-between items-start"><div className="flex items-center gap-2 text-primary dark:text-[#d4a574]"><Ln size={20} className="shrink-0" /><h3 className="font-black text-lg uppercase tracking-tight">Màn hình soạn hàng</h3></div><button onClick={() => fs(!1)} className="p-1.5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} /></button></div><p className="text-xs text-gray-500 dark:text-gray-400 font-bold leading-normal">Chọn phương thức hiển thị màn hình soạn hàng. Sử dụng trình duyệt Chrome/Edge nếu bạn muốn <span className="text-[#059669] dark:text-[#34d399] font-black">truyền màn hình (Cast) lên TV</span>.</p><div className="flex flex-col gap-2.5 pt-2"><button onClick={async () => {
-                      fs(!1);
-                      const t = "packing-display-" + Date.now(),
-                        a = "/#/packing-display",
-                        r = window.__TAURI__?.webviewWindow?.WebviewWindow || window.__TAURI__?.window?.WebviewWindow;
-                      if (r) try {
-                        new r(t, {
-                          url: a,
-                          title: "Màn hình soạn hàng",
-                          width: 1e3,
-                          height: 800,
-                          center: !0
-                        });
-                        return;
-                      } catch (s) {
-                        console.error("Failed to create WebviewWindow from global namespace", s);
-                      }
-                      if (window.__TAURI_INTERNALS__) try {
-                        const {
-                          WebviewWindow: s
-                        } = await Rn(async () => {
-                          const {
-                            WebviewWindow: n
-                          } = await Ts(async () => {
-                            const {
-                              WebviewWindow: l
-                            } = await import("@tauri-apps/api/webviewWindow");
-                            return {
-                              WebviewWindow: l
-                            };
-                          }, []);
-                          return {
-                            WebviewWindow: n
-                          };
-                        }, []);
-                        new s(t, {
-                          url: a,
-                          title: "Màn hình soạn hàng",
-                          width: 1e3,
-                          height: 800,
-                          center: !0
-                        });
-                        return;
-                      } catch (s) {
-                        console.error("Failed to dynamically import WebviewWindow", s);
-                      }
-                      window.open(window.location.origin + "/#/packing-display", "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no");
-                    }} className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Ln size={16} strokeWidth={2.5} /><span>Mở trong cửa sổ App (Tauri)</span></button><button onClick={async () => {
-                      fs(!1);
-                      const t = localStorage.getItem("server_ip"),
-                        a = (t ? `http://${t}:3579` : "http://localhost:3579") + "/#/packing-display";
-                      try {
-                        await M.post("/api/open-external-chrome", {
-                          url: a
-                        });
-                        return;
-                      } catch (r) {
-                        console.error("Failed to open Chrome in app mode via backend API, falling back", r);
-                      }
-                      if (window.__TAURI_INTERNALS__) try {
-                        const {
-                          open: r
-                        } = await Rn(async () => {
-                          const {
-                            open: s
-                          } = await Ts(async () => {
-                            const {
-                              open: n
-                            } = await import("@tauri-apps/plugin-shell");
-                            return {
-                              open: n
-                            };
-                          }, []);
-                          return {
-                            open: s
-                          };
-                        }, []);
-                        await r(a);
-                        return;
-                      } catch (r) {
-                        console.error("Failed to open URL using tauri shell", r);
-                      }
-                      window.open(a, "_blank", "width=1200,height=800,menubar=no,status=no,toolbar=no,location=no");
-                    }} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"><Xo size={16} strokeWidth={2.5} /><span>Mở trong Trình duyệt (Để Cast TV)</span></button></div></x.div></div>}</P></Ee><SoundVoiceSettingsModal isOpen={Lr} onClose={() => ba(false)} products={T} /><AIScanInvoiceModal
+            <PackingDisplayModeModal
+              isOpen={Yi}
+              onClose={() => fs(!1)}
+            /><SoundVoiceSettingsModal isOpen={Lr} onClose={() => ba(false)} products={T} /><AIScanInvoiceModal
               isOpen={C}
               onClose={() => { X(!1); we([]); }}
               settings={J}

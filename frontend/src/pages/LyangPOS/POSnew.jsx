@@ -46,6 +46,9 @@ import CartColorCustomizerModal, {
 } from "../../components/modals/CartColorCustomizerModal";
 import DynamicIcon from "../../components/widgets/DynamicIcon";
 import ResizableDropdownContainer from "../../components/widgets/ResizableDropdownContainer";
+import CartTableRow from "../../components/pos/CartTableRow";
+import ProductSearchItem from "../../components/pos/ProductSearchItem";
+import PartnerSearchItem from "../../components/pos/PartnerSearchItem";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -3513,18 +3516,30 @@ function POSPage({
                           const isItemActive = yt ? We === a : We === a + 1;
                           const targetIndex = yt ? a : a + 1;
                           return (
-                            <x.div key={t.id} data-index={targetIndex} onMouseMove={() => { if (We !== targetIndex) rs(targetIndex); }} onMouseDown={e => {
-                              e.preventDefault();
-                              W(!1), g === "remote_inspect" ? Aa(t) : F(t), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
-                            }} onContextMenu={e => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setItemContextMenu({
-                                type: 'partner',
-                                data: t,
-                                position: { x: e.clientX, y: e.clientY }
-                              });
-                            }} className={c("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", isItemActive && "active")}><div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3"><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border", isItemActive ? "bg-white/20 text-white border-transparent" : "bg-black/[0.04] dark:bg-white/10 text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 shadow-xs")}><Ir size={22} strokeWidth={2.5} /></div><div className="flex flex-col gap-0.5 min-w-0 py-0.5"><div className="flex items-center gap-2 min-w-0"><span className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", isItemActive ? "bg-white/20 border-white/40 text-white" : t.is_customer && t.is_supplier ? "bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400" : t.is_customer ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 border-amber-500/30 text-amber-700 dark:text-amber-400")}>{t.is_customer && t.is_supplier ? "KH & NCC" : t.is_customer ? "KH" : "NCC"}</span><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} isActive={isItemActive} className={c("font-black tracking-tight text-base md:text-[17px] leading-snug", isItemActive ? "text-white" : "text-slate-900 dark:text-white")} /></div></div><div className={c("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", isItemActive ? "text-white/80" : "text-slate-500 dark:text-slate-400")}><span className="flex items-center gap-1 shrink-0"><Jn size={12} strokeWidth={2.5} className="opacity-60" />{t.phone || "---"}</span>{t.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><Yn size={12} strokeWidth={2.5} className="opacity-60" />{t.address}</span>}</div></div></div><div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2"><p className={c("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : (t.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (t.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>{((t.debt_balance || 0) > 0 ? "+" : "") + z(Math.abs(t.debt_balance || 0))}</p><div className={c("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors border", isItemActive ? "bg-white/20 border-white/40 text-white" : "border-black/10 dark:border-white/10 text-slate-600 dark:text-slate-300 bg-black/[0.03] dark:bg-white/[0.05]")}>{(t.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (t.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}</div></div></x.div>
+                            <PartnerSearchItem
+                              key={t.id}
+                              partner={t}
+                              isActive={isItemActive}
+                              index={a}
+                              targetIndex={targetIndex}
+                              onHover={(idx) => {
+                                if (We !== idx) rs(idx);
+                              }}
+                              onSelect={(partner) => {
+                                W(!1);
+                                g === "remote_inspect" ? Aa(partner) : F(partner);
+                                Ge("");
+                                Ue(!1);
+                                setTimeout(() => se.current?.focus(), 50);
+                              }}
+                              onContextMenu={(e, partner) => {
+                                setItemContextMenu({
+                                  type: 'partner',
+                                  data: partner,
+                                  position: { x: e.clientX, y: e.clientY }
+                                });
+                              }}
+                            />
                           );
                         })}{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-black/5 dark:border-white/5 px-4 py-3 cursor-pointer" onMouseDown={e => {
                           e.preventDefault();
@@ -4298,49 +4313,46 @@ function POSPage({
     scrollRef={hs}
     itemCount={wt.length}
   >
-{wt.map((t, a) => <div key={t.id} onMouseMove={() => { if (De !== a) Ft(a); }} onMouseDown={r => {
-                                      r.preventDefault();
-                                      const s = m.quantity && m.quantity !== 0 ? m.quantity : 1,
-                                        hasCustomPrice = Boolean(p && p.id && R && R[t.id] !== void 0);
-                                      He({
-                                        product: t,
-                                        quantity: s,
-                                        price: hasCustomPrice ? R[t.id] : t.sale_price,
-                                        secondary_qty: s / (t.multiplier || 1),
-                                        name: t.name
-                                      }), ae(t.name);
-                                    }} onContextMenu={e => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setItemContextMenu({
-                                        type: 'product',
-                                        data: t,
-                                        position: { x: e.clientX, y: e.clientY }
-                                      });
-                                    }} className={c("dropdown-item flex justify-between items-center", a === De && "active")}><div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3"><div className="flex items-center gap-3 min-w-0"><div className="min-w-0 flex-1 overflow-hidden"><Ps text={t.name} onContextMenu={e => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              setItemContextMenu({
-                                                type: 'product',
-                                                data: t,
-                                                position: { x: e.clientX, y: e.clientY }
-                                              });
-                                            }} isActive={a === De} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
-                                              color: a === De ? Mt.accent : Mt.main,
-                                              fontSize: "16px",
-                                              paddingLeft: a === De ? "12px" : "0px"
-                                            }} /></div>{t.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.id] && <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)} (Giá: ${z(partnerLastPurchases[t.id].last_price)}đ)`}><Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.id].last_date)}</span>}</div><div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap"><div onClick={r => {
-                                            r.stopPropagation();
-                                            const s = r.currentTarget.getBoundingClientRect();
-                                            Xt(t), za({
-                                              top: s.top,
-                                              bottom: s.bottom,
-                                              left: s.left,
-                                              right: s.right
-                                            }), Dt(!0);
-                                          }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", t.stock <= 0 ? "bg-rose-600 text-white" : t.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className={c("w-px h-3 shrink-0", t.stock < 10 && t.stock > 0 ? "bg-slate-950/30" : "bg-white/40")} /><div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className={c("shrink-0", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")} /><span className={c("tabular-nums font-black", t.stock < 10 && t.stock > 0 ? "text-slate-950" : "text-white")}>{t.accounting_stock || 0}</span></div></>}</div>{t.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", a === De ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300")}>{t.code}</span>}<span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", a === De ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(t.unit)}</span>{t.multiplier > 1 && <span className={a === De ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(t.secondary_unit)} (x{t.multiplier})</span>}{t.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: a === De ? Mt.accentMuted : Mt.muted }} title={t.active_ingredient}>• {t.active_ingredient}</span>}</div></div><div className="flex items-center gap-4 relative z-10 shrink-0"><div className="flex flex-col items-end gap-1"><div className="text-[22px] font-black tracking-tighter tabular-nums drop-" style={{
-                                              color: a === De ? Mt.accent : Mt.main
-                                            }}>{z(t.sale_price)}</div><div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(t.latest_cost_price)}</div></div></div></div>)}{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
+{wt.map((t, a) => (
+  <ProductSearchItem
+    key={t.id}
+    product={t}
+    isActive={a === De}
+    index={a}
+    colorTheme={Mt}
+    showLastPurchaseBadge={showLastPurchaseBadge}
+    lastPurchase={partnerLastPurchases?.[t.id]}
+    accountingEnabled={localStorage.getItem('feature_accounting_enabled') !== 'false'}
+    onHover={(idx) => {
+      if (De !== idx) Ft(idx);
+    }}
+    onSelect={(selectedProd) => {
+      const s = m.quantity && m.quantity !== 0 ? m.quantity : 1;
+      const hasCustomPrice = Boolean(p && p.id && R && R[selectedProd.id] !== void 0);
+      He({
+        product: selectedProd,
+        quantity: s,
+        price: hasCustomPrice ? R[selectedProd.id] : selectedProd.sale_price,
+        secondary_qty: s / (selectedProd.multiplier || 1),
+        name: selectedProd.name
+      });
+      ae(selectedProd.name);
+    }}
+    onQuickStock={(prod, coords) => {
+      Xt(prod);
+      za(coords);
+      Dt(!0);
+    }}
+    onContextMenu={(e, prod) => {
+      setItemContextMenu({
+        type: 'product',
+        data: prod,
+        position: { x: e.clientX, y: e.clientY }
+      });
+    }}
+  />
+))}
+{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
                                       dn(Z), ur(!0);
                                     }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</ResizableDropdownContainer>)}
 {Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && (
@@ -4360,118 +4372,79 @@ function POSPage({
   const hasCustomPrice = Boolean(p && p.id && R && R[r.id] !== void 0);
   const displayPrice = hasCustomPrice ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price);
   return (
-    <div key={r.id} onMouseMove={() => { if (It !== s) Ca(s); }} onMouseDown={e => {
-      e.preventDefault();
-      if (!curRow) return;
-      let n = [...y];
-      const l = n.findIndex(u => u.cartId === curRow.cartId);
-      if (l === -1) return;
-      const d = n[l].quantity;
-      const o = n.findIndex((u, h) => h !== l && u.product_id === r.id);
-      if (o > -1) {
-        n[o].quantity += d;
-        n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
-        n.splice(l, 1);
-      } else {
-        n[l] = {
-          ...n[l],
-          product_id: r.id,
-          product_name: r.name,
-          unit: r.unit,
-          secondary_unit: r.secondary_unit,
-          multiplier: r.multiplier || 1,
-          price: displayPrice,
-          cost_price: r.cost_price,
-          latest_cost_price: r.latest_cost_price,
-          stock: r.stock,
-          is_combo: r.is_combo,
-          active_ingredient: r.active_ingredient,
-          is_manual_price: false
-        };
-        delete n[l]?.ai_scanned;
-      }
-      H(n);
-      ct(null);
-      ls("");
-      setTimeout(() => {
-        const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
-        const b = ve.findIndex(O => O.cartId === targetCartId);
-        const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
-        const w = document.getElementById(`qty-sec-${S}`);
-        if (Te === "Wholesale" && w && !w.disabled) {
-          w.focus();
-          w.select?.();
+    <ProductSearchItem
+      key={r.id}
+      product={r}
+      isActive={s === It}
+      index={s}
+      colorTheme={Mt}
+      displayPrice={displayPrice}
+      showLastPurchaseBadge={showLastPurchaseBadge}
+      lastPurchase={partnerLastPurchases?.[r.id]}
+      accountingEnabled={localStorage.getItem('feature_accounting_enabled') !== 'false'}
+      onHover={(idx) => {
+        if (It !== idx) Ca(idx);
+      }}
+      onSelect={(selectedProd) => {
+        if (!curRow) return;
+        let n = [...y];
+        const l = n.findIndex(u => u.cartId === curRow.cartId);
+        if (l === -1) return;
+        const d = n[l].quantity;
+        const o = n.findIndex((u, h) => h !== l && u.product_id === selectedProd.id);
+        if (o > -1) {
+          n[o].quantity += d;
+          n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
+          n.splice(l, 1);
         } else {
-          const O = document.getElementById(`qty-main-${S}`);
-          O?.focus();
-          O?.select?.();
+          n[l] = {
+            ...n[l],
+            product_id: selectedProd.id,
+            product_name: selectedProd.name,
+            unit: selectedProd.unit,
+            secondary_unit: selectedProd.secondary_unit,
+            multiplier: selectedProd.multiplier || 1,
+            price: displayPrice,
+            cost_price: selectedProd.cost_price,
+            latest_cost_price: selectedProd.latest_cost_price,
+            stock: selectedProd.stock,
+            is_combo: selectedProd.is_combo,
+            active_ingredient: selectedProd.active_ingredient,
+            is_manual_price: false
+          };
+          delete n[l]?.ai_scanned;
         }
-      }, 100);
-    }} onContextMenu={e => {
-      e.preventDefault();
-      e.stopPropagation();
-      setItemContextMenu({
-        type: 'product',
-        data: r,
-        position: { x: e.clientX, y: e.clientY }
-      });
-    }} className={c("dropdown-item flex justify-between items-center", s === It && "active")}>
-      <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <Ps text={r.name} onContextMenu={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              setItemContextMenu({
-                type: 'product',
-                data: r,
-                position: { x: e.clientX, y: e.clientY }
-              });
-            }} isActive={s === It} className="font-black tracking-tight transition-all duration-300 leading-relaxed" style={{
-              color: s === It ? Mt.accent : Mt.main,
-              fontSize: "16px",
-              paddingLeft: s === It ? "12px" : "0px"
-            }} />
-          </div>
-          {r.is_combo && <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>}
-          {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[r.id] && (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" title={`Đã mua: ${formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)} (Giá: ${z(partnerLastPurchases[r.id].last_price)}đ)`}>
-              <Ao size={11} className="text-white shrink-0" />Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[r.id].last_date)}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-wrap">
-          <div onClick={n => {
-            n.stopPropagation();
-            const l = n.currentTarget.getBoundingClientRect();
-            Xt(r), za({
-              top: l.top,
-              bottom: l.bottom,
-              left: l.left,
-              right: l.right
-            }), Dt(!0);
-          }} className={c("px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case", r.stock <= 0 ? "bg-rose-600 text-white" : r.stock < 10 ? "bg-amber-500 text-slate-950" : "bg-[#2d5016] dark:bg-emerald-600 text-white")} title="Kiểm tồn nhanh">
-            <div className="flex items-center gap-1 tabular-nums">{r.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white shrink-0" /> : r.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" /> : <Qa size={12} strokeWidth={2.8} className="text-white shrink-0" />}<span className={c("tabular-nums font-black", r.stock < 10 && r.stock > 0 ? "text-slate-950" : "text-white")}>{r.stock}</span></div>
-            {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
-              <>
-                <span className={c("w-px h-3 shrink-0", s === It ? "bg-white/40" : "bg-white/40")} />
-                <div className={c("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", s === It ? "text-white" : "text-white/90")} title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0" /><span className="tabular-nums font-black">{r.accounting_stock || 0}</span></div>
-              </>
-            )}
-          </div>
-          {r.code && <span className={c("shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors", s === It ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-400")}>{r.code}</span>}
-          <span className={c("px-2.5 py-0.5 rounded-md transition-colors font-bold", s === It ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300")}>{Ae(r.unit)}</span>
-          {r.multiplier > 1 && <span className={s === It ? "text-white/60" : "text-slate-500 opacity-60"}>/ {Ae(r.secondary_unit)} (x{r.multiplier})</span>}
-          {r.active_ingredient && <span className="text-[11px] font-bold italic tracking-wide text-slate-400 dark:text-slate-400 normal-case truncate max-w-[280px]" style={{ color: s === It ? Mt.accentMuted : Mt.muted }} title={r.active_ingredient}>• {r.active_ingredient}</span>}
-        </div>
-      </div>
-      <div className="flex items-center gap-4 relative z-10 shrink-0">
-        <div className="flex flex-col items-end gap-1">
-          <div className="text-[22px] font-black tracking-tighter tabular-nums" style={{ color: s === It ? Mt.accent : Mt.main }}>{z(displayPrice)}</div>
-          <div className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest opacity-80">NHẬP CUỐI: {z(r.latest_cost_price)}</div>
-        </div>
-      </div>
-    </div>
+        H(n);
+        ct(null);
+        ls("");
+        setTimeout(() => {
+          const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
+          const b = ve.findIndex(O => O.cartId === targetCartId);
+          const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
+          const w = document.getElementById(`qty-sec-${S}`);
+          if (Te === "Wholesale" && w && !w.disabled) {
+            w.focus();
+            w.select?.();
+          } else {
+            const O = document.getElementById(`qty-main-${S}`);
+            O?.focus();
+            O?.select?.();
+          }
+        }, 100);
+      }}
+      onQuickStock={(prod, coords) => {
+        Xt(prod);
+        za(coords);
+        Dt(!0);
+      }}
+      onContextMenu={(e, prod) => {
+        setItemContextMenu({
+          type: 'product',
+          data: prod,
+          position: { x: e.clientX, y: e.clientY }
+        });
+      }}
+    />
   );
 })}
 {zt && cartFilteredProducts.length === 0 && (
@@ -4588,216 +4561,32 @@ function POSPage({
                                     name: ""
                                   });
                                   se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => <x.tr key={t.cartId || `cart-row-${a}-${t.product_id}`} layout="position" initial={{
-                              opacity: 0,
-                              x: -20
-                            }} animate={{
-                              opacity: 1,
-                              x: 0
-                            }} exit={{
-                              opacity: 0,
-                              x: 50,
-                              scale: 0.95,
-                              backgroundColor: "rgba(0,0,0,0)",
-                              transition: {
-                                duration: 0.2,
-                                ease: "easeIn"
-                              }
-                            }} transition={{
-                              duration: 0.22,
-                              ease: "easeOut"
-                            }} id={`cart-row-${a}`} className={c("relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0", t.isPacked && "line-through decoration-emerald-500/30 opacity-60", Tt === a ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]")} style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined) }} onContextMenu={e => {
-                              const r = T.find(s => s.id === t.product_id) || t;
-                              if (r) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setItemContextMenu({
-                                  type: 'product',
-                                  data: r,
-                                  position: { x: e.clientX, y: e.clientY },
-                                  onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
-                                });
-                              }
-                            }}><td onClick={r => {
-                                r.stopPropagation();
-                                const s = T.find(l => l.id === t.product_id) || t,
-                                  rawAlias = (s.alias && s.alias.trim()) || (t.alias && t.alias.trim()) || "",
-                                  alias = rawAlias || t.product_name,
-                                  qty = t.quantity,
-                                  S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
-
-                                S === "qty_first" 
-                                  ? speakAudioSequence([qty, alias]) 
-                                  : speakAudioSequence([alias, qty]);
-                              }} title="Bấm để đọc tên và số lượng" className="py-2 px-2 text-center tabular-nums cursor-pointer select-none rounded-l-xl group/index-td"><div style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'index') : undefined} className={c("w-7 h-7 mx-auto rounded-lg flex items-center justify-center font-black text-xs text-slate-400 dark:text-slate-500 group-hover/index-td:text-emerald-600 dark:group-hover/index-td:text-emerald-400 group-hover/index-td:bg-emerald-500/15 group-hover/index-td:border group-hover/index-td:border-emerald-500/20 group-hover/index-td:scale-110 group-hover/index-td:shadow-xs active:scale-95 transition-all duration-200", cartColorConfig?.enableTextPills && "border shadow-xs")}>{a + 1}</div></td><td className="py-2 px-2 text-center"><button onClick={r => {
-                                  r.stopPropagation(), xl(a);
-                                }} className={c("w-8 h-8 mx-auto rounded-xl flex items-center justify-center transition-all duration-200 border-2 cursor-pointer", t.isPacked ? "bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-105" : "bg-transparent border-slate-300/80 dark:border-white/20 text-slate-400/80 dark:text-slate-500 hover:border-emerald-500 hover:text-emerald-500 hover:bg-emerald-500/10 hover:scale-110 active:scale-95 shadow-none hover:shadow-xs")}><Hn size={16} strokeWidth={3.5} className="transition-transform duration-200" /></button></td><td className="py-2 px-2 relative group-hover/search-row:z-[9999]"><div className="relative group/search-row hover:z-[9999]" onContextMenu={e => {
-                                  const r = T.find(s => s.id === t.product_id) || t;
-                                  if (r) {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setItemContextMenu({
-                                      type: 'product',
-                                      data: r,
-                                      position: { x: e.clientX, y: e.clientY },
-                                      onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
-                                    });
-                                  }
-                                }}>{Tt === a ? <input type="text" autoComplete="off" autoFocus={!0} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} className={c("w-full h-auto py-2.5 pl-4 pr-28 bg-white/10 dark:bg-slate-800/30 rounded-xl border-0 border-transparent outline-none focus:outline-none ring-0 focus:ring-0 focus:ring-transparent focus:border-transparent focus:border-0", "text-[17px] font-black tracking-tight transition-all leading-relaxed placeholder:normal-case placeholder:leading-relaxed", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300", "placeholder:text-gray-300", t.ai_scanned && "pb-6")} value={zt} onFocus={r => {
-                                    ct(a), ls(t.product_name), Ca(0), r.target.select();
-                                    const rect = r.target.getBoundingClientRect();
-                                    if (rect.width > 0 && rect.bottom > 0) {
-                                      setCartRowSearchCoords({
-                                        top: Math.round(rect.bottom + 6),
-                                        left: Math.round(rect.left),
-                                        width: Math.round(Math.max(rect.width, 700))
-                                      });
-                                    }
-                                  }} onChange={r => {
-                                    ls(r.target.value), Ca(0);
-                                  }} onBlur={() => {
-                                    setTimeout(() => {
-                                      ct(r => r === a ? null : r);
-                                    }, 200);
-                                  }} onContextMenu={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    const r = T.find(s => s.id === t.product_id) || t;
-                                    if (r) {
-                                      setItemContextMenu({
-                                        type: 'product',
-                                        data: r,
-                                        position: { x: e.clientX, y: e.clientY },
-                                        onDelete: () => bl(a)
-                                      });
-                                    }
-                                  }} onKeyDown={r => {
-                                    const s = cartFilteredProducts;
-                                    if (r.key === "ArrowDown") {
-                                      if (Tt === a && s.length > 0) {
-                                        r.preventDefault();
-                                        Ca(n => {
-                                          const l = Math.min(n + 1, s.length - 1);
-                                          if (Ea.current) {
-                                            const d = Ea.current.children[l];
-                                            d && d.scrollIntoView({ block: "nearest" });
-                                          }
-                                          return l;
-                                        });
-                                      } else {
-                                        r.preventDefault();
-                                        const n = a + 1;
-                                        n < ve.length && document.getElementById(`row-name-${n}`)?.focus();
-                                      }
-                                    } else if (r.key === "ArrowUp") {
-                                      if (Tt === a && s.length > 0) {
-                                        r.preventDefault();
-                                        Ca(n => {
-                                          const l = Math.max(n - 1, 0);
-                                          if (Ea.current) {
-                                            const d = Ea.current.children[l];
-                                            d && d.scrollIntoView({ block: "nearest" });
-                                          }
-                                          return l;
-                                        });
-                                      } else {
-                                        r.preventDefault();
-                                        const n = a - 1;
-                                        n >= 0 ? document.getElementById(`row-name-${n}`)?.focus() : se.current?.focus();
-                                      }
-                                    } else if (r.key === "Enter" || r.key === "Tab") {
-                                      r.preventDefault();
-                                      if (s[It]) {
-                                        const l = s[It];
-                                        let d = [...y];
-                                        const o = t.quantity,
-                                          hasCust = Boolean(p && p.id && R && R[l.id] !== void 0),
-                                          unitPrice = hasCust ? R[l.id] : ((Te === "Wholesale" && l.bulk_price) || l.sale_price),
-                                          u = d.findIndex(b => b.cartId !== t.cartId && b.product_id === l.id),
-                                          h = d.findIndex(b => b.cartId === t.cartId);
-                                        if (h > -1) {
-                                          if (u > -1) {
-                                            d[u].quantity += o;
-                                            d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1);
-                                            d.splice(h, 1);
-                                            H(d);
-                                            ct(null);
-                                            ls("");
-                                            setTimeout(() => {
-                                              const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
-                                                S = b > -1 ? b : (u > h ? u - 1 : u),
-                                                w = document.getElementById(`qty-sec-${S}`);
-                                              if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-                                              else {
-                                                const O = document.getElementById(`qty-main-${S}`);
-                                                O?.focus(), O?.select?.();
-                                              }
-                                            }, 100);
-                                          } else {
-                                            d[h] = {
-                                              ...d[h],
-                                              product_id: l.id,
-                                              product_name: l.name,
-                                              unit: l.unit,
-                                              secondary_unit: l.secondary_unit,
-                                              multiplier: l.multiplier || 1,
-                                              price: unitPrice,
-                                              cost_price: l.cost_price,
-                                              latest_cost_price: l.latest_cost_price,
-                                              stock: l.stock,
-                                              latest_stock_entry: l.latest_stock_entry,
-                                              is_combo: l.is_combo,
-                                              secondary_qty: o / (l.multiplier || 1),
-                                              active_ingredient: l.active_ingredient,
-                                              is_manual_price: false
-                                            };
-                                            delete d[h]?.ai_scanned;
-                                            H(d);
-                                            ct(null);
-                                            ls("");
-                                            setTimeout(() => {
-                                              const w = document.getElementById(`qty-sec-${a}`);
-                                              if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-                                              else {
-                                                const S = document.getElementById(`qty-main-${a}`);
-                                                S?.focus(), S?.select?.();
-                                              }
-                                            }, 100);
-                                          }
-                                        }
-                                      } else {
-                                        ct(null);
-                                        setTimeout(() => {
-                                          const w = document.getElementById(`qty-sec-${a}`);
-                                          if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-                                          else {
-                                            const S = document.getElementById(`qty-main-${a}`);
-                                            S?.focus(), S?.select?.();
-                                          }
-                                        }, 100);
-                                      }
-                                    }
-                                  }} id={`row-name-${a}`} /> : <div onClick={() => {
-                                    ct(a), ls(t.product_name), Ca(0), setTimeout(() => {
-                                      const r = document.getElementById(`row-name-${a}`);
-                                      r?.focus(), r?.select?.();
-                                    }, 50);
-                                  }} onContextMenu={e => {
-                                    const r = T.find(s => s.id === t.product_id) || t;
-                                    if (r) {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setItemContextMenu({
-                                        type: 'product',
-                                        data: r,
-                                        position: { x: e.clientX, y: e.clientY },
-                                        onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
-                                      });
-                                    }
-                                  }} className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><div className={c("min-w-0 flex items-center gap-2", cartColorConfig?.enableTextPills && "px-2.5 py-1 rounded-2xl border transition-all")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'name') : undefined}>{(t.active_ingredient || T.find(n => n.id === t.product_id)?.active_ingredient) ? (
-  <ActiveIngredientTooltip activeIngredient={t.active_ingredient || T.find(n => n.id === t.product_id)?.active_ingredient}>
-    <Ps text={t.product_name} onContextMenu={e => {
-      const r = T.find(s => s.id === t.product_id) || t;
+                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => (
+  <CartTableRow
+    key={t.cartId || `cart-row-${a}-${t.product_id}`}
+    item={t}
+    index={a}
+    totalRows={ve.length}
+    cartColorConfig={cartColorConfig}
+    productsList={T}
+    selectedPartner={p}
+    partnerCustomPrices={R}
+    partnerLastPurchases={partnerLastPurchases}
+    showLastPurchaseBadge={showLastPurchaseBadge}
+    posMode={Te}
+    blockTabPrice={blockTabPrice}
+    isSearchFocused={Tt === a}
+    searchQuery={zt}
+    onUpdateField={_r}
+    onRemove={bl}
+    onTogglePack={xl}
+    onQuickStockCheck={(prod, coords) => {
+      Xt(prod);
+      za(coords);
+      Dt(!0);
+    }}
+    onContextMenu={(e, item, idx) => {
+      const r = T.find(s => s.id === item.product_id) || item;
       if (r) {
         e.preventDefault();
         e.stopPropagation();
@@ -4805,129 +4594,150 @@ function POSPage({
           type: 'product',
           data: r,
           position: { x: e.clientX, y: e.clientY },
-          onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
+          onDelete: () => H(prev => prev.filter((_, i) => i !== idx))
         });
       }
-    }} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug cursor-pointer", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title="" />
-  </ActiveIngredientTooltip>
-) : (
-  <Ps text={t.product_name} onContextMenu={e => {
-    const r = T.find(s => s.id === t.product_id) || t;
-    if (r) {
-      e.preventDefault();
-      e.stopPropagation();
-      setItemContextMenu({
-        type: 'product',
-        data: r,
-        position: { x: e.clientX, y: e.clientY },
-        onDelete: () => H(prev => prev.filter((_, idx) => idx !== a))
-      });
-    }
-  }} style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor) }} className={c("text-[17px] font-black tracking-tight leading-snug", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300")} title={t.product_name} />
-)}<button
-  type="button"
-  onClick={r => {
-    r.stopPropagation();
-    const prod = T.find(s => s.id === t.product_id) || t;
-    const ingInfo = (prod.active_ingredient || t.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || t.active_ingredient})` : '';
-    const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || t.product_name}${ingInfo}`;
-    window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
-    }, 150);
-  }}
-  className="group/ai-btn opacity-0 group-hover:opacity-100 group-hover/marquee-wrap:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-400/20 to-cyan-500/20 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-emerald-700 hover:text-white dark:from-emerald-400/20 dark:via-teal-300/20 dark:to-cyan-400/20 dark:text-emerald-300 dark:hover:from-emerald-400 dark:hover:via-teal-400 dark:hover:to-cyan-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-120 hover:-translate-y-0.5 active:scale-95 shrink-0 cursor-pointer select-none ml-1 relative overflow-hidden backdrop-blur-md"
-  title="Hỏi AI: Tra cứu nhanh công dụng, liều dùng & phối hợp thuốc"
->
-  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/ai-btn:animate-[shimmer_1.2s_infinite] pointer-events-none" />
-  <Es size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-all duration-300 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110 drop-shadow-sm" />
-</button>{t.is_combo && <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>}</div></div>{t.ai_scanned && <div className="mt-1 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI Tự khớp: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
-                                        r.stopPropagation();
-                                        const s = [...y],
-                                          n = s.findIndex(l => l.cartId === t.cartId);
-                                        n > -1 && (delete s[n].ai_scanned, H(s));
-                                      }} className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1" title="Xác nhận khớp đúng"><Os size={10} strokeWidth={3} /></button></span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm w-fit"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" /><span className="truncate max-w-[320px]">{`AI không khớp được: "${t.ai_original_name}"`}</span><button type="button" onClick={r => {
-                                        r.stopPropagation();
-                                        const s = [...y],
-                                          n = s.findIndex(l => l.cartId === t.cartId);
-                                        n > -1 && (delete s[n].ai_scanned, H(s));
-                                      }} className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1" title="Bỏ qua cảnh báo"><Xn size={10} strokeWidth={3} /></button></span>}</div>}</div><div className="shrink-0 z-10 flex flex-col items-end gap-1"><div onClick={r => {
-                                      r.stopPropagation();
-                                      const s = T.find(n => n.id === t.product_id);
-                                      if (s) {
-                                        const n = r.currentTarget.getBoundingClientRect();
-                                        Xt(s), za({
-                                          top: n.top,
-                                          bottom: n.bottom,
-                                          left: n.left,
-                                          right: n.right
-                                        }), Dt(!0);
-                                      }
-                                    }} className={c("relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", t.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : t.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{t.stock <= 0 ? <Pr size={12} strokeWidth={2.8} className="text-white" /> : t.stock < 10 ? <Comp_da size={12} strokeWidth={2.8} className="text-slate-950" /> : <Qa size={12} strokeWidth={2.8} className="text-white" />}<span className="tabular-nums font-black">{t.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={11} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{(t.accounting_stock !== undefined ? t.accounting_stock : (T.find(n => n.id === t.product_id)?.accounting_stock || 0))}</span></div></>}</div>{showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[t.product_id] && <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105" title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)} | Giá: ${z(partnerLastPurchases[t.product_id].last_price)}đ | SL: ${z(partnerLastPurchases[t.product_id].last_quantity)}`}><Ao size={10} className="text-white shrink-0" /><span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[t.product_id].last_date)}</span></div>}</div></div>}{Tt === a && t.ai_scanned && <div className="px-3 pb-2 flex items-center gap-1.5 z-10">{t.ai_matched_status === "matched" ? <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm"><Es size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />{`AI Tự khớp: "${t.ai_original_name}"`}</span> : <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm"><As size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />{`AI không khớp được: "${t.ai_original_name}"`}</span>}</div>}</div></td><td className="py-2 px-2 text-center"><div className="font-bold text-gray-700 dark:text-gray-200">{Ae(t.unit)}</div>{t.secondary_unit && <div className="text-[10px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter whitespace-nowrap mt-0.5">1 {Ae(t.secondary_unit)} = {t.multiplier} {Ae(t.unit)}</div>}</td><td className="py-2 px-2">{t.secondary_unit ? <div className={c("flex items-center gap-1 h-10 px-2 rounded-2xl transition-all shadow-none", cartColorConfig?.enableTextPills ? "border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 focus-within:bg-transparent focus-within:border-[#d4a574]/50 focus-within:ring-4 focus-within:ring-[#d4a574]/10")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'sec_qty') : undefined}><input type="number" step="any" tabIndex={Te === "Wholesale" ? 0 : -1} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]" value={t.secondary_qty !== undefined && t.secondary_qty !== null && t.secondary_qty !== "" ? (typeof t.secondary_qty === 'number' ? Math.round((t.secondary_qty + Number.EPSILON) * 1000) / 1000 : t.secondary_qty) : ""} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "secondary_qty", parseFloat(r.target.value) || 0)} onKeyDown={r => {
-                                    if (r.key === "ArrowDown") {
-                                      r.preventDefault();
-                                      const s = a + 1;
-                                      s < ve.length && document.getElementById(`qty-sec-${s}`)?.focus();
-                                    } else if (r.key === "ArrowUp") {
-                                      r.preventDefault();
-                                      const s = a - 1;
-                                      s >= 0 && document.getElementById(`qty-sec-${s}`)?.focus();
-                                    }
-                                  }} id={`qty-sec-${a}`} /><span className="text-[10px] font-black text-gray-400 uppercase pr-2">{Ae(t.secondary_unit)}</span></div> : <div className="text-center text-gray-300 italic text-[10px] font-bold">N/A</div>}</td><td className="py-2 px-2 group/qty"><div className="relative w-full"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'qty') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={c("w-full h-10 text-center outline-none font-black text-lg text-primary dark:text-[#d4a574] transition-all", cartColorConfig?.enableTextPills ? "rounded-2xl border shadow-xs" : "bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 shadow-none")} value={t.quantity} onFocus={r => r.target.select()} autoComplete="off" onChange={r => _r(a, "quantity", parseFloat(r.target.value) || 0)} ref={r => Bi.current[t.product_id] = r} id={`qty-main-${a}`} onKeyDown={r => {
-                                    if (r.key === "Enter") r.preventDefault(), se.current?.focus();
-                                    else if (r.key === "Tab") {
-                                      r.preventDefault();
-                                      if (r.shiftKey) {
-                                        if (Te === "Wholesale" && t.secondary_unit) {
-                                          document.getElementById(`qty-sec-${a}`)?.focus();
-                                        } else {
-                                          document.getElementById(`row-name-${a}`)?.focus();
-                                        }
-                                      } else {
-                                        blockTabPrice ? r.target.select?.() : document.getElementById(`price-${a}`)?.focus();
-                                      }
-                                    } else if (r.key === "ArrowDown") {
-                                      r.preventDefault();
-                                      const s = a + 1;
-                                      s < ve.length && document.getElementById(`qty-main-${s}`)?.focus();
-                                    } else if (r.key === "ArrowUp") {
-                                      r.preventDefault();
-                                      const s = a - 1;
-                                      s >= 0 ? document.getElementById(`qty-main-${s}`)?.focus() : Pt.current?.focus();
-                                    }
-                                  }} /><button tabIndex={-1} className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full  border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100" onClick={() => _r(a, "quantity", t.quantity * -1)} title="Đổi thành Trả Hàng (Âm)"><Ms size={10} strokeWidth={3} /></button></div></td><td className="py-2 px-2 text-right relative hover:z-[4000] focus-within:z-[4000]"><div className="flex flex-col items-center gap-1 group/price relative z-[10] group-hover/price:z-[4000] group-focus-within/price:z-[4000]"><div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-1 bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-slate-500/80 dark:text-slate-400 leading-none mb-1.5 tracking-[0.1em]">Vốn TB</span><span className="text-sm font-black text-amber-700 dark:text-amber-300 tabular-nums">{z(t.cost_price)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="w-px my-2 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-4 py-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[9px] uppercase font-black text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1.5 tracking-[0.1em]">Nhập cuối</span><span className="text-sm font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{z(t.latest_cost_price || 0)}<span className="text-[10px] ml-1 opacity-60">đ</span></span></div><div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" /></div><div className={c("relative w-full transition-all", cartColorConfig?.enableTextPills && "rounded-2xl border shadow-xs")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'price') : undefined}><input type="text" tabIndex={blockTabPrice ? -1 : 0} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && t.price > 0 && !(t.price < t.cost_price || t.price < (t.latest_cost_price || 0))) ? cartColorConfig.cartValuesColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={c("w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none", t.price === 0 ? "text-transparent select-none placeholder:text-transparent" : t.price < t.cost_price ? "text-red-600 dark:text-red-400 focus:ring-red-200 dark:focus:ring-red-900" : t.price < (t.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 focus:ring-orange-200" : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20")} value={z(t.price)} onFocus={r => r.target.select()} autoComplete="off" onChange={r => {
-                                      const s = parseFloat(r.target.value.replace(/,/g, "")) || 0;
-                                      _r(a, "price", s);
-                                    }} onKeyDown={r => {
-                                      if (r.key === "Enter" || r.key === "Tab") r.preventDefault(), r.key === "Enter" && zs(), se.current?.focus();else if (r.key === "ArrowDown") {
-                                        r.preventDefault();
-                                        const s = a + 1;
-                                        s < ve.length && document.getElementById(`price-${s}`)?.focus();
-                                      } else if (r.key === "ArrowUp") {
-                                        r.preventDefault();
-                                        const s = a - 1;
-                                        s >= 0 ? document.getElementById(`price-${s}`)?.focus() : ms.current?.focus();
-                                      }
-                                    }} id={`price-${a}`} />{t.price === 0 && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider border border-rose-500/20">HÀNG TẶNG</span></div>}</div><P mode="wait">{(() => {
-                                      const r = T.find(n => n.id === t.product_id),
-                                        s = t.latest_cost_price || 0,
-                                        stableKey = t.cartId || `prod-${t.product_id || a}`;
-                                      if (t.price < t.cost_price) {
-                                        return <x.div initial={{ opacity: 0, scale: 0.85, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: -4 }} transition={{ duration: 0.18, ease: "easeOut" }} key={`loss-${stableKey}`} className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs"><Comp_da size={10} className="text-white" /><span>LỖ VỐN (THỰC TẾ: {lt(t.cost_price)})</span></x.div>;
-                                      }
-                                      if (s > 0 && t.price < s && t.price >= t.cost_price) {
-                                        return <x.div initial={{ opacity: 0, scale: 0.85, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: -4 }} transition={{ duration: 0.18, ease: "easeOut" }} key={`below-new-${stableKey}`} className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs"><Kn size={10} className="text-white" /><span>DƯỚI VỐN NHẬP MỚI ({lt(s)})</span></x.div>;
-                                      }
-                                      if (r && t.price < r.sale_price && t.price >= (s || t.cost_price)) {
-                                        return <x.div initial={{ opacity: 0, scale: 0.85, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: -4 }} transition={{ duration: 0.18, ease: "easeOut" }} key={`low-price-${stableKey}`} className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs"><$n size={10} className="text-white" /><span>GIÁ THẤP ({lt(r.sale_price)})</span></x.div>;
-                                      }
-                                      if (r && p && R[t.product_id] !== void 0 && t.price === r.sale_price) {
-                                        return <x.div initial={{ opacity: 0, scale: 0.85, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.85, y: -4 }} transition={{ duration: 0.18, ease: "easeOut" }} key={`sync-${stableKey}`} className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs"><Xa size={10} className="text-white" /><span>ĐỒNG BỘ GIÁ</span></x.div>;
-                                      }
-                                      return null;
-                                    })()}</P></div></td><td className="py-2 px-4 text-right"><div style={{ color: (t.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={c("font-black text-lg transition-all", t.quantity < 0 ? "text-red-600 dark:text-red-400" : "text-primary dark:text-[#d4a574]", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>{z(t.price * t.quantity)}</div>{t.quantity < 0 && <span className="inline-block px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[9px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-1">Hàng trả</span>}</td><td className="py-2 px-2 text-center"><button onClick={r => {
-                                  r.stopPropagation(), bl(a);
-                                }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100" title="Xóa dòng"><Comp_pa size={18} /></button></td></x.tr>)}</P></tbody></table></div></div><P>{ea && <x.div initial={{
+    }}
+    onFocusSearch={(e, idx, item) => {
+      ct(idx);
+      ls(item.product_name);
+      Ca(0);
+      if (e?.target) {
+        e.target.select?.();
+        const rect = e.target.getBoundingClientRect();
+        if (rect.width > 0 && rect.bottom > 0) {
+          setCartRowSearchCoords({
+            top: Math.round(rect.bottom + 6),
+            left: Math.round(rect.left),
+            width: Math.round(Math.max(rect.width, 700))
+          });
+        }
+      } else {
+        setTimeout(() => {
+          const r = document.getElementById(`row-name-${idx}`);
+          r?.focus();
+          r?.select?.();
+        }, 50);
+      }
+    }}
+    onChangeSearch={(e) => {
+      ls(e.target.value);
+      Ca(0);
+    }}
+    onBlurSearch={() => {
+      setTimeout(() => {
+        ct(r => r === a ? null : r);
+      }, 200);
+    }}
+    onKeyDownSearch={(e, idx, item) => {
+      const s = cartFilteredProducts;
+      if (e.key === "ArrowDown") {
+        if (Tt === idx && s.length > 0) {
+          e.preventDefault();
+          Ca(n => {
+            const l = Math.min(n + 1, s.length - 1);
+            if (Ea.current) {
+              const d = Ea.current.children[l];
+              d && d.scrollIntoView({ block: "nearest" });
+            }
+            return l;
+          });
+        } else {
+          e.preventDefault();
+          const n = idx + 1;
+          n < ve.length && document.getElementById(`row-name-${n}`)?.focus();
+        }
+      } else if (e.key === "ArrowUp") {
+        if (Tt === idx && s.length > 0) {
+          e.preventDefault();
+          Ca(n => {
+            const l = Math.max(n - 1, 0);
+            if (Ea.current) {
+              const d = Ea.current.children[l];
+              d && d.scrollIntoView({ block: "nearest" });
+            }
+            return l;
+          });
+        } else {
+          e.preventDefault();
+          const n = idx - 1;
+          n >= 0 ? document.getElementById(`row-name-${n}`)?.focus() : se.current?.focus();
+        }
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        if (s[It]) {
+          const l = s[It];
+          let d = [...y];
+          const o = item.quantity,
+            hasCust = Boolean(p && p.id && R && R[l.id] !== void 0),
+            unitPrice = hasCust ? R[l.id] : ((Te === "Wholesale" && l.bulk_price) || l.sale_price),
+            u = d.findIndex(b => b.cartId !== item.cartId && b.product_id === l.id),
+            h = d.findIndex(b => b.cartId === item.cartId);
+          if (h > -1) {
+            if (u > -1) {
+              d[u].quantity += o;
+              d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1);
+              d.splice(h, 1);
+              H(d);
+              ct(null);
+              ls("");
+              setTimeout(() => {
+                const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
+                  S = b > -1 ? b : (u > h ? u - 1 : u),
+                  w = document.getElementById(`qty-sec-${S}`);
+                if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+                else {
+                  const O = document.getElementById(`qty-main-${S}`);
+                  O?.focus(), O?.select?.();
+                }
+              }, 100);
+            } else {
+              d[h] = {
+                ...d[h],
+                product_id: l.id,
+                product_name: l.name,
+                unit: l.unit,
+                secondary_unit: l.secondary_unit,
+                multiplier: l.multiplier || 1,
+                price: unitPrice,
+                cost_price: l.cost_price,
+                latest_cost_price: l.latest_cost_price,
+                stock: l.stock,
+                latest_stock_entry: l.latest_stock_entry,
+                is_combo: l.is_combo,
+                secondary_qty: o / (l.multiplier || 1),
+                active_ingredient: l.active_ingredient,
+                is_manual_price: false
+              };
+              delete d[h]?.ai_scanned;
+              H(d);
+              ct(null);
+              ls("");
+              setTimeout(() => {
+                const w = document.getElementById(`qty-sec-${idx}`);
+                if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+                else {
+                  const S = document.getElementById(`qty-main-${idx}`);
+                  S?.focus(), S?.select?.();
+                }
+              }, 100);
+            }
+          }
+        } else {
+          ct(null);
+          setTimeout(() => {
+            const w = document.getElementById(`qty-sec-${idx}`);
+            if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
+            else {
+              const S = document.getElementById(`qty-main-${idx}`);
+              S?.focus(), S?.select?.();
+            }
+          }, 100);
+        }
+      }
+    }}
+  />
+))}</P></tbody></table></div></div><P>{ea && <x.div initial={{
                       opacity: 0
                     }} animate={{
                       opacity: 1

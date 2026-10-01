@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence, MotionConfig } from 'framer-motion';
-import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell, Palette } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, Save, X, Printer, User, Users, Phone, FileText, ShoppingCart, Activity, History, Menu, Package, TrendingDown, TrendingUp, AlertTriangle, AlertCircle, Truck, Pause, RotateCcw, Sprout, Wheat, Droplets, Coins, Leaf, Warehouse, Eye, Keyboard, ChevronLeft, ChevronRight, ChevronDown, Loader2, Clock, Calendar, MapPin, Wallet, Bot, Sparkles, Camera, Upload, Check, PanelRight, PanelBottom, Banknote, CreditCard, ArrowRight, ArrowLeftRight, ReceiptText, ShoppingBag, Bell, Palette } from 'lucide-react';
 import HeavyClock from '../../components/widgets/HeavyClock';
 import { formatCurrency, formatNumber, formatDebt, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
 import { cn, playSuccessSound, playTickSound, playPopSound, playErrorSound, playTabSound, playTypingSound } from '../../lib/utils';
@@ -739,6 +739,83 @@ export default function Purchase() {
     const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
     const [typingSoundEnabled, setTypingSoundEnabled] = useState(() => localStorage.getItem('pos_typing_sound_enabled') !== 'false');
     const [showEmptyCartGuide, setShowEmptyCartGuide] = useState(() => localStorage.getItem('pos_show_empty_cart_guide') !== 'false');
+    const partnerBubbleRef = useRef(null);
+    const totalBubbleRef = useRef(null);
+    const cartScrollContainerRef = useRef(null);
+    const [canScrollDown, setCanScrollDown] = useState(false);
+
+    const checkCartScroll = useCallback(() => {
+        const el = cartScrollContainerRef.current;
+        if (!el) {
+            setCanScrollDown(prev => prev ? false : prev);
+            return;
+        }
+        const hasMore = el.scrollHeight > el.clientHeight + 8 && el.scrollTop < el.scrollHeight - el.clientHeight - 12;
+        setCanScrollDown(prev => (prev !== hasMore ? hasMore : prev));
+    }, []);
+
+    useEffect(() => {
+        const el = cartScrollContainerRef.current;
+        if (!el) return;
+        let debounceTimer = null;
+        const debouncedCheck = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(checkCartScroll, 100);
+        };
+        checkCartScroll();
+        el.addEventListener('scroll', checkCartScroll, { passive: true });
+        const ro = new ResizeObserver(debouncedCheck);
+        ro.observe(el);
+        return () => {
+            el.removeEventListener('scroll', checkCartScroll);
+            ro.disconnect();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
+    }, [cart, summaryLayoutMode, isSidebarExpanded, checkCartScroll]);
+
+    const handleScrollDownCart = () => {
+        if (cartScrollContainerRef.current) {
+            cartScrollContainerRef.current.scrollBy({ top: 220, behavior: 'smooth' });
+        }
+    };
+
+    useEffect(() => {
+        if (summaryLayoutMode !== 'sidebar' || isSidebarExpanded || cartColorConfig?.constrainCartAboveBubbles === false) {
+            if (cartScrollContainerRef.current) {
+                cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
+            }
+            return;
+        }
+
+        let debounceTimer = null;
+
+        const measureAndApply = () => {
+            if (!cartScrollContainerRef.current) return;
+            const pH = partnerBubbleRef.current ? partnerBubbleRef.current.offsetHeight : 0;
+            const tH = totalBubbleRef.current ? totalBubbleRef.current.offsetHeight : 0;
+            const maxH = Math.max(pH, tH);
+            const targetH = maxH > 0 ? maxH + 24 : 100;
+            const targetVal = `${targetH}px`;
+            if (cartScrollContainerRef.current.style.getPropertyValue('--cart-bubble-bottom') !== targetVal) {
+                cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', targetVal);
+            }
+        };
+
+        measureAndApply();
+
+        const ro = new ResizeObserver(() => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(measureAndApply, 120);
+        });
+
+        if (partnerBubbleRef.current) ro.observe(partnerBubbleRef.current);
+        if (totalBubbleRef.current) ro.observe(totalBubbleRef.current);
+
+        return () => {
+            ro.disconnect();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
+    }, [summaryLayoutMode, isSidebarExpanded, cartColorConfig?.constrainCartAboveBubbles]);
 
     useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
@@ -1250,6 +1327,10 @@ export default function Purchase() {
                     setSearchTerm('');
                     setRowSearchIdx(null);
                 }
+            } else if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDailyHistoryOpen(prev => !prev);
             } else if (e.ctrlKey && e.key === 'ArrowLeft') {
                 e.preventDefault();
                 navigateHistory('prev');
@@ -2713,8 +2794,8 @@ export default function Purchase() {
                                 )}
                             </AnimatePresence>
                             <div className="w-full h-full relative bg-transparent">
-                                <div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]">
-                                    <div className="w-full transition-colors relative group/decoration pb-[400px]">
+                                <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-200 ease-out" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}>
+                                    <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (summaryLayoutMode === 'sidebar' && !isSidebarExpanded ? "pb-[400px]" : "pb-6"))}>
                                         {/* Background Decoration Layer */}
                                         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                                             <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">
@@ -4102,6 +4183,7 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
+                                            ref={partnerBubbleRef}
                                             layout
                                             initial={{
                                                 opacity: 0,
@@ -4123,7 +4205,7 @@ export default function Purchase() {
                                                 transition: { duration: 0.2, ease: "easeInOut" }
                                             }}
                                             transition={{
-                                                layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+                                                layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
                                                 type: "spring",
                                                 stiffness: 350,
                                                 damping: 26,
@@ -4138,11 +4220,11 @@ export default function Purchase() {
                                                     return (
                                                         <m.div 
                                                             layout
-                                                            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                                                            initial={false}
                                                             animate={{ opacity: 1, scale: 1, y: 0 }}
                                                             exit={{ opacity: 0, scale: 0.92, y: 12 }}
                                                             transition={{
-                                                                layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                                layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
                                                                 type: "spring",
                                                                 stiffness: 400,
                                                                 damping: 28
@@ -4158,7 +4240,7 @@ export default function Purchase() {
                                                             className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
                                                         >
                                                             <Truck className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={tc ? { color: tc, opacity: 0.1 } : undefined} />
-                                                            <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
+                                                            <m.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
                                                                 <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={tc ? { color: tc } : undefined}>
                                                                     Nhà cung cấp / Đối tác
                                                                 </div>
@@ -4176,18 +4258,15 @@ export default function Purchase() {
                                                                     </div>
                                                                 </div>
 
-                                                                <AnimatePresence>
+                                                                <AnimatePresence initial={false}>
                                                                 {selectedPartner && (
                                                                     <m.div
-                                                                        layout
-                                                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
-                                                                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: "auto" }}
+                                                                        exit={{ opacity: 0, height: 0 }}
                                                                         transition={{
-                                                                            layout: { type: "spring", stiffness: 350, damping: 28 },
-                                                                            type: "spring",
-                                                                            stiffness: 380,
-                                                                            damping: 26
+                                                                            height: { duration: 0.26, ease: [0.25, 1, 0.5, 1] },
+                                                                            opacity: { duration: 0.18, ease: "easeOut" }
                                                                         }}
                                                                         className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
                                                                         style={tc ? { borderColor: `${tc}40` } : undefined}
@@ -4296,23 +4375,21 @@ export default function Purchase() {
                                                 })()}
 
                                                 {/* Mini Action Icons Next to Supplier */}
-                                                <m.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/note-container pointer-events-auto">
+                                                <m.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="relative group/note-container pointer-events-auto">
                                                     <m.div 
                                                         layout
-                                                        initial={{ opacity: 0, scale: 0.85 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.85 }}
+                                                        initial={false}
                                                         whileHover={{ scale: 1.08 }}
                                                         whileTap={{ scale: 0.92 }}
                                                         transition={{
-                                                            layout: { type: "spring", stiffness: 350, damping: 28 },
+                                                            layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
                                                             type: "spring",
                                                             stiffness: 450,
                                                             damping: 25
                                                         }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            setIsNoteModalOpen(!isNoteModalOpen);
+                                                            setIsNoteModalOpen(true);
                                                         }}
                                                         style={getButtonComputedStyle(cartColorConfig, 'note')}
                                                         className={cn(
@@ -4326,39 +4403,6 @@ export default function Purchase() {
                                                         <FileText size={18} className={note || isNoteModalOpen ? "text-white" : "transition-colors"} strokeWidth={2.5} />
                                                         {note && !isNoteModalOpen && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}
                                                     </m.div>
-
-                                                    <AnimatePresence>
-                                                        {isNoteModalOpen && (
-                                                            <m.div
-                                                                initial={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)" }}
-                                                                animate={{ opacity: 1, scale: 1, x: 0, y: 0, filter: "blur(0px)" }}
-                                                                exit={{ opacity: 0, scale: 0.85, x: -10, y: 15, filter: "blur(8px)", transition: { duration: 0.16, ease: "easeOut" } }}
-                                                                transition={{ type: "spring", stiffness: 420, damping: 26 }}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
-                                                            >
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest">
-                                                                        Ghi chú đơn nhập
-                                                                    </div>
-                                                                    <button 
-                                                                        onClick={(e) => { e.stopPropagation(); setIsNoteModalOpen(false); }}
-                                                                        className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
-                                                                    >
-                                                                        <X size={14} strokeWidth={3} />
-                                                                    </button>
-                                                                </div>
-                                                                <textarea
-                                                                    autoFocus
-                                                                    placeholder="Nhập ghi chú cho phiếu nhập này..."
-                                                                    rows={3}
-                                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar text-slate-800 dark:text-white placeholder:text-slate-400"
-                                                                    value={note}
-                                                                    onChange={(e) => setNote(e.target.value)}
-                                                                />
-                                                            </m.div>
-                                                        )}
-                                                    </AnimatePresence>
                                                 </m.div>
                                             </div>
                                         </m.div>
@@ -4366,6 +4410,7 @@ export default function Purchase() {
                                         {/* Floating Total & Payment Bubble - Bottom Right */}
                                         <m.div
                                             key="total-bubble"
+                                            ref={totalBubbleRef}
                                             layout
                                             initial={{
                                                 opacity: 0,
@@ -4551,6 +4596,31 @@ export default function Purchase() {
                                                 </m.div>
                                             </m.div>
                                         </m.div>
+
+                                        {/* Floating hint that more items are below */}
+                                        <AnimatePresence>
+                                            {canScrollDown && (
+                                                <m.button
+                                                    type="button"
+                                                    initial={{ opacity: 0, y: 16, scale: 0.9 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 16, scale: 0.9 }}
+                                                    transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                                                    whileHover={{ scale: 1.05, y: -2 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={handleScrollDownCart}
+                                                    className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#fbf9f4]/95 dark:bg-[#1a1e17]/95 backdrop-blur-xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-colors select-none group pointer-events-auto"
+                                                    title="Bấm để cuộn xuống xem các sản phẩm tiếp theo"
+                                                >
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                                                    </span>
+                                                    <span>Còn sản phẩm bên dưới</span>
+                                                    <ChevronDown size={13} strokeWidth={3} className="animate-bounce group-hover:translate-y-0.5 transition-transform text-[#8b6f47] dark:text-[#d4a574]" />
+                                                </m.button>
+                                            )}
+                                        </AnimatePresence>
                                     </>
                                 )}
                                 </AnimatePresence>
@@ -6016,93 +6086,96 @@ export default function Purchase() {
             </AnimatePresence>
 
             {/* Order Note Dedicated Modal */}
-            <AnimatePresence>
-                {isNoteModalOpen && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in select-none">
-                        <m.div
-                            initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.92, y: 15 }}
-                            transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 w-full max-w-lg overflow-hidden flex flex-col gap-4 text-foreground"
-                        >
-                            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-sm">
-                                        <FileText size={20} strokeWidth={2.5} />
+            <Portal>
+                <AnimatePresence>
+                    {isNoteModalOpen && (
+                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in select-none" onClick={() => setIsNoteModalOpen(false)}>
+                            <m.div
+                                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.92, y: 15 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 w-full max-w-lg overflow-hidden flex flex-col gap-4 text-foreground"
+                            >
+                                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-sm">
+                                            <FileText size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-base uppercase tracking-tight text-foreground">
+                                                Ghi chú đơn nhập
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground font-medium">
+                                                Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng...
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-black text-base uppercase tracking-tight text-foreground">
-                                            Ghi chú đơn nhập
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground font-medium">
-                                            Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng...
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setIsNoteModalOpen(false)}
-                                    className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors text-muted-foreground"
-                                >
-                                    <X size={16} strokeWidth={2.5} />
-                                </button>
-                            </div>
-
-                            <div className="relative">
-                                <textarea
-                                    autoFocus
-                                    rows={5}
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                            e.preventDefault();
-                                            setIsNoteModalOpen(false);
-                                        }
-                                        if (e.key === 'Escape') {
-                                            setIsNoteModalOpen(false);
-                                        }
-                                    }}
-                                    placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
-                                    className="w-full p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-none transition-all shadow-inner"
-                                />
-                                {note && (
-                                    <button
-                                        onClick={() => setNote('')}
-                                        className="absolute right-3 bottom-4 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors border border-rose-500/20"
-                                    >
-                                        Xóa hết
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex items-center justify-between pt-1">
-                                <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                                    <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Ctrl</kbd>
-                                    +
-                                    <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Enter</kbd>
-                                    để lưu nhanh
-                                </span>
-                                <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => setIsNoteModalOpen(false)}
-                                        className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 text-foreground transition-colors"
+                                        className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors text-muted-foreground"
                                     >
-                                        Đóng
-                                    </button>
-                                    <button
-                                        onClick={() => setIsNoteModalOpen(false)}
-                                        className="px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-[#059669] hover:bg-[#047857] text-white transition-all shadow-md shadow-emerald-700/20 flex items-center gap-1.5"
-                                    >
-                                        <Check size={14} strokeWidth={3} />
-                                        Xong
+                                        <X size={16} strokeWidth={2.5} />
                                     </button>
                                 </div>
-                            </div>
-                        </m.div>
-                    </div>
-                )}
-            </AnimatePresence>
+
+                                <div className="relative">
+                                    <textarea
+                                        autoFocus
+                                        rows={5}
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                                e.preventDefault();
+                                                setIsNoteModalOpen(false);
+                                            }
+                                            if (e.key === 'Escape') {
+                                                setIsNoteModalOpen(false);
+                                            }
+                                        }}
+                                        placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
+                                        className="w-full p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-none transition-all shadow-inner"
+                                    />
+                                    {note && (
+                                        <button
+                                            onClick={() => setNote('')}
+                                            className="absolute right-3 bottom-4 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors border border-rose-500/20"
+                                        >
+                                            Xóa hết
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between pt-1">
+                                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
+                                        <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Ctrl</kbd>
+                                        +
+                                        <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Enter</kbd>
+                                        để lưu nhanh
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setIsNoteModalOpen(false)}
+                                            className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 text-foreground transition-colors"
+                                        >
+                                            Đóng
+                                        </button>
+                                        <button
+                                            onClick={() => setIsNoteModalOpen(false)}
+                                            className="px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-[#059669] hover:bg-[#047857] text-white transition-all shadow-md shadow-emerald-700/20 flex items-center gap-1.5"
+                                        >
+                                            <Check size={14} strokeWidth={3} />
+                                            Xong
+                                        </button>
+                                    </div>
+                                </div>
+                            </m.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </Portal>
                 {/* Partner Transaction History Panel */}
                 <Portal>
                 <POSHistoryPanel

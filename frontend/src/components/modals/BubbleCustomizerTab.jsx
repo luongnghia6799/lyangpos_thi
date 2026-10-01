@@ -609,6 +609,50 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
 
     return (
         <div className="space-y-6">
+            {/* Viewport Constraint Toggle */}
+            <div 
+                onClick={() => onChangeConfig({
+                    ...currentConfig,
+                    constrainCartAboveBubbles: currentConfig.constrainCartAboveBubbles === false ? true : false
+                })}
+                className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
+                    currentConfig.constrainCartAboveBubbles !== false
+                        ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
+                        : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
+                )}
+            >
+                <div className="flex items-center gap-3.5">
+                    <div className={cn(
+                        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
+                        currentConfig.constrainCartAboveBubbles !== false
+                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                            : "bg-black/10 dark:bg-white/10 text-slate-400"
+                    )}>
+                        <SlidersHorizontal size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                            Giới Hạn Vùng Hiển Thị Giỏ Hàng Trên Bubble
+                        </span>
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                            {currentConfig.constrainCartAboveBubbles !== false
+                                ? "Bật: Bảng sản phẩm tự động co giãn và dừng ngay trên Bubble (không bị che khuất)"
+                                : "Tắt: Cho phép bảng sản phẩm cuộn tràn xuống dưới các thanh Bubble"}
+                        </span>
+                    </div>
+                </div>
+
+                <div className={cn(
+                    "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                    currentConfig.constrainCartAboveBubbles !== false
+                        ? "bg-emerald-600 border-emerald-600 justify-end"
+                        : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                )}>
+                    <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                </div>
+            </div>
+
             {/* Live Interactive Preview Box for Bubbles */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">

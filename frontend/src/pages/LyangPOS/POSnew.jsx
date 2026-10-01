@@ -30,7 +30,8 @@ import {
   Leaf as ri, BookOpen as Oo, ReceiptText as Lo, BadgePercent as $o, HandCoins as Ho, RotateCw as Ko, 
   Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, 
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
-  Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette 
+  Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette,
+  ChevronDown 
 } from "lucide-react";
 import CartColorCustomizerModal, { 
   DEFAULT_CART_COLOR_CONFIG, 
@@ -880,6 +881,9 @@ function POSPage({
     [Si, Xr] = i.useState(!1),
     [Ti, Bt] = i.useState(!1),
     [Rc, zi] = i.useState(!1),
+    partnerBubbleRef = i.useRef(null),
+    totalBubbleRef = i.useRef(null),
+    cartScrollContainerRef = i.useRef(null),
     [Jr, Yr] = i.useState(() => {
       const t = localStorage.getItem("pos_bottom_summary_height");
       const parsed = t ? parseInt(t, 10) : 105;
@@ -2077,8 +2081,83 @@ function POSPage({
     };
   const [historyPartner, setHistoryPartner] = i.useState(null);
   const [isHistoryPanelOpen, setIsHistoryPanelOpen] = i.useState(false);
+  const [isDailyHistoryOpen, setIsDailyHistoryOpen] = i.useState(false);
   const [availableTemplates, setAvailableTemplates] = i.useState([]);
   const [currentTemplateId, setCurrentTemplateId] = i.useState(null);
+  const [canScrollDown, setCanScrollDown] = i.useState(false);
+
+  const checkCartScroll = i.useCallback(() => {
+    const el = cartScrollContainerRef.current;
+    if (!el) {
+      setCanScrollDown(prev => prev ? false : prev);
+      return;
+    }
+    const hasMore = el.scrollHeight > el.clientHeight + 8 && el.scrollTop < el.scrollHeight - el.clientHeight - 12;
+    setCanScrollDown(prev => (prev !== hasMore ? hasMore : prev));
+  }, []);
+
+  i.useEffect(() => {
+    const el = cartScrollContainerRef.current;
+    if (!el) return;
+    let debounceTimer = null;
+    const debouncedCheck = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(checkCartScroll, 100);
+    };
+    checkCartScroll();
+    el.addEventListener('scroll', checkCartScroll, { passive: true });
+    const ro = new ResizeObserver(debouncedCheck);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', checkCartScroll);
+      ro.disconnect();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
+  }, [ve, Ze, ka, checkCartScroll]);
+
+  const handleScrollDownCart = () => {
+    if (cartScrollContainerRef.current) {
+      cartScrollContainerRef.current.scrollBy({ top: 220, behavior: 'smooth' });
+    }
+  };
+
+  i.useEffect(() => {
+    if (Ze !== "sidebar" || ka || cartColorConfig?.constrainCartAboveBubbles === false) {
+      if (cartScrollContainerRef.current) {
+        cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
+      }
+      return;
+    }
+
+    let debounceTimer = null;
+
+    const measureAndApply = () => {
+      if (!cartScrollContainerRef.current) return;
+      const pH = partnerBubbleRef.current ? partnerBubbleRef.current.offsetHeight : 0;
+      const tH = totalBubbleRef.current ? totalBubbleRef.current.offsetHeight : 0;
+      const maxH = Math.max(pH, tH);
+      const targetH = maxH > 0 ? maxH + 24 : 100;
+      const targetVal = `${targetH}px`;
+      if (cartScrollContainerRef.current.style.getPropertyValue('--cart-bubble-bottom') !== targetVal) {
+        cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', targetVal);
+      }
+    };
+
+    measureAndApply();
+
+    const ro = new ResizeObserver(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(measureAndApply, 120);
+    });
+
+    if (partnerBubbleRef.current) ro.observe(partnerBubbleRef.current);
+    if (totalBubbleRef.current) ro.observe(totalBubbleRef.current);
+
+    return () => {
+      ro.disconnect();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
+  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles]);
 
   i.useEffect(() => {
     const t = a => {
@@ -2449,6 +2528,10 @@ function POSPage({
           const h = o[u + 1];
           h.id === "remote_inspect" ? f("remote_inspect") : es(h.id);
         }
+      } else if (a.ctrlKey && (a.key === "s" || a.key === "S")) {
+        a.preventDefault();
+        a.stopPropagation();
+        setIsDailyHistoryOpen(prev => !prev);
       } else if (a.ctrlKey && a.key === "ArrowLeft") {
         a.preventDefault();
         a.stopPropagation();
@@ -3820,6 +3903,12 @@ function POSPage({
                               <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi tab đơn</span>
                               <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
                             </x.div>
+
+                            {/* Ctrl+S: Đơn ngày */}
+                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
+                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đơn ngày</span>
+                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+S</kbd>
+                            </x.div>
                           </div>
 
                           <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
@@ -3862,7 +3951,7 @@ function POSPage({
                   draggable="false"
                 />
               </div>
-            )}<div className="w-full h-full relative bg-transparent"><div className="absolute inset-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable]"><div className="w-full transition-colors relative pb-[400px]"><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}<div className="w-full h-full relative bg-transparent"><div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-200 ease-out" style={{ bottom: (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}><div className={c("w-full transition-colors relative", (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (Ze === "sidebar" && !ka ? "pb-[400px]" : "pb-6"))}><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -4796,6 +4885,7 @@ function POSPage({
                           }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
   <x.div
     key="partner-bubble"
+    ref={partnerBubbleRef}
     layout
     initial={{
       opacity: 0,
@@ -4820,7 +4910,7 @@ function POSPage({
       }
     }}
     transition={{
-      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
+      layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
       type: "spring",
       stiffness: 350,
       damping: 26,
@@ -4836,7 +4926,7 @@ function POSPage({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 12 }}
         transition={{
-          layout: { type: "spring", stiffness: 350, damping: 28 },
+          layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
           type: "spring",
           stiffness: 400,
           damping: 28
@@ -4848,7 +4938,7 @@ function POSPage({
         className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
       >
         <Gn className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color, opacity: 0.1 } : undefined} />
-        <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
+        <x.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
           <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
             Đối tác / Khách hàng
           </div>
@@ -4871,18 +4961,15 @@ function POSPage({
               {g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}
             </div>
           </div>
-          <P>
+          <P initial={false}>
             {Pe && (
               <x.div
-                layout
-                initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                animate={{ opacity: 1, height: "auto", scale: 1 }}
-                exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
                 transition={{
-                  layout: { type: "spring", stiffness: 350, damping: 28 },
-                  type: "spring",
-                  stiffness: 380,
-                  damping: 26
+                  height: { duration: 0.26, ease: [0.25, 1, 0.5, 1] },
+                  opacity: { duration: 0.18, ease: "easeOut" }
                 }}
                 className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
                 style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}40` } : undefined}
@@ -4994,16 +5081,14 @@ function POSPage({
           </P>
         </x.div>
       </x.div>
-      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/note-container pointer-events-auto">
+      <x.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="relative group/note-container pointer-events-auto">
         <x.div
           layout
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
+          initial={false}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           transition={{
-            layout: { type: "spring", stiffness: 350, damping: 28 },
+            layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
             type: "spring",
             stiffness: 450,
             damping: 25
@@ -5070,9 +5155,7 @@ function POSPage({
       <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/ship-container pointer-events-auto">
         <x.div
           layout
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
+          initial={false}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           transition={{
@@ -5159,6 +5242,7 @@ function POSPage({
   </x.div>
   <x.div
     key="total-bubble"
+    ref={totalBubbleRef}
     layout
     initial={{
       opacity: 0,
@@ -5392,6 +5476,29 @@ function POSPage({
       </P>
     </x.div>
   </x.div>
+  <P>
+    {canScrollDown && (
+      <x.button
+        type="button"
+        initial={{ opacity: 0, y: 16, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 16, scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 450, damping: 28 }}
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleScrollDownCart}
+        className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#fbf9f4]/95 dark:bg-[#1a1e17]/95 backdrop-blur-xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-colors select-none group pointer-events-auto"
+        title="Bấm để cuộn xuống xem các sản phẩm tiếp theo"
+      >
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        </span>
+        <span>Còn sản phẩm bên dưới</span>
+        <ChevronDown size={13} strokeWidth={3} className="animate-bounce group-hover:translate-y-0.5 transition-transform text-[#8b6f47] dark:text-[#d4a574]" />
+      </x.button>
+    )}
+  </P>
 </>}</P></div></div>{Ze === "bottom" && (() => {
                 const t = k?.total_amount || (k?.cart || []).reduce((S, w) => S + (Number(w.price || w.sale_price) || 0) * (Number(w.quantity) || 1), 0),
                   a = g === "remote_inspect" ? Pe || k?.partner : p,
@@ -7098,6 +7205,22 @@ function POSPage({
               initialDate={customOrderDate || (le?.date ? le.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
               onClose={() => setIsOrderDatePickerOpen(false)}
               onConfirm={(val) => setCustomOrderDate(val)}
+            /><DailyOrderHistoryModal
+              isOpen={isDailyHistoryOpen}
+              onClose={() => setIsDailyHistoryOpen(false)}
+              type="Sale"
+              settings={J}
+              onEditOrder={async (order) => {
+                setIsDailyHistoryOpen(false);
+                await Ka(order);
+                G({
+                  message: `Đã nạp hóa đơn #${order.display_id || order.id} ra giỏ hàng!`,
+                  type: "success"
+                });
+              }}
+              onDeleteOrder={(order) => {
+                Sn(order);
+              }}
             /><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><Fn><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
               const a = (T || []).find(r => r.id === t.id) || t,
                 hasCustomPrice = Boolean(p && p.id && R && R[a.id] !== void 0),

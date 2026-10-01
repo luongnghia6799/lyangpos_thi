@@ -31,7 +31,7 @@ import {
   Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, 
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette,
-  ChevronDown 
+  ChevronDown, Upload as UploadIcon
 } from "lucide-react";
 import CartColorCustomizerModal, { 
   DEFAULT_CART_COLOR_CONFIG, 
@@ -41,7 +41,8 @@ import CartColorCustomizerModal, {
   getCartTextShadowStyle,
   getBubbleComputedStyle,
   getButtonComputedStyle,
-  getBubbleBadgeStyle
+  getBubbleBadgeStyle,
+  compressImageForWatermark
 } from "../../components/modals/CartColorCustomizerModal";
 import DynamicIcon from "../../components/widgets/DynamicIcon";
 import ResizableDropdownContainer from "../../components/widgets/ResizableDropdownContainer";
@@ -152,6 +153,9 @@ import QuickVoucherModal from "@/components/modals/QuickVoucherModal";
 const Yl = QuickVoucherModal;
 import QuickAuditPopout from "@/components/modals/QuickAuditPopout";
 const Zl = QuickAuditPopout;
+import OrderNoteModal from "@/components/modals/OrderNoteModal";
+import OrderNotePopup from "@/components/widgets/OrderNotePopup";
+import ShippingInfoPopup from "@/components/widgets/ShippingInfoPopup";
 import CustomSelect from "@/components/forms/CustomSelect";
 const zn = CustomSelect;
 import MarqueeText from "@/components/widgets/MarqueeText";
@@ -724,7 +728,83 @@ function POSPage({
     [mascotWatermarkRotate, setMascotWatermarkRotate] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_rotate") || "-6")),
     [mascotWatermarkOffsetX, setMascotWatermarkOffsetX] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10")),
     [mascotWatermarkOffsetY, setMascotWatermarkOffsetY] = i.useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10")),
+    [mascotWatermarkCustomImage, setMascotWatermarkCustomImage] = i.useState(() => {
+      try {
+        return localStorage.getItem("pos_mascot_watermark_custom_image") || null;
+      } catch (e) {
+        return null;
+      }
+    }),
+    [isCompressingMascot, setIsCompressingMascot] = i.useState(false),
+    mascotQuickFileInputRef = i.useRef(null),
     $r = i.useRef(null);
+
+  const handleQuickMascotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingMascot(true);
+      const compressedBase64 = await compressImageForWatermark(file, 512, 0.85);
+      setMascotWatermarkCustomImage(compressedBase64);
+      try {
+        localStorage.setItem("pos_mascot_watermark_custom_image", compressedBase64);
+      } catch (storageErr) {
+        console.warn("Storage quota warning:", storageErr);
+      }
+      try {
+        const syncChan = new BroadcastChannel('pos_data_sync');
+        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_mascot_watermark_custom_image', value: compressedBase64 });
+        syncChan.close();
+      } catch (err) {}
+    } catch (err) {
+      alert(err.message || "Lỗi xử lý ảnh");
+    } finally {
+      setIsCompressingMascot(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleResetQuickMascot = () => {
+    setMascotWatermarkCustomImage(null);
+    try {
+      localStorage.removeItem("pos_mascot_watermark_custom_image");
+    } catch (e) {}
+    try {
+      const syncChan = new BroadcastChannel('pos_data_sync');
+      syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_mascot_watermark_custom_image', value: null });
+      syncChan.close();
+    } catch (e) {}
+  };
+
+  i.useEffect(() => {
+    try {
+      const syncChan = new BroadcastChannel('pos_data_sync');
+      syncChan.onmessage = (e) => {
+        const data = e.data;
+        if (data && data.type === 'UI_SETTING_UPDATED') {
+          if (data.key === 'pos_mascot_watermark_custom_image') {
+            setMascotWatermarkCustomImage(data.value);
+          } else if (data.key === 'pos_mascot_watermark_visible') {
+            setMascotWatermarkVisible(data.value === 'true' || data.value === true);
+          } else if (data.key === 'pos_mascot_watermark_pos') {
+            setMascotWatermarkPos(data.value);
+          } else if (data.key === 'pos_mascot_watermark_scale') {
+            setMascotWatermarkScale(parseFloat(data.value) || 100);
+          } else if (data.key === 'pos_mascot_watermark_opacity') {
+            setMascotWatermarkOpacity(parseFloat(data.value) || 15);
+          } else if (data.key === 'pos_mascot_watermark_rotate') {
+            setMascotWatermarkRotate(parseFloat(data.value) || 0);
+          } else if (data.key === 'pos_mascot_watermark_offset_x') {
+            setMascotWatermarkOffsetX(parseFloat(data.value) || 0);
+          } else if (data.key === 'pos_mascot_watermark_offset_y') {
+            setMascotWatermarkOffsetY(parseFloat(data.value) || 0);
+          }
+        }
+      };
+      return () => syncChan.close();
+    } catch (e) {}
+  }, []);
+
   i.useEffect(() => {
     const t = a => {
       $r.current && !$r.current.contains(a.target) && Ct(!1);
@@ -3940,7 +4020,7 @@ function POSPage({
                 style={{ opacity: (mascotWatermarkOpacity || 15) / 100 }}
               >
                 <img
-                  src="/assets/images/user_mascot.png"
+                  src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"}
                   alt="Lyang Mascot"
                   style={{
                     width: `${Math.round(360 * ((mascotWatermarkScale || 100) / 100))}px`,
@@ -4885,8 +4965,14 @@ function POSPage({
                           }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
   <x.div
     key="partner-bubble"
+    ref={partnerBubbleRef}
     layout
-    initial={false}
+    initial={{
+      opacity: 0,
+      scale: 0.92,
+      y: 24,
+      filter: "blur(12px)"
+    }}
     animate={{
       opacity: 1,
       scale: 1,
@@ -4915,9 +5001,8 @@ function POSPage({
     <div className="flex items-center gap-2.5 pointer-events-auto">
       <x.div
         key="partner-card-bubble"
-        ref={partnerBubbleRef}
         layout
-        initial={false}
+        initial={{ opacity: 0, scale: 0.92, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 12 }}
         transition={{
@@ -5098,54 +5183,12 @@ function POSPage({
           <Comp_ca size={18} className={K || lr ? "text-white" : "transition-colors"} strokeWidth={2.5} />
           {K && !lr && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}
         </x.div>
-        <P>
-          {lr && (
-            <x.div
-              initial={{
-                opacity: 0,
-                scale: 0.85,
-                x: -10,
-                y: 15,
-                filter: "blur(8px)"
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                x: 0,
-                y: 0,
-                filter: "blur(0px)"
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.85,
-                x: -10,
-                y: 15,
-                filter: "blur(8px)",
-                transition: {
-                  duration: 0.16,
-                  ease: "easeOut"
-                }
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 420,
-                damping: 26
-              }}
-              onClick={t => t.stopPropagation()}
-              className="absolute bottom-full left-0 mb-3 w-[280px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-4 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
-            >
-              <div className="flex justify-between items-center mb-2">
-                <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-widest">Ghi chú đơn</div>
-                <button onClick={t => {
-                  t.stopPropagation(), as(!1);
-                }} className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
-                  <Comp_ke size={14} strokeWidth={3} />
-                </button>
-              </div>
-              <textarea autoFocus={!0} placeholder="Nhập ghi chú cho hóa đơn này..." rows={3} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#8b6f47]/30 transition-all resize-none shadow-none custom-scrollbar text-slate-800 dark:text-white placeholder:text-slate-400" value={K} onChange={t => $e(t.target.value)} />
-            </x.div>
-          )}
-        </P>
+        <OrderNotePopup
+          isOpen={lr}
+          initialNote={K}
+          onClose={() => as(!1)}
+          onSave={newNote => $e(newNote)}
+        />
       </x.div>
       <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/ship-container pointer-events-auto">
         <x.div
@@ -5169,69 +5212,16 @@ function POSPage({
           <Comp_u_t size={18} strokeWidth={2.5} className={tt ? "text-white" : "transition-colors"} />
           {tt && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-800" />}
         </x.div>
-        <P>
-          {tt && (
-            <x.div
-              initial={{
-                opacity: 0,
-                scale: 0.85,
-                x: -10,
-                y: 15,
-                filter: "blur(8px)"
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                x: 0,
-                y: 0,
-                filter: "blur(0px)"
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.85,
-                x: -10,
-                y: 15,
-                filter: "blur(8px)",
-                transition: {
-                  duration: 0.16,
-                  ease: "easeOut"
-                }
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 420,
-                damping: 26
-              }}
-              onClick={t => t.stopPropagation()}
-              className="absolute bottom-full left-0 mb-3 w-[320px] bg-[#fbf9f4] dark:bg-[#1c1916] backdrop-blur-2xl p-5 rounded-3xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-2xl z-[100]"
-            >
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <Comp_u_t size={16} className="text-[#2d5016] dark:text-emerald-400" />
-                  <div className="text-[10px] font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-widest">Thông tin giao hàng</div>
-                </div>
-                <button onClick={t => {
-                  t.stopPropagation(), qt(null);
-                }} className="text-slate-400 hover:text-rose-500 transition-colors">
-                  <Comp_ke size={14} strokeWidth={3} />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Địa chỉ giao hàng</label>
-                  <textarea placeholder="Nhập địa chỉ nhận hàng..." rows={2} className="w-full px-4 py-3 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all resize-none text-slate-800 dark:text-white placeholder:text-slate-400" value={vr} onChange={t => ra(t.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 ml-1">Số điện thoại nhận</label>
-                  <div className="relative">
-                    <Mr size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input type="text" placeholder="SĐT người nhận..." className="w-full h-10 pl-9 pr-4 bg-white/80 dark:bg-slate-900/60 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#2d5016]/20 transition-all text-slate-800 dark:text-white placeholder:text-slate-400" value={kr} onChange={t => sa(t.target.value)} />
-                  </div>
-                </div>
-              </div>
-            </x.div>
-          )}
-        </P>
+        <ShippingInfoPopup
+          isOpen={tt === "Shipping"}
+          initialAddress={vr}
+          initialPhone={kr}
+          onClose={() => qt(null)}
+          onSave={({ address, phone }) => {
+            ra(address);
+            sa(phone);
+          }}
+        />
       </x.div>
     </div>
   </x.div>
@@ -6045,26 +6035,15 @@ function POSPage({
                   t.key === "Enter" ? (t.preventDefault(), Vi()) : t.key === "Escape" && (gr(!1), Wa(""));
                 }} placeholder="Số..." className="w-16 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center text-sm font-black text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all" /><button onClick={() => {
                   gr(!1), Wa("");
-                }} className="ml-2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white"><Comp_ke size={16} /></button></x.div>}</P></Ee><Ee><P>{Ti && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-150" onClick={() => Bt(!1)}><x.div onClick={t => t.stopPropagation()} initial={{
-                  scale: 0.92,
-                  opacity: 0,
-                  y: 15
-                }} animate={{
-                  scale: 1,
-                  opacity: 1,
-                  y: 0
-                }} exit={{
-                  scale: 0.92,
-                  opacity: 0,
-                  y: 15
-                }} transition={{
-                  type: "spring",
-                  stiffness: 350,
-                  damping: 25
-                }} className="bg-[#fcfbf9]/95 dark:bg-[#1a1612]/95 backdrop-blur-2xl w-full max-w-lg rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl overflow-hidden p-6 space-y-4"><div className="flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 pb-3"><div className="flex items-center gap-2.5"><div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"><Comp_ri size={18} /></div><div><h3 className="font-black text-base uppercase tracking-tight text-[#2d5016] dark:text-emerald-300">Ghi chú đơn hàng</h3><p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{p ? `Áp dụng cho đơn của: ${p.name}` : "Ghi chú sẽ được in lên hoá đơn bán hàng"}</p></div></div><button onClick={() => Bt(!1)} className="p-2 hover:bg-rose-500/15 text-slate-400 hover:text-rose-500 rounded-xl transition-all"><Comp_ke size={18} /></button></div><div className="relative"><textarea autoFocus={!0} rows={5} value={K} onChange={t => $e(t.target.value)} onKeyDown={t => {
-                      (t.key === "Escape" || t.key === "Enter" && t.ctrlKey) && (t.preventDefault(), Bt(!1));
-                    }} placeholder={`Nhập ghi chú chi tiết cho đơn hàng tại đây...
-(Ví dụ: Giao hàng buổi chiều, bọc hàng cẩn thận, chiết khấu đặc biệt...)`} className="w-full p-4 bg-white/70 dark:bg-slate-900/70 border border-[#8b6f47]/25 dark:border-white/10 rounded-2xl text-sm font-semibold text-foreground placeholder:text-slate-400 placeholder:italic focus:border-[#8b6f47]/60 dark:focus:border-emerald-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-4 focus:ring-[#8b6f47]/10 transition-all resize-none leading-relaxed custom-scrollbar shadow-inner" /></div><div className="flex items-center justify-between pt-1">{K ? <button onClick={() => $e("")} className="px-3 py-2 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-1.5"><Comp_pa size={14} />Xóa ghi chú</button> : <div />}<div className="flex items-center gap-2"><button onClick={() => Bt(!1)} className="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-xl transition-all">Đóng (Esc)</button><button onClick={() => Bt(!1)} className="px-5 py-2 text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 rounded-xl shadow-md hover:shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5"><Hn size={14} strokeWidth={3} />Xong</button></div></div></x.div></div>}</P></Ee><Ee><P>{Yi && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"><x.div initial={{
+                }} className="ml-2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white"><Comp_ke size={16} /></button></x.div>}</P></Ee>
+            <OrderNoteModal
+              isOpen={Ti}
+              initialNote={K}
+              partnerName={p?.name}
+              onClose={() => Bt(!1)}
+              onSave={newNote => $e(newNote)}
+            />
+            <Ee><P>{Yi && <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"><x.div initial={{
                   scale: 0.9,
                   opacity: 0,
                   y: 20
@@ -6997,6 +6976,76 @@ function POSPage({
                       >
                         <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
                       </button>
+                    </div>
+
+                    {/* Nguồn ảnh Mascot / Upload từ PC */}
+                    <div className="p-2.5 bg-[#fbf8f2] dark:bg-[#0a1f16]/60 rounded-xl border border-[#8b6f47]/20 dark:border-emerald-500/20 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-emerald-400 flex items-center gap-1">
+                          <UploadIcon size={12} />
+                          <span>Nguồn ảnh Mascot</span>
+                        </span>
+                        {mascotWatermarkCustomImage ? (
+                          <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            Ảnh tự tải (Đã nén)
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-bold text-slate-400 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                            Mặc định
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-900 border border-[#8b6f47]/20 dark:border-white/10 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden relative">
+                          <img 
+                            src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"} 
+                            alt="Mascot Thumbnail" 
+                            className="w-full h-full object-contain filter grayscale contrast-150"
+                          />
+                          {isCompressingMascot && (
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[8px] font-bold text-center px-0.5">
+                              Nén...
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              ref={mascotQuickFileInputRef}
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                              className="hidden"
+                              onChange={handleQuickMascotUpload}
+                            />
+                            <button
+                              type="button"
+                              disabled={isCompressingMascot}
+                              onClick={() => mascotQuickFileInputRef.current?.click()}
+                              className="flex-1 py-1.5 px-2.5 bg-gradient-to-r from-[#2d5016] to-emerald-600 hover:from-[#234011] hover:to-emerald-700 text-white rounded-lg font-black text-[10px] uppercase tracking-tight flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              <UploadIcon size={12} />
+                              <span>{mascotWatermarkCustomImage ? "Đổi ảnh PC" : "Upload ảnh PC"}</span>
+                            </button>
+
+                            {mascotWatermarkCustomImage && (
+                              <button
+                                type="button"
+                                onClick={handleResetQuickMascot}
+                                className="py-1.5 px-2 bg-black/10 dark:bg-white/10 hover:bg-rose-500/15 hover:text-rose-600 text-slate-600 dark:text-slate-300 rounded-lg font-bold text-[10px] flex items-center gap-0.5 transition-all cursor-pointer"
+                                title="Về mặc định"
+                              >
+                                <so size={11} />
+                                <span>Reset</span>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[9px] font-medium text-slate-400 dark:text-slate-500 leading-tight">
+                            Tự động scale & nén tối ưu bộ nhớ (&lt;80KB).
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Vị trí góc neo */}

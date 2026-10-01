@@ -15,15 +15,29 @@ import {
     Minimize,
     PackagePlus,
     TrendingUp,
-    ChevronRight,
-    Edit3
+    ChevronRight
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-import { useIconContext } from '../../context/IconContext';
+
+const ZaloIcon = ({ size = 16, className }) => (
+    <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={className}
+    >
+        <rect width="24" height="24" rx="6" fill="#0068FF" />
+        <path
+            d="M6.5 7.5H17.5V9.3L12.5 15H17.5V17H6.5V15.2L11.5 9.5H6.5V7.5Z"
+            fill="white"
+        />
+    </svg>
+);
 
 const ContextMenu = () => {
-    const { editMode, toggleEditMode } = useIconContext();
     const [isVisible, setIsVisible] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
@@ -37,6 +51,39 @@ const ContextMenu = () => {
     const isAnalysis = location.pathname === '/analysis';
     const isDashboard = location.pathname === '/';
     const isHistory = location.pathname === '/history';
+
+    const handleOpenZalo = async () => {
+        // 1. Direct Tauri Command: Executes cmd.exe /c start "" "zalo:" with CREATE_NO_WINDOW (Bypasses WebView2 prompts completely)
+        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+            try {
+                if (window.__TAURI__?.core?.invoke) {
+                    await window.__TAURI__.core.invoke('open_zalo');
+                    return;
+                }
+            } catch (err) {
+                console.warn("Tauri invoke open_zalo failed, trying backend API", err);
+            }
+        }
+
+        // 2. Backend Native Process API (Bypasses WebView2 prompts in both desktop and web/LAN clients)
+        try {
+            const res = await fetch('/api/open-zalo', { method: 'POST' });
+            if (res.ok) return;
+        } catch (err) {
+            console.warn("Backend open-zalo failed", err);
+        }
+
+        // 3. Fallback: Shell plugin / protocol
+        try {
+            if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+                const { open } = await import('@tauri-apps/plugin-shell');
+                await open('zalo://');
+                return;
+            }
+        } catch (err) {}
+
+        window.location.href = 'zalo://';
+    };
 
     const handleContextMenu = useCallback((e) => {
         // If holding Shift key, allow native browser context menu (Inspect Element)
@@ -150,8 +197,8 @@ const ContextMenu = () => {
                 sessionStorage.removeItem('user');
                 navigate('/welcome');
                 break;
-            case 'toggle_icon_edit':
-                toggleEditMode();
+            case 'open_zalo':
+                handleOpenZalo();
                 break;
             default: break;
         }
@@ -296,10 +343,9 @@ const ContextMenu = () => {
                     <div className="space-y-0.5">
                         <MenuItem 
                             variants={itemVariants}
-                            icon={Edit3} 
-                            label={editMode ? "Tắt đổi Icon (Alt+I)" : "Tùy biến Icon (Alt+I)"} 
-                            active={editMode}
-                            onClick={() => handleAction('toggle_icon_edit')} 
+                            icon={ZaloIcon} 
+                            label="Mở App Zalo PC" 
+                            onClick={() => handleAction('open_zalo')} 
                         />
                         <MenuItem 
                             variants={itemVariants}

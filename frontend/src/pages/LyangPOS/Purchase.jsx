@@ -14,6 +14,7 @@ import PartnerEditModal from '../../components/modals/PartnerEditModal';
 import PrintTemplate from '../../components/panels/PrintTemplate';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
+import OrderNoteModal from '../../components/modals/OrderNoteModal';
 import POSHistoryPanel from '../../components/panels/POSHistoryPanel';
 import OrderEditPopup from '../../components/modals/OrderEditPopup';
 import ConfirmModal from '../../components/modals/ConfirmModal';
@@ -2368,25 +2369,23 @@ export default function Purchase() {
                             <History size={16} strokeWidth={2.5} />
                         </m.button>
 
-                        {/* 6.5 Nút ĐẶT HÀNG trên Header ở chế độ Bottom Bar */}
-                        {summaryLayoutMode === 'bottom' && (
-                            <m.button
-                                whileHover={{ y: -2, scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                                disabled={cart.length === 0}
-                                onClick={() => setIsPOExportModalOpen(true)}
-                                className={cn(
-                                    "relative h-9 px-3 flex items-center gap-1.5 rounded-full transition-all duration-200 border shadow-xs shrink-0 cursor-pointer select-none text-xs font-black uppercase tracking-wider",
-                                    cart.length === 0
-                                        ? "opacity-40 cursor-not-allowed bg-[#8b6f47]/[0.08] text-[#8b6f47] dark:bg-white/[0.05] dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/10"
-                                        : "bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white border-amber-400/50 shadow-md shadow-amber-600/25"
-                                )}
-                                title="Xuất phiếu đặt hàng gửi NCC (Ảnh / PDF không lưu đơn)"
-                            >
-                                <FileText size={15} strokeWidth={2.5} />
-                                <span>ĐẶT HÀNG</span>
-                            </m.button>
-                        )}
+                        {/* 6.5 Nút ĐẶT HÀNG trên Header */}
+                        <m.button
+                            whileHover={{ y: -2, scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            disabled={cart.length === 0}
+                            onClick={() => setIsPOExportModalOpen(true)}
+                            className={cn(
+                                "relative h-9 px-3 flex items-center gap-1.5 rounded-full transition-all duration-200 border shadow-xs shrink-0 cursor-pointer select-none text-xs font-black uppercase tracking-wider",
+                                cart.length === 0
+                                    ? "opacity-40 cursor-not-allowed bg-[#8b6f47]/[0.08] text-[#8b6f47] dark:bg-white/[0.05] dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/10"
+                                    : "bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white border-amber-400/50 shadow-md shadow-amber-600/25"
+                            )}
+                            title="Xuất phiếu đặt hàng gửi NCC (Ảnh / PDF không lưu đơn)"
+                        >
+                            <FileText size={15} strokeWidth={2.5} />
+                            <span>ĐẶT HÀNG</span>
+                        </m.button>
 
                         {/* 7. Hamburger Action Menu (Thao tác) */}
                         <div className="relative" ref={actionMenuRef}>
@@ -4183,8 +4182,14 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
+                                            ref={partnerBubbleRef}
                                             layout
-                                            initial={false}
+                                            initial={{
+                                                opacity: 0,
+                                                scale: 0.92,
+                                                y: 24,
+                                                filter: "blur(12px)"
+                                            }}
                                             animate={{
                                                 opacity: 1,
                                                 scale: 1,
@@ -4213,8 +4218,6 @@ export default function Purchase() {
                                                     const tc = partnerStyle?.color;
                                                     return (
                                                         <m.div 
-                                                            key="supplier-card-bubble"
-                                                            ref={partnerBubbleRef}
                                                             layout
                                                             initial={false}
                                                             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -5454,6 +5457,14 @@ export default function Purchase() {
                                                     {loading ? <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <Save size={22} strokeWidth={2.5} />}
                                                 </button>
                                                 <button
+                                                    onClick={() => setIsPOExportModalOpen(true)}
+                                                    disabled={cart.length === 0}
+                                                    className="w-14 h-14 bg-gradient-to-tr from-amber-600 to-amber-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-600/25 hover:brightness-110 border-2 border-amber-400/50 transition-colors disabled:opacity-40 cursor-pointer"
+                                                    title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
+                                                >
+                                                    <FileText size={22} strokeWidth={2.5} />
+                                                </button>
+                                                <button
                                                     onClick={() => handleSave(true)}
                                                     disabled={cart.length === 0 || loading}
                                                     className="w-14 h-14 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#2d5016]/25 hover:brightness-110 border-2 border-emerald-500/50 dark:border-emerald-400/50 transition-colors disabled:opacity-40 cursor-pointer"
@@ -6082,96 +6093,15 @@ export default function Purchase() {
             </AnimatePresence>
 
             {/* Order Note Dedicated Modal */}
-            <Portal>
-                <AnimatePresence>
-                    {isNoteModalOpen && (
-                        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in select-none" onClick={() => setIsNoteModalOpen(false)}>
-                            <m.div
-                                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.92, y: 15 }}
-                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 w-full max-w-lg overflow-hidden flex flex-col gap-4 text-foreground"
-                            >
-                                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-sm">
-                                            <FileText size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-black text-base uppercase tracking-tight text-foreground">
-                                                Ghi chú đơn nhập
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground font-medium">
-                                                Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng...
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsNoteModalOpen(false)}
-                                        className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-colors text-muted-foreground"
-                                    >
-                                        <X size={16} strokeWidth={2.5} />
-                                    </button>
-                                </div>
-
-                                <div className="relative">
-                                    <textarea
-                                        autoFocus
-                                        rows={5}
-                                        value={note}
-                                        onChange={(e) => setNote(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                                                e.preventDefault();
-                                                setIsNoteModalOpen(false);
-                                            }
-                                            if (e.key === 'Escape') {
-                                                setIsNoteModalOpen(false);
-                                            }
-                                        }}
-                                        placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
-                                        className="w-full p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-foreground placeholder:text-muted-foreground/50 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 resize-none transition-all shadow-inner"
-                                    />
-                                    {note && (
-                                        <button
-                                            onClick={() => setNote('')}
-                                            className="absolute right-3 bottom-4 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition-colors border border-rose-500/20"
-                                        >
-                                            Xóa hết
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between pt-1">
-                                    <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
-                                        <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Ctrl</kbd>
-                                        +
-                                        <kbd className="px-1.5 py-0.5 text-[9px] font-black bg-black/5 dark:bg-white/10 border border-black/10 rounded">Enter</kbd>
-                                        để lưu nhanh
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setIsNoteModalOpen(false)}
-                                            className="px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 text-foreground transition-colors"
-                                        >
-                                            Đóng
-                                        </button>
-                                        <button
-                                            onClick={() => setIsNoteModalOpen(false)}
-                                            className="px-5 py-2 text-xs font-black uppercase tracking-wider rounded-xl bg-[#059669] hover:bg-[#047857] text-white transition-all shadow-md shadow-emerald-700/20 flex items-center gap-1.5"
-                                        >
-                                            <Check size={14} strokeWidth={3} />
-                                            Xong
-                                        </button>
-                                    </div>
-                                </div>
-                            </m.div>
-                        </div>
-                    )}
-                </AnimatePresence>
-            </Portal>
+            <OrderNoteModal
+                isOpen={isNoteModalOpen}
+                initialNote={note}
+                title="Ghi chú đơn nhập"
+                subtitle="Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng..."
+                placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
+                onClose={() => setIsNoteModalOpen(false)}
+                onSave={(newNote) => setNote(newNote)}
+            />
                 {/* Partner Transaction History Panel */}
                 <Portal>
                 <POSHistoryPanel

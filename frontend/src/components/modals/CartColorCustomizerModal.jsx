@@ -1,16 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { 
     Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, ShoppingCart, Clock, Bell, Image as ImageIcon,
     SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet,
-    Bookmark, Plus, Trash2, ChevronDown, ChevronUp, FolderHeart
+    Bookmark, Plus, Trash2, ChevronDown, ChevronUp, FolderHeart, Upload, RefreshCw
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Portal from '../widgets/Portal';
 import BubbleCustomizerTab, { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS } from './BubbleCustomizerTab';
 
 export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS };
+
+/**
+ * Safely compresses and scales down user uploaded watermark images on client-side
+ * using HTML5 Canvas to prevent browser memory exhaustion and localStorage QuotaExceededError.
+ */
+export const compressImageForWatermark = (file, maxDim = 512, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+        if (!file) return reject(new Error("Không tìm thấy tệp ảnh"));
+        if (!file.type || !file.type.startsWith('image/')) {
+            return reject(new Error("Vui lòng chọn định dạng ảnh hợp lệ (PNG, JPG, WebP, SVG)"));
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+
+                    if (!w || !h) {
+                        return reject(new Error("Không thể xác định kích thước ảnh"));
+                    }
+
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.max(1, w);
+                    canvas.height = Math.max(1, h);
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return reject(new Error("Lỗi Canvas context"));
+                    }
+
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    const mime = (file.type === 'image/jpeg' || file.type === 'image/jpg') ? 'image/jpeg' : 'image/png';
+                    const dataUrl = canvas.toDataURL(mime, quality);
+
+                    // Clean up canvas
+                    canvas.width = 0;
+                    canvas.height = 0;
+
+                    resolve(dataUrl);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            img.onerror = () => reject(new Error("Không thể nạp hình ảnh"));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error("Lỗi đọc tệp"));
+        reader.readAsDataURL(file);
+    });
+};
 
 export const CART_COLOR_PRESETS = [
     {
@@ -469,6 +533,15 @@ export default function CartColorCustomizerModal({
     const [mascotWatermarkRotate, setMascotWatermarkRotate] = useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_rotate") || "-6"));
     const [mascotWatermarkOffsetX, setMascotWatermarkOffsetX] = useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10"));
     const [mascotWatermarkOffsetY, setMascotWatermarkOffsetY] = useState(() => parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10"));
+    const [mascotWatermarkCustomImage, setMascotWatermarkCustomImage] = useState(() => {
+        try {
+            return localStorage.getItem("pos_mascot_watermark_custom_image") || null;
+        } catch (e) {
+            return null;
+        }
+    });
+    const [isCompressingMascot, setIsCompressingMascot] = useState(false);
+    const mascotFileInputRef = useRef(null);
 
     // Custom presets list & UI states
     const [customPresets, setCustomPresets] = useState(() => {
@@ -495,6 +568,9 @@ export default function CartColorCustomizerModal({
             setMascotWatermarkRotate(parseFloat(localStorage.getItem("pos_mascot_watermark_rotate") || "-6"));
             setMascotWatermarkOffsetX(parseFloat(localStorage.getItem("pos_mascot_watermark_offset_x") || "10"));
             setMascotWatermarkOffsetY(parseFloat(localStorage.getItem("pos_mascot_watermark_offset_y") || "10"));
+            try {
+                setMascotWatermarkCustomImage(localStorage.getItem("pos_mascot_watermark_custom_image") || null);
+            } catch (e) {}
             try {
                 const saved = localStorage.getItem("pos_cart_custom_presets");
                 if (saved) setCustomPresets(JSON.parse(saved));
@@ -590,6 +666,35 @@ export default function CartColorCustomizerModal({
         setMascotWatermarkVisible(val);
         localStorage.setItem("pos_mascot_watermark_visible", String(val));
         broadcastSetting("pos_mascot_watermark_visible", String(val));
+    };
+
+    const handleMascotFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            setIsCompressingMascot(true);
+            const compressedBase64 = await compressImageForWatermark(file, 512, 0.85);
+            setMascotWatermarkCustomImage(compressedBase64);
+            try {
+                localStorage.setItem("pos_mascot_watermark_custom_image", compressedBase64);
+            } catch (storageErr) {
+                console.warn("Storage quota warning, fallback session only:", storageErr);
+            }
+            broadcastSetting("pos_mascot_watermark_custom_image", compressedBase64);
+        } catch (err) {
+            alert(err.message || "Lỗi xử lý ảnh");
+        } finally {
+            setIsCompressingMascot(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
+    const handleResetMascotToDefault = () => {
+        setMascotWatermarkCustomImage(null);
+        try {
+            localStorage.removeItem("pos_mascot_watermark_custom_image");
+        } catch (e) {}
+        broadcastSetting("pos_mascot_watermark_custom_image", null);
     };
 
     const handleApplyPreset = (preset) => {
@@ -808,7 +913,7 @@ export default function CartColorCustomizerModal({
                                     style={{ opacity: (mascotWatermarkOpacity || 15) / 100 }}
                                 >
                                     <img
-                                        src="/assets/images/user_mascot.png"
+                                        src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"}
                                         alt="Watermark Preview"
                                         className="object-contain"
                                         style={{
@@ -2664,6 +2769,76 @@ export default function CartColorCustomizerModal({
 
                             {mascotWatermarkVisible && (
                                 <div className="space-y-4 pt-2 border-t border-[#8b6f47]/20 dark:border-white/10">
+                                    {/* Chọn nguồn ảnh Mascot: Mặc định hoặc Tải lên từ PC */}
+                                    <div className="space-y-3 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                <Upload size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                                Nguồn Ảnh Mascot Chìm
+                                            </label>
+                                            {mascotWatermarkCustomImage ? (
+                                                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                                    Đang dùng ảnh tự tải (Đã nén tối ưu)
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-slate-500 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                                                    Mascot Lyang mặc định
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden relative group">
+                                                <img 
+                                                    src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"} 
+                                                    alt="Current Mascot" 
+                                                    className="w-full h-full object-contain filter grayscale contrast-150"
+                                                />
+                                                {isCompressingMascot && (
+                                                    <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold text-center px-1">
+                                                        Đang nén...
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        ref={mascotFileInputRef}
+                                                        type="file"
+                                                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                                        className="hidden"
+                                                        onChange={handleMascotFileUpload}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        disabled={isCompressingMascot}
+                                                        onClick={() => mascotFileInputRef.current?.click()}
+                                                        className="flex-1 py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                                    >
+                                                        <Upload size={14} />
+                                                        <span>{mascotWatermarkCustomImage ? "Đổi ảnh từ PC" : "Upload ảnh từ PC"}</span>
+                                                    </button>
+
+                                                    {mascotWatermarkCustomImage && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleResetMascotToDefault}
+                                                            className="py-2 px-3 bg-black/10 dark:bg-white/10 hover:bg-rose-500/15 hover:text-rose-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                                                            title="Về hình Mascot mặc định"
+                                                        >
+                                                            <Trash2 size={13} />
+                                                            <span>Về mặc định</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                                    Hỗ trợ PNG trong suốt, JPG, WebP, SVG. Ảnh được tự động scale & nén tối ưu (nhẹ &lt; 80KB) chống tràn bộ nhớ.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="flex items-center justify-between">
                                         <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                                             <Compass size={14} className="text-emerald-600 dark:text-emerald-400" />

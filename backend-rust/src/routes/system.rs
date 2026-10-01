@@ -107,6 +107,29 @@ pub async fn clean_ram(State(pool): State<SqlitePool>) -> Result<impl IntoRespon
     })))
 }
 
+pub async fn open_zalo() -> Result<impl IntoResponse, AppError> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let _ = Command::new("cmd")
+            .raw_arg("/c start \"\" \"zalo:\"")
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::process::Command;
+        let _ = Command::new("open").arg("zalo://").spawn();
+    }
+
+    Ok(Json(json!({
+        "status": "ok",
+        "message": "Đã mở Zalo PC"
+    })))
+}
+
 pub async fn repair_backend(State(pool): State<SqlitePool>) -> Result<impl IntoResponse, AppError> {
     // 1. Link orphaned batches if any
     let _ = sqlx::query(

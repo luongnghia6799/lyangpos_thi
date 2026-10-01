@@ -116,13 +116,33 @@ fn clean_app_ram() -> Result<(), String> {
   Ok(())
 }
 
+#[tauri::command]
+fn open_zalo() -> Result<(), String> {
+  #[cfg(target_os = "windows")]
+  {
+    use std::process::Command;
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let _ = Command::new("cmd")
+      .raw_arg("/c start \"\" \"zalo:\"")
+      .creation_flags(CREATE_NO_WINDOW)
+      .spawn();
+  }
+  #[cfg(not(target_os = "windows"))]
+  {
+    use std::process::Command;
+    let _ = Command::new("open").arg("zalo://").spawn();
+  }
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec![])))
-    .invoke_handler(tauri::generate_handler![set_window_colors, clean_app_ram, open_devtools])
+    .invoke_handler(tauri::generate_handler![set_window_colors, clean_app_ram, open_devtools, open_zalo])
     .setup(|app| {
       // Manage state for sidecar process
       app.manage(SidecarState(Mutex::new(None)));

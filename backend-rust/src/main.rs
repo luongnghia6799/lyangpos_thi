@@ -104,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/history/active-filters", get(routes::system::get_history_active_filters))
         .route("/api/tauri/save-and-open", post(routes::system::save_and_open_tauri))
         .route("/api/open-external-chrome", post(routes::system::open_external_chrome))
+        .route("/api/open-zalo", post(routes::system::open_zalo).get(routes::system::open_zalo))
         .route("/api/purchase/scan-invoice", post(routes::system::scan_purchase_invoice))
         .route("/api/ai/consult", post(routes::ai::consult_ai))
         // Active Ingredients Pharmacological Research Knowledge & Sync

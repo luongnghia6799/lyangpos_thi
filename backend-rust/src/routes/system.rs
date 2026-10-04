@@ -113,10 +113,34 @@ pub async fn open_zalo() -> Result<impl IntoResponse, AppError> {
         use std::process::Command;
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
-        let _ = Command::new("cmd")
-            .raw_arg("/c start \"\" \"zalo:\"")
-            .creation_flags(CREATE_NO_WINDOW)
-            .spawn();
+
+        let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+        let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+        let program_files = std::env::var("ProgramFiles").unwrap_or_default();
+
+        let possible_paths = [
+            std::path::PathBuf::from(&local_app_data).join("Programs").join("Zalo").join("Zalo.exe"),
+            std::path::PathBuf::from(&user_profile).join("AppData").join("Local").join("Programs").join("Zalo").join("Zalo.exe"),
+            std::path::PathBuf::from(&program_files).join("Zalo").join("Zalo.exe"),
+        ];
+
+        let mut launched = false;
+        for path in possible_paths {
+            if path.exists() {
+                let _ = Command::new(&path)
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .spawn();
+                launched = true;
+                break;
+            }
+        }
+
+        if !launched {
+            let _ = Command::new("cmd")
+                .args(["/c", "start", "", "zalo:"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .spawn();
+        }
     }
     #[cfg(not(target_os = "windows"))]
     {

@@ -147,6 +147,19 @@ export default function OrderEditPopup({ isOpen, order, partner, onClose, onSave
         }
     }, [effectiveIsOpen, products.length]);
 
+    // Auto-focus and auto-select search input when popup opens
+    useEffect(() => {
+        if (effectiveIsOpen && !isOpeningDebt) {
+            const timer = setTimeout(() => {
+                if (searchInputRef.current) {
+                    searchInputRef.current.focus();
+                    searchInputRef.current.select();
+                }
+            }, 80);
+            return () => clearTimeout(timer);
+        }
+    }, [effectiveIsOpen, isOpeningDebt]);
+
     const updateItem = (cartId, field, value) => {
         setCart(prevCart => prevCart.map(item => {
             if (item.cartId !== cartId) return item;
@@ -433,6 +446,7 @@ export default function OrderEditPopup({ isOpen, order, partner, onClose, onSave
                                                     placeholder="🔍 Tìm sản phẩm thêm vào đơn (Enter khi trống để thêm sản phẩm mới)..."
                                                     className="w-full pl-11 p-4 bg-transparent/50 dark:bg-white/5 border-0 border-transparent focus:border-transparent focus:ring-0 ring-0 outline-none focus:outline-none font-black text-base uppercase tracking-wider text-emerald-800 dark:text-white placeholder-slate-450 transition-all"
                                                     value={searchTerm}
+                                                    onFocus={e => e.target.select()}
                                                     onChange={e => { setSearchTerm(e.target.value); setIsProductDropdownOpen(true); setActiveIndex(0); }}
                                                     onKeyDown={e => {
                                                         if (e.key === 'ArrowDown') {

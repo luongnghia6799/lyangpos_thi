@@ -1,27 +1,27 @@
 import React from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import { 
-  Check, 
-  Trash2, 
-  Sparkles, 
-  TriangleAlert, 
-  X as XIcon, 
-  CircleAlert, 
-  TrendingDown, 
-  BadgePercent, 
-  ArrowLeftRight, 
-  Clock, 
-  ReceiptText, 
-  PackageX, 
+import {
+  Check,
+  Trash2,
+  Sparkles,
+  TriangleAlert,
+  X as XIcon,
+  CircleAlert,
+  TrendingDown,
+  BadgePercent,
+  ArrowLeftRight,
+  Clock,
+  ReceiptText,
+  PackageX,
   PackageCheck,
   Minus
 } from 'lucide-react';
 import { cn, formatNumber, formatCurrency, normalizeUOM, speakAudioSequence, formatRelativePurchaseDate } from '@/lib/utils';
 import MarqueeText from '@/components/widgets/MarqueeText';
 import ActiveIngredientTooltip from '@/components/widgets/ActiveIngredientTooltipContent';
-import { 
-  getCartTextPillStyle, 
-  getCartTextShadowStyle 
+import {
+  getCartTextPillStyle,
+  getCartTextShadowStyle
 } from '@/components/modals/CartColorCustomizerModal';
 
 /**
@@ -68,16 +68,16 @@ const CartTableRow = React.memo(function CartTableRow({
     const qty = item.quantity;
     const speechOrder = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
 
-    speechOrder === "qty_first" 
-      ? speakAudioSequence([qty, alias]) 
+    speechOrder === "qty_first"
+      ? speakAudioSequence([qty, alias])
       : speakAudioSequence([alias, qty]);
   };
 
   // Handle AI Consultant
   const handleOpenAI = (e) => {
     e.stopPropagation();
-    const ingInfo = (product.active_ingredient || item.active_ingredient) 
-      ? ` (Hoạt chất: ${product.active_ingredient || item.active_ingredient})` 
+    const ingInfo = (product.active_ingredient || item.active_ingredient)
+      ? ` (Hoạt chất: ${product.active_ingredient || item.active_ingredient})`
       : '';
     const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${product.name || item.product_name}${ingInfo}`;
     window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
@@ -97,6 +97,17 @@ const CartTableRow = React.memo(function CartTableRow({
         left: rect.left,
         right: rect.right
       });
+    }
+  };
+
+  // Focus Product Search helper
+  const focusProductSearch = () => {
+    const el = document.getElementById('pos-quick-product-search') || 
+               document.querySelector('input[placeholder*="Tìm kiếm sản phẩm"]') || 
+               document.querySelector('input[placeholder*="Tên sản phẩm"]');
+    if (el) {
+      el.focus();
+      el.select?.();
     }
   };
 
@@ -121,8 +132,10 @@ const CartTableRow = React.memo(function CartTableRow({
         isSearchFocused ? "z-[3500] bg-white/5 dark:bg-slate-800/20" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
       )}
       style={{
-        borderColor: cartColorConfig?.enableBorder === false 
-          ? 'transparent' 
+        willChange: "transform, opacity",
+        transform: "translateZ(0)",
+        borderColor: cartColorConfig?.enableBorder === false
+          ? 'transparent'
           : (cartColorConfig?.borderColor !== 'default' ? `${cartColorConfig?.borderColor}25` : undefined)
       }}
       onContextMenu={(e) => onContextMenu?.(e, item, index)}
@@ -172,8 +185,8 @@ const CartTableRow = React.memo(function CartTableRow({
               autoComplete="off"
               autoFocus
               style={{
-                color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' 
-                  ? cartColorConfig.productTextColor 
+                color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default'
+                  ? cartColorConfig.productTextColor
                   : undefined
               }}
               className={cn(
@@ -257,43 +270,53 @@ const CartTableRow = React.memo(function CartTableRow({
                 </div>
 
                 {/* AI Scanned badge */}
-                {item.ai_scanned && (
-                  <div className="mt-1 flex items-center gap-1.5 z-10">
-                    {item.ai_matched_status === "matched" ? (
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit">
-                        <Sparkles size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
-                        <span className="truncate max-w-[320px]">{`AI Tự khớp: "${item.ai_original_name}"`}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdateField?.(index, "ai_scanned", undefined);
-                          }}
-                          className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1"
-                          title="Xác nhận khớp đúng"
-                        >
-                          <Check size={10} strokeWidth={3} />
-                        </button>
-                      </span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm w-fit">
-                        <TriangleAlert size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />
-                        <span className="truncate max-w-[320px]">{`AI không khớp được: "${item.ai_original_name}"`}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onUpdateField?.(index, "ai_scanned", undefined);
-                          }}
-                          className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1"
-                          title="Bỏ qua cảnh báo"
-                        >
-                          <XIcon size={10} strokeWidth={3} />
-                        </button>
-                      </span>
-                    )}
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {item.ai_scanned && (
+                    <m.div
+                      initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                      animate={{ height: "auto", opacity: 1, marginTop: 4 }}
+                      exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex items-center gap-1.5 z-10">
+                        {item.ai_matched_status === "matched" ? (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-sm w-fit">
+                            <Sparkles size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+                            <span className="truncate max-w-[320px]">{`AI Tự khớp: "${item.ai_original_name}"`}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateField?.(index, "ai_scanned", undefined);
+                              }}
+                              className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1"
+                              title="Xác nhận khớp đúng"
+                            >
+                              <Check size={10} strokeWidth={3} />
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-sm w-fit">
+                            <TriangleAlert size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                            <span className="truncate max-w-[320px]">{`AI không khớp được: "${item.ai_original_name}"`}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onUpdateField?.(index, "ai_scanned", undefined);
+                              }}
+                              className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1"
+                              title="Bỏ qua cảnh báo"
+                            >
+                              <XIcon size={10} strokeWidth={3} />
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Stock badge & Last purchase badge */}
@@ -333,15 +356,25 @@ const CartTableRow = React.memo(function CartTableRow({
                   )}
                 </div>
 
-                {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[item.product_id] && (
-                  <div
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105"
-                    title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)} | Giá: ${formatNumber(partnerLastPurchases[item.product_id].last_price)}đ | SL: ${formatNumber(partnerLastPurchases[item.product_id].last_quantity)}`}
-                  >
-                    <Clock size={10} className="text-white shrink-0" />
-                    <span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)}</span>
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[item.product_id] && (
+                    <m.div
+                      initial={{ height: 0, opacity: 0, scale: 0.9 }}
+                      animate={{ height: "auto", opacity: 1, scale: 1 }}
+                      exit={{ height: 0, opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white border border-indigo-700 dark:border-indigo-500 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap transition-all hover:scale-105"
+                        title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)} | Giá: ${formatNumber(partnerLastPurchases[item.product_id].last_price)}đ | SL: ${formatNumber(partnerLastPurchases[item.product_id].last_quantity)}`}
+                      >
+                        <Clock size={10} className="text-white shrink-0" />
+                        <span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)}</span>
+                      </div>
+                    </m.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           )}
@@ -373,26 +406,29 @@ const CartTableRow = React.memo(function CartTableRow({
               step="any"
               tabIndex={posMode === "Wholesale" ? 0 : -1}
               style={{
-                color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') 
-                  ? cartColorConfig.cartValuesColor 
+                color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default')
+                  ? cartColorConfig.cartValuesColor
                   : undefined
               }}
               className="w-full bg-transparent text-center font-black text-base outline-none placeholder:text-gray-300 text-primary dark:text-[#d4a574]"
-              value={item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== "" 
-                ? (typeof item.secondary_qty === 'number' ? Math.round((item.secondary_qty + Number.EPSILON) * 1000) / 1000 : item.secondary_qty) 
+              value={item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== ""
+                ? (typeof item.secondary_qty === 'number' ? Math.round((item.secondary_qty + Number.EPSILON) * 1000) / 1000 : item.secondary_qty)
                 : ""}
               onFocus={(e) => e.target.select()}
               autoComplete="off"
               onChange={(e) => onUpdateField?.(index, "secondary_qty", parseFloat(e.target.value) || 0)}
               onKeyDown={(e) => {
-                if (e.key === "ArrowDown") {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  focusProductSearch();
+                } else if (e.key === "ArrowDown") {
                   e.preventDefault();
                   const next = index + 1;
                   next < totalRows && document.getElementById(`qty-sec-${next}`)?.focus();
                 } else if (e.key === "ArrowUp") {
                   e.preventDefault();
                   const prev = index - 1;
-                  prev >= 0 && document.getElementById(`qty-sec-${prev}`)?.focus();
+                  prev >= 0 ? document.getElementById(`qty-sec-${prev}`)?.focus() : (document.getElementById('working-sec-qty')?.focus());
                 }
               }}
               id={`qty-sec-${index}`}
@@ -412,16 +448,16 @@ const CartTableRow = React.memo(function CartTableRow({
           <input
             type="number"
             style={{
-              color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') 
-                ? cartColorConfig.cartValuesColor 
+              color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default')
+                ? cartColorConfig.cartValuesColor
                 : undefined,
               ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'qty') : {}),
               ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor)
             }}
             className={cn(
               "w-full h-10 text-center outline-none font-black text-lg text-primary dark:text-[#d4a574] transition-all",
-              cartColorConfig?.enableTextPills 
-                ? "rounded-2xl border shadow-xs" 
+              cartColorConfig?.enableTextPills
+                ? "rounded-2xl border shadow-xs"
                 : "bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 shadow-none"
             )}
             value={item.quantity}
@@ -432,7 +468,7 @@ const CartTableRow = React.memo(function CartTableRow({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                document.getElementById('pos-quick-product-search')?.focus();
+                focusProductSearch();
               } else if (e.key === "Tab") {
                 e.preventDefault();
                 if (e.shiftKey) {
@@ -451,7 +487,7 @@ const CartTableRow = React.memo(function CartTableRow({
               } else if (e.key === "ArrowUp") {
                 e.preventDefault();
                 const prev = index - 1;
-                prev >= 0 ? document.getElementById(`qty-main-${prev}`)?.focus() : document.getElementById('pos-working-quantity')?.focus();
+                prev >= 0 ? document.getElementById(`qty-main-${prev}`)?.focus() : (document.getElementById('working-main-qty')?.focus() || document.getElementById('pos-working-quantity')?.focus());
               }
             }}
           />
@@ -506,7 +542,7 @@ const CartTableRow = React.memo(function CartTableRow({
               tabIndex={blockTabPrice ? -1 : 0}
               style={{
                 color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && item.price > 0 && !isLoss && !(item.latest_cost_price > 0 && item.price < item.latest_cost_price))
-                  ? cartColorConfig.cartValuesColor 
+                  ? cartColorConfig.cartValuesColor
                   : undefined,
                 ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor)
               }}
@@ -530,7 +566,7 @@ const CartTableRow = React.memo(function CartTableRow({
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Tab") {
                   e.preventDefault();
-                  document.getElementById('pos-quick-product-search')?.focus();
+                  focusProductSearch();
                 } else if (e.key === "ArrowDown") {
                   e.preventDefault();
                   const next = index + 1;
@@ -538,7 +574,7 @@ const CartTableRow = React.memo(function CartTableRow({
                 } else if (e.key === "ArrowUp") {
                   e.preventDefault();
                   const prev = index - 1;
-                  prev >= 0 ? document.getElementById(`price-${prev}`)?.focus() : document.getElementById('pos-working-price')?.focus();
+                  prev >= 0 ? document.getElementById(`price-${prev}`)?.focus() : (document.getElementById('working-price')?.focus() || document.getElementById('pos-working-price')?.focus());
                 }
               }}
               id={`price-${index}`}
@@ -556,54 +592,62 @@ const CartTableRow = React.memo(function CartTableRow({
           <AnimatePresence mode="wait">
             {isLoss && (
               <m.div
-                initial={{ opacity: 0, scale: 0.85, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: -4 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
+                exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 key={`loss-${stableKey}`}
-                className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs"
+                className="overflow-hidden"
               >
-                <CircleAlert size={10} className="text-white" />
-                <span>LỖ VỐN (THỰC TẾ: {formatCurrency(item.cost_price)})</span>
+                <div className="bg-gradient-to-r from-red-600/90 to-rose-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs">
+                  <CircleAlert size={10} className="text-white" />
+                  <span>LỖ VỐN (THỰC TẾ: {formatCurrency(item.cost_price)})</span>
+                </div>
               </m.div>
             )}
             {isBelowNewCost && (
               <m.div
-                initial={{ opacity: 0, scale: 0.85, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: -4 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
+                exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 key={`below-new-${stableKey}`}
-                className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs"
+                className="overflow-hidden"
               >
-                <TrendingDown size={10} className="text-white" />
-                <span>DƯỚI VỐN NHẬP MỚI ({formatCurrency(item.latest_cost_price)})</span>
+                <div className="bg-gradient-to-r from-orange-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-white/20 shadow-xs">
+                  <TrendingDown size={10} className="text-white" />
+                  <span>DƯỚI VỐN NHẬP MỚI ({formatCurrency(item.latest_cost_price)})</span>
+                </div>
               </m.div>
             )}
             {isLowPrice && (
               <m.div
-                initial={{ opacity: 0, scale: 0.85, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: -4 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
+                exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 key={`low-price-${stableKey}`}
-                className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs"
+                className="overflow-hidden"
               >
-                <BadgePercent size={10} className="text-white" />
-                <span>GIÁ THẤP ({formatCurrency(product?.sale_price)})</span>
+                <div className="bg-gradient-to-r from-amber-500/90 to-orange-600/90 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs">
+                  <BadgePercent size={10} className="text-white" />
+                  <span>GIÁ THẤP ({formatCurrency(product?.sale_price)})</span>
+                </div>
               </m.div>
             )}
             {isPriceSynced && (
               <m.div
-                initial={{ opacity: 0, scale: 0.85, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.85, y: -4 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
+                initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
+                exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+                transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
                 key={`sync-${stableKey}`}
-                className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs"
+                className="overflow-hidden"
               >
-                <ArrowLeftRight size={10} className="text-white" />
-                <span>ĐỒNG BỘ GIÁ</span>
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-[9px] px-2 py-1 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-white/20 shadow-xs">
+                  <ArrowLeftRight size={10} className="text-white" />
+                  <span>ĐỒNG BỘ GIÁ</span>
+                </div>
               </m.div>
             )}
           </AnimatePresence>
@@ -614,8 +658,8 @@ const CartTableRow = React.memo(function CartTableRow({
       <td className="py-2 px-4 text-right">
         <div
           style={{
-            color: (item.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') 
-              ? cartColorConfig.cartValuesColor 
+            color: (item.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default')
+              ? cartColorConfig.cartValuesColor
               : undefined,
             ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}),
             ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor)
@@ -643,10 +687,10 @@ const CartTableRow = React.memo(function CartTableRow({
             e.stopPropagation();
             onRemove?.(index);
           }}
-          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+          className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
           title="Xóa dòng"
         >
-          <Trash2 size={18} />
+          <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
         </button>
       </td>
     </m.tr>

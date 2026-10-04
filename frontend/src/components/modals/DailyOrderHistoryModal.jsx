@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import {
@@ -46,16 +46,24 @@ export default function DailyOrderHistoryModal({
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('ALL');
     const [selectedDate, setSelectedDate] = useState(() => getLocalDateString());
     const [isMaximized, setIsMaximized] = useState(false);
+    const searchInputRef = useRef(null);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [selectedDetailOrder, setSelectedDetailOrder] = useState(null);
 
-    // Reset selectedDate to current local date whenever modal opens
+    // Reset selectedDate to current local date and auto-focus/select search input whenever modal opens
     useEffect(() => {
         if (isOpen) {
             setSelectedDate(getLocalDateString());
+            const timer = setTimeout(() => {
+                if (searchInputRef.current) {
+                    searchInputRef.current.focus();
+                    searchInputRef.current.select();
+                }
+            }, 80);
+            return () => clearTimeout(timer);
         }
     }, [isOpen]);
 
@@ -258,6 +266,8 @@ export default function DailyOrderHistoryModal({
                                     <CustomDatePicker
                                         value={selectedDate}
                                         onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="w-auto"
+                                        inputClassName="!bg-black/[0.04] dark:!bg-white/[0.05] hover:!bg-[#8b6f47]/15 border-[#8b6f47]/20 dark:border-white/10 text-[#2d5016] dark:text-[#d4a574] shadow-none h-8 px-3 rounded-xl transition-all"
                                     />
 
                                     {/* Resize / Fullscreen Button */}
@@ -361,10 +371,12 @@ export default function DailyOrderHistoryModal({
                             <div className="relative flex-1 sm:w-64">
                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                 <input
+                                    ref={searchInputRef}
                                     type="text"
                                     placeholder={type === 'Purchase' ? "Tìm NCC, mã đơn, SP..." : "Tìm khách, mã đơn, SP..."}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    onFocus={(e) => e.target.select()}
                                     className="w-full pl-8 pr-7 py-1.5 bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/25 dark:border-white/10 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 text-foreground placeholder:text-slate-400 shadow-xs"
                                 />
                                 {searchTerm && (

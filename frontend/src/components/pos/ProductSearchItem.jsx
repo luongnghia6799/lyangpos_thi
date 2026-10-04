@@ -31,7 +31,7 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
 
   return (
     <div
-      onMouseMove={() => onHover?.(index)}
+      onMouseEnter={() => onHover?.(index)}
       onMouseDown={(e) => {
         e.preventDefault();
         onSelect?.(product);
@@ -55,11 +55,12 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
                 onContextMenu?.(e, product);
               }}
               isActive={isActive}
-              className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+              className="font-black tracking-tight leading-relaxed"
               style={{
                 color: isActive ? colorTheme.accent : colorTheme.main,
                 fontSize: "16px",
-                paddingLeft: isActive ? "12px" : "0px"
+                transform: isActive ? "translateX(6px)" : "none",
+                transition: "transform 180ms ease, color 180ms ease"
               }}
             />
           </div>

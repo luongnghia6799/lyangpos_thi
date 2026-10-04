@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, memo } from 'react';
+import React, { useRef, useState, useEffect, memo } from 'react';
 
 export const MarqueeText = memo(({
   text,
@@ -17,40 +17,45 @@ export const MarqueeText = memo(({
   const [isHovered, setIsHovered] = useState(false);
   const isCurrentlyActive = Boolean(isActive || active || isHovered);
 
-  const measure = () => {
-    if (containerRef.current && textRef.current) {
-      const containerW = containerRef.current.clientWidth;
-      const textW = textRef.current.scrollWidth;
-      const dist = textW > containerW + 2 ? textW - containerW : 0;
-      setOverflowDist(dist);
+  // Measure only when the item is active or hovered to prevent layout thrashing on list mount
+  useEffect(() => {
+    if (!isCurrentlyActive) {
+      if (overflowDist !== 0) setOverflowDist(0);
+      return;
     }
-  };
 
-  useLayoutEffect(() => {
-    measure();
-    const el = containerRef.current;
-    if (!el) return;
+    const measure = () => {
+      if (containerRef.current && textRef.current) {
+        const containerW = containerRef.current.clientWidth;
+        const textW = textRef.current.scrollWidth;
+        const dist = textW > containerW + 2 ? textW - containerW : 0;
+        setOverflowDist(prev => (prev === dist ? prev : dist));
+      }
+    };
+
+    // Defer measurement to next frame after paint to ensure clean non-blocking layout
+    let innerRafId;
+    const rafId = requestAnimationFrame(() => {
+      innerRafId = requestAnimationFrame(measure);
+    });
 
     let ro;
-    if (typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
       ro = new ResizeObserver(() => {
-        measure();
+        requestAnimationFrame(measure);
       });
-      ro.observe(el);
-      if (textRef.current) ro.observe(textRef.current);
+      ro.observe(containerRef.current);
     }
 
-    const timer = setTimeout(measure, 100);
-
     return () => {
+      cancelAnimationFrame(rafId);
+      if (innerRafId) cancelAnimationFrame(innerRafId);
       if (ro) ro.disconnect();
-      clearTimeout(timer);
     };
-  }, [text]);
+  }, [isCurrentlyActive, text]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-    measure();
   };
 
   const handleMouseLeave = () => {
@@ -76,7 +81,7 @@ export const MarqueeText = memo(({
       <span
         ref={textRef}
         className={`inline-block whitespace-nowrap leading-normal ${
-          shouldAnimate ? 'animate-marquee-on-hover is-overflowing is-active' : ''
+          shouldAnimate ? 'animate-marquee-on-hover is-overflowing is-active' : 'truncate max-w-full'
         }`}
         style={
           shouldAnimate
@@ -94,4 +99,5 @@ export const MarqueeText = memo(({
 });
 
 export default MarqueeText;
+
 

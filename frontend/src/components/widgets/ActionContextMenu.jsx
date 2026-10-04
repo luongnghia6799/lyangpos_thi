@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import {
@@ -8,14 +8,13 @@ import {
   ReceiptText,
   History,
   Trash2,
-  ExternalLink,
   Check,
   Sparkles,
-  Info,
   Package,
   UserCheck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { MASCOT_LIST, DEFAULT_MASCOT_CONFIG } from '../../lib/mascots';
 
 const containerVariants = {
   hidden: { 
@@ -27,9 +26,9 @@ const containerVariants = {
       ease: "easeInOut"
     }
   },
-  visible: {
-    opacity: 1,
-    scale: 1,
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
     y: 0,
     transition: {
       duration: 0.22,
@@ -38,9 +37,9 @@ const containerVariants = {
       delayChildren: 0.015
     }
   },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
+  exit: { 
+    opacity: 0, 
+    scale: 0.95, 
     y: -4,
     transition: {
       duration: 0.18,
@@ -70,9 +69,9 @@ const itemVariants = {
       mass: 0.6
     } 
   },
-  exit: {
-    opacity: 0,
-    x: -10,
+  exit: { 
+    opacity: 0, 
+    x: -10, 
     filter: "blur(3px)",
     transition: {
       duration: 0.12,
@@ -97,7 +96,32 @@ export default function ActionContextMenu({
   extraItems = []
 }) {
   const menuRef = useRef(null);
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [mascotConfig, setMascotConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lyang_mascot_config');
+      if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
+    } catch (e) {}
+    return DEFAULT_MASCOT_CONFIG;
+  });
+
+  useEffect(() => {
+    const handleMascotUpdate = () => {
+      try {
+        const saved = localStorage.getItem('lyang_mascot_config');
+        if (saved) setMascotConfig({ ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) });
+      } catch (e) {}
+    };
+    window.addEventListener('storage', handleMascotUpdate);
+    window.addEventListener('lyang_mascot_config_changed', handleMascotUpdate);
+    return () => {
+      window.removeEventListener('storage', handleMascotUpdate);
+      window.removeEventListener('lyang_mascot_config_changed', handleMascotUpdate);
+    };
+  }, []);
+
+  const currentChar = MASCOT_LIST.find((c) => c.id === mascotConfig?.characterId) || MASCOT_LIST[0];
+  const mascotImageUrl = currentChar?.directions || '/mascots/cheobingo-directions.webp';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -178,149 +202,57 @@ export default function ActionContextMenu({
             position: 'fixed',
             top: posY,
             left: posX,
+            backgroundColor: 'color-mix(in srgb, var(--bg-color, #faf8f3) 93%, transparent)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
           }}
           onClick={(e) => e.stopPropagation()}
-          className="w-64 bg-white/95 dark:bg-[#0b1b13]/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/25 dark:border-emerald-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.7)] p-2 overflow-hidden select-none text-slate-800 dark:text-slate-100 ring-1 ring-black/5"
+          className="relative w-64 text-slate-800 dark:text-slate-100 rounded-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.7)] p-2 overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/5"
         >
-          {/* Header Preview */}
-          <m.div 
-            variants={itemVariants}
-            className="px-2.5 py-2 mb-1.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-2"
-          >
-            <div className={cn(
-              "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner",
-              isPartner 
-                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25" 
-                : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
-            )}>
-              {isPartner ? (
-                <UserCheck size={16} strokeWidth={2.5} />
-              ) : (
-                <Package size={16} strokeWidth={2.5} />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-black text-xs truncate leading-tight text-slate-900 dark:text-white" title={itemName}>
-                {itemName}
-              </div>
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 truncate font-mono mt-0.5">
-                {itemSub}
-              </div>
-            </div>
-          </m.div>
+          {/* In chìm Mascot (Watermark Background) */}
+          <div 
+            className="absolute -right-5 -bottom-5 w-36 h-36 pointer-events-none select-none z-0 opacity-[0.14] dark:opacity-[0.18] transition-all duration-300"
+            style={{
+              backgroundImage: `url("${mascotImageUrl}")`,
+              backgroundPosition: '50% 50%',
+              backgroundSize: '300% 300%',
+              backgroundRepeat: 'no-repeat',
+              filter: 'grayscale(25%) contrast(1.1)',
+            }}
+          />
 
-          <div className="space-y-0.5">
-            {/* 1. Edit Action */}
-            {onEdit && (
-              <m.button
-                type="button"
-                variants={itemVariants}
-                whileHover={{ x: 4, scale: 1.01 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  onClose?.();
-                  onEdit(data);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#8b6f47]/10 dark:hover:bg-emerald-500/15 text-slate-700 dark:text-slate-200 hover:text-[#694e2b] dark:hover:text-emerald-300 transition-colors cursor-pointer group"
-              >
-                <Edit3 size={15} className="text-[#8b6f47] dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                <span>{isPartner ? "Sửa thông tin đối tác" : "Xem & Sửa sản phẩm"}</span>
-              </m.button>
-            )}
-
-            {/* 2. AI Consultation for Product */}
-            {!isPartner && onConsultAI && (
-              <m.button
-                type="button"
-                variants={itemVariants}
-                whileHover={{ x: 4, scale: 1.01 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  onClose?.();
-                  onConsultAI(data);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer group"
-              >
-                <Bot size={15} className="text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                <span className="flex-1 text-left">Hỏi Trợ lý AI (Công dụng, liều...)</span>
-                <Sparkles size={12} className="text-emerald-500 animate-pulse" />
-              </m.button>
-            )}
-
-            {/* 3. Transaction / Debt History for Partner or Price/Stock History for Product */}
-            {onViewHistory && (
-              <m.button
-                type="button"
-                variants={itemVariants}
-                whileHover={{ x: 4, scale: 1.01 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  onClose?.();
-                  onViewHistory(data);
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-500/10 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group"
-              >
-                {isPartner ? (
-                  <>
-                    <ReceiptText size={15} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span>Xem Công nợ / Lịch sử mua</span>
-                  </>
-                ) : (
-                  <>
-                    <History size={15} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span>Xem Lịch sử giá & Nhập xuất</span>
-                  </>
-                )}
-              </m.button>
-            )}
-
-            {/* 4. Copy Name or Code */}
-            <m.button
-              type="button"
+          {/* Content Layer */}
+          <div className="relative z-10">
+            {/* Header Preview */}
+            <m.div 
               variants={itemVariants}
-              whileHover={{ x: 4, scale: 1.01 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => handleCopyText(itemName)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer group"
+              className="px-2.5 py-2 mb-1.5 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl border border-black/5 dark:border-white/5 flex items-center gap-2"
             >
-              <div className="flex items-center gap-2.5">
-                {copied ? (
-                  <Check size={15} className="text-emerald-500" />
+              <div className={cn(
+                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-inner",
+                isPartner 
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25" 
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
+              )}>
+                {isPartner ? (
+                  <UserCheck size={16} strokeWidth={2.5} />
                 ) : (
-                  <Copy size={15} className="text-slate-400 group-hover:scale-110 transition-transform" />
+                  <Package size={16} strokeWidth={2.5} />
                 )}
-                <span>{copied ? "Đã sao chép!" : `Sao chép tên ${isPartner ? "đối tác" : "sản phẩm"}`}</span>
               </div>
-            </m.button>
+              <div className="min-w-0 flex-1">
+                <div className="font-black text-xs truncate leading-tight text-slate-900 dark:text-white" title={itemName}>
+                  {itemName}
+                </div>
+                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-400 truncate font-mono mt-0.5">
+                  {itemSub}
+                </div>
+              </div>
+            </m.div>
 
-            {/* Extra items (like delete from cart or custom options) */}
-            {extraItems.map((item, idx) => (
-              <m.button
-                key={idx}
-                type="button"
-                variants={itemVariants}
-                whileHover={{ x: 4, scale: 1.01 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  onClose?.();
-                  item.onClick?.(data);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer group",
-                  item.danger 
-                    ? "hover:bg-rose-500/10 text-rose-600 dark:text-rose-400" 
-                    : "hover:bg-black/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
-                )}
-              >
-                {item.icon && <item.icon size={15} className="group-hover:scale-110 transition-transform" />}
-                <span>{item.label}</span>
-              </m.button>
-            ))}
-
-            {/* Delete from Cart if provided */}
-            {onDelete && (
-              <>
-                <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1 mx-1" />
+            <div className="space-y-0.5">
+              {/* 1. Edit Action */}
+              {onEdit && (
                 <m.button
                   type="button"
                   variants={itemVariants}
@@ -328,15 +260,125 @@ export default function ActionContextMenu({
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     onClose?.();
-                    onDelete(data);
+                    onEdit(data);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer group"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-[#8b6f47]/10 dark:hover:bg-emerald-500/15 text-slate-700 dark:text-slate-200 hover:text-[#694e2b] dark:hover:text-emerald-300 transition-colors cursor-pointer group"
                 >
-                  <Trash2 size={15} className="text-rose-500 group-hover:scale-110 transition-transform" />
-                  <span>Xóa khỏi giỏ hàng</span>
+                  <Edit3 size={15} className="text-[#8b6f47] dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span>{isPartner ? "Sửa thông tin đối tác" : "Xem & Sửa sản phẩm"}</span>
                 </m.button>
-              </>
-            )}
+              )}
+
+              {/* 2. AI Consultation for Product */}
+              {!isPartner && onConsultAI && (
+                <m.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ x: 4, scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    onClose?.();
+                    onConsultAI(data);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer group"
+                >
+                  <Bot size={15} className="text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span className="flex-1 text-left">Hỏi Trợ lý AI (Công dụng, liều...)</span>
+                  <Sparkles size={12} className="text-emerald-500 animate-pulse" />
+                </m.button>
+              )}
+
+              {/* 3. Transaction / Debt History for Partner or Price/Stock History for Product */}
+              {onViewHistory && (
+                <m.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ x: 4, scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    onClose?.();
+                    onViewHistory(data);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-500/10 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group"
+                >
+                  {isPartner ? (
+                    <>
+                      <ReceiptText size={15} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                      <span>Xem Công nợ / Lịch sử mua</span>
+                    </>
+                  ) : (
+                    <>
+                      <History size={15} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                      <span>Xem Lịch sử giá & Nhập xuất</span>
+                    </>
+                  )}
+                </m.button>
+              )}
+
+              {/* 4. Copy Name or Code */}
+              <m.button
+                type="button"
+                variants={itemVariants}
+                whileHover={{ x: 4, scale: 1.01 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleCopyText(itemName)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold hover:bg-black/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5">
+                  {copied ? (
+                    <Check size={15} className="text-emerald-500" />
+                  ) : (
+                    <Copy size={15} className="text-slate-400 group-hover:scale-110 transition-transform" />
+                  )}
+                  <span>{copied ? "Đã sao chép!" : `Sao chép tên ${isPartner ? "đối tác" : "sản phẩm"}`}</span>
+                </div>
+              </m.button>
+
+              {/* Extra items (like delete from cart or custom options) */}
+              {extraItems.map((item, idx) => (
+                <m.button
+                  key={idx}
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ x: 4, scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    onClose?.();
+                    item.onClick?.(data);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer group",
+                    item.danger 
+                      ? "hover:bg-rose-500/10 text-rose-600 dark:text-rose-400" 
+                      : "hover:bg-black/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
+                  )}
+                >
+                  {item.icon && <item.icon size={15} className="group-hover:scale-110 transition-transform" />}
+                  <span>{item.label}</span>
+                </m.button>
+              ))}
+
+              {/* Delete from Cart if provided */}
+              {onDelete && (
+                <>
+                  <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1 mx-1" />
+                  <m.button
+                    type="button"
+                    variants={itemVariants}
+                    whileHover={{ x: 4, scale: 1.01 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      onClose?.();
+                      onDelete(data);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer group"
+                  >
+                    <Trash2 size={15} className="text-rose-500 group-hover:scale-110 transition-transform" />
+                    <span>Xóa khỏi giỏ hàng</span>
+                  </m.button>
+                </>
+              )}
+            </div>
           </div>
         </m.div>
       </div>

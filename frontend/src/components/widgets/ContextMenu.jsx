@@ -12,36 +12,28 @@ import {
     ShoppingCart, 
     History, 
     Maximize, 
-    Minimize,
-    PackagePlus,
-    TrendingUp,
-    ChevronRight
+    Minimize, 
+    PackagePlus, 
+    TrendingUp, 
+    ChevronRight 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-
-const ZaloIcon = ({ size = 16, className }) => (
-    <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-    >
-        <rect width="24" height="24" rx="6" fill="#0068FF" />
-        <path
-            d="M6.5 7.5H17.5V9.3L12.5 15H17.5V17H6.5V15.2L11.5 9.5H6.5V7.5Z"
-            fill="white"
-        />
-    </svg>
-);
+import { MASCOT_LIST, DEFAULT_MASCOT_CONFIG } from '../../lib/mascots';
 
 const ContextMenu = () => {
     const [isVisible, setIsVisible] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+    const [mascotConfig, setMascotConfig] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_mascot_config');
+            if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
+        } catch (e) {}
+        return DEFAULT_MASCOT_CONFIG;
+    });
+
     const menuRef = useRef(null);
     const navigate = useNavigate();
     const location = useLocation();
@@ -52,38 +44,24 @@ const ContextMenu = () => {
     const isDashboard = location.pathname === '/';
     const isHistory = location.pathname === '/history';
 
-    const handleOpenZalo = async () => {
-        // 1. Direct Tauri Command: Executes cmd.exe /c start "" "zalo:" with CREATE_NO_WINDOW (Bypasses WebView2 prompts completely)
-        if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+    // Synchronize current mascot
+    useEffect(() => {
+        const handleMascotUpdate = () => {
             try {
-                if (window.__TAURI__?.core?.invoke) {
-                    await window.__TAURI__.core.invoke('open_zalo');
-                    return;
-                }
-            } catch (err) {
-                console.warn("Tauri invoke open_zalo failed, trying backend API", err);
-            }
-        }
+                const saved = localStorage.getItem('lyang_mascot_config');
+                if (saved) setMascotConfig({ ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) });
+            } catch (e) {}
+        };
+        window.addEventListener('storage', handleMascotUpdate);
+        window.addEventListener('lyang_mascot_config_changed', handleMascotUpdate);
+        return () => {
+            window.removeEventListener('storage', handleMascotUpdate);
+            window.removeEventListener('lyang_mascot_config_changed', handleMascotUpdate);
+        };
+    }, []);
 
-        // 2. Backend Native Process API (Bypasses WebView2 prompts in both desktop and web/LAN clients)
-        try {
-            const res = await fetch('/api/open-zalo', { method: 'POST' });
-            if (res.ok) return;
-        } catch (err) {
-            console.warn("Backend open-zalo failed", err);
-        }
-
-        // 3. Fallback: Shell plugin / protocol
-        try {
-            if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
-                const { open } = await import('@tauri-apps/plugin-shell');
-                await open('zalo://');
-                return;
-            }
-        } catch (err) {}
-
-        window.location.href = 'zalo://';
-    };
+    const currentChar = MASCOT_LIST.find((c) => c.id === mascotConfig?.characterId) || MASCOT_LIST[0];
+    const mascotImageUrl = currentChar?.directions || '/mascots/cheobingo-directions.webp';
 
     const handleContextMenu = useCallback((e) => {
         // If holding Shift key, allow native browser context menu (Inspect Element)
@@ -103,7 +81,7 @@ const ContextMenu = () => {
         let x = e.clientX;
         let y = e.clientY;
         const menuWidth = 240;
-        const menuHeight = 360;
+        const menuHeight = 320;
 
         if (x + menuWidth > window.innerWidth) x -= menuWidth;
         if (y + menuHeight > window.innerHeight) y -= menuHeight;
@@ -197,9 +175,6 @@ const ContextMenu = () => {
                 sessionStorage.removeItem('user');
                 navigate('/welcome');
                 break;
-            case 'open_zalo':
-                handleOpenZalo();
-                break;
             default: break;
         }
     };
@@ -214,9 +189,9 @@ const ContextMenu = () => {
                 ease: "easeInOut"
             }
         },
-        visible: {
-            opacity: 1,
-            scale: 1,
+        visible: { 
+            opacity: 1, 
+            scale: 1, 
             y: 0,
             transition: {
                 duration: 0.22,
@@ -225,9 +200,9 @@ const ContextMenu = () => {
                 delayChildren: 0.015
             }
         },
-        exit: {
-            opacity: 0,
-            scale: 0.95,
+        exit: { 
+            opacity: 0, 
+            scale: 0.95, 
             y: -4,
             transition: {
                 duration: 0.2,
@@ -257,9 +232,9 @@ const ContextMenu = () => {
                 mass: 0.6
             } 
         },
-        exit: {
-            opacity: 0,
-            x: -10,
+        exit: { 
+            opacity: 0, 
+            x: -10, 
             filter: "blur(3px)",
             transition: {
                 duration: 0.12,
@@ -281,98 +256,110 @@ const ContextMenu = () => {
                         position: 'fixed', 
                         top: position.y, 
                         left: position.x,
-                        zIndex: 999999 
+                        zIndex: 999999,
+                        backgroundColor: 'color-mix(in srgb, var(--bg-color, #faf8f3) 93%, transparent)',
+                        backdropFilter: 'blur(24px)',
+                        WebkitBackdropFilter: 'blur(24px)',
                     }}
-                    className="w-64 bg-white/92 dark:bg-[#0c1e15]/95 text-slate-800 dark:text-slate-100 backdrop-blur-2xl rounded-2xl border border-black/10 dark:border-emerald-500/25 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] p-2 overflow-hidden select-none"
+                    className="relative w-64 text-slate-800 dark:text-slate-100 rounded-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.7)] p-2 overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/5"
                 >
-                    {/* Navigation Header Group */}
-                    <m.div variants={itemVariants} className="flex items-center justify-between px-1.5 py-1.5 mb-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                        <MenuIconButton icon={ArrowLeft} onClick={() => handleAction('back')} title="Quay lại" />
-                        <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Tiến tới" />
-                        <MenuIconButton icon={RotateCcw} onClick={() => handleAction('reload')} title="Tải lại trang" />
-                        <div className="w-px h-4 bg-slate-300 dark:bg-white/10 mx-1" />
-                        <MenuIconButton 
-                            icon={isDarkMode ? Sun : Moon} 
-                            onClick={() => handleAction('theme')} 
-                            title={isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"} 
-                            className="text-amber-500 dark:text-amber-400 hover:bg-amber-500/15"
-                        />
-                    </m.div>
-
-                    {/* Main Actions */}
-                    <div className="space-y-0.5">
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={LayoutDashboard} 
-                            label="Tổng quan" 
-                            active={isDashboard}
-                            onClick={() => handleAction('dashboard')} 
-                        />
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={ShoppingCart} 
-                            label="Bán hàng (POS)" 
-                            active={isPOS}
-                            onClick={() => handleAction('pos')} 
-                        />
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={PackagePlus} 
-                            label="Nhập hàng" 
-                            active={isPurchase}
-                            onClick={() => handleAction('purchase')} 
-                        />
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={TrendingUp} 
-                            label="Tổng hợp" 
-                            active={isAnalysis}
-                            onClick={() => handleAction('analysis')} 
-                        />
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={History} 
-                            label="Lịch sử đơn" 
-                            active={isHistory}
-                            onClick={() => handleAction('history')} 
-                        />
-                    </div>
-
-                    <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
-
-                    <div className="space-y-0.5">
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={ZaloIcon} 
-                            label="Mở App Zalo PC" 
-                            onClick={() => handleAction('open_zalo')} 
-                        />
-                        <MenuItem 
-                            variants={itemVariants}
-                            icon={isFullscreen ? Minimize : Maximize} 
-                            label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
-                            onClick={() => handleAction('fullscreen')} 
-                        />
-                    </div>
-
-                    <m.div variants={itemVariants} className="h-px bg-slate-200/80 dark:bg-white/10 my-1.5 mx-1" />
-
-                    <MenuItem 
-                        variants={itemVariants}
-                        icon={LogOut} 
-                        label="Đăng xuất" 
-                        danger
-                        onClick={() => handleAction('logout')} 
+                    {/* In chìm Mascot (Watermark Background) */}
+                    <div 
+                        className="absolute -right-5 -bottom-5 w-36 h-36 pointer-events-none select-none z-0 opacity-[0.14] dark:opacity-[0.18] transition-all duration-300"
+                        style={{
+                            backgroundImage: `url("${mascotImageUrl}")`,
+                            backgroundPosition: '50% 50%',
+                            backgroundSize: '300% 300%',
+                            backgroundRepeat: 'no-repeat',
+                            filter: 'grayscale(25%) contrast(1.1)',
+                        }}
                     />
 
-                    {/* Logo/Branding footer */}
-                    <m.div variants={itemVariants} className="mt-1.5 px-3 py-1.5 bg-slate-100/70 dark:bg-white/5 rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5">
-                        <span className="text-[9.5px] font-black text-slate-400 dark:text-emerald-400/50 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
-                        <div className="flex gap-1.5 items-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
+                    {/* Content Layer */}
+                    <div className="relative z-10">
+                        {/* Navigation Header Group */}
+                        <m.div variants={itemVariants} className="flex items-center justify-between px-1.5 py-1.5 mb-1.5 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl border border-black/5 dark:border-white/5">
+                            <MenuIconButton icon={ArrowLeft} onClick={() => handleAction('back')} title="Quay lại" />
+                            <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Tiến tới" />
+                            <MenuIconButton icon={RotateCcw} onClick={() => handleAction('reload')} title="Tải lại trang" />
+                            <div className="w-px h-4 bg-slate-300/80 dark:bg-white/10 mx-1" />
+                            <MenuIconButton 
+                                icon={isDarkMode ? Sun : Moon} 
+                                onClick={() => handleAction('theme')} 
+                                title={isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"} 
+                                className="text-amber-500 dark:text-amber-400 hover:bg-amber-500/15"
+                            />
+                        </m.div>
+
+                        {/* Main Actions */}
+                        <div className="space-y-0.5">
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={LayoutDashboard} 
+                                label="Tổng quan" 
+                                active={isDashboard}
+                                onClick={() => handleAction('dashboard')} 
+                            />
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={ShoppingCart} 
+                                label="Bán hàng (POS)" 
+                                active={isPOS}
+                                onClick={() => handleAction('pos')} 
+                            />
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={PackagePlus} 
+                                label="Nhập hàng" 
+                                active={isPurchase}
+                                onClick={() => handleAction('purchase')} 
+                            />
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={TrendingUp} 
+                                label="Tổng hợp" 
+                                active={isAnalysis}
+                                onClick={() => handleAction('analysis')} 
+                            />
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={History} 
+                                label="Lịch sử đơn" 
+                                active={isHistory}
+                                onClick={() => handleAction('history')} 
+                            />
                         </div>
-                    </m.div>
+
+                        <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
+
+                        <div className="space-y-0.5">
+                            <MenuItem 
+                                variants={itemVariants}
+                                icon={isFullscreen ? Minimize : Maximize} 
+                                label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
+                                onClick={() => handleAction('fullscreen')} 
+                            />
+                        </div>
+
+                        <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
+
+                        <MenuItem 
+                            variants={itemVariants}
+                            icon={LogOut} 
+                            label="Đăng xuất" 
+                            danger
+                            onClick={() => handleAction('logout')} 
+                        />
+
+                        {/* Logo/Branding footer */}
+                        <m.div variants={itemVariants} className="mt-1.5 px-3 py-1.5 bg-black/[0.04] dark:bg-white/[0.06] rounded-xl flex items-center justify-between border border-black/5 dark:border-white/5">
+                            <span className="text-[9.5px] font-black text-slate-400 dark:text-emerald-400/60 tracking-[0.2em] uppercase">LyangPOS v4.0</span>
+                            <div className="flex gap-1.5 items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
+                            </div>
+                        </m.div>
+                    </div>
                 </m.div>
             )}
         </AnimatePresence>,
@@ -392,7 +379,7 @@ const MenuItem = ({ icon: Icon, label, onClick, active, danger, variants }) => (
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20" 
                 : danger
                     ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
-                    : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                    : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
         )}
     >
         <div className="flex items-center gap-2.5">

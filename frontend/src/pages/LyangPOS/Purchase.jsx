@@ -1424,19 +1424,30 @@ export default function Purchase() {
         }
     }, [selectedPartner?.id, editOrderId]);
 
+    const generateCartId = () => `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    useEffect(() => {
+        if (cart && cart.length > 0) {
+            const hasMissingCartId = cart.some(item => !item.cartId);
+            if (hasMissingCartId) {
+                setCart(prev => prev.map(item => item.cartId ? item : { ...item, cartId: generateCartId() }));
+            }
+        }
+    }, [cart]);
+
     const addToCart = (product, customQty = null, customPrice = null) => {
         const qtyToAdd = customQty !== null ? customQty : 1;
         const appliedPrice = customPrice !== null ? customPrice : (product.latest_cost_price || product.cost_price);
         const existing = cart.find(item => item.product_id === product.id && item.price === appliedPrice);
         if (existing) {
-            setCart(cart.map(item =>
-                item.product_id === product.id && item.price === appliedPrice
+            setCart(prev => prev.map(item =>
+                (item.cartId === existing.cartId || (item.product_id === product.id && item.price === appliedPrice))
                     ? { ...item, quantity: item.quantity + qtyToAdd, price: appliedPrice, secondary_qty: (item.quantity + qtyToAdd) / (item.multiplier || 1) }
                     : item
             ));
         } else {
-            setCart([{
-                cartId: `purchase-item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            setCart(prev => [{
+                cartId: generateCartId(),
                 product_id: product.id,
                 product_name: product.name,
                 unit: product.unit,
@@ -1447,7 +1458,7 @@ export default function Purchase() {
                 secondary_qty: qtyToAdd / (product.multiplier || 1),
                 stock: product.stock,
                 active_ingredient: product.active_ingredient
-            }, ...cart]);
+            }, ...prev]);
         }
         setSearchTerm('');
         setActiveIndex(0);
@@ -1462,6 +1473,7 @@ export default function Purchase() {
     const updateCartItem = (idx, field, value) => {
         const newCart = [...cart];
         const item = newCart[idx];
+        if (!item) return;
         if (field === 'secondary_qty') {
             item.secondary_qty = value;
             item.quantity = value * item.multiplier;
@@ -1474,7 +1486,18 @@ export default function Purchase() {
         setCart(newCart);
     };
 
-    const removeFromCart = (idx) => setCart(cart.filter((_, i) => i !== idx));
+    const removeFromCart = (indexOrCartId) => {
+        if (typeof indexOrCartId === 'number') {
+            const target = cart[indexOrCartId];
+            if (target && target.cartId) {
+                setCart(prev => prev.filter(item => item.cartId !== target.cartId));
+            } else {
+                setCart(prev => prev.filter((_, i) => i !== indexOrCartId));
+            }
+        } else {
+            setCart(prev => prev.filter(item => item.cartId !== indexOrCartId));
+        }
+    };
 
     const handleSave = async (shouldPrint = true) => {
         if (loading) return;
@@ -2885,6 +2908,7 @@ export default function Purchase() {
                                                                     <Search size={18} strokeWidth={2.5} />
                                                                 </div>
                                                                 <input
+                                                                    id="pos-quick-product-search"
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
                                                                     style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
@@ -3311,11 +3335,12 @@ export default function Purchase() {
                                                     <td className="py-2 px-1.5 text-center">
                                                         {workingItem.product && (
                                                             <button
+                                                                type="button"
                                                                 onClick={() => setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' })}
-                                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
-                                                                title="Xóa dòng"
+                                                                className="group/clear-btn w-7 h-7 mx-auto rounded-lg flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_10px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                                                                title="Xóa dòng tạm"
                                                             >
-                                                                <X size={17} />
+                                                                <X size={15} strokeWidth={2.5} className="transition-transform duration-200 group-hover/clear-btn:rotate-90" />
                                                             </button>
                                                         )}
                                                     </td>
@@ -3324,7 +3349,7 @@ export default function Purchase() {
                                                 <AnimatePresence initial={false}>
                                                     {cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
-                                                            key={item.cartId || `purchase-row-${idx}-${item.product_id}`}
+                                                            key={item.cartId || `purchase-item-${item.product_id || 'prod'}-${idx}`}
                                                             layout="position"
                                                             initial={{
                                                                 opacity: 0,
@@ -3367,7 +3392,7 @@ export default function Purchase() {
                                                                             type: 'product',
                                                                             data: p,
                                                                             position: { x: e.clientX, y: e.clientY },
-                                                                            onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                            onDelete: () => removeFromCart(item.cartId || idx)
                                                                         });
                                                                     }
                                                                 }}
@@ -3389,7 +3414,7 @@ export default function Purchase() {
                                                                                     type: 'product',
                                                                                     data: p,
                                                                                     position: { x: e.clientX, y: e.clientY },
-                                                                                    onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                                    onDelete: () => removeFromCart(item.cartId || idx)
                                                                                 });
                                                                             }
                                                                         }}
@@ -3628,7 +3653,7 @@ export default function Purchase() {
                                                                                                         type: 'product',
                                                                                                         data: p,
                                                                                                         position: { x: e.clientX, y: e.clientY },
-                                                                                                        onDelete: () => setItems(prev => prev.filter((_, i) => i !== idx))
+                                                                                                        onDelete: () => removeFromCart(item.cartId || idx)
                                                                                                     });
                                                                                                 }
                                                                                             }}
@@ -4082,27 +4107,26 @@ export default function Purchase() {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                </td>
-                                                                <td className="py-2 px-4 text-right">
-                                                                    <div style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={cn("font-black text-slate-900 dark:text-white text-lg tabular-nums transition-all", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>
-                                                                        {formatNumber(item.price * item.quantity)}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-2 px-2 text-center">
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            const newCart = [...cart];
-                                                                            newCart.splice(idx, 1);
-                                                                            setCart(newCart);
-                                                                        }}
-                                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                                                        title="Xóa dòng"
-                                                                    >
-                                                                        <Trash2 size={18} />
-                                                                    </button>
-                                                                </td>
-                                                            </m.tr>
+                                                            </td>
+                                                            <td className="py-2 px-4 text-right">
+                                                                <div style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={cn("font-black text-slate-900 dark:text-white text-lg tabular-nums transition-all", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>
+                                                                    {formatNumber(item.price * item.quantity)}
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-2 px-2 text-center">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeFromCart(item.cartId || idx);
+                                                                    }}
+                                                                    className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                                    title="Xóa dòng"
+                                                                >
+                                                                    <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
+                                                                </button>
+                                                            </td>
+                                                        </m.tr>
                                                         ))}
                                                 </AnimatePresence>
                                             </tbody>

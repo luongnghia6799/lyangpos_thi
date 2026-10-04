@@ -581,6 +581,7 @@ function POSPage({
     } = cd(),
     E = ci(),
     D = j?.total || 0,
+    isAccountingFeatureEnabled = localStorage.getItem("feature_accounting_enabled") !== "false",
     T = Array.isArray(he) ? he : (Array.isArray(he?.items) ? he.items : (Array.isArray(he?.products) ? he.products : [])),
     Y = Array.isArray(_e) ? _e : (Array.isArray(_e?.items) ? _e.items : (Array.isArray(_e?.partners) ? _e.partners : [])),
     be = (t, a) => {
@@ -1424,7 +1425,7 @@ function POSPage({
       };
     }
   }, [isCartRowDropdownOpen, Tt]);
-  const isProductSearchOpen = Boolean(Z && !m?.product);
+    const isProductSearchOpen = Boolean(Z && !m?.product);
   i.useLayoutEffect(() => {
     if (isProductSearchOpen) {
       const updateCoords = () => {
@@ -2913,10 +2914,10 @@ function POSPage({
           price: 0,
           secondary_qty: 0,
           name: ""
-        }), setTimeout(() => {
+        }), requestAnimationFrame(() => {
           const ee = se.current;
-          ee && (ee.focus(), ee.select());
-        }, 10);
+          ee && (ee.focus(), ee.select?.());
+        });
         return;
       }
       const s = a !== null ? a : 1,
@@ -2954,33 +2955,37 @@ function POSPage({
         is_manual_price: d,
         isPacked: !1,
         cartId: Math.random().toString(36).substr(2, 9)
-      }, ...y]), playAddToCartSound(soundThemeCartAdd), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
+      }, ...y]), setTimeout(() => {
+        playAddToCartSound(soundThemeCartAdd);
+      }, 15), ft !== "off" && localStorage.getItem("pos_tts_enable_cart_addition") !== "false" && s !== 0) {
         const b = Za && localStorage.getItem("pos_tts_enable_cart_product_name") !== "false",
           S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
-        if (window.cartSpeechTimeout && (clearTimeout(window.cartSpeechTimeout), window.cartSpeechTimeout = null), u === 0) ht("Đã xóa");else {
-          const w = u < 0,
-            O = Math.abs(u),
-            U = w ? `Trả hàng ${O}` : O;
-          const shouldReadQty = er;
-          const fullProduct = T.find(p => p.id === t.id) || t;
-          const rawAlias = (fullProduct.alias && fullProduct.alias.trim()) || (t.alias && t.alias.trim()) || "";
-          const hasAlias = Boolean(rawAlias);
-          const alias = rawAlias;
-          const isFirstAdd = !o; // Nếu chưa có trong giỏ hàng thì mới đọc tên alias
-          
-          if (b && hasAlias && isFirstAdd && shouldReadQty) {
-            S === "qty_first" 
-              ? speakAudioSequence([U, alias]) 
-              : speakAudioSequence([alias, U]);
-            rr.current[g] = t.id;
-          } else if (b && hasAlias && isFirstAdd) {
-            speakAudioSequence([alias]);
-            rr.current[g] = t.id;
-          } else if (shouldReadQty) {
-            ht(U);
-            rr.current[g] = t.id;
+        setTimeout(() => {
+          if (window.cartSpeechTimeout && (clearTimeout(window.cartSpeechTimeout), window.cartSpeechTimeout = null), u === 0) ht("Đã xóa");else {
+            const w = u < 0,
+              O = Math.abs(u),
+              U = w ? `Trả hàng ${O}` : O;
+            const shouldReadQty = er;
+            const fullProduct = T.find(p => p.id === t.id) || t;
+            const rawAlias = (fullProduct.alias && fullProduct.alias.trim()) || (t.alias && t.alias.trim()) || "";
+            const hasAlias = Boolean(rawAlias);
+            const alias = rawAlias;
+            const isFirstAdd = !o; // Nếu chưa có trong giỏ hàng thì mới đọc tên alias
+            
+            if (b && hasAlias && isFirstAdd && shouldReadQty) {
+              S === "qty_first" 
+                ? speakAudioSequence([U, alias]) 
+                : speakAudioSequence([alias, U]);
+              rr.current[g] = t.id;
+            } else if (b && hasAlias && isFirstAdd) {
+              speakAudioSequence([alias]);
+              rr.current[g] = t.id;
+            } else if (shouldReadQty) {
+              ht(U);
+              rr.current[g] = t.id;
+            }
           }
-        }
+        }, 25);
       }
       ae(""), Ft(0), He({
         product: null,
@@ -2988,10 +2993,10 @@ function POSPage({
         price: 0,
         secondary_qty: 0,
         name: ""
-      }), setTimeout(() => {
+      }), requestAnimationFrame(() => {
         const b = se.current;
-        b && (b.focus(), b.select());
-      }, 10);
+        b && (b.focus(), b.select?.());
+      });
     },
     xl = t => {
       const a = ve[t];
@@ -4165,7 +4170,7 @@ function POSPage({
                                     G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
                                   }
                                 }
-                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs hover:bg-primary/25 active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-transparent placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
+                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:text-[#d4a574] border border-primary/20 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs hover:bg-primary/25 active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input id="pos-quick-product-search" type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-transparent placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
@@ -4199,27 +4204,25 @@ function POSPage({
                                       } else if (t.key === "ArrowUp") {
                                         t.preventDefault();
                                         Ft(a => {
-                                          const r = Math.max(a - 1, 0),
-                                            s = hs.current;
-                                          if (s) {
-                                            const n = s.children[r];
-                                            n && n.scrollIntoView({
-                                              block: "nearest"
-                                            });
-                                          }
+                                          const r = Math.max(a - 1, 0);
+                                          requestAnimationFrame(() => {
+                                            if (hs.current) {
+                                              const n = hs.current.children[r];
+                                              n && n.scrollIntoView({ block: "nearest" });
+                                            }
+                                          });
                                           return r;
                                         });
                                       } else if (t.key === "ArrowDown") {
                                         t.preventDefault();
                                         Ft(a => {
-                                          const r = Math.min(a + 1, wt.length - 1),
-                                            s = hs.current;
-                                          if (s) {
-                                            const n = s.children[r];
-                                            n && n.scrollIntoView({
-                                              block: "nearest"
-                                            });
-                                          }
+                                          const r = Math.min(a + 1, wt.length - 1);
+                                          requestAnimationFrame(() => {
+                                            if (hs.current) {
+                                              const n = hs.current.children[r];
+                                              n && n.scrollIntoView({ block: "nearest" });
+                                            }
+                                          });
                                           return r;
                                         });
                                       }else if (t.key === "Enter") {
@@ -4267,10 +4270,10 @@ function POSPage({
                                             Pt.current?.focus();
                                             Pt.current?.select?.();
                                           }
-                                          setTimeout(() => {
+                                          requestAnimationFrame(() => {
                                             const s = Te === "Wholesale" && a.secondary_unit ? Pa : Pt;
                                             s.current?.focus(), s.current?.select?.();
-                                          }, 0);
+                                          });
                                         } else {
                                           Pt.current?.focus();
                                           Pt.current?.select?.();
@@ -4278,18 +4281,20 @@ function POSPage({
                                       }
                                     }} onFocus={t => {
                                       t.target.select();
-                                      if (se.current) {
-                                        const rect = se.current.getBoundingClientRect();
-                                        if (rect.width > 0 && rect.bottom > 0) {
-                                          const nextTop = Math.round(rect.bottom + 6),
-                                            nextLeft = Math.round(rect.left),
-                                            nextWidth = Math.round(Math.max(rect.width, 700));
-                                          setProductSearchCoords(prev => {
-                                            if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) return prev;
-                                            return { top: nextTop, left: nextLeft, width: nextWidth };
-                                          });
+                                      requestAnimationFrame(() => {
+                                        if (se.current) {
+                                          const rect = se.current.getBoundingClientRect();
+                                          if (rect.width > 0 && rect.bottom > 0) {
+                                            const nextTop = Math.round(rect.bottom + 6),
+                                              nextLeft = Math.round(rect.left),
+                                              nextWidth = Math.round(Math.max(rect.width, 700));
+                                            setProductSearchCoords(prev => {
+                                              if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) return prev;
+                                              return { top: nextTop, left: nextLeft, width: nextWidth };
+                                            });
+                                          }
                                         }
-                                      }
+                                      });
                                     }} ref={se} />{m.product && <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5"><div className="flex items-center gap-2 relative z-[200]"><div onClick={t => {
                                       t.stopPropagation();
                                       const a = t.currentTarget.getBoundingClientRect();
@@ -4299,7 +4304,7 @@ function POSPage({
                                         left: a.left,
                                         right: a.right
                                       }), Dt(!0);
-                                    }} className={c("px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", m.product.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : m.product.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{m.product.stock <= 0 ? <Pr size={13} strokeWidth={2.8} className="text-white shrink-0" /> : m.product.stock < 10 ? <Comp_da size={13} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950 shrink-0" /> : <Qa size={13} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{m.product.stock}</span></div>{localStorage.getItem('feature_accounting_enabled') !== 'false' && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={12} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{m.product.accounting_stock || 0}</span></div></>}</div></div></div>}</div></div><x.button whileHover={{
+                                    }} className={c("px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs", m.product.stock <= 0 ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" : m.product.stock < 10 ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black")} title="Kiểm tồn nhanh"><div className="flex items-center gap-1 tabular-nums">{m.product.stock <= 0 ? <Pr size={13} strokeWidth={2.8} className="text-white shrink-0" /> : m.product.stock < 10 ? <Comp_da size={13} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950 shrink-0" /> : <Qa size={13} strokeWidth={2.8} className="text-white shrink-0" />}<span className="tabular-nums font-black">{m.product.stock}</span></div>{isAccountingFeatureEnabled && <><span className="w-px h-3 bg-white/40 shrink-0" /><div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán"><ReceiptTextIcon size={12} strokeWidth={2.4} className="shrink-0 text-white" /><span className="tabular-nums font-black">{m.product.accounting_stock || 0}</span></div></>}</div></div></div>}</div></div><x.button whileHover={{
                                   scale: 1.02
                                 }} whileTap={{
                                   scale: 0.95
@@ -4329,7 +4334,7 @@ function POSPage({
     colorTheme={Mt}
     showLastPurchaseBadge={showLastPurchaseBadge}
     lastPurchase={partnerLastPurchases?.[t.id]}
-    accountingEnabled={localStorage.getItem('feature_accounting_enabled') !== 'false'}
+    accountingEnabled={isAccountingFeatureEnabled}
     onHover={(idx) => {
       if (De !== idx) Ft(idx);
     }}
@@ -4388,7 +4393,7 @@ function POSPage({
       displayPrice={displayPrice}
       showLastPurchaseBadge={showLastPurchaseBadge}
       lastPurchase={partnerLastPurchases?.[r.id]}
-      accountingEnabled={localStorage.getItem('feature_accounting_enabled') !== 'false'}
+      accountingEnabled={isAccountingFeatureEnabled}
       onHover={(idx) => {
         if (It !== idx) Ca(idx);
       }}
@@ -4526,39 +4531,38 @@ function POSPage({
                                     });
                                   }} onKeyDown={t => {
                                     t.key === "Enter" ? (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
-                                  }} /><P>{m.product && m.price < m.product.cost_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-loss" className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20"><Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN</x.div>}{m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-below-new" className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20"><$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP</x.div>}{m.product && m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-low-price" className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20"><Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})</x.div>}{m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && <x.div initial={{
-                                      opacity: 0,
-                                      scale: 0.8,
-                                      y: -5
-                                    }} animate={{
-                                      opacity: 1,
-                                      scale: 1,
-                                      y: 0
-                                    }} exit={{ opacity: 0, scale: 0.8, y: -5, transition: { duration: 0.15 } }} transition={{ type: "spring", stiffness: 500, damping: 30 }} layout key="input-sync" className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden"><Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span></x.div>}</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+                                  }} /><P initial={false}>
+  {m.product && (m.price < m.product.cost_price || (m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price) || (m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price)) || (p && R[m.product.id] !== void 0 && m.price === m.product.sale_price)) && (
+    <x.div
+      initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+      animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
+      exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
+      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+      className="overflow-hidden flex items-center gap-1"
+    >
+      {m.price < m.product.cost_price && (
+        <div key="input-loss" className="bg-rose-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-rose-500/30 border border-white/20">
+          <Comp_da size={11} strokeWidth={3} className="text-white" />LỖ VỐN
+        </div>
+      )}
+      {m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && (
+        <div key="input-below-new" className="bg-orange-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 shadow-orange-500/30 border border-white/20">
+          <$n size={11} strokeWidth={3} className="text-white" />DƯỚI VỐN NHẬP
+        </div>
+      )}
+      {m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price) && (
+        <div key="input-low-price" className="bg-amber-500/90 text-white text-[8.5px] px-1.5 py-0.5 rounded-lg font-black whitespace-nowrap z-10 flex items-center gap-1 border border-white/20">
+          <Cd size={11} strokeWidth={3} className="text-white" />GIÁ THẤP ({lt(m.product.sale_price)})
+        </div>
+      )}
+      {p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && (
+        <div key="input-sync" className="px-2 py-0.5 rounded-lg bg-indigo-500/90 dark:bg-indigo-600/90 border border-white/20 flex items-center gap-1 overflow-hidden">
+          <Sd size={11} className="text-white fill-white/20" /><span className="text-[8.5px] font-black uppercase tracking-wider text-white">Đồng bộ giá</span>
+        </div>
+      )}
+    </x.div>
+  )}
+</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-[8.5px] font-black uppercase tracking-widest border border-red-200 dark:border-red-800/50 mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -4567,8 +4571,7 @@ function POSPage({
                                     secondary_qty: 0,
                                     name: ""
                                   });
-                                  se.current?.focus();
-                                }} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all" title="Xóa dòng"><Comp_ke size={17} /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => (
+                                }} className="group/clear-btn w-7 h-7 mx-auto rounded-lg flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_10px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer" title="Xóa dòng tạm"><Comp_ke size={15} strokeWidth={2.5} className="transition-transform duration-200 group-hover/clear-btn:rotate-90" /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => (
   <CartTableRow
     key={t.cartId || `cart-row-${a}-${t.product_id}`}
     item={t}
@@ -4643,10 +4646,12 @@ function POSPage({
           e.preventDefault();
           Ca(n => {
             const l = Math.min(n + 1, s.length - 1);
-            if (Ea.current) {
-              const d = Ea.current.children[l];
-              d && d.scrollIntoView({ block: "nearest" });
-            }
+            requestAnimationFrame(() => {
+              if (Ea.current) {
+                const d = Ea.current.children[l];
+                d && d.scrollIntoView({ block: "nearest" });
+              }
+            });
             return l;
           });
         } else {
@@ -4659,10 +4664,12 @@ function POSPage({
           e.preventDefault();
           Ca(n => {
             const l = Math.max(n - 1, 0);
-            if (Ea.current) {
-              const d = Ea.current.children[l];
-              d && d.scrollIntoView({ block: "nearest" });
-            }
+            requestAnimationFrame(() => {
+              if (Ea.current) {
+                const d = Ea.current.children[l];
+                d && d.scrollIntoView({ block: "nearest" });
+              }
+            });
             return l;
           });
         } else {

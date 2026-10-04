@@ -38,7 +38,6 @@ const ProductAutocomplete = React.forwardRef(({
             const item = listRef.current.children[highlightedIndex];
             if (item) {
                 item.scrollIntoView({
-                    behavior: 'smooth',
                     block: 'nearest',
                 });
             }

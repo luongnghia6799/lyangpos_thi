@@ -455,7 +455,7 @@ html.has-wallpaper.dark .dropdown-premium {
 
 
 .dropdown-item {
-  @apply p-3 cursor-pointer transition-all duration-200 border-0 relative;
+  @apply p-3 cursor-pointer transition-colors duration-150 border-0 relative;
   border-bottom: none !important;
 }
 

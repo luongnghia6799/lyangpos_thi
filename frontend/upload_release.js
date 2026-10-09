@@ -156,6 +156,15 @@ async function uploadRelease() {
   } else {
     const errText = await getRes.text();
     console.error('[LOI] Khong the kiem tra Release tren GitHub:', errText);
+    if (getRes.status === 401 || getRes.status === 403) {
+      console.error('\n>>> NGUYEN NHAN & HUONG DAN KHAC PHUC:');
+      console.error('  1. GitHub Token bi sai hoac het han (Expired) hoac chua cap quyen ghi Repo.');
+      console.error('  2. Cach khac phuc nhanh:');
+      console.error('     - Tao token moi tai: https://github.com/settings/tokens (chon quyen "repo")');
+      console.error('     - Mo file `frontend/.env` (hoac file `.env` o thu muc goc) va them dong:');
+      console.error('       GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx');
+      console.error('     - Hoac chay lenh: gh auth login de dang nhap lai.');
+    }
     return;
   }
 

@@ -1085,6 +1085,14 @@ pub async fn create_order(
                             child_cost += remaining_needed * child_cost_price.unwrap_or(0.0);
                         }
 
+                        if new_c_stock <= 0.0 {
+                            sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+                                .bind(child_id)
+                                .execute(&mut *tx)
+                                .await?;
+                        }
+                        affected_product_ids.push(child_id);
+
                         total_combo_cost += child_cost;
                     }
                     avg_cost = if item_qty > 0.0 { total_combo_cost / item_qty } else { 0.0 };
@@ -1131,6 +1139,14 @@ pub async fn create_order(
                     if remaining_needed > 0.0 {
                         total_sale_cost += remaining_needed * prod.cost_price.unwrap_or(0.0);
                     }
+
+                    if new_stock <= 0.0 {
+                        sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+                            .bind(prod.id)
+                            .execute(&mut *tx)
+                            .await?;
+                    }
+                    affected_product_ids.push(prod.id);
 
                     avg_cost = if item_qty > 0.0 { total_sale_cost / item_qty } else { 0.0 };
                 }
@@ -1421,10 +1437,8 @@ pub async fn create_order(
 
     // Post-transaction recalculations (only if non-draft)
     if !is_draft_order {
-        if payload.r#type == "Purchase" {
-            for pid in affected_product_ids {
-                let _ = recalculate_product_cost_price(&pool, pid).await;
-            }
+        for pid in affected_product_ids {
+            let _ = recalculate_product_cost_price(&pool, pid).await;
         }
 
         if let Some(p_id) = payload.partner_id {
@@ -1738,10 +1752,8 @@ pub async fn delete_order(
     tx.commit().await?;
 
     // 5. Recalculate cost prices and partner debt
-    if order.r#type.as_deref() == Some("Purchase") {
-        for pid in affected_product_ids {
-            let _ = recalculate_product_cost_price(&pool, pid).await;
-        }
+    for pid in affected_product_ids {
+        let _ = recalculate_product_cost_price(&pool, pid).await;
     }
 
     if let Some(p_id) = partner_id {
@@ -2455,7 +2467,7 @@ pub async fn update_order(
 
     tx.commit().await?;
 
-    if !is_new_draft && order_type == "Purchase" {
+    if !is_new_draft {
         for pid in affected_product_ids {
             let _ = recalculate_product_cost_price(&pool, pid).await;
         }

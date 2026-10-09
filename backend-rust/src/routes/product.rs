@@ -560,7 +560,16 @@ pub async fn update_product(
         }
     }
 
+    if stock <= 0.0 {
+        sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     tx.commit().await?;
+
+    let _ = recalculate_product_cost_price(&pool, id).await;
 
     Ok(Json(json!({
         "status": "success",
@@ -708,6 +717,16 @@ pub async fn recalculate_product_cost_price(pool: &SqlitePool, product_id: i64) 
         return Ok(());
     }
 
+    let current_stock = prod.stock.unwrap_or(0.0);
+
+    // If stock is 0 or negative, clean up all active stock batches
+    if current_stock <= 0.0 {
+        sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+            .bind(product_id)
+            .execute(pool)
+            .await?;
+    }
+
     // 1. Calculate Average Cost from ACTIVE batches
     let active_batches: Vec<StockBatch> = sqlx::query_as(
         "SELECT id, product_id, purchase_order_id, \
@@ -729,27 +748,9 @@ pub async fn recalculate_product_cost_price(pool: &SqlitePool, product_id: i64) 
         }
     }
 
-    let mut new_cost_price = prod.cost_price.unwrap_or(0.0);
-    if calculated_avg == 0.0 {
-        if new_cost_price <= 0.0 {
-            let latest_nonzero: Option<f64> = sqlx::query_scalar(
-                "SELECT CAST(cost_price AS REAL) FROM stock_batch WHERE product_id = ? AND cost_price > 0 ORDER BY created_at DESC, id DESC LIMIT 1"
-            )
-            .bind(product_id)
-            .fetch_optional(pool)
-            .await?;
-
-            if let Some(c) = latest_nonzero {
-                new_cost_price = c;
-            }
-        }
-    } else {
-        new_cost_price = calculated_avg;
-    }
-
     // 2. Latest purchase price
     let latest_batch_cost: Option<f64> = sqlx::query_scalar(
-        "SELECT CAST(cost_price AS REAL) FROM stock_batch WHERE product_id = ? ORDER BY created_at DESC, id DESC LIMIT 1"
+        "SELECT CAST(cost_price AS REAL) FROM stock_batch WHERE product_id = ? AND cost_price > 0 ORDER BY created_at DESC, id DESC LIMIT 1"
     )
     .bind(product_id)
     .fetch_optional(pool)
@@ -760,6 +761,13 @@ pub async fn recalculate_product_cost_price(pool: &SqlitePool, product_id: i64) 
         if c > 0.0 {
             new_latest_cost = c;
         }
+    }
+
+    let mut new_cost_price = prod.cost_price.unwrap_or(0.0);
+    if calculated_avg > 0.0 {
+        new_cost_price = calculated_avg;
+    } else if new_latest_cost > 0.0 {
+        new_cost_price = new_latest_cost;
     }
 
     sqlx::query("UPDATE product SET cost_price = ?, latest_cost_price = ? WHERE id = ?")

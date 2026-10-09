@@ -86,7 +86,7 @@ pub async fn create_inventory_audit(
 
     let audit_id = audit_res.last_insert_rowid();
 
-    for item in payload.items {
+    for item in &payload.items {
         let actual_stock = item.actual_stock;
 
         // Fetch current product info
@@ -159,6 +159,13 @@ pub async fn create_inventory_audit(
                 }
             }
 
+            if actual_stock <= 0.0 {
+                sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+                    .bind(item.product_id)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+
             // Update product stock and audit timestamp
             sqlx::query("UPDATE product SET stock = ?, latest_audit = ? WHERE id = ?")
                 .bind(actual_stock)
@@ -170,6 +177,10 @@ pub async fn create_inventory_audit(
     }
 
     tx.commit().await?;
+
+    for item in &payload.items {
+        let _ = crate::routes::product::recalculate_product_cost_price(&pool, item.product_id).await;
+    }
 
     Ok(Json(json!({
         "id": audit_id,
@@ -369,6 +380,13 @@ pub async fn convert_inventory(
         .execute(&mut *tx)
         .await?;
 
+    if new_source_stock <= 0.0 {
+        sqlx::query("UPDATE stock_batch SET current_quantity = 0 WHERE product_id = ? AND current_quantity > 0")
+            .bind(payload.source_product_id)
+            .execute(&mut *tx)
+            .await?;
+    }
+
     // 4. Update destination stock & Add destination StockBatch
     let multiplier = payload.multiplier.unwrap_or(1.0);
     let dest_qty_expected = payload.source_qty * multiplier;
@@ -430,6 +448,9 @@ pub async fn convert_inventory(
     let conv_id = conv_res.last_insert_rowid();
 
     tx.commit().await?;
+
+    let _ = crate::routes::product::recalculate_product_cost_price(&pool, payload.source_product_id).await;
+    let _ = crate::routes::product::recalculate_product_cost_price(&pool, payload.dest_product_id).await;
 
     Ok(Json(json!({
         "message": "Xẻ lẻ thành công!",

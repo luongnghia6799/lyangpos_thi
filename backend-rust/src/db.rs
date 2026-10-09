@@ -500,5 +500,12 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
         "CREATE INDEX IF NOT EXISTS idx_air_name ON active_ingredient_research(name)"
     ).execute(pool).await?;
 
+    // Clean up any lingering active stock batches for products with zero or negative stock
+    let _ = sqlx::query(
+        "UPDATE stock_batch SET current_quantity = 0 \
+         WHERE product_id IN (SELECT id FROM product WHERE stock <= 0) \
+         AND current_quantity > 0"
+    ).execute(pool).await;
+
     Ok(())
 }

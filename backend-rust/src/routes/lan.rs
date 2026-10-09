@@ -54,18 +54,66 @@ pub fn get_lan_state() -> Arc<LanState> {
     LAN_STATE.get_or_init(|| Arc::new(LanState::default())).clone()
 }
 
-pub fn get_local_ip() -> String {
-    if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
-        if socket.connect("8.8.8.8:80").is_ok() {
-            if let Ok(local_addr) = socket.local_addr() {
-                let ip = local_addr.ip().to_string();
-                if !ip.starts_with("127.") {
-                    return ip;
+pub fn get_all_local_ips() -> Vec<String> {
+    let mut ips: Vec<String> = Vec::new();
+
+    // 1. Probing via UDP socket against common gateway/DNS targets
+    let test_targets = [
+        "8.8.8.8:80",
+        "1.1.1.1:80",
+        "192.168.0.1:80",
+        "192.168.1.1:80",
+        "10.0.0.1:80",
+        "172.16.0.1:80"
+    ];
+
+    for target in test_targets {
+        if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
+            if socket.connect(target).is_ok() {
+                if let Ok(local_addr) = socket.local_addr() {
+                    let ip = local_addr.ip().to_string();
+                    if !ip.starts_with("127.") && !ip.starts_with("169.254.") && !ips.contains(&ip) {
+                        ips.push(ip);
+                    }
                 }
             }
         }
     }
-    "127.0.0.1".to_string()
+
+    // 2. Windows fallback / enumeration via ipconfig
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("ipconfig").output() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            for line in text.lines() {
+                if line.contains("IPv4") {
+                    if let Some(pos) = line.rfind(':') {
+                        let candidate = line[pos + 1..].trim();
+                        if !candidate.is_empty() 
+                            && !candidate.starts_with("127.") 
+                            && !candidate.starts_with("169.254.") 
+                            && !ips.contains(&candidate.to_string()) 
+                        {
+                            ips.push(candidate.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ips.is_empty() {
+        ips.push("127.0.0.1".to_string());
+    }
+
+    ips
+}
+
+pub fn get_local_ip() -> String {
+    let all = get_all_local_ips();
+    all.into_iter()
+        .find(|ip| !ip.starts_with("127."))
+        .unwrap_or_else(|| "127.0.0.1".to_string())
 }
 
 pub fn record_active_device(ip: String, user_agent: String) {
@@ -140,7 +188,8 @@ pub async fn get_active_devices() -> Result<impl IntoResponse, AppError> {
 }
 
 pub async fn get_ip_info() -> Result<impl IntoResponse, AppError> {
-    let ip = get_local_ip();
+    let all_ips = get_all_local_ips();
+    let ip = all_ips.iter().find(|addr| !addr.starts_with("127.")).cloned().unwrap_or_else(|| "127.0.0.1".to_string());
     let hostname = std::env::var("COMPUTERNAME")
         .or_else(|_| std::env::var("HOSTNAME"))
         .unwrap_or_else(|_| "localhost".to_string());
@@ -152,6 +201,7 @@ pub async fn get_ip_info() -> Result<impl IntoResponse, AppError> {
 
     Ok(Json(json!({
         "ip": ip,
+        "all_ips": all_ips,
         "port": port,
         "hostname": hostname
     })))

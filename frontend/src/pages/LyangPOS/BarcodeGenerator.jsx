@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import Barcode from 'react-barcode';
-import { Printer, Search, Plus, Trash2, Box, RefreshCw, Layers, CheckSquare, Square, Eye, Sliders, List, HelpCircle, CheckCircle } from 'lucide-react';
+import { Printer, Search, Plus, Trash2, Box, RefreshCw, Layers, CheckSquare, Square, Eye, Sliders, List, HelpCircle, CheckCircle, QrCode, Barcode as BarcodeIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
+import CustomPageQrGenerator from '../../components/barcodes/CustomPageQrGenerator';
 
 const DraggableElement = ({ children, x, y, onChange, containerRef, active, onSelect, showResize, onResize, style = {} }) => {
     const [dragging, setDragging] = useState(false);
@@ -123,6 +124,7 @@ const getBarcodeScaleFactor = (val) => {
 
 const BarcodeGenerator = () => {
     const queryClient = useQueryClient();
+    const [mainSubTab, setMainSubTab] = useState('barcodes'); // 'barcodes' | 'page_qr'
     const [searchTerm, setSearchTerm] = useState('');
     const debounceTimeoutRef = React.useRef(null);
     const searchInputRef = React.useRef(null);
@@ -699,50 +701,93 @@ const BarcodeGenerator = () => {
                 `}} />
                 
                 {/* Premium Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6 shrink-0 py-2">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 shrink-0 py-1">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-primary/10 dark:bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-primary/20 dark:border-emerald-500/30">
-                            <Box size={24} className="text-primary dark:text-emerald-400" />
+                        <div className="w-12 h-12 bg-primary/10 dark:bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-primary/20 dark:border-emerald-500/30 shadow-xs">
+                            {mainSubTab === 'barcodes' ? (
+                                <BarcodeIcon size={24} className="text-primary dark:text-emerald-400 stroke-[2.2]" />
+                            ) : (
+                                <QrCode size={24} className="text-primary dark:text-emerald-400 stroke-[2.2]" />
+                            )}
                         </div>
                         <div>
                             <h1 className="text-2xl font-black uppercase tracking-tight text-primary dark:text-[#d4a574]">
-                                Tạo & In Mã Vạch
+                                {mainSubTab === 'barcodes' ? 'Tạo & In Mã Vạch' : 'Tạo Mã QR Trang & Tuỳ Chỉnh'}
                             </h1>
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="px-2 py-0.5 bg-primary/10 text-primary dark:bg-emerald-500/10 dark:text-emerald-400 text-[9px] font-black uppercase rounded-lg tracking-wider border border-primary/10">LyangPOS Premium</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">Quản lý, tạo và in tem nhãn theo chuẩn chất lượng cao</p>
+                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                    {mainSubTab === 'barcodes' ? 'Quản lý, tạo và in tem nhãn sản phẩm theo chuẩn chất lượng cao' : 'Tạo mã QR dẫn tới Bác Sĩ Cây Trồng Sáu Quý, Màn hình soạn hàng, POS hoặc link tuỳ ý'}
+                                </p>
                             </div>
                         </div>
                     </div>
-                    
-                    {/* Header Controls */}
-                    <div className="flex items-center flex-wrap gap-4 w-full md:w-auto">
 
-                        <select 
-                            value={paperSize}
-                            onChange={(e) => setPaperSize(e.target.value)}
-                            className="bg-white/50 dark:bg-slate-950/60 border border-white/30 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 text-xs font-bold dark:text-white cursor-pointer transition-all"
-                        >
-                            <option value="A4" className="dark:bg-slate-900">Khổ A4 (Giấy Tomy / Cắt tay)</option>
-                            <option value="A6" className="dark:bg-slate-900">Khổ A6 (In đơn lớn)</option>
-                            <option value="35x22" className="dark:bg-slate-900">Cuộn in tem (35x22mm)</option>
-                        </select>
-                        
-                        <motion.button 
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handlePrint}
-                            disabled={activePrintList.length === 0}
-                            className="bg-primary text-white dark:bg-emerald-600 hover:bg-primary/95 dark:hover:bg-emerald-500 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 dark:shadow-emerald-950/20"
-                        >
-                            <Printer size={16} strokeWidth={2.5} />
-                            In {totalLabels} tem
-                        </motion.button>
+                    {/* Sub Tab Switcher & Action Controls */}
+                    <div className="flex items-center flex-wrap gap-3 w-full md:w-auto">
+                        {/* 2 Sub Tabs Switcher */}
+                        <div className="flex items-center gap-1.5 p-1 bg-white/60 dark:bg-slate-950/60 rounded-2xl border border-white/30 dark:border-white/10 shrink-0 shadow-inner">
+                            <button
+                                type="button"
+                                onClick={() => setMainSubTab('barcodes')}
+                                className={cn(
+                                    "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer",
+                                    mainSubTab === 'barcodes'
+                                        ? "bg-primary text-white dark:bg-emerald-600 shadow-md shadow-primary/20 dark:shadow-emerald-950/20 scale-[1.02]"
+                                        : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-900"
+                                )}
+                            >
+                                <BarcodeIcon size={16} className="stroke-[2.5]" />
+                                <span>Mã Vạch Sản Phẩm</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMainSubTab('page_qr')}
+                                className={cn(
+                                    "px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer relative",
+                                    mainSubTab === 'page_qr'
+                                        ? "bg-primary text-white dark:bg-emerald-600 shadow-md shadow-primary/20 dark:shadow-emerald-950/20 scale-[1.02]"
+                                        : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-900"
+                                )}
+                            >
+                                <QrCode size={16} className="stroke-[2.5]" />
+                                <span>Tạo Mã QR Trang</span>
+                                <span className="px-1.5 py-0.2 bg-amber-400 text-amber-950 text-[9px] font-black rounded-full uppercase tracking-tight">Mới</span>
+                            </button>
+                        </div>
+
+                        {mainSubTab === 'barcodes' && (
+                            <>
+                                <select 
+                                    value={paperSize}
+                                    onChange={(e) => setPaperSize(e.target.value)}
+                                    className="bg-white/50 dark:bg-slate-950/60 border border-white/30 dark:border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 text-xs font-bold dark:text-white cursor-pointer transition-all"
+                                >
+                                    <option value="A4" className="dark:bg-slate-900">Khổ A4 (Giấy Tomy / Cắt tay)</option>
+                                    <option value="A6" className="dark:bg-slate-900">Khổ A6 (In đơn lớn)</option>
+                                    <option value="35x22" className="dark:bg-slate-900">Cuộn in tem (35x22mm)</option>
+                                </select>
+                                
+                                <motion.button 
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handlePrint}
+                                    disabled={activePrintList.length === 0}
+                                    className="bg-primary text-white dark:bg-emerald-600 hover:bg-primary/95 dark:hover:bg-emerald-500 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 dark:shadow-emerald-950/20 cursor-pointer"
+                                >
+                                    <Printer size={16} strokeWidth={2.5} />
+                                    In {totalLabels} tem
+                                </motion.button>
+                            </>
+                        )}
                     </div>
                 </div>
 
                 {/* Main Content Area */}
+                {mainSubTab === 'page_qr' ? (
+                    <CustomPageQrGenerator />
+                ) : (
                 <div className="flex-1 flex gap-6 min-h-0">
                     
                     {/* Left Panel: Search and Add Products */}
@@ -1911,6 +1956,7 @@ const BarcodeGenerator = () => {
                         )}
                     </div>
                 </div>
+                )}
             </div>
 
             {/* PRINT ONLY LAYOUT */}

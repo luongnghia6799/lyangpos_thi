@@ -1878,105 +1878,114 @@ export default function Purchase() {
                                     by LyangNghia
                                 </span>
                             </div>
-                            <AnimatePresence mode="popLayout" initial={false}>
-                                <m.div
-                                    key={editingOriginalOrder?.id || historyStep || 'new'}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="flex items-center relative"
-                                >
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsOrderDatePickerOpen(prev => !prev)}
-                                        title="Bấm để chỉnh sửa / chọn ngày đơn hàng"
-                                        className="flex items-center gap-2 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.04] dark:hover:bg-white/[0.1] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 cursor-pointer text-left"
-                                    >
-                                        {(() => {
-                                            const originalDateStr = editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : '';
-                                            let isDateModified = false;
-                                            if (customOrderDate) {
-                                                if (!editingOriginalOrder) {
-                                                    isDateModified = true;
-                                                } else if (customOrderDate !== originalDateStr) {
+                            <m.button
+                                type="button"
+                                onClick={() => setIsOrderDatePickerOpen(prev => !prev)}
+                                title="Bấm để chỉnh sửa / chọn ngày đơn hàng"
+                                whileHover={{ scale: 1.03, y: -0.5 }}
+                                whileTap={{ scale: 0.97 }}
+                                transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                                className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none"
+                            >
+                                {(() => {
+                                    const originalDateStr = editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : '';
+                                    let isDateModified = false;
+                                    if (customOrderDate) {
+                                        if (!editingOriginalOrder) {
+                                            isDateModified = true;
+                                        } else if (customOrderDate !== originalDateStr) {
+                                            isDateModified = true;
+                                        }
+                                    }
+                                    if (!isDateModified && editingOriginalOrder?.date && editingOriginalOrder?.display_id) {
+                                        const idParts = editingOriginalOrder.display_id.split('.');
+                                        if (idParts.length >= 2) {
+                                            const dateInId = idParts.slice(1).join('.');
+                                            const dateSlash = dateInId.split('/');
+                                            if (dateSlash.length === 3) {
+                                                const d = parseInt(dateSlash[0], 10);
+                                                const m = parseInt(dateSlash[1], 10);
+                                                const y = parseInt(dateSlash[2], 10);
+                                                const oDate = new Date(editingOriginalOrder.date);
+                                                const orderD = oDate.getDate();
+                                                const orderM = oDate.getMonth() + 1;
+                                                const orderY = oDate.getFullYear() % 100;
+                                                if (orderD !== d || orderM !== m || orderY !== y) {
                                                     isDateModified = true;
                                                 }
                                             }
-                                            if (!isDateModified && editingOriginalOrder?.date && editingOriginalOrder?.display_id) {
-                                                const idParts = editingOriginalOrder.display_id.split('.');
-                                                if (idParts.length >= 2) {
-                                                    const dateInId = idParts.slice(1).join('.');
-                                                    const dateSlash = dateInId.split('/');
-                                                    if (dateSlash.length === 3) {
-                                                        const d = parseInt(dateSlash[0], 10);
-                                                        const m = parseInt(dateSlash[1], 10);
-                                                        const y = parseInt(dateSlash[2], 10);
-                                                        const oDate = new Date(editingOriginalOrder.date);
-                                                        const orderD = oDate.getDate();
-                                                        const orderM = oDate.getMonth() + 1;
-                                                        const orderY = oDate.getFullYear() % 100;
-                                                        if (orderD !== d || orderM !== m || orderY !== y) {
-                                                            isDateModified = true;
+                                        }
+                                    }
+                                    return (
+                                        <>
+                                            <div className="relative flex items-center justify-center shrink-0 w-2 h-2">
+                                                <span className={cn(
+                                                    "w-2 h-2 rounded-full shrink-0",
+                                                    isDateModified 
+                                                    ? "bg-amber-600 dark:bg-amber-400" 
+                                                    : editOrderId 
+                                                        ? "bg-[#8b6f47] dark:bg-[#d4a574]" 
+                                                        : "bg-[#2d5016] dark:bg-emerald-400"
+                                                )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
+                                                <span className={cn(
+                                                    "absolute w-2 h-2 rounded-full animate-ping opacity-40",
+                                                    isDateModified 
+                                                    ? "bg-amber-500" 
+                                                    : editOrderId 
+                                                        ? "bg-[#8b6f47] dark:bg-[#d4a574]" 
+                                                        : "bg-[#2d5016] dark:bg-emerald-400"
+                                                )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
+                                            </div>
+                                            <div className="flex flex-col justify-center leading-none min-w-0">
+                                                <m.span 
+                                                    key={editingOriginalOrder?.display_id || (editOrderId ? `edit-${editOrderId}` : 'new')}
+                                                    initial={{ opacity: 0.6, y: -1 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.18 }}
+                                                    className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" 
+                                                    style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}
+                                                >
+                                                    #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
+                                                </m.span>
+                                                {(() => {
+                                                    if (isDateModified) {
+                                                        const timeStr = editingOriginalOrder?.date ? new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                                                        const activeDate = customOrderDate || originalDateStr;
+                                                        let dateStr = activeDate;
+                                                        if (activeDate) {
+                                                            const p = activeDate.split('-');
+                                                            dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
                                                         }
+                                                        return (
+                                                            <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase flex items-center gap-1">
+                                                                {timeStr} - {dateStr} (ĐÃ SỬA)
+                                                            </span>
+                                                        );
                                                     }
-                                                }
-                                            }
-                                            return (
-                                                <>
-                                                    <div className={cn(
-                                                        "w-2 h-2 rounded-full shrink-0",
-                                                        isDateModified 
-                                                            ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-500/20" 
-                                                            : editOrderId 
-                                                                ? "bg-[#8b6f47] dark:bg-[#d4a574] ring-2 ring-[#8b6f47]/20 dark:ring-[#d4a574]/20 animate-pulse" 
-                                                                : "bg-[#2d5016] dark:bg-emerald-400 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20"
-                                                    )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
-                                                    <div className="flex flex-col justify-center leading-none min-w-0">
-                                                        <span className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
-                                                            #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
+                                                    if (editingOriginalOrder?.date) {
+                                                        return (
+                                                            <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
+                                                                {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
+                                                                    hour: "2-digit",
+                                                                    minute: "2-digit"
+                                                                })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
+                                                                    day: "2-digit",
+                                                                    month: "2-digit"
+                                                                })}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
+                                                            {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
                                                         </span>
-                                                        {(() => {
-                                                            if (isDateModified) {
-                                                                const timeStr = editingOriginalOrder?.date ? new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-                                                                const activeDate = customOrderDate || originalDateStr;
-                                                                let dateStr = activeDate;
-                                                                if (activeDate) {
-                                                                    const p = activeDate.split('-');
-                                                                    dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
-                                                                }
-                                                                return (
-                                                                    <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase flex items-center gap-1">
-                                                                        {timeStr} - {dateStr} (ĐÃ SỬA)
-                                                                    </span>
-                                                                );
-                                                            }
-                                                            if (editingOriginalOrder?.date) {
-                                                                return (
-                                                                    <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
-                                                                        {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
-                                                                            hour: "2-digit",
-                                                                            minute: "2-digit"
-                                                                        })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
-                                                                            day: "2-digit",
-                                                                            month: "2-digit"
-                                                                        })}
-                                                                    </span>
-                                                                );
-                                                            }
-                                                            return (
-                                                                <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
-                                                                    {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
-                                                                </span>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-                                    </button>
-                                </m.div>
-                            </AnimatePresence>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </m.button>
                             {/* Date Picker Modal styled like ReminderModal */}
                             <OrderDatePickerModal
                                 isOpen={isOrderDatePickerOpen}
@@ -2882,8 +2891,11 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-colors duration-150 group/working-row cursor-pointer", cartColorConfig.enableBorder !== false ? "border-b" : "border-b-0")}
-                                                    style={{ borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }}
+                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row cursor-pointer bg-transparent", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/20 dark:border-white/10" : "border-b-0")}
+                                                    style={{ 
+                                                        backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent',
+                                                        borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) 
+                                                    }}
                                                     onContextMenu={(e) => {
                                                         if (workingItem.product) {
                                                             e.preventDefault();
@@ -2897,14 +2909,14 @@ export default function Purchase() {
                                                     }}
                                                 >
                                                     <td className="py-2.5 px-2 text-center">
-                                                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 shadow-xs">
-                                                            <Plus size={16} strokeWidth={2.5} className="text-primary dark:text-emerald-400" />
+                                                        <div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95">
+                                                            <Plus size={16} strokeWidth={2.5} />
                                                         </div>
                                                     </td>
                                                     <td className="py-2.5 px-2 relative">
                                                         <div className="relative group/search">
                                                             <div className="relative">
-                                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/50 group-focus-within/search:text-primary transition-colors">
+                                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors">
                                                                     <Search size={18} strokeWidth={2.5} />
                                                                 </div>
                                                                 <input
@@ -2912,7 +2924,7 @@ export default function Purchase() {
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
                                                                     style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
-                                                                    className={cn("w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-[#d4a574]/25 shadow-[0_0_12px_rgba(139,111,71,0.08)] dark:shadow-[0_0_12px_rgba(212,165,116,0.08)] rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:border-[#8b6f47]/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-[#8b6f47]/20 dark:focus:ring-[#d4a574]/20 focus:shadow-[0_0_18px_rgba(139,111,71,0.2)] dark:focus:shadow-[0_0_20px_rgba(212,165,116,0.25)] focus:bg-transparent placeholder:text-slate-500/90 dark:placeholder:text-slate-400/90 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white")}
+                                                                    className={cn("w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white")}
                                                                     autoComplete="off"
                                                                     value={searchTerm}
                                                                     onChange={(e) => {
@@ -2997,10 +3009,12 @@ export default function Purchase() {
                                                             {workingItem.product && (
                                                                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
                                                                     <span className={cn(
-                                                                        "px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-all shadow-xs font-sans",
-                                                                        workingItem.product.stock < 10
-                                                                            ? "bg-red-500/20 text-red-600 border-red-500/30"
-                                                                            : "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/20 dark:text-emerald-400"
+                                                                        "px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all shadow-xs backdrop-blur-md",
+                                                                        workingItem.product.stock <= 0
+                                                                            ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10"
+                                                                            : workingItem.product.stock < 10
+                                                                                ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10"
+                                                                                : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10"
                                                                     )}>
                                                                         {workingItem.product.stock}
                                                                     </span>
@@ -3169,7 +3183,7 @@ export default function Purchase() {
                                                     </td>
                                                     <td className="py-2.5 px-2">
                                                         {workingItem.product && workingItem.product.secondary_unit ? (
-                                                            <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus-within:bg-transparent focus-within:border-[#8b6f47]/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-[#8b6f47]/15 focus-within:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus-within:shadow-[0_0_15px_rgba(212,165,116,0.2)] transition-all text-primary dark:text-foreground">
+                                                            <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground">
                                                                 <input
                                                                     type="number"
                                                                     step="any"
@@ -3219,7 +3233,7 @@ export default function Purchase() {
                                                         <input
                                                             type="number"
                                                             style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
-                                                            className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-transparent focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
+                                                            className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
                                                             value={workingItem.product ? workingItem.quantity : ""}
                                                             id="working-main-qty"
                                                             ref={workingQtyRef}
@@ -3266,7 +3280,7 @@ export default function Purchase() {
                                                             {workingItem.product && (
                                                                 <div
                                                                     className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1
-                                                                                bg-[#fbf9f4]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50
+                                                                                bg-[#ede8dc]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50
                                                                                 flex items-stretch whitespace-nowrap z-[9999] 
                                                                                 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100
                                                                                 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"
@@ -3275,7 +3289,7 @@ export default function Purchase() {
                                                                         <span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">
                                                                             Vốn TB
                                                                         </span>
-                                                                        <span className="text-xs font-black font-sans text-amber-700 dark:text-amber-300 tabular-nums leading-normal">
+                                                                        <span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">
                                                                             {formatNumber(workingItem.product.cost_price)}
                                                                             <span className="text-[9px] ml-0.5 opacity-60">đ</span>
                                                                         </span>
@@ -3290,14 +3304,14 @@ export default function Purchase() {
                                                                             <span className="text-[9px] ml-0.5 opacity-60">đ</span>
                                                                         </span>
                                                                     </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#fbf9f4]/95 dark:border-b-slate-900/95 drop-shadow-xs" />
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#ede8dc]/95 dark:border-b-slate-900/95 drop-shadow-xs" />
                                                                 </div>
                                                             )}
                                                             <div className="relative w-full">
                                                                 <input
                                                                     type="text"
                                                                     style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
-                                                                    className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-[0_0_10px_rgba(139,111,71,0.06)] dark:shadow-[0_0_10px_rgba(212,165,116,0.06)] rounded-xl focus:bg-transparent focus:border-[#8b6f47]/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-[#8b6f47]/15 focus:shadow-[0_0_15px_rgba(139,111,71,0.18)] dark:focus:shadow-[0_0_15px_rgba(212,165,116,0.2)] outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
+                                                                    className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
                                                                     value={workingItem.product ? formatNumber(workingItem.price) : ""}
                                                                     id="working-price"
                                                                     ref={workingPriceRef}
@@ -3377,8 +3391,8 @@ export default function Purchase() {
                                                                     "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
-                                                                        ? "z-[3500] bg-white/5 dark:bg-slate-800/20"
-                                                                        : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+                                                                        ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]"
+                                                                        : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-[#2d5016]/[0.045] dark:hover:bg-[#d4a574]/[0.08]"
                                                                 )}
                                                                 style={{
                                                                     borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}25` : undefined)
@@ -3742,22 +3756,22 @@ export default function Purchase() {
                                                                                             }
                                                                                         }} 
                                                                                         className={cn(
-                                                                                            "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-1 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none", 
+                                                                                            "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none backdrop-blur-md", 
                                                                                             (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 
-                                                                                                ? "bg-rose-600 dark:bg-rose-600 text-white border-rose-700 dark:border-rose-500 shadow-rose-600/20" 
+                                                                                                ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10 hover:border-rose-500/60" 
                                                                                                 : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 
-                                                                                                    ? "bg-amber-500 dark:bg-amber-500 text-amber-950 dark:text-slate-950 border-amber-600 dark:border-amber-400 shadow-amber-500/20 font-black" 
-                                                                                                    : "bg-[#2d5016] dark:bg-emerald-600 text-white border-[#234011] dark:border-emerald-500 shadow-[#2d5016]/20 font-black"
+                                                                                                    ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10 hover:border-amber-500/60" 
+                                                                                                    : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10 hover:border-emerald-500/60"
                                                                                         )} 
                                                                                         title="Kiểm tồn nhanh"
                                                                                     >
                                                                                         <div className="flex items-center gap-1 tabular-nums">
                                                                                             {(item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 ? (
-                                                                                                <Package size={12} strokeWidth={2.8} className="text-white" />
+                                                                                                <Package size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
                                                                                             ) : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 ? (
-                                                                                                <AlertTriangle size={12} strokeWidth={2.8} className="text-amber-950 dark:text-slate-950" />
+                                                                                                <AlertTriangle size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
                                                                                             ) : (
-                                                                                                <Package size={12} strokeWidth={2.8} className="text-white" />
+                                                                                                <Package size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                                                             )}
                                                                                             <span className="tabular-nums font-black">
                                                                                                 {item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)}

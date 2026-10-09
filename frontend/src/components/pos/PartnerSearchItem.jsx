@@ -131,6 +131,16 @@ const PartnerSearchItem = React.memo(function PartnerSearchItem({
       </div>
     </m.div>
   );
+}, (prev, next) => {
+  return (
+    prev.partner?.id === next.partner?.id &&
+    prev.partner?.name === next.partner?.name &&
+    prev.partner?.phone === next.partner?.phone &&
+    prev.partner?.address === next.partner?.address &&
+    prev.partner?.debt_balance === next.partner?.debt_balance &&
+    prev.isActive === next.isActive &&
+    prev.targetIndex === next.targetIndex
+  );
 });
 
 export default PartnerSearchItem;

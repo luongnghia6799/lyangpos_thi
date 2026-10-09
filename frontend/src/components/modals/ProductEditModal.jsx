@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { m } from 'framer-motion';
-import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert, AlertTriangle, FileText } from 'lucide-react';
+import { Trash2, X, Plus, Save, Package, Layers, CircleDollarSign, Boxes, ShieldAlert, AlertTriangle, FileText, ReceiptText } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { formatNumber, normalizeUOM, cn } from '../../lib/utils';
 import Toast from '../widgets/Toast';
@@ -586,49 +586,242 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
 
 
 
-                                        {activeTab === 'combo' && formData.is_combo && (
-                                            <m.div key="combo" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="h-full flex flex-col">
-                                                <div className="bg-card/40 p-6 rounded-3xl border border-border flex-1 flex flex-col min-h-0">
-                                                    <div className="relative mb-4">
-                                                        <input type="text" className="input-premium w-full p-3 text-sm font-bold border border-border focus:border-primary rounded-2xl shadow-sm" style={{ paddingLeft: '2.75rem' }} placeholder="Tìm kiếm và thêm sản phẩm thành phần..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={handleSearchInputKeyDown} autoComplete="off" />
-                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/60"><Plus size={18} /></div>
-                                                        <AnimatePresence>
-                                                            {searchQuery && (
-                                                                <m.div ref={dropdownListRef} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute w-full mt-2 bg-card rounded-2xl shadow-2xl border border-border max-h-48 overflow-y-auto z-[9999] p-2 custom-scrollbar">
-                                                                    {filteredDropdownProducts.map((p, idx) => (
-                                                                        <button key={p.id} type="button" onClick={() => { if (!formData.combo_items.some(i => i.product_id === p.id)) setFormData({ ...formData, combo_items: [...formData.combo_items, { product_id: p.id, quantity: 1, unit: p.unit }] }); setSearchQuery(''); setDropdownActiveIndex(-1); }} className={cn("w-full text-left p-3 flex justify-between items-center text-sm rounded-xl transition-all", idx === dropdownActiveIndex ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-foreground")}>
-                                                                            <span className="font-bold">{p.name}</span>
-                                                                            <span className="bg-muted/40 px-2 py-1 rounded text-xs text-muted-foreground font-bold">{p.unit}</span>
-                                                                        </button>
-                                                                    ))}
-                                                                </m.div>
-                                                            )}
-                                                        </AnimatePresence>
-                                                    </div>
-                                                    <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
-                                                        {formData.combo_items.map((item, idx) => {
-                                                            const p = allProducts.find(prod => prod.id === item.product_id);
-                                                            return (
-                                                                <div key={idx} className="flex items-center gap-3 bg-black/[0.03] dark:bg-white/[0.04] border border-border/80 p-3 rounded-2xl transition-all hover:border-primary/40">
-                                                                    <div className="flex-1 text-sm font-black uppercase text-foreground truncate">{p?.name}</div>
-                                                                    <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 px-2 py-1 rounded-xl border border-border/60">
-                                                                        <input type="number" className="w-14 py-1 bg-transparent border-none text-center font-black text-foreground outline-none text-sm" value={item.quantity} onChange={e => { const newItems = [...formData.combo_items]; newItems[idx].quantity = parseFloat(e.target.value) || 1; setFormData({ ...formData, combo_items: newItems }); }} />
-                                                                        <span className="text-[11px] font-black text-muted-foreground uppercase">{p?.unit}</span>
-                                                                    </div>
-                                                                    <button type="button" onClick={() => setFormData({ ...formData, combo_items: formData.combo_items.filter((_, i) => i !== idx) })} className="p-2.5 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"><Trash2 size={16} /></button>
+                                        {activeTab === 'combo' && formData.is_combo && (() => {
+                                            const itemsWithStock = (formData.combo_items || []).map((item, idx) => {
+                                                const p = allProducts.find(prod => prod.id === item.product_id);
+                                                const stock = p?.stock !== undefined ? p.stock : 0;
+                                                const minStock = p?.min_stock || 0;
+                                                const qty = item.quantity > 0 ? item.quantity : 1;
+                                                const maxCombos = Math.floor(stock / qty);
+                                                const isOutOfStock = stock <= 0;
+                                                const isLowStock = stock > 0 && (stock <= minStock || stock < 10);
+                                                return {
+                                                    idx,
+                                                    item,
+                                                    product: p,
+                                                    stock,
+                                                    minStock,
+                                                    qty,
+                                                    unit: p?.unit || item.unit || 'Cái',
+                                                    maxCombos,
+                                                    isOutOfStock,
+                                                    isLowStock
+                                                };
+                                            });
+
+                                            const outOfStockCount = itemsWithStock.filter(i => i.isOutOfStock).length;
+                                            const lowStockCount = itemsWithStock.filter(i => i.isLowStock).length;
+
+                                            let minCombos = Infinity;
+                                            let bottleneckItem = null;
+                                            itemsWithStock.forEach(i => {
+                                                if (i.maxCombos < minCombos) {
+                                                    minCombos = i.maxCombos;
+                                                    bottleneckItem = i;
+                                                }
+                                            });
+                                            const totalComboStock = itemsWithStock.length > 0 ? (minCombos === Infinity ? 0 : Math.max(0, minCombos)) : 0;
+
+                                            return (
+                                                <m.div key="combo" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="h-full flex flex-col space-y-4">
+                                                    {/* Combo Inventory Overview Banner */}
+                                                    {formData.combo_items.length > 0 && (
+                                                        <div className="grid grid-cols-12 gap-3 p-4 bg-card/60 dark:bg-card/40 rounded-2xl border border-border shrink-0">
+                                                            <div className="col-span-3 flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                                                                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                                                                    <Boxes className="text-primary" size={22} />
                                                                 </div>
-                                                            );
-                                                        })}
-                                                        {formData.combo_items.length === 0 && (
-                                                            <div className="h-full flex items-center justify-center text-muted-foreground text-sm font-bold opacity-50 flex-col gap-2">
-                                                                <Boxes size={32} />
-                                                                <p>Chưa có sản phẩm thành phần nào</p>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate">Tồn Làm Được</p>
+                                                                    <p className={cn(
+                                                                        "text-xl font-black tabular-nums truncate",
+                                                                        totalComboStock <= 0 ? "text-rose-600 dark:text-rose-400" : totalComboStock < 10 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
+                                                                    )}>
+                                                                        {totalComboStock} <span className="text-xs font-bold text-muted-foreground uppercase">{formData.unit || 'Bộ'}</span>
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                        )}
+
+                                                            <div className="col-span-3 flex items-center gap-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                                                                    <ReceiptText className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[10px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">Tổng Vốn Combo</p>
+                                                                    <p className="text-xl font-black tabular-nums text-emerald-600 dark:text-emerald-400 truncate">
+                                                                        {formatNumber(formData.cost_price || 0)} <span className="text-xs font-bold uppercase">đ</span>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="col-span-6 flex items-center justify-between p-3 bg-black/[0.03] dark:bg-white/[0.04] border border-border rounded-xl">
+                                                                <div className="min-w-0 flex-1 pr-2">
+                                                                    <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                                        <AlertTriangle size={12} className={bottleneckItem?.isOutOfStock ? "text-rose-500" : "text-amber-500"} />
+                                                                        Món Giới Hạn Tồn (Nút Thắt)
+                                                                    </p>
+                                                                    {bottleneckItem ? (
+                                                                        <p className="text-sm font-black text-foreground truncate mt-0.5">
+                                                                            {bottleneckItem.product?.name || 'Chưa xác định'}{" "}
+                                                                            <span className={cn(
+                                                                                "text-xs px-2 py-0.5 rounded-md font-bold ml-1 inline-block",
+                                                                                bottleneckItem.isOutOfStock ? "bg-rose-500/20 text-rose-600 dark:text-rose-300" : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                                                                            )}>
+                                                                                Tồn: {bottleneckItem.stock} {bottleneckItem.unit} ({bottleneckItem.maxCombos} bộ)
+                                                                            </span>
+                                                                        </p>
+                                                                    ) : (
+                                                                        <p className="text-xs font-bold text-muted-foreground mt-0.5">Chưa có món thành phần</p>
+                                                                    )}
+                                                                </div>
+                                                                <div className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
+                                                                    {outOfStockCount > 0 && (
+                                                                        <span className="px-2 py-1 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                                            {outOfStockCount} hết hàng
+                                                                        </span>
+                                                                    )}
+                                                                    {lowStockCount > 0 && (
+                                                                        <span className="px-2 py-1 bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                                            {lowStockCount} sắp hết
+                                                                        </span>
+                                                                    )}
+                                                                    {outOfStockCount === 0 && lowStockCount === 0 && itemsWithStock.length > 0 && (
+                                                                        <span className="px-2 py-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                                            Đủ hàng ({itemsWithStock.length} món)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="bg-card/40 p-5 rounded-3xl border border-border flex-1 flex flex-col min-h-0">
+                                                        {/* Component Search Dropdown */}
+                                                        <div className="relative mb-4">
+                                                            <input type="text" className="input-premium w-full p-3 text-sm font-bold border border-border focus:border-primary rounded-2xl shadow-sm" style={{ paddingLeft: '2.75rem' }} placeholder="Tìm kiếm và thêm sản phẩm thành phần..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={handleSearchInputKeyDown} autoComplete="off" />
+                                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/60"><Plus size={18} /></div>
+                                                            <AnimatePresence>
+                                                                {searchQuery && (
+                                                                    <m.div ref={dropdownListRef} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute w-full mt-2 bg-card rounded-2xl shadow-2xl border border-border max-h-56 overflow-y-auto z-[9999] p-2 custom-scrollbar">
+                                                                        {filteredDropdownProducts.map((p, idx) => (
+                                                                            <button key={p.id} type="button" onClick={() => { if (!formData.combo_items.some(i => i.product_id === p.id)) setFormData({ ...formData, combo_items: [...formData.combo_items, { product_id: p.id, quantity: 1, unit: p.unit }] }); setSearchQuery(''); setDropdownActiveIndex(-1); }} className={cn("w-full text-left p-3 flex justify-between items-center text-sm rounded-xl transition-all", idx === dropdownActiveIndex ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-foreground")}>
+                                                                                <div className="flex flex-col min-w-0 pr-2">
+                                                                                    <span className="font-bold truncate">{p.name}</span>
+                                                                                    {p.code && <span className="text-[10px] text-muted-foreground font-mono">{p.code}</span>}
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2 shrink-0">
+                                                                                    <span className={cn(
+                                                                                        "px-2 py-0.5 rounded text-[11px] font-black",
+                                                                                        (p.stock || 0) <= 0 ? "bg-rose-500/15 text-rose-600 dark:text-rose-400" : (p.stock || 0) < 10 ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                                                                    )}>
+                                                                                        Tồn: {p.stock || 0}
+                                                                                    </span>
+                                                                                    <span className="bg-muted/40 px-2 py-1 rounded text-xs text-muted-foreground font-bold">{p.unit}</span>
+                                                                                </div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </m.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </div>
+
+                                                        {/* Components List */}
+                                                        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
+                                                            {itemsWithStock.map((comp) => {
+                                                                const { idx, item, product: p, stock, unit, maxCombos, isOutOfStock, isLowStock, qty } = comp;
+                                                                const isBottleneck = bottleneckItem && bottleneckItem.idx === idx && itemsWithStock.length > 1;
+                                                                const costPrice = p?.cost_price || 0;
+                                                                const itemCost = costPrice * qty;
+
+                                                                return (
+                                                                    <div key={idx} className={cn(
+                                                                        "flex items-center justify-between gap-3 p-3 rounded-2xl transition-all border",
+                                                                        isBottleneck
+                                                                            ? "bg-amber-500/[0.06] dark:bg-amber-500/[0.08] border-amber-500/40 shadow-sm"
+                                                                            : isOutOfStock
+                                                                                ? "bg-rose-500/[0.04] dark:bg-rose-500/[0.06] border-rose-500/30"
+                                                                                : "bg-black/[0.02] dark:bg-white/[0.03] border-border/80 hover:border-primary/40"
+                                                                    )}>
+                                                                        {/* Left: Name & Status */}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="text-sm font-black uppercase text-foreground truncate max-w-[380px]" title={p?.name}>
+                                                                                    {p?.name || 'Sản phẩm không tồn tại'}
+                                                                                </span>
+                                                                                {isBottleneck && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                                                                                        <AlertTriangle size={10} /> Giới hạn combo
+                                                                                    </span>
+                                                                                )}
+                                                                                {isOutOfStock && (
+                                                                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30">
+                                                                                        Hết hàng
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+
+                                                                            {/* Stock Status Details & Cost Price */}
+                                                                            <div className="flex items-center gap-2 mt-1 text-[11px] font-bold flex-wrap">
+                                                                                <span className={cn(
+                                                                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black tabular-nums",
+                                                                                    isOutOfStock
+                                                                                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                                                                                        : isLowStock
+                                                                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                                                                            : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                                                                )}>
+                                                                                    Tồn kho: {stock} {unit}
+                                                                                </span>
+                                                                                <span className="text-muted-foreground">|</span>
+                                                                                <span className="text-muted-foreground">
+                                                                                    Làm được: <b className={cn(maxCombos <= 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground")}>{maxCombos}</b> bộ
+                                                                                </span>
+                                                                                <span className="text-muted-foreground">|</span>
+                                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black tabular-nums bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                                                                    Giá vốn: {formatNumber(costPrice)}đ/{unit}
+                                                                                    {qty > 1 && ` (x${qty} = ${formatNumber(itemCost)}đ)`}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Right: Quantity Input & Delete */}
+                                                                        <div className="flex items-center gap-3 shrink-0">
+                                                                            <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-xl border border-border/80">
+                                                                                <span className="text-[10px] font-black text-muted-foreground uppercase">SL:</span>
+                                                                                <input 
+                                                                                    type="number" 
+                                                                                    min="0.1" 
+                                                                                    step="any" 
+                                                                                    className="w-14 py-0.5 bg-transparent border-none text-center font-black text-foreground outline-none text-sm" 
+                                                                                    value={item.quantity} 
+                                                                                    onChange={e => { 
+                                                                                        const newItems = [...formData.combo_items]; 
+                                                                                        newItems[idx].quantity = parseFloat(e.target.value) || 1; 
+                                                                                        setFormData({ ...formData, combo_items: newItems }); 
+                                                                                    }} 
+                                                                                />
+                                                                                <span className="text-[11px] font-black text-primary dark:text-[#d4a574] uppercase">{unit}</span>
+                                                                            </div>
+                                                                            <button type="button" onClick={() => setFormData({ ...formData, combo_items: formData.combo_items.filter((_, i) => i !== idx) })} className="p-2.5 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all" title="Xóa món này khỏi combo">
+                                                                                <Trash2 size={16} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+
+                                                            {formData.combo_items.length === 0 && (
+                                                                <div className="h-full min-h-[160px] flex items-center justify-center text-muted-foreground text-sm font-bold opacity-60 flex-col gap-2">
+                                                                    <Boxes size={36} />
+                                                                    <p>Chưa có sản phẩm thành phần nào trong Combo</p>
+                                                                    <span className="text-xs text-muted-foreground font-normal">Gõ tên sản phẩm vào ô tìm kiếm ở trên để thêm vào Combo</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </m.div>
-                                        )}
+                                                </m.div>
+                                            );
+                                        })()}
                                     </AnimatePresence>
                                 </div>
 

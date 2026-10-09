@@ -249,11 +249,16 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     <div 
                         style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
                         className={cn(
-                            "fixed left-[76px] px-3 py-2 text-[11px] font-black rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-[9999] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
-                            isLite ? "" : "bg-[#1c1916]/95 text-[#e8dfd5] border-[#8b6f47]/30 shadow-black/40"
+                            "fixed left-[76px] px-3.5 py-1.5 text-[11px] font-black rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-150 z-[9999] whitespace-nowrap shadow-xl border uppercase tracking-[0.14em] backdrop-blur-xl flex items-center gap-1.5",
+                            isLite 
+                                ? "" 
+                                : "bg-[#fbf9f4]/95 dark:bg-[#1c1916]/95 text-[#2d5016] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-white/15 shadow-[#8b6f47]/10 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5"
                         )}
                     >
-                        {label}
+                        {active && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0" />
+                        )}
+                        <span>{label}</span>
                     </div>
                 )}
             </Link>
@@ -426,11 +431,16 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                     <div 
                         style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
                         className={cn(
-                            "fixed left-[76px] px-3 py-2 text-[11px] font-black rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-[9999] whitespace-nowrap shadow-2xl border uppercase tracking-[0.15em] backdrop-blur-md",
-                            isLite ? "" : "bg-[#1c1916]/95 text-[#e8dfd5] border-[#8b6f47]/30 shadow-black/40"
+                            "fixed left-[76px] px-3.5 py-1.5 text-[11px] font-black rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-150 z-[9999] whitespace-nowrap shadow-xl border uppercase tracking-[0.14em] backdrop-blur-xl flex items-center gap-1.5",
+                            isLite 
+                                ? "" 
+                                : "bg-[#fbf9f4]/95 dark:bg-[#1c1916]/95 text-[#2d5016] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-white/15 shadow-[#8b6f47]/10 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5"
                         )}
                     >
-                        {item.label}
+                        {isAnyChildActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0" />
+                        )}
+                        <span>{item.label}</span>
                     </div>
                 )}
             </button>

@@ -666,33 +666,33 @@ Khi người dùng gửi ảnh (lá cây, thân cành, hoa, quả, rễ hoặc c
 3. Kê đơn phác đồ điều trị dập dịch: Đối chiếu ngay toàn bộ hoạt chất và sản phẩm có sẵn trong kho cửa hàng để đưa ra bộ phối tăng lực tối ưu!
 
 ---
-### 🌿 CẤU TRÚC BÀI TƯ VẤN TRỰC QUAN BẮT BUỘC (TUÂN THỦ CHÍNH XÁC):
+### CẤU TRÚC BÀI TƯ VẤN TRỰC QUAN BẮT BUỘC (TUÂN THỦ CHÍNH XÁC):
 
-### 🎯 CHẨN ĐOÁN & ĐẶC TÍNH GÂY HẠI
+### CHẨN ĐOÁN & ĐẶC TÍNH GÂY HẠI
 - **Đối tượng hại**: Tên sâu/bệnh & tác nhân gây hại (nấm, vi khuẩn, chích hút, ăn lá...).
 - **Đặc tính nguy hiểm**: Cơ chế phá hoại, tốc độ lây lan, khả năng kháng thuốc cần lưu ý.
 
-### 🔍 RÀ SOÁT HOẠT CHẤT CÓ TRONG KHO & LỰA CHỌN TƯƠNG THÍCH
+### RÀ SOÁT HOẠT CHẤT CÓ TRONG KHO & LỰA CHỌN TƯƠNG THÍCH
 (Điểm danh tất cả hoạt chất kho đang có dùng được cho đối tượng này, viết rõ: **Tên Thuốc** *(Hoạt chất)*):
 - **Nhóm thế hệ mới / Đặc trị**: **Tên Thuốc A** *(Hoạt chất A)* - Cơ chế tác động & ưu thế vượt trội (ví dụ: bẻ gãy tính kháng, lưu dẫn 2 chiều, mát bông).
 - **Nhóm hạ gục nhanh / Tiếp xúc**: **Tên Thuốc B** *(Hoạt chất B)* - Cơ chế tiếp xúc vị độc, hạ gục tức thì.
 - **Nhóm bảo vệ / Ức chế lột xác**: **Tên Thuốc C** *(Hoạt chất C)* - Diệt trứng, cắt đứt vòng đời, chống tái phát.
 
-### 💥 BỘ PHỐI ĐÒN KÉP TĂNG LỰC (TANK-MIX TẠI KHO)
+### BỘ PHỐI ĐÒN KÉP TĂNG LỰC (TANK-MIX TẠI KHO)
 - **Công thức phối**: **Tên Thuốc 1** *(Hoạt chất 1)* + **Tên Thuốc 2** *(Hoạt chất 2)* (+ **Trợ lực** *(Hoạt chất)* nếu có)
 - **Vì sao lại phối các thuốc này?**: Phân tích ngắn gọn cơ chế cộng hưởng tăng lực (ví dụ: Thuốc 1 đánh nhanh hạ gục + Thuốc 2 ngấm sâu diệt trứng lưu dẫn dài ngày).
 - **Liều pha phối hợp cụ thể**:
   + **Bình 25 Lít**: Pha liều từng thuốc (ví dụ: 15ml **Tên Thuốc 1** + 15g **Tên Thuốc 2** + 2.5ml **Trợ lực**).
   + **Phuy 200 Lít**: Pha liều từng thuốc (ví dụ: 1 chai **Tên Thuốc 1** + 1 gói **Tên Thuốc 2** + 1 chai **Trợ lực**).
 
-### 🧪 THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH (Quy tắc W-S-S-E-A)
+### THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH (Quy tắc W-S-S-E-A)
 1. Đổ nước sạch vào 1/2 bình hoặc phuy.
 2. Thuốc dạng Bột (WP, WG, WDG) khuấy tan hoàn toàn trước.
 3. Thuốc dạng Huyền phù / Nước (SC, SL, FS, OD) đổ vào khuấy đều.
 4. Thuốc dạng Nhũ dầu (EC, EW, ME) cho vào sau cùng.
 5. Thêm chất bám dính / trợ lực (nếu có), châm đủ nước và phun ngay.
 
-### ⚠️ LƯU Ý KỸ THUẬT & CẢNH BÁO TƯƠNG KỴ
+### LƯU Ý KỸ THUẬT & CẢNH BÁO TƯƠNG KỴ
 - Thời điểm phun thích hợp (sáng sớm / chiều mát).
 - Cảnh báo an toàn (không phối với phân bón lá có đạm cao khi đang có bệnh, không pha thuốc có tính kiềm mạnh...).
 - Cữ phun kế tiếp (sau 5-7 ngày) nên luân chuyển sang **Tên Thuốc Khác** *(Hoạt chất khác)* để chống lờn thuốc.

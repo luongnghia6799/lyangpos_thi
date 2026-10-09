@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
     BrainCircuit, Sparkles, Send, Trash2, ShoppingCart, 
@@ -6,7 +6,11 @@ import {
     CheckCheck, Image as ImageIcon,
     FlaskConical, Droplets, Maximize2, Minimize2,
     BarChart3, TrendingUp, Bot, FileText,
-    ShieldAlert, Stethoscope, Zap, Beaker, CheckCircle2, ChevronRight
+    ShieldAlert, Stethoscope, Zap, Beaker, CheckCircle2, ChevronRight,
+    Sun, Moon, Share2, Link2, Home, ArrowLeft,
+    Camera, ShieldCheck, Microscope, Bug,
+    DollarSign, Crown, AlertTriangle, Trophy, CreditCard, Clock,
+    MessageSquare, Calculator, Languages, FileEdit
 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -26,13 +30,13 @@ const MODES = [
         welcomeText: 'Xin chào! Tôi là **LyangAI - Cố Vấn Hoạt Chất & Nông Nghiệp Thông Minh**.\n\nHãy nhập triệu chứng cây trồng, loại sâu bệnh hoặc **nhấn Ctrl+V để dán ảnh lá/trái bị bệnh**, tôi sẽ chẩn đoán ngay và đối chiếu thuốc trong kho giúp bạn!',
         loadingText: 'LyangAI đang tra cứu hoạt chất & đối chiếu kho thuốc...',
         suggestions: [
-            { label: '📸 Dán ảnh khám bệnh (Ctrl+V)', query: 'Hướng dẫn tôi cách chụp hoặc nhấn Ctrl+V để dán ảnh lá cây, vết bệnh vào đây cho AI chẩn đoán và kê đơn thuốc từ kho?' },
-            { label: '🐛 Phối bọ trĩ lờn thuốc', query: 'Bọ trĩ thanh long bị kháng thuốc nặng gây quăn bông, đen tai, tư vấn bộ phối trộn hoạt chất có trong kho để tăng lực dập dịch và liều pha?' },
-            { label: '🌿 Phối thán thư + thối nhũn vi khuẩn', query: 'Thanh long bị thán thư kết hợp thối nhũn vi khuẩn trên cành và bông mùa mưa, tư vấn bộ phối nấm + khuẩn từ các sản phẩm trong kho?' },
-            { label: '🦎 Đốm nâu (Tắc kè) thanh long', query: 'Thanh long bị bệnh đốm nâu (đốm trắng / tắc kè) trên cành và trái non, rà soát toàn bộ hoạt chất đặc trị có trong kho và công thức phối trộn hiệu quả nhất?' },
-            { label: '🐜 Phối rệp sáp & rầy bồ hóng', query: 'Rệp sáp và rầy phấn trắng bu nụ bông tạo nấm bồ hóng đen, tư vấn phối hợp hoạt chất hạ gục + lưu dẫn ức chế lột xác trong kho?' },
-            { label: '🍂 Thối cành & xì mủ Phytophthora', query: 'Cành thanh long bị thối nhũn và nứt thân xì mủ, rà soát hoạt chất Oomycetes và vi khuẩn trong kho để phối thuốc chặn lây lan?' },
-            { label: '✨ Vuốt tai & Đẹp trái', query: 'Tư vấn phân thuốc và kích thích sinh trưởng giúp trái thanh long đỏ da, tai dày xanh cứng, không bị lem trái?' }
+            { icon: Camera, iconColor: 'text-teal-500', label: 'Dán ảnh khám bệnh (Ctrl+V)', query: 'Hướng dẫn tôi cách chụp hoặc nhấn Ctrl+V để dán ảnh lá cây, vết bệnh vào đây cho AI chẩn đoán và kê đơn thuốc từ kho?' },
+            { icon: Zap, iconColor: 'text-amber-500', label: 'Phối bọ trĩ lờn thuốc', query: 'Bọ trĩ thanh long bị kháng thuốc nặng gây quăn bông, đen tai, tư vấn bộ phối trộn hoạt chất có trong kho để tăng lực dập dịch và liều pha?' },
+            { icon: FlaskConical, iconColor: 'text-emerald-500', label: 'Phối thán thư + thối nhũn vi khuẩn', query: 'Thanh long bị thán thư kết hợp thối nhũn vi khuẩn trên cành và bông mùa mưa, tư vấn bộ phối nấm + khuẩn từ các sản phẩm trong kho?' },
+            { icon: ShieldAlert, iconColor: 'text-rose-500', label: 'Đốm nâu (Tắc kè) thanh long', query: 'Thanh long bị bệnh đốm nâu (đốm trắng / tắc kè) trên cành và trái non, rà soát toàn bộ hoạt chất đặc trị có trong kho và công thức phối trộn hiệu quả nhất?' },
+            { icon: Bug, iconColor: 'text-amber-500', label: 'Phối rệp sáp & rầy bồ hóng', query: 'Rệp sáp và rầy phấn trắng bu nụ bông tạo nấm bồ hóng đen, tư vấn phối hợp hoạt chất hạ gục + lưu dẫn ức chế lột xác trong kho?' },
+            { icon: Droplets, iconColor: 'text-sky-500', label: 'Thối cành & xì mủ Phytophthora', query: 'Cành thanh long bị thối nhũn và nứt thân xì mủ, rà soát hoạt chất Oomycetes và vi khuẩn trong kho để phối thuốc chặn lây lan?' },
+            { icon: Leaf, iconColor: 'text-green-500', label: 'Vuốt tai & Đẹp trái', query: 'Tư vấn phân thuốc và kích thích sinh trưởng giúp trái thanh long đỏ da, tai dày xanh cứng, không bị lem trái?' }
         ]
     },
     {
@@ -48,14 +52,14 @@ const MODES = [
         welcomeText: 'Xin chào! Tôi là **LyangAI - Trợ Lý Phân Tích Số Liệu Toàn Diện**.\n\nTôi có thể trả lời các câu hỏi thời gian thực về **doanh thu, đơn hàng, công nợ khách hàng / nhà cung cấp, tồn kho và mặt hàng sắp hết / cận date** trong toàn bộ hệ thống!',
         loadingText: 'LyangAI đang phân tích số liệu toàn bộ phần mềm...',
         suggestions: [
-            { label: '💰 Tổng vốn tồn kho', query: 'Tổng vốn lưu động đang nằm trong kho là bao nhiêu tiền và những mặt hàng nào đang giam vốn nhiều nhất?' },
-            { label: '👑 Top khách VIP mua nhiều nhất', query: 'Những khách hàng nào mua nhiều tiền nhất từ trước đến nay và tình hình công nợ của họ ra sao?' },
-            { label: '📈 So sánh tháng này & tháng trước', query: 'So sánh tổng kết doanh thu, số đơn và lợi nhuận gộp của tháng này với tháng trước?' },
-            { label: '📊 Doanh thu hôm nay / gần nhất', query: 'Hôm nay hoặc ngày bán gần đây nhất cửa hàng bán được bao nhiêu đơn, tổng doanh thu và thực thu thế nào?' },
-            { label: '⚠️ Hàng ế đọng vốn', query: 'Những mặt hàng nào đang bị đọng vốn lâu ngày, tồn kho nhiều mà 60 ngày qua bán chậm cần xả hàng?' },
-            { label: '🏆 Top mặt hàng bán chạy nhất', query: 'Top 10 mặt hàng bán chạy nhất lịch sử từ trước đến nay và tổng doanh số mang lại?' },
-            { label: '💳 Công nợ khách nợ nhiều nhất', query: 'Tổng công nợ khách hàng hiện tại là bao nhiêu và những ai đang nợ nhiều nhất cần thu hồi?' },
-            { label: '⏳ Hàng cận date / sắp hết kho', query: 'Có những sản phẩm nào sắp hết hạn sử dụng hoặc tồn kho thấp hơn mức cảnh báo không?' }
+            { icon: DollarSign, iconColor: 'text-emerald-500', label: 'Tổng vốn tồn kho', query: 'Tổng vốn lưu động đang nằm trong kho là bao nhiêu tiền và những mặt hàng nào đang giam vốn nhiều nhất?' },
+            { icon: Crown, iconColor: 'text-amber-500', label: 'Top khách VIP mua nhiều nhất', query: 'Những khách hàng nào mua nhiều tiền nhất từ trước đến nay và tình hình công nợ của họ ra sao?' },
+            { icon: TrendingUp, iconColor: 'text-blue-500', label: 'So sánh tháng này & tháng trước', query: 'So sánh tổng kết doanh thu, số đơn và lợi nhuận gộp của tháng này với tháng trước?' },
+            { icon: BarChart3, iconColor: 'text-indigo-500', label: 'Doanh thu hôm nay / gần nhất', query: 'Hôm nay hoặc ngày bán gần đây nhất cửa hàng bán được bao nhiêu đơn, tổng doanh thu và thực thu thế nào?' },
+            { icon: AlertTriangle, iconColor: 'text-rose-500', label: 'Hàng ế đọng vốn', query: 'Những mặt hàng nào đang bị đọng vốn lâu ngày, tồn kho nhiều mà 60 ngày qua bán chậm cần xả hàng?' },
+            { icon: Trophy, iconColor: 'text-amber-500', label: 'Top mặt hàng bán chạy nhất', query: 'Top 10 mặt hàng bán chạy nhất lịch sử từ trước đến nay và tổng doanh số mang lại?' },
+            { icon: CreditCard, iconColor: 'text-purple-500', label: 'Công nợ khách nợ nhiều nhất', query: 'Tổng công nợ khách hàng hiện tại là bao nhiêu và những ai đang nợ nhiều nhất cần thu hồi?' },
+            { icon: Clock, iconColor: 'text-orange-500', label: 'Hàng cận date / sắp hết kho', query: 'Có những sản phẩm nào sắp hết hạn sử dụng hoặc tồn kho thấp hơn mức cảnh báo không?' }
         ]
     },
     {
@@ -70,7 +74,12 @@ const MODES = [
         placeholder: 'Hỏi bất cứ điều gì (soạn tin nhắn, tính toán, kiến thức, kế hoạch)...',
         welcomeText: 'Xin chào! Tôi là **LyangAI - Trợ Lý Đa Năng Thông Minh (Gemini)**.\n\nBạn có thể hỏi tôi bất cứ điều gì: **soạn tin nhắn Zalo gửi khách, lập kế hoạch công việc, dịch thuật, tính toán, tra cứu kiến thức đời sống & nông nghiệp**!',
         loadingText: 'LyangAI đang suy nghĩ và tổng hợp câu trả lời...',
-        suggestions: []
+        suggestions: [
+            { icon: MessageSquare, iconColor: 'text-purple-500', label: 'Soạn tin Zalo đòi nợ tế nhị', query: 'Hãy soạn giúp tôi một tin nhắn Zalo gửi cho khách hàng thân thiết để nhắc công nợ một cách tế nhị, lịch sự và giữ mối quan hệ lâu dài?' },
+            { icon: Calculator, iconColor: 'text-pink-500', label: 'Tính chiết khấu & điểm hòa vốn', query: 'Hướng dẫn tôi cách tính nhanh tỷ lệ phần trăm chiết khấu và điểm hòa vốn khi nhập một lô hàng lớn?' },
+            { icon: Languages, iconColor: 'text-indigo-500', label: 'Giải thích thuật ngữ BVTV', query: 'Giải thích chi tiết cơ chế tác động và sự khác biệt giữa hoạt chất trừ sâu nhóm Diamide và nhóm Spinosyn?' },
+            { icon: FileEdit, iconColor: 'text-amber-500', label: 'Soạn cam kết cung cấp hàng', query: 'Soạn thảo giúp tôi một mẫu cam kết cung cấp vật tư nông nghiệp và thời hạn thanh toán công nợ đơn giản, rõ ràng?' }
+        ]
     }
 ];
 
@@ -304,14 +313,1147 @@ const extractActiveIngredients = (raw) => {
     return results;
 };
 
+const isTargetProduct = (prod) => {
+    if (!prod) return true;
+    if (prod.role === 'target') return true;
+    if (prod.role === 'synergy') return false;
+    const tier = (prod.tier || '').toLowerCase();
+    if (tier.includes('đặc trị chính') || tier.includes('hạ gục') || tier.includes('đặc trị')) return true;
+    if (tier.includes('tương thích') || tier.includes('hiệp đồng') || tier.includes('luân phiên') || tier.includes('phòng ngừa')) return false;
+    return true;
+};
+
+// Format cụm từ: làm nổi bật **Tên Thuốc** *(Tên hoạt chất)* hoặc **Tên Thuốc** (Hoạt chất)
+const renderBoldSpans = (text) => {
+    if (!text) return null;
+
+    const drugPattern = /(\*\*[^*]+\*\*)\s*(\*(?:\([^*()]+\)|\[[^*[\]]+\])\*|\([^*()]+\)|\[[^*[\]]+\])/g;
+    const tokens = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = drugPattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            tokens.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+        }
+        tokens.push({
+            type: 'drug_pair',
+            drugName: match[1].replace(/^\*\*|\*\*$/g, '').trim(),
+            activeName: match[2].replace(/^[\*\(\[]+|[\*\)\]]+$/g, '').trim()
+        });
+        lastIndex = drugPattern.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+        tokens.push({ type: 'text', content: text.substring(lastIndex) });
+    }
+
+    return tokens.map((token, tIdx) => {
+        if (token.type === 'drug_pair') {
+            return (
+                <span 
+                    key={tIdx} 
+                    className="inline-flex items-center gap-1.5 mx-1 my-0.5 px-2.5 py-0.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-2xs align-middle"
+                >
+                    <strong className="font-black text-emerald-950 dark:text-emerald-200 tracking-tight">
+                        {token.drugName}
+                    </strong>
+                    <span className="text-[0.88em] font-semibold italic text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded-lg">
+                        ({token.activeName})
+                    </span>
+                </span>
+            );
+        }
+
+        const parts = token.content.split(/(\*\*.*?\*\*)/g);
+        return (
+            <span key={tIdx}>
+                {parts.map((p, pIdx) => {
+                    if (p.startsWith('**') && p.endsWith('**')) {
+                        const boldContent = p.slice(2, -2);
+                        const isDose = /bình\s*\d+l|phuy\s*\d+l|liều/i.test(boldContent);
+                        if (isDose) {
+                            return (
+                                <span 
+                                    key={pIdx} 
+                                    className="font-black text-amber-900 dark:text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-lg mx-0.5 shadow-2xs"
+                                >
+                                    {boldContent}
+                                </span>
+                            );
+                        }
+                        return (
+                            <strong key={pIdx} className="font-black text-stone-900 dark:text-stone-100">
+                                {boldContent}
+                            </strong>
+                        );
+                    }
+                    return p;
+                })}
+            </span>
+        );
+    });
+};
+
+const stripLeadingEmojisAndIcons = (str) => {
+    if (!str) return '';
+    return str
+        .replace(/^[\p{Extended_Pictographic}\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F000}-\u{1F02F}\s•\-\*#👉🔥💥⚡🎯🧪📊📈🌿🍃💡⚠️🚨🔴🟢👑💰📦🩺🔍📌✨🏷️🌾💧]+/gu, '')
+        .trim();
+};
+
+// Render formatted markdown với Data Table, KPI & các Section Card trực quan
+const renderFormattedMarkdown = (text, fontSize) => {
+    if (!text) return null;
+
+    const cleanedText = text
+        .split('\n')
+        .filter(line => {
+            const t = line.trim();
+            return !/^>[ \t]*(\+[ \t]*)?$/.test(t) && t !== '+';
+        })
+        .map(line => {
+            let l = line.trim();
+            if (l.startsWith('> ')) {
+                l = l.substring(2).trim();
+            } else if (l.startsWith('>')) {
+                l = l.substring(1).trim();
+            }
+            return l;
+        })
+        .join('\n');
+
+    const rawLines = cleanedText.split('\n');
+    const blocks = [];
+    let i = 0;
+
+    while (i < rawLines.length) {
+        const line = rawLines[i];
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.indexOf('|', 1) !== -1) {
+            const tableLines = [];
+            while (i < rawLines.length && rawLines[i].trim().startsWith('|') && rawLines[i].trim().endsWith('|')) {
+                tableLines.push(rawLines[i].trim());
+                i++;
+            }
+
+            if (tableLines.length >= 1) {
+                const parsedRows = tableLines.map(tLine => {
+                    return tLine
+                        .split('|')
+                        .slice(1, -1)
+                        .map(c => c.trim());
+                });
+
+                const headers = parsedRows[0];
+                let rows = [];
+                if (parsedRows.length > 1 && parsedRows[1].every(c => /^:?-+:?$/.test(c))) {
+                    rows = parsedRows.slice(2);
+                } else {
+                    rows = parsedRows.slice(1);
+                }
+
+                blocks.push({
+                    type: 'table',
+                    headers,
+                    rows,
+                    key: `table-${i}`
+                });
+                continue;
+            }
+        }
+
+        blocks.push({
+            type: 'line',
+            content: line,
+            key: `line-${i}`
+        });
+        i++;
+    }
+
+    return blocks.map((block, bIdx) => {
+        if (block.type === 'table') {
+            return (
+                <div 
+                    key={block.key || bIdx} 
+                    className="my-3 overflow-hidden rounded-2xl border border-stone-200/90 dark:border-white/10 shadow-sm bg-white/95 dark:bg-[#0c1813]"
+                >
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left border-collapse min-w-[540px]">
+                            <thead>
+                                <tr className="bg-gradient-to-r from-stone-100 via-stone-50 to-blue-50/50 dark:from-[#0d1e16] dark:via-[#0c1b14] dark:to-[#081510] border-b border-stone-200/90 dark:border-white/10">
+                                    {block.headers.map((h, hIdx) => (
+                                        <th 
+                                            key={hIdx} 
+                                            className="px-3 py-2.5 font-black text-stone-800 dark:text-stone-100 uppercase tracking-wider text-[11px] whitespace-nowrap"
+                                        >
+                                            {renderBoldSpans(stripLeadingEmojisAndIcons(h))}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-stone-100 dark:divide-white/5">
+                                {block.rows.map((row, rIdx) => {
+                                    const isEven = rIdx % 2 === 0;
+                                    return (
+                                        <tr 
+                                            key={rIdx} 
+                                            className={cn(
+                                                "transition-colors hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30",
+                                                isEven ? "bg-transparent" : "bg-stone-50/40 dark:bg-white/[0.02]"
+                                            )}
+                                        >
+                                            {row.map((cell, cIdx) => {
+                                                const isSafe = /🟢|an toàn|đã thanh toán/i.test(cell);
+                                                const isWarning = /⚠️|cần thu hồi|nợ lớn|quá hạn|cần theo dõi/i.test(cell);
+                                                const isDanger = /🔴|nợ xấu|khẩn cấp/i.test(cell);
+                                                const isMoney = /\d+[\.,\d]*\s*đ/i.test(cell) || /₫/i.test(cell);
+                                                const isSTT = cIdx === 0 && /^\d+$/.test(cell.replace(/[\*\_\#]/g, '').trim());
+
+                                                return (
+                                                    <td 
+                                                        key={cIdx} 
+                                                        className={cn(
+                                                            "px-3 py-2 text-stone-700 dark:text-stone-200 whitespace-nowrap text-[11.5px]",
+                                                            isSTT ? "text-center font-bold text-stone-400 dark:text-stone-500 w-10" : ""
+                                                        )}
+                                                    >
+                                                        {isSafe ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                                                <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                <span>{cell.replace(/🟢/g, '').trim()}</span>
+                                                            </span>
+                                                        ) : isWarning ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-900 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                                                                <AlertTriangle size={11} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                                                <span>{cell.replace(/⚠️/g, '').trim()}</span>
+                                                            </span>
+                                                        ) : isDanger ? (
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-900 dark:text-rose-300 border border-rose-500/30 text-[10px] font-bold">
+                                                                <ShieldAlert size={11} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                                                                <span>{cell.replace(/🔴/g, '').trim()}</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className={cn(
+                                                                isMoney ? "font-black text-[#1a4a20] dark:text-emerald-400" : ""
+                                                            )}>
+                                                                {renderBoldSpans(cell)}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        const line = block.content;
+        const lineIdx = bIdx;
+        const trimmed = line.trim();
+
+        if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+            return <hr key={lineIdx} className="my-3 border-stone-200/80 dark:border-white/10" />;
+        }
+
+        if (line.startsWith('### ')) {
+            const rawHeaderText = line.replace('### ', '').trim();
+            const headerClean = stripLeadingEmojisAndIcons(rawHeaderText);
+            const lower = headerClean.toLowerCase();
+
+            let IconComp = Leaf;
+            let cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-900 dark:text-emerald-200";
+
+            if (lower.includes('bảng') || lower.includes('tổng hợp') || lower.includes('top') || lower.includes('báo cáo') || lower.includes('doanh thu') || lower.includes('số liệu') || lower.includes('thống kê')) {
+                IconComp = BarChart3;
+                cardStyle = "bg-blue-500/10 dark:bg-blue-950/40 border-blue-500/30 text-blue-950 dark:text-blue-200";
+            } else if (lower.includes('khách hàng') || lower.includes('vip') || lower.includes('đối tác')) {
+                IconComp = Crown;
+                cardStyle = "bg-amber-500/15 dark:bg-amber-950/40 border-amber-500/40 text-amber-950 dark:text-amber-200";
+            } else if (lower.includes('vốn') || lower.includes('tồn kho') || lower.includes('chiết khấu') || lower.includes('lãi')) {
+                IconComp = DollarSign;
+                cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-900 dark:text-emerald-200";
+            } else if (lower.includes('cận date') || lower.includes('bán chậm') || lower.includes('hết hạn') || lower.includes('cảnh báo') || lower.includes('tương kỵ')) {
+                IconComp = AlertTriangle;
+                cardStyle = "bg-rose-500/10 dark:bg-rose-950/40 border-rose-500/30 text-rose-950 dark:text-rose-200";
+            } else if (lower.includes('chẩn đoán') || lower.includes('đặc tính') || lower.includes('nguyên nhân')) {
+                IconComp = Stethoscope;
+                cardStyle = "bg-teal-500/10 dark:bg-teal-950/40 border-teal-500/30 text-teal-900 dark:text-teal-200";
+            } else if (lower.includes('bộ phối') || lower.includes('phối trộn') || lower.includes('tank-mix') || lower.includes('đòn kép')) {
+                IconComp = Zap;
+                cardStyle = "bg-amber-500/15 dark:bg-amber-950/40 border-amber-500/40 text-amber-950 dark:text-amber-200";
+            } else if (lower.includes('thứ tự') || lower.includes('hòa tan') || lower.includes('pha thuốc')) {
+                IconComp = Beaker;
+                cardStyle = "bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-950 dark:text-sky-200";
+            } else if (lower.includes('rà soát') || lower.includes('hoạt chất')) {
+                IconComp = FlaskConical;
+                cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-950 dark:text-emerald-200";
+            } else if (lower.includes('soạn tin') || lower.includes('văn bản') || lower.includes('thỏa thuận')) {
+                IconComp = MessageSquare;
+                cardStyle = "bg-purple-500/10 dark:bg-purple-950/40 border-purple-500/30 text-purple-950 dark:text-purple-200";
+            }
+
+            return (
+                <div 
+                    key={lineIdx}
+                    className={cn(
+                        "mt-3.5 mb-2 px-3 py-1.5 rounded-2xl border flex items-center gap-2.5 shadow-2xs backdrop-blur-xs",
+                        cardStyle
+                    )}
+                >
+                    <div className="p-1 rounded-xl bg-white/80 dark:bg-black/40 shadow-xs shrink-0">
+                        <IconComp size={Math.max(14, Math.round(fontSize * 1.05))} />
+                    </div>
+                    <h4 
+                        style={{ fontSize: `${Math.round(fontSize * 1.08)}px` }}
+                        className="font-black tracking-tight drop-shadow-2xs"
+                    >
+                        {renderBoldSpans(headerClean)}
+                    </h4>
+                </div>
+            );
+        }
+
+        if (line.startsWith('## ')) {
+            return (
+                <h3 
+                    key={lineIdx} 
+                    style={{ fontSize: `${Math.round(fontSize * 1.2)}px` }}
+                    className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5"
+                >
+                    <Leaf size={Math.max(14, Math.round(fontSize * 1.1))} />
+                    {renderBoldSpans(stripLeadingEmojisAndIcons(line.replace('## ', '')))}
+                </h3>
+            );
+        }
+
+        if (line.startsWith('# ')) {
+            return (
+                <h2 
+                    key={lineIdx} 
+                    style={{ fontSize: `${Math.round(fontSize * 1.35)}px` }}
+                    className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400"
+                >
+                    {renderBoldSpans(stripLeadingEmojisAndIcons(line.replace('# ', '')))}
+                </h2>
+            );
+        }
+
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+        if (numMatch) {
+            return (
+                <div 
+                    key={lineIdx} 
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                    className="my-1.5 py-1 px-3 rounded-2xl bg-stone-50/80 dark:bg-stone-900/40 border border-stone-200/60 dark:border-white/5 flex items-start gap-2.5 shadow-2xs"
+                >
+                    <span 
+                        style={{ background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #4a7c59 100%))' }}
+                        className="w-5 h-5 rounded-full text-white font-black text-[10.5px] flex items-center justify-center shrink-0 select-none shadow-xs mt-0.5 border border-white/20"
+                    >
+                        {numMatch[1]}
+                    </span>
+                    <div className="flex-1 text-stone-800 dark:text-stone-200">
+                        {renderBoldSpans(numMatch[2])}
+                    </div>
+                </div>
+            );
+        }
+
+        const isProductItem = /^(?:👉|🔥|💥|⚡|•|\-|\*)?\s*(?:Sản phẩm\s*\d+|Trợ lực|Công thức phối|Bộ phối)/i.test(trimmed);
+        if (isProductItem) {
+            return (
+                <div 
+                    key={lineIdx} 
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                    className="my-1.5 py-1.5 px-3 rounded-2xl bg-amber-500/15 dark:bg-amber-950/40 border border-amber-500/30 flex items-start gap-2.5 text-stone-800 dark:text-stone-200 shadow-2xs"
+                >
+                    <div className="p-1 rounded-lg bg-amber-500/20 dark:bg-amber-400/20 text-amber-800 dark:text-amber-300 shrink-0 mt-0.5">
+                        <Zap size={13} />
+                    </div>
+                    <div className="flex-1 font-medium">
+                        {renderBoldSpans(stripLeadingEmojisAndIcons(trimmed))}
+                    </div>
+                </div>
+            );
+        }
+
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('+ ')) {
+            const clean = trimmed.substring(2);
+            const isSubItem = line.startsWith('  ') || line.startsWith('\t');
+            return (
+                <div 
+                    key={lineIdx} 
+                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                    className={cn(
+                        "py-0.5 flex items-start gap-2 text-stone-700 dark:text-stone-300",
+                        isSubItem ? "ml-5" : "ml-1"
+                    )}
+                >
+                    <span className="text-[#2d5016] dark:text-emerald-400 font-bold shrink-0 select-none mt-1">
+                        {isSubItem ? '›' : '•'}
+                    </span>
+                    <div className="flex-1">
+                        {renderBoldSpans(clean)}
+                    </div>
+                </div>
+            );
+        }
+
+        if (!trimmed) {
+            return <div key={lineIdx} className="h-1" />;
+        }
+
+        return (
+            <p 
+                key={lineIdx} 
+                style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
+                className="py-0.5 text-stone-800 dark:text-stone-200"
+            >
+                {renderBoldSpans(line)}
+            </p>
+        );
+    });
+};
+
+const WelcomeHeroCropDoctor = React.memo(function WelcomeHeroCropDoctor({ onUploadClick, onSend }) {
+    return (
+        <m.div 
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.96, transition: { duration: 0.2 } }}
+            className="w-full select-none my-1 sm:my-2"
+        >
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/95 via-stone-50/90 to-emerald-50/40 dark:from-[#0d2218] dark:via-[#091a12] dark:to-[#05110b] border border-[#8b6f47]/20 dark:border-emerald-500/25 p-4 sm:p-6 shadow-md">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+                <div className="absolute bottom-0 left-0 w-52 h-52 bg-amber-500/10 rounded-full blur-2xl pointer-events-none -ml-12 -mb-12" />
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3.5 sm:gap-5 relative z-10 text-center sm:text-left">
+                    <div className="relative shrink-0">
+                        <div className="w-12 h-12 sm:w-15 sm:h-15 rounded-2xl bg-gradient-to-br from-[#163d18] via-[#205c26] to-[#2d7d35] text-white flex items-center justify-center shadow-lg shadow-emerald-950/20 border border-emerald-400/30">
+                            <Stethoscope size={28} className="text-white drop-shadow-xs" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.8 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[#1e4d21] dark:text-emerald-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider mb-1.5">
+                            <Leaf size={12} className="text-emerald-600 dark:text-emerald-400" />
+                            <span>Trợ Lý Nông Dược BVTV & Kê Đơn Thuốc 4.0</span>
+                        </div>
+                        <h2 className="text-base sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight leading-snug">
+                            Bác Sĩ Cây Trồng Sáu Quý
+                        </h2>
+                        <p className="text-[12px] sm:text-sm text-stone-600 dark:text-stone-300 font-medium mt-1 leading-relaxed max-w-2xl">
+                            Chẩn đoán dịch hại qua thị giác máy tính AI, tư vấn bộ phối tank-mix dập dịch kháng thuốc và đối chiếu trực tiếp danh mục thuốc sẵn có trong kho.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mt-5 relative z-10">
+                    <button
+                        type="button"
+                        onClick={onUploadClick}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-[#8b6f47]/15 dark:border-emerald-500/20 hover:border-emerald-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Camera size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                                Khám bệnh bằng hình ảnh
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Tải hoặc dán ảnh lá, bông, trái để AI nhận diện nấm, vi khuẩn, sâu rầy tức thì.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Bọ trĩ thanh long bị kháng thuốc nặng gây quăn bông, đen tai, tư vấn bộ phối trộn hoạt chất có trong kho để tăng lực dập dịch và liều pha?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-[#8b6f47]/15 dark:border-amber-500/20 hover:border-amber-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Zap size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                                Sâu rầy & Bọ trĩ kháng thuốc
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Phối hạ gục tiếp xúc + ức chế lột xác IGR diệt sạch cả trứng và ấu trùng gối lứa.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Thanh long bị thán thư kết hợp thối nhũn vi khuẩn trên cành và bông mùa mưa, tư vấn bộ phối nấm + khuẩn từ các sản phẩm trong kho?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-sky-50/80 dark:hover:bg-sky-950/40 border border-[#8b6f47]/15 dark:border-sky-500/20 hover:border-sky-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <FlaskConical size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-sky-700 dark:group-hover:text-sky-300">
+                                Thán thư, Đốm nâu & Vi khuẩn
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Bộ phối SDHI / Triazole nội hấp + Đồng/Kasugamycin diệt khuẩn làm khô nhanh vết loét.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Tư vấn phân thuốc và kích thích sinh trưởng giúp trái thanh long đỏ da, tai dày xanh cứng, không bị lem trái?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-[#8b6f47]/15 dark:border-emerald-500/20 hover:border-emerald-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 to-green-600 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Leaf size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                                Vuốt tai, Đẹp trái & Dưỡng đọt
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Phối hợp Amino hữu cơ, Rong biển, Bo-Kẽm & Canxi giúp tai xanh dày cứng, không lem.
+                            </p>
+                        </div>
+                    </button>
+                </div>
+
+                <div className="mt-4 pt-3.5 border-t border-[#8b6f47]/15 dark:border-white/10 flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-[10.5px] sm:text-[11px] font-bold text-stone-600 dark:text-stone-400 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Đối chiếu 100% kho thuốc thực tế</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Chuẩn thứ tự hòa tan (WP ➔ SC ➔ EC)</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Cảnh báo tương kỵ & an toàn bông trái</span>
+                    </span>
+                </div>
+            </div>
+        </m.div>
+    );
+});
+
+const WelcomeHeroAnalytics = React.memo(function WelcomeHeroAnalytics({ onSend }) {
+    return (
+        <m.div 
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.96, transition: { duration: 0.2 } }}
+            className="w-full select-none my-1 sm:my-2"
+        >
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/95 via-blue-50/40 to-indigo-50/30 dark:from-[#0b1728] dark:via-[#081220] dark:to-[#050b14] border border-blue-500/25 p-4 sm:p-6 shadow-md">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+                <div className="absolute bottom-0 left-0 w-52 h-52 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none -ml-12 -mb-12" />
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3.5 sm:gap-5 relative z-10 text-center sm:text-left">
+                    <div className="relative shrink-0">
+                        <div className="w-12 h-12 sm:w-15 sm:h-15 rounded-2xl bg-gradient-to-br from-blue-700 via-indigo-600 to-sky-600 text-white flex items-center justify-center shadow-lg shadow-blue-950/20 border border-blue-400/30">
+                            <BarChart3 size={28} className="text-white drop-shadow-xs" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.8 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-900 dark:text-blue-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider mb-1.5">
+                            <BarChart3 size={12} className="text-blue-600 dark:text-blue-400" />
+                            <span>Trợ Lý Phân Tích Số Liệu & Kho Hàng 4.0</span>
+                        </div>
+                        <h2 className="text-base sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight leading-snug">
+                            LyangAI • Phân Tích Số Liệu Toàn Diện
+                        </h2>
+                        <p className="text-[12px] sm:text-sm text-stone-600 dark:text-stone-300 font-medium mt-1 leading-relaxed max-w-2xl">
+                            Truy vấn tức thì doanh thu, lợi nhuận, công nợ khách hàng & nhà cung cấp, tổng vốn tồn kho và danh mục hàng ế / cận date trong toàn hệ thống.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mt-5 relative z-10">
+                    <button
+                        type="button"
+                        onClick={() => onSend('Tổng vốn lưu động đang nằm trong kho là bao nhiêu tiền và những mặt hàng nào đang giam vốn nhiều nhất?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/40 border border-[#8b6f47]/15 dark:border-emerald-500/20 hover:border-emerald-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <DollarSign size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
+                                Tổng vốn & Giam vốn kho
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Kiểm tra tổng vốn hàng hóa trong kho và các mã hàng đang chiếm dụng nhiều vốn nhất.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Những khách hàng nào mua nhiều tiền nhất từ trước đến nay và tình hình công nợ của họ ra sao?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-[#8b6f47]/15 dark:border-amber-500/20 hover:border-amber-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Crown size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                                Khách VIP & Công nợ lớn
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Rà soát top khách hàng mua nhiều nhất và danh sách công nợ khách cần thu hồi gấp.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('So sánh tổng kết doanh thu, số đơn và lợi nhuận gộp của tháng này với tháng trước?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 border border-[#8b6f47]/15 dark:border-blue-500/20 hover:border-blue-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <TrendingUp size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300">
+                                Doanh thu & Lợi nhuận gộp
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                So sánh tốc độ tăng trưởng doanh số, số lượng đơn và biên lợi nhuận giữa các tháng.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Có những sản phẩm nào sắp hết hạn sử dụng hoặc tồn kho thấp hơn mức cảnh báo không?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-rose-50/80 dark:hover:bg-rose-950/40 border border-[#8b6f47]/15 dark:border-rose-500/20 hover:border-rose-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-pink-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Clock size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-rose-700 dark:group-hover:text-rose-300">
+                                Hàng cận date & Bán chậm
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Phát hiện sớm hàng sắp hết hạn hoặc 60 ngày qua ế ẩm để có kế hoạch xả kho kịp thời.
+                            </p>
+                        </div>
+                    </button>
+                </div>
+
+                <div className="mt-4 pt-3.5 border-t border-blue-500/15 dark:border-white/10 flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-[10.5px] sm:text-[11px] font-bold text-stone-600 dark:text-stone-400 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span>Dữ liệu thời gian thực từ Database</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span>Tính toán chính xác 100% & Bảo mật nội bộ</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        <span>Tự động tổng hợp báo cáo đa chiều</span>
+                    </span>
+                </div>
+            </div>
+        </m.div>
+    );
+});
+
+const WelcomeHeroGeneral = React.memo(function WelcomeHeroGeneral({ onSend }) {
+    return (
+        <m.div 
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.96, transition: { duration: 0.2 } }}
+            className="w-full select-none my-1 sm:my-2"
+        >
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-white/95 via-purple-50/40 to-pink-50/30 dark:from-[#1b0d28] dark:via-[#140a1f] dark:to-[#0b0512] border border-purple-500/25 p-4 sm:p-6 shadow-md">
+                <div className="absolute top-0 right-0 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
+                <div className="absolute bottom-0 left-0 w-52 h-52 bg-pink-500/10 rounded-full blur-2xl pointer-events-none -ml-12 -mb-12" />
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3.5 sm:gap-5 relative z-10 text-center sm:text-left">
+                    <div className="relative shrink-0">
+                        <div className="w-12 h-12 sm:w-15 sm:h-15 rounded-2xl bg-gradient-to-br from-purple-700 via-fuchsia-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-950/20 border border-purple-400/30">
+                            <Sparkles size={28} className="text-white drop-shadow-xs" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.8 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-900 dark:text-purple-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider mb-1.5">
+                            <Sparkles size={12} className="text-purple-600 dark:text-purple-400" />
+                            <span>Trợ Lý Trí Tuệ Nhân Tạo Đa Năng Gemini</span>
+                        </div>
+                        <h2 className="text-base sm:text-2xl font-black text-stone-900 dark:text-white tracking-tight leading-snug">
+                            LyangAI • Trợ Lý Đa Năng Thông Minh
+                        </h2>
+                        <p className="text-[12px] sm:text-sm text-stone-600 dark:text-stone-300 font-medium mt-1 leading-relaxed max-w-2xl">
+                            Hỗ trợ soạn thảo tin nhắn Zalo gửi khách hàng, tính toán tài chính, lập kế hoạch công việc và tra cứu mọi kiến thức kinh doanh & nông nghiệp.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mt-5 relative z-10">
+                    <button
+                        type="button"
+                        onClick={() => onSend('Hãy soạn giúp tôi một tin nhắn Zalo gửi cho khách hàng thân thiết để nhắc công nợ một cách tế nhị, lịch sự và giữ mối quan hệ lâu dài?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-purple-50/80 dark:hover:bg-purple-950/40 border border-[#8b6f47]/15 dark:border-purple-500/20 hover:border-purple-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <MessageSquare size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                                Soạn tin Zalo gửi khách
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Soạn tin nhắn nhắc nợ tế nhị, chúc mừng lễ tết hoặc thông báo ưu đãi giá thuốc mới.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Hướng dẫn tôi cách tính nhanh tỷ lệ phần trăm chiết khấu và điểm hòa vốn khi nhập một lô hàng lớn?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-pink-50/80 dark:hover:bg-pink-950/40 border border-[#8b6f47]/15 dark:border-pink-500/20 hover:border-pink-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-600 to-rose-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Calculator size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-pink-700 dark:group-hover:text-pink-300">
+                                Tính toán chiết khấu & Lãi
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Tính nhanh tỷ lệ chiết khấu, giá vốn bình quân và biên độ lợi nhuận từng nhóm hàng.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Giải thích chi tiết cơ chế tác động và sự khác biệt giữa hoạt chất trừ sâu nhóm Diamide và nhóm Spinosyn?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/40 border border-[#8b6f47]/15 dark:border-indigo-500/20 hover:border-indigo-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <Languages size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300">
+                                Tra cứu cơ chế BVTV
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Tra cứu thuật ngữ hoạt chất, so sánh nhóm độc tính và dịch thuật tài liệu nông dược.
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => onSend('Soạn thảo giúp tôi một mẫu cam kết cung cấp vật tư nông nghiệp và thời hạn thanh toán công nợ đơn giản, rõ ràng?')}
+                        className="p-3 sm:p-4 rounded-2xl bg-white/80 dark:bg-white/5 hover:bg-amber-50/80 dark:hover:bg-amber-950/40 border border-[#8b6f47]/15 dark:border-amber-500/20 hover:border-amber-500/50 text-left transition-all group cursor-pointer shadow-xs active:scale-[0.98] flex items-start gap-3"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                            <FileEdit size={19} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-xs sm:text-sm text-stone-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300">
+                                Soạn thảo thỏa thuận hàng
+                            </h4>
+                            <p className="text-[11px] text-stone-500 dark:text-stone-400 font-medium mt-0.5 leading-snug line-clamp-2">
+                                Viết biên bản giao nhận hàng hóa, giấy cam kết công nợ hoặc thư chào hàng vật tư.
+                            </p>
+                        </div>
+                    </button>
+                </div>
+
+                <div className="mt-4 pt-3.5 border-t border-purple-500/15 dark:border-white/10 flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4 text-[10.5px] sm:text-[11px] font-bold text-stone-600 dark:text-stone-400 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span>Mô hình Gemini AI thế hệ mới tốc độ cao</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span>Văn phong thương mại chuyên nghiệp & linh hoạt</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                        <CheckCircle2 size={13} className="text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span>Tùy biến nội dung theo từng ngữ cảnh</span>
+                    </span>
+                </div>
+            </div>
+        </m.div>
+    );
+});
+
+const ChatMessageBubble = React.memo(function ChatMessageBubble({
+    msg,
+    idx,
+    isLatestUser,
+    isLatestModel,
+    latestUserMsgRef,
+    latestModelMsgRef,
+    fontSize,
+    copiedIndex,
+    addedProducts,
+    activeTab,
+    onTabChange,
+    onCopy,
+    onDelete,
+    onAddToCart,
+    onAddAllToCart,
+    renderFormattedText
+}) {
+    return (
+        <m.div 
+            ref={isLatestUser ? latestUserMsgRef : (isLatestModel ? latestModelMsgRef : null)}
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.94, y: -10, transition: { duration: 0.2 } }}
+            transition={{ 
+                type: "spring", 
+                stiffness: 450, 
+                damping: 32,
+                mass: 0.8
+            }}
+            className={`scroll-mt-4 ${msg.role === 'user' ? 'flex justify-end' : 'flex gap-3 items-start justify-start'}`}
+        >
+            {msg.role === 'model' && (
+                <div 
+                    style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
+                    className="w-8 h-8 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/25 mt-0.5 border border-white/25 select-none ring-2 ring-emerald-500/10"
+                >
+                    <BrainCircuit size={15} />
+                </div>
+            )}
+
+            <div 
+                style={msg.role === 'user' ? {
+                    background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))',
+                    color: '#ffffff'
+                } : undefined}
+                className={`relative group transition-all select-text ${
+                    msg.role === 'user' 
+                        ? 'max-w-[85%] rounded-2xl rounded-tr-xs p-3.5 text-white shadow-xs border border-white/20' 
+                        : 'max-w-[88%] bg-white dark:bg-[#0c1c15] border border-[#8b6f47]/15 dark:border-emerald-500/20 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
+                }`}
+            >
+                {/* User Message Action Buttons (Copy / Delete) */}
+                {msg.role === 'user' && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity select-none z-10">
+                        <button
+                            type="button"
+                            onClick={() => onCopy(msg.text, idx)}
+                            title="Sao chép câu hỏi"
+                            className="p-1 rounded-lg bg-black/30 hover:bg-black/50 text-white/90 hover:text-white transition-all cursor-pointer shadow-2xs select-none active:scale-90"
+                        >
+                            {copiedIndex === idx ? <CheckCheck size={11} className="text-emerald-300" /> : <Copy size={11} />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onDelete(idx)}
+                            title="Xóa câu hỏi này"
+                            className="p-1 rounded-lg bg-rose-500/60 hover:bg-rose-600 text-white transition-all cursor-pointer shadow-2xs select-none active:scale-90"
+                        >
+                            <Trash2 size={11} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Model Message Action Buttons (Copy / Delete) */}
+                {msg.role === 'model' && msg.id !== 'welcome' && (
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity select-none z-10">
+                        <button 
+                            type="button"
+                            onClick={() => onCopy(msg.text, idx)}
+                            title="Sao chép câu trả lời"
+                            className="p-1.5 rounded-xl bg-stone-100/90 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-600 dark:text-stone-300 transition-all cursor-pointer shadow-2xs select-none active:scale-90"
+                        >
+                            {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => onDelete(idx)}
+                            title="Xóa câu trả lời này"
+                            className="p-1.5 rounded-xl bg-rose-100/90 dark:bg-rose-950/40 hover:bg-rose-200 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-all cursor-pointer shadow-2xs select-none active:scale-90"
+                        >
+                            <Trash2 size={13} />
+                        </button>
+                    </div>
+                )}
+
+                {/* User Images */}
+                {msg.images && msg.images.length > 0 && (
+                    <div className="flex gap-2 mb-3 flex-wrap select-none">
+                        {msg.images.map((img, imgIdx) => (
+                            <img 
+                                key={imgIdx} 
+                                src={img} 
+                                alt="Uploaded crop/leaf" 
+                                className="w-16 h-16 object-cover rounded-xl border-2 border-white/40 dark:border-white/20 shadow-sm"
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Content */}
+                <div className="space-y-0.5 select-text">
+                    {msg.role === 'user' ? (
+                        <p 
+                            style={{ fontSize: `${fontSize}px`, lineHeight: 1.55 }}
+                            className="font-bold whitespace-pre-wrap leading-relaxed drop-shadow-2xs select-text cursor-text"
+                        >
+                            {msg.text}
+                        </p>
+                    ) : (
+                        <div className="select-text cursor-text">{renderFormattedText(msg.text)}</div>
+                    )}
+                </div>
+
+                {/* Recommended Products Cards */}
+                {msg.recommended_products && msg.recommended_products.length > 0 && (() => {
+                    const allProds = msg.recommended_products;
+                    const targetProds = allProds.filter(p => isTargetProduct(p));
+                    const synergyProds = allProds.filter(p => !isTargetProduct(p));
+                    
+                    const currentTab = activeTab || (targetProds.length > 0 ? 'target' : 'all');
+                    const displayedProds = currentTab === 'target' 
+                        ? targetProds 
+                        : (currentTab === 'synergy' ? synergyProds : allProds);
+
+                    const inStockCount = displayedProds.filter(p => (p.stock || 0) > 0).length;
+
+                    return (
+                        <div className="mt-3.5 pt-3.5 border-t border-stone-200/80 dark:border-white/10 space-y-2.5 select-none">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#8b6f47]/20 dark:border-white/10">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    {targetProds.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onTabChange(msg.id, 'target')}
+                                            className={cn(
+                                                "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
+                                                currentTab === 'target'
+                                                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 shadow-sm shadow-amber-500/20 ring-1 ring-amber-400"
+                                                    : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
+                                            )}
+                                        >
+                                            <span>⚡ Thuốc đặc trị</span>
+                                            <span className={cn(
+                                                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
+                                                currentTab === 'target' ? "bg-black/20 text-stone-950" : "bg-black/10 dark:bg-white/10"
+                                            )}>
+                                                {targetProds.length}
+                                            </span>
+                                        </button>
+                                    )}
+                                    {synergyProds.length > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onTabChange(msg.id, 'synergy')}
+                                            className={cn(
+                                                "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
+                                                currentTab === 'synergy'
+                                                    ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm shadow-emerald-700/20 ring-1 ring-emerald-400/40"
+                                                    : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
+                                            )}
+                                        >
+                                            <span>🔄 Phối hợp tăng lực</span>
+                                            <span className={cn(
+                                                "px-1.5 py-0.2 rounded-full text-[9px] font-black",
+                                                currentTab === 'synergy' ? "bg-white/25 text-white" : "bg-black/10 dark:bg-white/10"
+                                            )}>
+                                                {synergyProds.length}
+                                            </span>
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => onTabChange(msg.id, 'all')}
+                                        className={cn(
+                                            "px-2 py-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95",
+                                            currentTab === 'all'
+                                                ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900 shadow-xs"
+                                                : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
+                                        )}
+                                    >
+                                        <span>Tất cả ({allProds.length})</span>
+                                    </button>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    disabled={inStockCount === 0}
+                                    onClick={() => onAddAllToCart(displayedProds)}
+                                    className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#3e6d23] hover:brightness-110 active:scale-95 text-white text-[10px] font-black flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer disabled:opacity-40"
+                                    title={`Thêm ${inStockCount} thuốc còn hàng trong tab này vào đơn hàng POS`}
+                                >
+                                    <ShoppingCart size={11} />
+                                    <span>Thêm {currentTab === 'target' ? 'đặc trị' : (currentTab === 'synergy' ? 'phối hợp' : 'tất cả')} ({inStockCount})</span>
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                                {displayedProds.map((prod) => {
+                                    const inStock = (prod.stock || 0) > 0;
+                                    const isAdded = addedProducts[prod.id];
+                                    const isTarget = isTargetProduct(prod);
+
+                                    return (
+                                        <div 
+                                            key={prod.id}
+                                            className={cn(
+                                                "p-3 rounded-2xl border flex flex-col justify-between gap-2 shadow-2xs transition-all select-none",
+                                                isTarget
+                                                    ? "border-amber-500/35 hover:border-amber-500/60 bg-amber-500/5 dark:bg-[#1a2216]/90"
+                                                    : "border-emerald-600/25 hover:border-emerald-600/50 bg-emerald-500/5 dark:bg-[#14281f]/90"
+                                            )}
+                                        >
+                                            <div>
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0 flex-1 select-text">
+                                                        <h5 
+                                                            style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
+                                                            className="font-black text-stone-900 dark:text-white leading-snug select-text cursor-text"
+                                                        >
+                                                            {prod.name}
+                                                        </h5>
+                                                        {prod.tier && (
+                                                            <div className="mt-1">
+                                                                <span className={`inline-flex items-center gap-1 text-[9.5px] font-black px-2 py-0.5 rounded-lg border ${
+                                                                    isTarget
+                                                                        ? 'bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-500/40'
+                                                                        : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-200 border-emerald-500/30'
+                                                                }`}>
+                                                                    {prod.tier}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <span 
+                                                        className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 border ${
+                                                            inStock 
+                                                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300/60 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40' 
+                                                                : 'bg-rose-100 text-rose-700 border-rose-300/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40'
+                                                        }`}
+                                                    >
+                                                        {inStock ? `Còn ${prod.stock} ${prod.unit || ''}` : 'Hết hàng'}
+                                                    </span>
+                                                </div>
+                                                {prod.active_ingredient && (
+                                                    <p 
+                                                        style={{ fontSize: `${Math.max(11, fontSize - 1.5)}px` }}
+                                                        className="font-bold italic mt-1 text-emerald-800 dark:text-emerald-400 line-clamp-1 flex items-center gap-1.5 select-text cursor-text" 
+                                                        title={prod.active_ingredient}
+                                                    >
+                                                        <FlaskConical size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0 select-none" />
+                                                        <span className="select-text">{prod.active_ingredient}</span>
+                                                    </p>
+                                                )}
+                                                {prod.dosage && (
+                                                    <div 
+                                                        style={{ fontSize: `${Math.max(10.5, fontSize - 1.5)}px` }}
+                                                        className="mt-1.5 px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-200 border border-sky-200/70 dark:border-sky-800/40 font-medium flex items-start gap-1.5 select-text cursor-text"
+                                                    >
+                                                        <Droplets size={13} className="text-sky-500 shrink-0 mt-0.5 select-none" />
+                                                        <span className="line-clamp-2 select-text">{prod.dosage}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center justify-between pt-2 border-t border-stone-200/60 dark:border-white/5">
+                                                <div 
+                                                    style={{ fontSize: `${Math.max(12, fontSize)}px` }}
+                                                    className="font-black text-[#2d5016] dark:text-emerald-400 select-text cursor-text"
+                                                >
+                                                    {Number(prod.sale_price || 0).toLocaleString('vi-VN')} đ
+                                                    {prod.unit && <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400 select-none">/{prod.unit}</span>}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onAddToCart(prod)}
+                                                    disabled={!inStock}
+                                                    style={{
+                                                        background: inStock && !isAdded ? 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))' : undefined
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all select-none cursor-pointer ${
+                                                        isAdded
+                                                            ? 'bg-emerald-600 text-white'
+                                                            : inStock
+                                                                ? 'hover:brightness-110 text-white'
+                                                                : 'bg-stone-200 dark:bg-white/10 text-stone-400 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    {isAdded ? (
+                                                        <><Check size={12} strokeWidth={3} /> Đã thêm</>
+                                                    ) : (
+                                                        <><ShoppingCart size={12} /> Thêm vào đơn</>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
+            </div>
+        </m.div>
+    );
+});
+
 export default function AiConsultantModal({ 
     isOpen, 
     onClose, 
     onAddToCart, 
     mascotPos = { x: 800, y: 500 }, 
-    mascotSize = 110 
+    mascotSize = 110,
+    isStandalone = false,
+    onlyDoctorMode = false
 }) {
+    const effectiveIsOpen = isStandalone || isOpen;
+    const isDoctorOnly = isStandalone || onlyDoctorMode;
+
+    const [isDark, setIsDark] = useState(() => {
+        return typeof document !== 'undefined' && (document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark');
+    });
+
+    const handleToggleDark = () => {
+        const nextDark = !isDark;
+        setIsDark(nextDark);
+        if (nextDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+        window.dispatchEvent(new Event('storage'));
+    };
+
+    const handleCopyPageLink = () => {
+        const url = `${window.location.origin}${window.location.pathname}#/bacsisauquy`;
+        navigator.clipboard.writeText(url);
+        toast.success('Đã sao chép link Bác Sĩ Sáu Quý (#/bacsisauquy)!', {
+            icon: '🔗',
+            duration: 3000
+        });
+    };
+
     const [activeMode, setActiveMode] = useState(() => {
+        if (isDoctorOnly) return 'crop_doctor';
         try {
             const saved = localStorage.getItem('lyang_ai_active_mode');
             if (saved && MODES.some(m => m.id === saved)) return saved;
@@ -320,8 +1462,9 @@ export default function AiConsultantModal({
     });
 
     const currentModeConfig = useMemo(() => {
+        if (isDoctorOnly) return MODES[0];
         return MODES.find(m => m.id === activeMode) || MODES[0];
-    }, [activeMode]);
+    }, [activeMode, isDoctorOnly]);
 
     const getInitialMessages = (modeId) => {
         try {
@@ -331,7 +1474,12 @@ export default function AiConsultantModal({
             const saved = localStorage.getItem(storageKey);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed.map((m, i) => ({
+                        ...m,
+                        id: m.id || `msg-${modeId}-${i}-${Date.now()}`
+                    }));
+                }
             }
         } catch (e) {}
         const cfg = MODES.find(m => m.id === modeId) || MODES[0];
@@ -366,6 +1514,36 @@ export default function AiConsultantModal({
         } catch (e) {}
     }, [messages, activeMode]);
 
+    // Tự động đồng bộ và nạp trước cấu hình / Gemini API Key từ máy chủ khi mở modal
+    useEffect(() => {
+        const syncServerConfig = async () => {
+            try {
+                let s = null;
+                try {
+                    const res = await axios.get('/api/settings', { timeout: 3500 });
+                    if (res?.data) s = res.data;
+                } catch (e) {}
+
+                if (!s && typeof window !== 'undefined' && window.location?.origin) {
+                    try {
+                        const raw = await fetch(`${window.location.origin.replace(/\/+$/, '')}/api/settings`);
+                        if (raw.ok) s = await raw.json();
+                    } catch (e) {}
+                }
+
+                if (s) {
+                    if (s.gemini_api_key && typeof s.gemini_api_key === 'string' && s.gemini_api_key.trim()) {
+                        localStorage.setItem('gemini_api_key', s.gemini_api_key.trim());
+                    }
+                    if (s.shop_name) {
+                        localStorage.setItem('lyang_store_name', s.shop_name);
+                    }
+                }
+            } catch (err) {}
+        };
+        syncServerConfig();
+    }, []);
+
     const [fontSize, setFontSize] = useState(() => {
         try {
             const saved = localStorage.getItem('lyang_ai_font_size');
@@ -396,21 +1574,11 @@ export default function AiConsultantModal({
     const [isDraggingImage, setIsDraggingImage] = useState(false);
     const [productSubTabs, setProductSubTabs] = useState({});
 
-    // Phân loại thuốc: Đặc trị chính vs Phối hợp tăng lực (Phương án B)
-    const isTargetProduct = (prod) => {
-        if (!prod) return true;
-        if (prod.role === 'target') return true;
-        if (prod.role === 'synergy') return false;
-        const tier = (prod.tier || '').toLowerCase();
-        if (tier.includes('đặc trị chính') || tier.includes('hạ gục') || tier.includes('đặc trị')) return true;
-        if (tier.includes('tương thích') || tier.includes('hiệp đồng') || tier.includes('luân phiên') || tier.includes('phòng ngừa')) return false;
-        return true;
-    };
-
     const popoverRef = useRef(null);
     const chatFeedRef = useRef(null);
     const chatEndRef = useRef(null);
     const latestModelMsgRef = useRef(null);
+    const latestUserMsgRef = useRef(null);
     const prevMsgLengthRef = useRef(messages.length);
     const shouldScrollToAiRef = useRef(false);
     const inputRef = useRef(null);
@@ -418,16 +1586,16 @@ export default function AiConsultantModal({
 
     // Bấm ESC để đóng Popover
     useEffect(() => {
-        if (!isOpen) return;
+        if (!effectiveIsOpen || isStandalone) return;
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
                 e.stopPropagation();
-                onClose();
+                onClose?.();
             }
         };
         window.addEventListener('keydown', handleKeyDown, true);
         return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, onClose]);
+    }, [effectiveIsOpen, isStandalone, onClose]);
 
     const [customSize, setCustomSize] = useState(() => {
         try {
@@ -583,17 +1751,17 @@ export default function AiConsultantModal({
 
     // Close when clicking outside
     useEffect(() => {
-        if (!isOpen) return;
+        if (!effectiveIsOpen || isStandalone) return;
         const handlePointerDownOutside = (e) => {
             if (popoverRef.current && !popoverRef.current.contains(e.target)) {
                 const mascotEl = document.querySelector('.group.select-none');
                 if (mascotEl && mascotEl.contains(e.target)) return;
-                onClose();
+                onClose?.();
             }
         };
         window.addEventListener('pointerdown', handlePointerDownOutside);
         return () => window.removeEventListener('pointerdown', handlePointerDownOutside);
-    }, [isOpen, onClose]);
+    }, [effectiveIsOpen, isStandalone, onClose]);
 
     // Lưu tin nhắn vào LocalStorage
     useEffect(() => {
@@ -602,11 +1770,45 @@ export default function AiConsultantModal({
         } catch (e) {}
     }, [messages]);
 
-    // Điều khiển cuộn thông minh:
-    // Khi AI trả lời xong: cuộn đến ĐẦU câu trả lời của AI để người dùng bắt đầu đọc rồi cuộn xuống
-    // Khi người dùng gửi câu hỏi hoặc đang phân tích (loading): cuộn xuống đáy để thấy câu hỏi và loader
+    // Helper cuộn chỉ bên trong khung chat (chatFeedRef) để tuyệt đối không làm trôi Header của trang
+    const scrollChatToElement = (el, behavior = 'smooth') => {
+        if (!chatFeedRef.current) return;
+        if (!el) {
+            chatFeedRef.current.scrollTo({
+                top: chatFeedRef.current.scrollHeight,
+                behavior
+            });
+            return;
+        }
+        try {
+            const containerRect = chatFeedRef.current.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            const currentScroll = chatFeedRef.current.scrollTop;
+            const targetScroll = currentScroll + (elRect.top - containerRect.top) - 16;
+            chatFeedRef.current.scrollTo({
+                top: Math.max(0, targetScroll),
+                behavior
+            });
+        } catch (e) {
+            chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
+        }
+    };
+
+    const scrollChatToBottom = (behavior = 'smooth') => {
+        if (!chatFeedRef.current) return;
+        try {
+            chatFeedRef.current.scrollTo({
+                top: chatFeedRef.current.scrollHeight,
+                behavior
+            });
+        } catch (e) {
+            chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
+        }
+    };
+
+    // Điều khiển cuộn thông minh (chỉ cuộn bên trong khung tin nhắn):
     useEffect(() => {
-        if (!isOpen) return;
+        if (!effectiveIsOpen) return;
 
         const isNewAiMessage = shouldScrollToAiRef.current && 
             messages.length > prevMsgLengthRef.current && 
@@ -615,38 +1817,41 @@ export default function AiConsultantModal({
         if (isNewAiMessage) {
             shouldScrollToAiRef.current = false;
             const timer = setTimeout(() => {
-                if (latestModelMsgRef.current) {
-                    latestModelMsgRef.current.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                    });
+                if (latestUserMsgRef.current) {
+                    scrollChatToElement(latestUserMsgRef.current, 'smooth');
+                } else if (latestModelMsgRef.current) {
+                    scrollChatToElement(latestModelMsgRef.current, 'smooth');
                 }
             }, 60);
             prevMsgLengthRef.current = messages.length;
             return () => clearTimeout(timer);
         } else if (isLoading || (messages.length > prevMsgLengthRef.current && messages[messages.length - 1]?.role === 'user')) {
             const timer = setTimeout(() => {
-                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                scrollChatToBottom('smooth');
             }, 60);
             prevMsgLengthRef.current = messages.length;
             return () => clearTimeout(timer);
         } else {
             prevMsgLengthRef.current = messages.length;
         }
-    }, [isOpen, messages, isLoading]);
+    }, [effectiveIsOpen, messages, isLoading]);
 
-    // Khi mở modal lần đầu: focus ô nhập, cuộn mượt đến đầu tin nhắn AI mới nhất nếu có
+    // Khi mở modal lần đầu: focus ô nhập, cuộn nội bộ đến câu hỏi gần nhất nếu có
     useEffect(() => {
-        if (isOpen) {
+        if (effectiveIsOpen) {
             const timer = setTimeout(() => {
                 inputRef.current?.focus();
-                if (messages.length > 1 && latestModelMsgRef.current) {
-                    latestModelMsgRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+                if (messages.length > 1) {
+                    if (latestUserMsgRef.current) {
+                        scrollChatToElement(latestUserMsgRef.current, 'auto');
+                    } else if (latestModelMsgRef.current) {
+                        scrollChatToElement(latestModelMsgRef.current, 'auto');
+                    }
                 }
             }, 80);
             return () => clearTimeout(timer);
         }
-    }, [isOpen]);
+    }, [effectiveIsOpen]);
 
     // Lắng nghe sự kiện tìm kiếm nhanh từ giỏ hàng hoặc các nơi khác
     useEffect(() => {
@@ -685,12 +1890,34 @@ export default function AiConsultantModal({
         toast.success(`Đã xóa lịch sử trò chuyện (${currentModeConfig.label})`);
     };
 
-    const handleCopy = (text, idx) => {
+    const handleDeleteMessage = useCallback((idxToDelete) => {
+        setMessages(prev => {
+            const next = prev.filter((_, idx) => idx !== idxToDelete);
+            const finalMsgs = next.length > 0 ? next : [
+                {
+                    id: 'welcome',
+                    role: 'model',
+                    text: currentModeConfig.welcomeText,
+                    recommended_products: []
+                }
+            ];
+            try {
+                localStorage.setItem(`lyang_ai_chat_${activeMode}`, JSON.stringify(finalMsgs));
+                if (activeMode === 'crop_doctor') {
+                    localStorage.setItem('lyang_ai_consult_chat', JSON.stringify(finalMsgs));
+                }
+            } catch (e) {}
+            return finalMsgs;
+        });
+        toast.success('Đã xóa tin nhắn');
+    }, [activeMode, currentModeConfig.welcomeText]);
+
+    const handleCopy = useCallback((text, idx) => {
         navigator.clipboard.writeText(text);
         setCopiedIndex(idx);
         toast.success('Đã sao chép tư vấn vào clipboard!');
         setTimeout(() => setCopiedIndex(null), 2000);
-    };
+    }, []);
 
     const processImageFile = (file) => {
         if (!file || !file.type || !file.type.startsWith('image/')) return;
@@ -794,12 +2021,35 @@ export default function AiConsultantModal({
     // Client-side fallback gọi Gemini trực tiếp nếu backend endpoint chưa sẵn sàng
     const callGeminiDirectClient = async ({ message, history, images, mode = 'crop_doctor' }) => {
         let apiKeys = [];
+
+        // 1. Kiểm tra cache trong localStorage của thiết bị trước
+        const localKey = (localStorage.getItem('gemini_api_key') || '').trim();
+        if (localKey) {
+            const parts = localKey.split(/[,;\n]/);
+            parts.forEach(p => {
+                const trimmed = p.trim();
+                if (trimmed && !apiKeys.includes(trimmed)) apiKeys.push(trimmed);
+            });
+        }
+
+        // 2. Lấy cấu hình tươi từ máy chủ POS
         try {
-            const settingsRes = await axios.get('/api/settings');
-            if (settingsRes.data) {
-                const s = settingsRes.data;
+            let s = null;
+            try {
+                const settingsRes = await axios.get('/api/settings', { timeout: 3500 });
+                if (settingsRes?.data) s = settingsRes.data;
+            } catch (e) {}
+
+            if (!s && typeof window !== 'undefined' && window.location?.origin) {
+                try {
+                    const raw = await fetch(`${window.location.origin.replace(/\/+$/, '')}/api/settings`);
+                    if (raw.ok) s = await raw.json();
+                } catch (e) {}
+            }
+
+            if (s) {
                 ['gemini_api_key', 'gemini_api_key_2', 'gemini_api_key_3'].forEach(k => {
-                    if (s[k] && s[k].trim()) {
+                    if (s[k] && typeof s[k] === 'string' && s[k].trim()) {
                         const parts = s[k].trim().split(/[,;\n]/);
                         parts.forEach(p => {
                             const trimmed = p.trim();
@@ -809,17 +2059,15 @@ export default function AiConsultantModal({
                         });
                     }
                 });
+                if (s.gemini_api_key) {
+                    try { localStorage.setItem('gemini_api_key', s.gemini_api_key); } catch (e) {}
+                }
             }
         } catch (e) {}
 
         if (apiKeys.length === 0) {
-            const localKey = (localStorage.getItem('gemini_api_key') || '').trim();
-            if (localKey) apiKeys.push(localKey);
-        }
-
-        if (apiKeys.length === 0) {
             return {
-                reply: '⚠️ Bạn chưa cấu hình **Gemini API Key** trong phần Cài Đặt. Vui lòng vào **Cài đặt -> Tích hợp AI** để nhập Gemini API Key của bạn.',
+                reply: '⚠️ **Chưa nhận diện được Gemini API Key từ máy chủ**.\n\n- **Nếu dùng trên máy tính POS**: Vào **Cài đặt -> Tích hợp AI (Gemini)** để lưu Key.\n- **Nếu mở trên điện thoại**: Đảm bảo điện thoại bắt **cùng mạng Wi-Fi** với máy POS để tự động dùng chung Key.',
                 recommended_products: []
             };
         }
@@ -971,8 +2219,20 @@ HÃY TRẢ LỜI BẰNG TIẾNG VIỆT TỰ NHIÊN, LỊCH SỰ, RÕ RÀNG VÀ H
             const groupMap = {};
 
             try {
-                const prodRes = await axios.get('/api/products');
-                productList = Array.isArray(prodRes.data) ? prodRes.data : (prodRes.data?.data || []);
+                let prodData = null;
+                try {
+                    const prodRes = await axios.get('/api/products', { timeout: 4000 });
+                    if (prodRes?.data) prodData = prodRes.data;
+                } catch (e) {}
+
+                if (!prodData && typeof window !== 'undefined' && window.location?.origin) {
+                    try {
+                        const raw = await fetch(`${window.location.origin.replace(/\/+$/, '')}/api/products`);
+                        if (raw.ok) prodData = await raw.json();
+                    } catch (e) {}
+                }
+
+                productList = Array.isArray(prodData) ? prodData : (prodData?.data || []);
                 if (productList.length > 0) {
                     // Ưu tiên sản phẩm có hoạt chất & còn tồn kho lên đầu
                     productList.sort((a, b) => {
@@ -1074,33 +2334,33 @@ Bạn PHẢI biết cách phối trộn các sản phẩm thực tế trong kho 
    - Thứ tự pha thuốc phải đánh số rõ ràng theo từng bước 1, 2, 3, 4.
 
 ---
-### 🌿 CẤU TRÚC BÀI TƯ VẤN TRỰC QUAN BẮT BUỘC (TUÂN THỦ CHÍNH XÁC):
+### CẤU TRÚC BÀI TƯ VẤN TRỰC QUAN BẮT BUỘC (TUÂN THỦ CHÍNH XÁC):
 
-### 🎯 CHẨN ĐOÁN & ĐẶC TÍNH GÂY HẠI
+### CHẨN ĐOÁN & ĐẶC TÍNH GÂY HẠI
 - **Đối tượng hại**: Tên sâu/bệnh & tác nhân gây hại (nấm, vi khuẩn, chích hút, ăn lá...).
 - **Đặc tính nguy hiểm**: Cơ chế phá hoại, tốc độ lây lan, khả năng kháng thuốc cần lưu ý.
 
-### 🔍 RÀ SOÁT HOẠT CHẤT CÓ TRONG KHO & LỰA CHỌN TƯƠNG THÍCH
+### RÀ SOÁT HOẠT CHẤT CÓ TRONG KHO & LỰA CHỌN TƯƠNG THÍCH
 (Điểm danh tất cả hoạt chất kho đang có dùng được cho đối tượng này, viết rõ: **Tên Thuốc** *(Hoạt chất)*):
 - **Nhóm thế hệ mới / Đặc trị**: **Tên Thuốc A** *(Hoạt chất A)* - Cơ chế tác động & ưu thế vượt trội (ví dụ: bẻ gãy tính kháng, lưu dẫn 2 chiều, mát bông).
 - **Nhóm hạ gục nhanh / Tiếp xúc**: **Tên Thuốc B** *(Hoạt chất B)* - Cơ chế tiếp xúc vị độc, hạ gục tức thì.
 - **Nhóm bảo vệ / Ức chế lột xác**: **Tên Thuốc C** *(Hoạt chất C)* - Diệt trứng, cắt đứt vòng đời, chống tái phát.
 
-### 💥 BỘ PHỐI ĐÒN KÉP TĂNG LỰC (TANK-MIX TẠI KHO)
+### BỘ PHỐI ĐÒN KÉP TĂNG LỰC (TANK-MIX TẠI KHO)
 - **Công thức phối**: **Tên Thuốc 1** *(Hoạt chất 1)* + **Tên Thuốc 2** *(Hoạt chất 2)* (+ **Trợ lực** *(Hoạt chất)* nếu có)
 - **Vì sao lại phối các thuốc này?**: Phân tích ngắn gọn cơ chế cộng hưởng tăng lực (ví dụ: Thuốc 1 đánh nhanh hạ gục + Thuốc 2 ngấm sâu diệt trứng lưu dẫn dài ngày).
 - **Liều pha phối hợp cụ thể**:
   + **Bình 25 Lít**: Pha liều từng thuốc (ví dụ: 15ml **Tên Thuốc 1** + 15g **Tên Thuốc 2** + 2.5ml **Trợ lực**).
   + **Phuy 200 Lít**: Pha liều từng thuốc (ví dụ: 1 chai **Tên Thuốc 1** + 1 gói **Tên Thuốc 2** + 1 chai **Trợ lực**).
 
-### 🧪 THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH (Quy tắc W-S-S-E-A)
+### THỨ TỰ HÒA TAN CHUẨN VÀO BÌNH (Quy tắc W-S-S-E-A)
 1. Đổ nước sạch vào 1/2 bình hoặc phuy.
 2. Thuốc dạng Bột (WP, WG, WDG) khuấy tan hoàn toàn trước.
 3. Thuốc dạng Huyền phù / Nước (SC, SL, FS, OD) đổ vào khuấy đều.
 4. Thuốc dạng Nhũ dầu (EC, EW, ME) cho vào sau cùng.
 5. Thêm chất bám dính / trợ lực (nếu có), châm đủ nước và phun ngay.
 
-### ⚠️ LƯU Ý KỸ THUẬT & CẢNH BÁO TƯƠNG KỴ
+### LƯU Ý KỸ THUẬT & CẢNH BÁO TƯƠNG KỴ
 - Thời điểm phun thích hợp (sáng sớm / chiều mát).
 - Cảnh báo an toàn (không phối với phân bón lá có đạm cao khi đang có bệnh, không pha thuốc có tính kiềm mạnh...).
 - Cữ phun kế tiếp (sau 5-7 ngày) nên luân chuyển sang **Tên Thuốc Khác** *(Hoạt chất khác)* để chống lờn thuốc.
@@ -1281,7 +2541,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
         };
     };
 
-    const handleSend = async (queryText = null) => {
+    const handleSend = useCallback(async (queryText = null) => {
         const defaultImagePrompt = activeMode === 'crop_doctor'
             ? 'Chẩn đoán giúp tôi hình ảnh này cây đang bị bệnh gì, sâu hại gì và tư vấn phác đồ xử lý, bộ thuốc phối trộn đặc trị có trong kho cửa hàng nhé!'
             : 'Phân tích và cho tôi biết thông tin chi tiết về hình ảnh này nhé!';
@@ -1358,9 +2618,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeMode, input, selectedImages, isLoading, messages]);
 
-    const handleAddToCartClick = (prod) => {
+    const handleAddToCartClick = useCallback((prod) => {
         if (onAddToCart) {
             onAddToCart(prod);
         } else {
@@ -1404,9 +2664,9 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
         setTimeout(() => {
             setAddedProducts(prev => ({ ...prev, [prod.id]: false }));
         }, 1800);
-    };
+    }, [onAddToCart]);
 
-    const handleAddAllToCart = (productsList) => {
+    const handleAddAllToCart = useCallback((productsList) => {
         if (!Array.isArray(productsList) || productsList.length === 0) return;
         const available = productsList.filter(p => (p.stock || 0) > 0);
         if (available.length === 0) {
@@ -1417,287 +2677,47 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
             handleAddToCartClick(p);
         });
         toast.success(`Đã thêm tất cả ${available.length} thuốc còn hàng vào đơn hàng POS!`);
-    };
+    }, [handleAddToCartClick]);
 
-    // Format cụm từ: làm nổi bật **Tên Thuốc** *(Tên hoạt chất)* hoặc **Tên Thuốc** (Hoạt chất)
-    const renderBoldSpans = (text) => {
-        if (!text) return null;
+    const renderFormattedText = useCallback((text) => {
+        return renderFormattedMarkdown(text, fontSize);
+    }, [fontSize]);
 
-        // Bắt mẫu: **Tên Thuốc** *(Tên hoạt chất)* hoặc **Tên Thuốc** (Tên hoạt chất) hoặc **Tên Thuốc** [Hoạt chất]
-        const drugPattern = /(\*\*[^*]+\*\*)\s*(\*(?:\([^*()]+\)|\[[^*[\]]+\])\*|\([^*()]+\)|\[[^*[\]]+\])/g;
+    const handleSubTabChange = useCallback((msgId, tab) => {
+        setProductSubTabs(prev => ({ ...prev, [msgId]: tab }));
+    }, []);
 
-        const tokens = [];
-        let lastIndex = 0;
-        let match;
-
-        while ((match = drugPattern.exec(text)) !== null) {
-            // Text trước match
-            if (match.index > lastIndex) {
-                tokens.push({ type: 'text', content: text.substring(lastIndex, match.index) });
-            }
-            tokens.push({
-                type: 'drug_pair',
-                drugName: match[1].replace(/^\*\*|\*\*$/g, '').trim(),
-                activeName: match[2].replace(/^[\*\(\[]+|[\*\)\]]+$/g, '').trim()
-            });
-            lastIndex = drugPattern.lastIndex;
+    const latestUserIdx = useMemo(() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') return i;
         }
+        return -1;
+    }, [messages]);
 
-        if (lastIndex < text.length) {
-            tokens.push({ type: 'text', content: text.substring(lastIndex) });
+    const latestModelIdx = useMemo(() => {
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'model') return i;
         }
-
-        return tokens.map((token, tIdx) => {
-            if (token.type === 'drug_pair') {
-                return (
-                    <span 
-                        key={tIdx} 
-                        className="inline-flex items-center gap-1.5 mx-1 my-0.5 px-2.5 py-0.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 shadow-2xs align-middle"
-                    >
-                        <strong className="font-black text-emerald-950 dark:text-emerald-200 tracking-tight">
-                            {token.drugName}
-                        </strong>
-                        <span className="text-[0.88em] font-semibold italic text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 dark:bg-emerald-900/50 px-1.5 py-0.2 rounded-lg">
-                            ({token.activeName})
-                        </span>
-                    </span>
-                );
-            }
-
-            // Xử lý các đoạn in đậm thông thường **...**
-            const parts = token.content.split(/(\*\*.*?\*\*)/g);
-            return (
-                <span key={tIdx}>
-                    {parts.map((p, pIdx) => {
-                        if (p.startsWith('**') && p.endsWith('**')) {
-                            const boldContent = p.slice(2, -2);
-                            // Highlight đặc biệt nếu là liều lượng (bình 25L, phuy 200L)
-                            const isDose = /bình\s*\d+l|phuy\s*\d+l|liều/i.test(boldContent);
-                            if (isDose) {
-                                return (
-                                    <span 
-                                        key={pIdx} 
-                                        className="font-black text-amber-900 dark:text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-lg mx-0.5 shadow-2xs"
-                                    >
-                                        {boldContent}
-                                    </span>
-                                );
-                            }
-                            return (
-                                <strong key={pIdx} className="font-black text-stone-900 dark:text-stone-100">
-                                    {boldContent}
-                                </strong>
-                            );
-                        }
-                        return p;
-                    })}
-                </span>
-            );
-        });
-    };
-
-    // Render formatted markdown với các Section Card trực quan (Chẩn đoán, Phối trộn, Thứ tự pha, Cảnh báo)
-    const renderFormattedText = (text) => {
-        if (!text) return null;
-
-        // Tiền xử lý chuẩn hóa chuỗi phản hồi từ AI:
-        // 1. Loại bỏ các dòng rác kiểu: "> +", ">  +", ">" trơ trọi, "+ " đứng một mình
-        // 2. Bỏ dấu "> " ở đầu dòng để tránh vỡ layout và lộn xộn
-        const cleanedText = text
-            .split('\n')
-            .filter(line => {
-                const t = line.trim();
-                // Bỏ dòng chỉ có dấu >, +, > +, > + >
-                return !/^>[ \t]*(\+[ \t]*)?$/.test(t) && t !== '+';
-            })
-            .map(line => {
-                let l = line.trim();
-                if (l.startsWith('> ')) {
-                    l = l.substring(2).trim();
-                } else if (l.startsWith('>')) {
-                    l = l.substring(1).trim();
-                }
-                return l;
-            })
-            .join('\n');
-
-        const rawLines = cleanedText.split('\n');
-
-        return rawLines.map((line, lineIdx) => {
-            const trimmed = line.trim();
-
-            if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
-                return <hr key={lineIdx} className="my-3 border-stone-200/80 dark:border-white/10" />;
-            }
-
-            // Nhận diện Header Section H3
-            if (line.startsWith('### ')) {
-                const headerText = line.replace('### ', '').trim();
-                const lower = headerText.toLowerCase();
-
-                let IconComp = Leaf;
-                let cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-900 dark:text-emerald-200";
-
-                if (lower.includes('chẩn đoán') || lower.includes('đặc tính') || lower.includes('nguyên nhân')) {
-                    IconComp = Stethoscope;
-                    cardStyle = "bg-teal-500/10 dark:bg-teal-950/40 border-teal-500/30 text-teal-900 dark:text-teal-200";
-                } else if (lower.includes('bộ phối') || lower.includes('phối trộn') || lower.includes('tank-mix') || lower.includes('đòn kép')) {
-                    IconComp = Zap;
-                    cardStyle = "bg-amber-500/15 dark:bg-amber-950/40 border-amber-500/40 text-amber-950 dark:text-amber-200";
-                } else if (lower.includes('thứ tự') || lower.includes('hòa tan') || lower.includes('pha thuốc')) {
-                    IconComp = Beaker;
-                    cardStyle = "bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-950 dark:text-sky-200";
-                } else if (lower.includes('cảnh báo') || lower.includes('lưu ý') || lower.includes('tương kỵ')) {
-                    IconComp = ShieldAlert;
-                    cardStyle = "bg-rose-500/10 dark:bg-rose-950/40 border-rose-500/30 text-rose-950 dark:text-rose-200";
-                } else if (lower.includes('rà soát') || lower.includes('hoạt chất')) {
-                    IconComp = FlaskConical;
-                    cardStyle = "bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-950 dark:text-emerald-200";
-                }
-
-                return (
-                    <div 
-                        key={lineIdx}
-                        className={cn(
-                            "mt-3.5 mb-2 px-3 py-1.5 rounded-2xl border flex items-center gap-2.5 shadow-2xs backdrop-blur-xs",
-                            cardStyle
-                        )}
-                    >
-                        <div className="p-1 rounded-xl bg-white/80 dark:bg-black/40 shadow-xs shrink-0">
-                            <IconComp size={Math.max(14, Math.round(fontSize * 1.05))} />
-                        </div>
-                        <h4 
-                            style={{ fontSize: `${Math.round(fontSize * 1.08)}px` }}
-                            className="font-black tracking-tight drop-shadow-2xs"
-                        >
-                            {headerText}
-                        </h4>
-                    </div>
-                );
-            }
-
-            if (line.startsWith('## ')) {
-                return (
-                    <h3 
-                        key={lineIdx} 
-                        style={{ fontSize: `${Math.round(fontSize * 1.2)}px` }}
-                        className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5"
-                    >
-                        <Leaf size={Math.max(14, Math.round(fontSize * 1.1))} />
-                        {line.replace('## ', '')}
-                    </h3>
-                );
-            }
-
-            if (line.startsWith('# ')) {
-                return (
-                    <h2 
-                        key={lineIdx} 
-                        style={{ fontSize: `${Math.round(fontSize * 1.35)}px` }}
-                        className="font-black mt-3.5 mb-1.5 text-[#2d5016] dark:text-emerald-400"
-                    >
-                        {line.replace('# ', '')}
-                    </h2>
-                );
-            }
-
-            // Từng bước đánh số: "1. ", "2. ", "3. " (Dạng Step-by-step nổi bật trực quan)
-            const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
-            if (numMatch) {
-                return (
-                    <div 
-                        key={lineIdx} 
-                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                        className="my-1.5 py-1 px-3 rounded-2xl bg-stone-50/80 dark:bg-stone-900/40 border border-stone-200/60 dark:border-white/5 flex items-start gap-2.5 shadow-2xs"
-                    >
-                        <span 
-                            style={{ background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #4a7c59 100%))' }}
-                            className="w-5 h-5 rounded-full text-white font-black text-[10.5px] flex items-center justify-center shrink-0 select-none shadow-xs mt-0.5 border border-white/20"
-                        >
-                            {numMatch[1]}
-                        </span>
-                        <div className="flex-1 text-stone-800 dark:text-stone-200">
-                            {renderBoldSpans(numMatch[2])}
-                        </div>
-                    </div>
-                );
-            }
-
-            // Dòng Sản phẩm 1, Sản phẩm 2, Trợ lực trong Bộ phối
-            const isProductItem = /^(?:👉|🔥|💥|⚡|•|\-|\*)?\s*(?:Sản phẩm\s*\d+|Trợ lực|Công thức phối|Bộ phối)/i.test(trimmed);
-            if (isProductItem) {
-                return (
-                    <div 
-                        key={lineIdx} 
-                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                        className="my-1.5 py-1.5 px-3 rounded-2xl bg-amber-500/15 dark:bg-amber-950/40 border border-amber-500/30 flex items-start gap-2.5 text-stone-800 dark:text-stone-200 shadow-2xs"
-                    >
-                        <span className="text-amber-600 dark:text-amber-400 font-black shrink-0 select-none mt-0.5 text-[14px]">
-                            ⚡
-                        </span>
-                        <div className="flex-1 font-medium">
-                            {renderBoldSpans(trimmed.replace(/^[👉🔥💥⚡•\-\*]+\s*/, ''))}
-                        </div>
-                    </div>
-                );
-            }
-
-            // Gạch đầu dòng: "- " hoặc "* " hoặc "+ "
-            if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('+ ')) {
-                const clean = trimmed.substring(2);
-                const isSubItem = line.startsWith('  ') || line.startsWith('\t');
-                return (
-                    <div 
-                        key={lineIdx} 
-                        style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                        className={cn(
-                            "py-0.5 flex items-start gap-2 text-stone-700 dark:text-stone-300",
-                            isSubItem ? "ml-5" : "ml-1"
-                        )}
-                    >
-                        <span className="text-[#2d5016] dark:text-emerald-400 font-bold shrink-0 select-none mt-1">
-                            {isSubItem ? '›' : '•'}
-                        </span>
-                        <div className="flex-1">
-                            {renderBoldSpans(clean)}
-                        </div>
-                    </div>
-                );
-            }
-
-            if (!trimmed) {
-                return <div key={lineIdx} className="h-1" />;
-            }
-
-            return (
-                <p 
-                    key={lineIdx} 
-                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.6 }}
-                    className="py-0.5 text-stone-800 dark:text-stone-200"
-                >
-                    {renderBoldSpans(line)}
-                </p>
-            );
-        });
-    };
+        return -1;
+    }, [messages]);
 
     return (
         <AnimatePresence>
-            {isOpen && (
+            {effectiveIsOpen && (
                 <m.div
                     ref={popoverRef}
-                    key="ai-consultant-popover"
-                    initial={{
+                    key={isStandalone ? "ai-consultant-standalone" : "ai-consultant-popover"}
+                    initial={isStandalone ? { opacity: 0 } : {
                         opacity: 0,
                         scale: 0.94,
                         y: 12
                     }}
-                    animate={{
+                    animate={isStandalone ? { opacity: 1 } : {
                         opacity: 1,
                         scale: 1,
                         y: 0
                     }}
-                    exit={{
+                    exit={isStandalone ? { opacity: 0 } : {
                         opacity: 0,
                         scale: 0.95,
                         y: 10
@@ -1706,7 +2726,12 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                         duration: 0.2,
                         ease: [0.16, 1, 0.3, 1]
                     }}
-                    style={{
+                    style={isStandalone ? {
+                        position: 'relative',
+                        width: '100%',
+                        height: '100dvh',
+                        '--ai-font-size': `${fontSize}px`
+                    } : {
                         position: 'fixed',
                         left: popoverStyle.left,
                         top: popoverStyle.top,
@@ -1720,7 +2745,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onPaste={handlePaste}
-                    className="bg-[#fcfbf9] dark:bg-[#091811] text-[#2d5016] dark:text-stone-100 border border-[#8b6f47]/20 dark:border-emerald-500/30 rounded-3xl shadow-xl flex flex-col overflow-hidden relative will-change-transform"
+                    className={isStandalone ? "w-full h-[100dvh] max-h-[100dvh] bg-[#fcfbf9] dark:bg-[#091811] text-[#2d5016] dark:text-stone-100 flex flex-col overflow-hidden relative select-none" : "bg-[#fcfbf9] dark:bg-[#091811] text-[#2d5016] dark:text-stone-100 border border-[#8b6f47]/20 dark:border-emerald-500/30 rounded-3xl shadow-xl flex flex-col overflow-hidden relative will-change-transform"}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Drag & Drop Visual Overlay */}
@@ -1736,376 +2761,198 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                     {/* Header with Theme Botanical Gradient */}
                     <div 
                         style={{ 
-                            background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #205c26 50%, #2b7a33 100%))'
+                            background: 'var(--top-nav-gradient, linear-gradient(135deg, #133a15 0%, #1e5824 50%, #297a31 100%))'
                         }}
-                        className="px-4 py-3 flex items-center justify-between border-b border-white/15 text-white shadow-md shrink-0 select-none relative overflow-hidden"
+                        className={`px-3.5 sm:px-6 ${isDoctorOnly ? 'py-3 sm:py-3.5' : 'py-3'} flex items-center justify-between border-b border-white/20 text-white shadow-lg shrink-0 select-none relative overflow-hidden`}
                     >
                         {/* Shimmer line & Glow */}
-                        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none" />
+                        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
+                        <div className="absolute -top-12 -left-12 w-32 h-32 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none" />
                         
-
-                        <div className="flex items-center gap-2.5 relative z-10">
-                            <div className="w-9 h-9 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-md relative group">
-                                <currentModeConfig.icon size={18} className="text-white drop-shadow-xs transition-transform group-hover:scale-110" />
-                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#163d18] shadow-xs" />
+                        <div className="flex items-center gap-2.5 sm:gap-3.5 relative z-10 min-w-0">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-white/25 to-white/10 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-md relative shrink-0">
+                                <Stethoscope size={22} className="text-white drop-shadow-sm" />
+                                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-[#133a15] shadow-xs animate-pulse" />
                             </div>
-                            <div>
+
+                            <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="font-black text-sm tracking-wider text-white drop-shadow-sm flex items-center gap-1.5">
-                                        LYANGAI
-                                        <Sparkles size={13} className="text-amber-300 opacity-90" />
+                                    <h3 className="font-black text-sm sm:text-base tracking-tight text-white drop-shadow-sm truncate">
+                                        {isDoctorOnly ? 'BÁC SĨ CÂY TRỒNG SÁU QUÝ' : 'LYANGAI'}
                                     </h3>
-                                    <span className="bg-white/20 backdrop-blur-md text-white text-[9.5px] font-black px-2.5 py-0.5 rounded-full border border-white/25 flex items-center gap-1 shadow-xs tracking-wide">
-                                        {currentModeConfig.shortLabel}
-                                    </span>
+                                    {isDoctorOnly && (
+                                        <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-400/20 border border-emerald-300/30 text-emerald-200 text-[9.5px] font-black uppercase tracking-wider shadow-2xs">
+                                            <Leaf size={10} className="text-emerald-300" /> BVTV 4.0
+                                        </span>
+                                    )}
                                 </div>
-                                <p className="text-[10.5px] text-white/85 font-medium leading-none mt-0.5 drop-shadow-2xs">
-                                    {currentModeConfig.subTitle}
-                                </p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-xs shrink-0" />
+                                    <p className="text-[11px] sm:text-xs text-emerald-100/95 font-semibold leading-tight truncate">
+                                        {isDoctorOnly ? 'Trực tuyến • Cố vấn BVTV & Kê đơn từ kho thuốc' : currentModeConfig.subTitle}
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 relative z-10">
-                            {/* Nút chỉnh cỡ chữ (A- và A+) */}
-                            <div 
-                                className="flex items-center bg-black/25 backdrop-blur-md rounded-full p-0.5 text-white border border-white/20 shadow-inner gap-0.5 overflow-hidden"
-                                title="Chỉnh kích thước chữ trò chuyện (A- / A+)"
-                            >
+                        {/* Action Toolbar */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 relative z-10 shrink-0">
+                            {/* Font Size Adjuster Control (A- / A+) */}
+                            <div className="flex items-center bg-white/15 backdrop-blur-xs rounded-xl border border-white/20 p-0.5 shadow-xs select-none">
                                 <button
                                     type="button"
                                     onClick={() => handleFontSizeChange(-1)}
-                                    disabled={fontSize <= 11}
                                     title="Giảm cỡ chữ (A-)"
-                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/25 active:scale-95 disabled:opacity-30 rounded-l-full text-[10px] font-black transition-all cursor-pointer"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white/20 active:scale-90 text-white rounded-lg transition-all font-black text-xs cursor-pointer select-none"
                                 >
                                     A-
                                 </button>
-                                <div className="w-[1px] h-3 bg-white/20" />
+                                <div className="w-[1px] h-3.5 bg-white/25 mx-0.5" />
                                 <button
                                     type="button"
                                     onClick={() => handleFontSizeChange(1)}
-                                    disabled={fontSize >= 22}
                                     title="Tăng cỡ chữ (A+)"
-                                    className="px-2 py-0.5 flex items-center justify-center hover:bg-white/25 active:scale-95 disabled:opacity-30 rounded-r-full text-[10px] font-black transition-all cursor-pointer"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-white/20 active:scale-90 text-white rounded-lg transition-all font-black text-xs cursor-pointer select-none"
                                 >
                                     A+
                                 </button>
                             </div>
 
+                            {/* Theme Dark/Light Toggle */}
+                            <button
+                                type="button"
+                                onClick={handleToggleDark}
+                                title={isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
+                                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-white/15 hover:bg-white/25 active:scale-90 text-white rounded-xl border border-white/20 transition-all cursor-pointer shadow-xs"
+                            >
+                                {isDark ? <Sun size={16} className="text-amber-300" /> : <Moon size={16} className="text-blue-100" />}
+                            </button>
+
+                            {/* Nút Xóa lịch sử chat */}
                             <button 
                                 type="button"
                                 onClick={handleClearChat}
-                                title="Xóa lịch sử chat"
-                                className="w-7 h-7 flex items-center justify-center bg-white/15 hover:bg-white/25 active:scale-90 text-white/90 hover:text-white rounded-xl border border-white/15 transition-all cursor-pointer shadow-xs"
+                                title="Làm mới cuộc trò chuyện"
+                                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-white/15 hover:bg-white/25 active:scale-90 text-white/90 hover:text-white rounded-xl border border-white/20 transition-all cursor-pointer shadow-xs"
                             >
-                                <Trash2 size={13} />
+                                <Trash2 size={16} />
                             </button>
-                            <button 
-                                type="button"
-                                onClick={onClose}
-                                title="Đóng (ESC)"
-                                className="w-7 h-7 flex items-center justify-center bg-rose-500/30 hover:bg-rose-500 text-white rounded-xl border border-white/20 transition-all active:scale-90 cursor-pointer shadow-xs ml-0.5"
-                            >
-                                <X size={14} />
-                            </button>
+
+                            {!isDoctorOnly && (
+                                <button 
+                                    type="button"
+                                    onClick={onClose}
+                                    title="Đóng (ESC)"
+                                    className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-rose-500/30 hover:bg-rose-500 text-white rounded-xl border border-white/20 transition-all active:scale-90 cursor-pointer shadow-xs ml-0.5"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    {/* 3-Mode Segmented Tab Switcher */}
-                    <div className="px-3 py-2 bg-stone-100/90 dark:bg-[#07130e]/95 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center gap-2 shrink-0 select-none backdrop-blur-md">
-                        {MODES.map((m) => {
-                            const IconComponent = m.icon;
-                            const isActive = activeMode === m.id;
-                            return (
-                                <button
-                                    key={m.id}
-                                    type="button"
-                                    onClick={() => handleSwitchMode(m.id)}
-                                    title={m.desc}
-                                    className={`flex-1 py-1.5 px-2.5 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none active:scale-98 ${
-                                        isActive 
-                                            ? `${m.activeBg} text-white shadow-md shadow-emerald-900/20 ring-1 ring-white/30 scale-[1.02]` 
-                                            : 'bg-white/80 dark:bg-white/5 text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-white/10 hover:text-[#2d5016] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/5 shadow-2xs'
-                                    }`}
-                                >
-                                    <IconComponent size={13} className={isActive ? 'text-white' : 'opacity-70'} />
-                                    <span className="truncate tracking-tight">{m.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    {/* Mode Segmented Tab Switcher (Chỉ hiện trong Popup POS nội bộ) */}
+                    {!isDoctorOnly && (
+                        <div className="px-3 py-2 bg-stone-100/90 dark:bg-[#07130e]/95 border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0 select-none backdrop-blur-md">
+                            <div className="flex items-center gap-2">
+                                {MODES.map((m) => {
+                                    const IconComponent = m.icon;
+                                    const isActive = activeMode === m.id;
+                                    return (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            onClick={() => handleSwitchMode(m.id)}
+                                            title={m.desc}
+                                            className={`flex-1 py-1.5 px-2.5 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none active:scale-98 ${
+                                                isActive 
+                                                    ? `${m.activeBg} text-white shadow-md shadow-emerald-900/20 ring-1 ring-white/30 scale-[1.02]` 
+                                                    : 'bg-white/80 dark:bg-white/5 text-stone-600 dark:text-stone-400 hover:bg-white dark:hover:bg-white/10 hover:text-[#2d5016] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/5 shadow-2xs'
+                                            }`}
+                                        >
+                                            <IconComponent size={13} className={isActive ? 'text-white' : 'opacity-70'} />
+                                            <span className="truncate tracking-tight">{m.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Chat Messages Feed */}
                     <div 
                         ref={chatFeedRef}
-                        className="flex-1 overflow-y-auto p-3.5 space-y-3 custom-scrollbar bg-[#f8f6f0] dark:bg-[#06120c] select-text"
+                        className="flex-1 overflow-y-auto p-3 sm:p-5 custom-scrollbar bg-[#f8f6f0] dark:bg-[#06120c] select-text"
                     >
+                        <div className={`space-y-3.5 ${isStandalone ? 'max-w-4xl mx-auto' : ''}`}>
+                        <AnimatePresence mode="popLayout" initial={false}>
                         {messages.map((msg, idx) => {
-                            const isLatestModel = idx === messages.length - 1 && msg.role === 'model';
+                            // Once conversation has started (user has sent a message), hide the welcome hero banner
+                            if (msg.id === 'welcome' && messages.length > 1) {
+                                return null;
+                            }
+
+                            // Rich Hero Hub for Welcome message (chỉ hiện khi chưa bắt đầu chat)
+                            if (msg.id === 'welcome') {
+                                if (activeMode === 'crop_doctor' || isDoctorOnly) {
+                                    return (
+                                        <WelcomeHeroCropDoctor
+                                            key="welcome-crop-doctor"
+                                            onUploadClick={() => fileInputRef.current?.click()}
+                                            onSend={handleSend}
+                                        />
+                                    );
+                                }
+                                if (activeMode === 'analytics') {
+                                    return (
+                                        <WelcomeHeroAnalytics
+                                            key="welcome-analytics"
+                                            onSend={handleSend}
+                                        />
+                                    );
+                                }
+                                return (
+                                    <WelcomeHeroGeneral
+                                        key="welcome-general"
+                                        onSend={handleSend}
+                                    />
+                                );
+                            }
+
+                            const isLatestUser = idx === latestUserIdx;
+                            const isLatestModel = idx === latestModelIdx;
+
                             return (
-                                <div 
-                                    key={msg.id || idx}
-                                    ref={isLatestModel ? latestModelMsgRef : null}
-                                    className={`scroll-mt-3 ${msg.role === 'user' ? 'flex justify-end' : 'flex gap-3 items-start justify-start'}`}
-                                >
-                                    {msg.role === 'model' && (
-                                        <div 
-                                            style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
-                                            className="w-8 h-8 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/25 mt-0.5 border border-white/25 select-none ring-2 ring-emerald-500/10"
-                                        >
-                                            <BrainCircuit size={15} />
-                                        </div>
-                                    )}
-
-                                    <div 
-                                        style={msg.role === 'user' ? {
-                                            background: 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))',
-                                            color: '#ffffff'
-                                        } : undefined}
-                                        className={`relative group transition-all select-text ${
-                                            msg.role === 'user' 
-                                                ? 'max-w-[85%] rounded-2xl rounded-tr-xs p-3.5 text-white shadow-xs border border-white/20' 
-                                                : 'max-w-[88%] bg-white dark:bg-[#0c1c15] border border-[#8b6f47]/15 dark:border-emerald-500/20 rounded-2xl rounded-tl-xs p-3.5 shadow-xs text-stone-800 dark:text-stone-100'
-                                        }`}
-                                    >
-                                        {/* Nút Copy */}
-                                        {msg.role === 'model' && msg.id !== 'welcome' && (
-                                            <button 
-                                                type="button"
-                                                onClick={() => handleCopy(msg.text, idx)}
-                                                title="Sao chép câu trả lời"
-                                                className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-stone-100/90 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 text-stone-500 dark:text-stone-300 opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-2xs select-none active:scale-90"
-                                            >
-                                                {copiedIndex === idx ? <CheckCheck size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
-                                            </button>
-                                        )}
-
-                                        {/* User Images */}
-                                        {msg.images && msg.images.length > 0 && (
-                                            <div className="flex gap-2 mb-3 flex-wrap select-none">
-                                                {msg.images.map((img, imgIdx) => (
-                                                    <img 
-                                                        key={imgIdx} 
-                                                        src={img} 
-                                                        alt="Uploaded crop/leaf" 
-                                                        className="w-16 h-16 object-cover rounded-xl border-2 border-white/40 dark:border-white/20 shadow-sm"
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Content */}
-                                        <div className="space-y-0.5 select-text">
-                                            {msg.role === 'user' ? (
-                                                <p 
-                                                    style={{ fontSize: `${fontSize}px`, lineHeight: 1.55 }}
-                                                    className="font-bold whitespace-pre-wrap leading-relaxed drop-shadow-2xs select-text cursor-text"
-                                                >
-                                                    {msg.text}
-                                                </p>
-                                            ) : (
-                                                <div className="select-text cursor-text">{renderFormattedText(msg.text)}</div>
-                                            )}
-                                        </div>
-
-                                        {/* Recommended Products Cards - PHƯƠNG ÁN B: Phân Tab Rõ Ràng */}
-                                        {msg.recommended_products && msg.recommended_products.length > 0 && (() => {
-                                            const allProds = msg.recommended_products;
-                                            const targetProds = allProds.filter(p => isTargetProduct(p));
-                                            const synergyProds = allProds.filter(p => !isTargetProduct(p));
-                                            
-                                            // Mặc định chọn tab Đặc trị chính nếu có, ngược lại chọn tất cả
-                                            const activeTab = productSubTabs[msg.id] || (targetProds.length > 0 ? 'target' : 'all');
-                                            const displayedProds = activeTab === 'target' 
-                                                ? targetProds 
-                                                : (activeTab === 'synergy' ? synergyProds : allProds);
-
-                                            const inStockCount = displayedProds.filter(p => (p.stock || 0) > 0).length;
-
-                                            return (
-                                                <div className="mt-3.5 pt-3.5 border-t border-stone-200/80 dark:border-white/10 space-y-2.5 select-none">
-                                                    {/* THANH ĐIỀU HƯỚNG TABS: ĐẶC TRỊ CHÍNH vs PHỐI HỢP TĂNG LỰC */}
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[#8b6f47]/20 dark:border-white/10">
-                                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                                            {targetProds.length > 0 && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'target' }))}
-                                                                    className={cn(
-                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
-                                                                        activeTab === 'target'
-                                                                            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-stone-950 shadow-sm shadow-amber-500/20 ring-1 ring-amber-400"
-                                                                            : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
-                                                                    )}
-                                                                >
-                                                                    <span>⚡ Thuốc đặc trị</span>
-                                                                    <span className={cn(
-                                                                        "px-1.5 py-0.2 rounded-full text-[9px] font-black",
-                                                                        activeTab === 'target' ? "bg-black/20 text-stone-950" : "bg-black/10 dark:bg-white/10"
-                                                                    )}>
-                                                                        {targetProds.length}
-                                                                    </span>
-                                                                </button>
-                                                            )}
-                                                            {synergyProds.length > 0 && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'synergy' }))}
-                                                                    className={cn(
-                                                                        "px-2.5 py-1 rounded-xl text-[10.5px] font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95",
-                                                                        activeTab === 'synergy'
-                                                                            ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm shadow-emerald-700/20 ring-1 ring-emerald-400/40"
-                                                                            : "bg-black/5 dark:bg-white/5 text-stone-600 dark:text-stone-300 hover:bg-black/10"
-                                                                    )}
-                                                                >
-                                                                    <span>🔄 Phối hợp tăng lực</span>
-                                                                    <span className={cn(
-                                                                        "px-1.5 py-0.2 rounded-full text-[9px] font-black",
-                                                                        activeTab === 'synergy' ? "bg-white/25 text-white" : "bg-black/10 dark:bg-white/10"
-                                                                    )}>
-                                                                        {synergyProds.length}
-                                                                    </span>
-                                                                </button>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setProductSubTabs(prev => ({ ...prev, [msg.id]: 'all' }))}
-                                                                className={cn(
-                                                                    "px-2 py-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer active:scale-95",
-                                                                    activeTab === 'all'
-                                                                        ? "bg-stone-800 text-white dark:bg-white dark:text-stone-900 shadow-xs"
-                                                                        : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
-                                                                )}
-                                                            >
-                                                                <span>Tất cả ({allProds.length})</span>
-                                                            </button>
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            disabled={inStockCount === 0}
-                                                            onClick={() => handleAddAllToCart(displayedProds)}
-                                                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#3e6d23] hover:brightness-110 active:scale-95 text-white text-[10px] font-black flex items-center gap-1 shadow-xs transition-all shrink-0 cursor-pointer disabled:opacity-40"
-                                                            title={`Thêm ${inStockCount} thuốc còn hàng trong tab này vào đơn hàng POS`}
-                                                        >
-                                                            <ShoppingCart size={11} />
-                                                            <span>Thêm {activeTab === 'target' ? 'đặc trị' : (activeTab === 'synergy' ? 'phối hợp' : 'tất cả')} ({inStockCount})</span>
-                                                        </button>
-                                                    </div>
-
-                                                    {/* DANH SÁCH THUỐC THEO TAB ĐANG CHỌN */}
-                                                    <div className="grid grid-cols-1 gap-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
-                                                        {displayedProds.map((prod) => {
-                                                            const inStock = (prod.stock || 0) > 0;
-                                                            const isAdded = addedProducts[prod.id];
-                                                            const isTarget = isTargetProduct(prod);
-
-                                                            return (
-                                                                <div 
-                                                                    key={prod.id}
-                                                                    className={cn(
-                                                                        "p-3 rounded-2xl border flex flex-col justify-between gap-2 shadow-2xs transition-all select-none",
-                                                                        isTarget
-                                                                            ? "border-amber-500/35 hover:border-amber-500/60 bg-amber-500/5 dark:bg-[#1a2216]/90"
-                                                                            : "border-emerald-600/25 hover:border-emerald-600/50 bg-emerald-500/5 dark:bg-[#14281f]/90"
-                                                                    )}
-                                                                >
-                                                                    <div>
-                                                                        <div className="flex items-start justify-between gap-2">
-                                                                            <div className="min-w-0 flex-1 select-text">
-                                                                                <h5 
-                                                                                    style={{ fontSize: `${Math.max(12.5, fontSize)}px` }}
-                                                                                    className="font-black text-stone-900 dark:text-white leading-snug select-text cursor-text"
-                                                                                >
-                                                                                    {prod.name}
-                                                                                </h5>
-                                                                                {prod.tier && (
-                                                                                    <div className="mt-1">
-                                                                                        <span className={`inline-flex items-center gap-1 text-[9.5px] font-black px-2 py-0.5 rounded-lg border ${
-                                                                                            isTarget
-                                                                                                ? 'bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-500/40'
-                                                                                                : 'bg-emerald-500/15 text-emerald-900 dark:text-emerald-200 border-emerald-500/30'
-                                                                                        }`}>
-                                                                                            {prod.tier}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                            <span 
-                                                                                className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shrink-0 border ${
-                                                                                    inStock 
-                                                                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300/60 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/40' 
-                                                                                        : 'bg-rose-100 text-rose-700 border-rose-300/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/40'
-                                                                                }`}
-                                                                            >
-                                                                                {inStock ? `Còn ${prod.stock} ${prod.unit || ''}` : 'Hết hàng'}
-                                                                            </span>
-                                                                        </div>
-                                                                        {prod.active_ingredient && (
-                                                                            <p 
-                                                                                style={{ fontSize: `${Math.max(11, fontSize - 1.5)}px` }}
-                                                                                className="font-bold italic mt-1 text-emerald-800 dark:text-emerald-400 line-clamp-1 flex items-center gap-1.5 select-text cursor-text" 
-                                                                                title={prod.active_ingredient}
-                                                                            >
-                                                                                <FlaskConical size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0 select-none" />
-                                                                                <span className="select-text">{prod.active_ingredient}</span>
-                                                                            </p>
-                                                                        )}
-                                                                        {prod.dosage && (
-                                                                            <div 
-                                                                                style={{ fontSize: `${Math.max(10.5, fontSize - 1.5)}px` }}
-                                                                                className="mt-1.5 px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-900 dark:text-sky-200 border border-sky-200/70 dark:border-sky-800/40 font-medium flex items-start gap-1.5 select-text cursor-text"
-                                                                            >
-                                                                                <Droplets size={13} className="text-sky-500 shrink-0 mt-0.5 select-none" />
-                                                                                <span className="line-clamp-2 select-text">{prod.dosage}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <div className="flex items-center justify-between pt-2 border-t border-stone-200/60 dark:border-white/5">
-                                                                        <div 
-                                                                            style={{ fontSize: `${Math.max(12, fontSize)}px` }}
-                                                                            className="font-black text-[#2d5016] dark:text-emerald-400 select-text cursor-text"
-                                                                        >
-                                                                            {Number(prod.sale_price || 0).toLocaleString('vi-VN')} đ
-                                                                            {prod.unit && <span className="text-[10px] font-normal text-stone-500 dark:text-stone-400 select-none">/{prod.unit}</span>}
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleAddToCartClick(prod)}
-                                                                            disabled={!inStock}
-                                                                            style={{
-                                                                                background: inStock && !isAdded ? 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))' : undefined
-                                                                            }}
-                                                                            className={`px-3 py-1.5 rounded-xl text-[11px] font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all select-none cursor-pointer ${
-                                                                                isAdded
-                                                                                    ? 'bg-emerald-600 text-white'
-                                                                                    : inStock
-                                                                                        ? 'hover:brightness-110 text-white'
-                                                                                        : 'bg-stone-200 dark:bg-white/10 text-stone-400 cursor-not-allowed'
-                                                                            }`}
-                                                                        >
-                                                                            {isAdded ? (
-                                                                                <><Check size={12} strokeWidth={3} /> Đã thêm</>
-                                                                            ) : (
-                                                                                <><ShoppingCart size={12} /> Thêm vào đơn</>
-                                                                            )}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
+                                <ChatMessageBubble
+                                    key={msg.id || `msg-${idx}`}
+                                    msg={msg}
+                                    idx={idx}
+                                    isLatestUser={isLatestUser}
+                                    isLatestModel={isLatestModel}
+                                    latestUserMsgRef={latestUserMsgRef}
+                                    latestModelMsgRef={latestModelMsgRef}
+                                    fontSize={fontSize}
+                                    copiedIndex={copiedIndex}
+                                    addedProducts={addedProducts}
+                                    activeTab={productSubTabs[msg.id]}
+                                    onTabChange={handleSubTabChange}
+                                    onCopy={handleCopy}
+                                    onDelete={handleDeleteMessage}
+                                    onAddToCart={handleAddToCartClick}
+                                    onAddAllToCart={handleAddAllToCart}
+                                    renderFormattedText={renderFormattedText}
+                                />
                             );
                         })}
 
                         {isLoading && (
-                            <div className="flex gap-3 justify-start items-center select-none">
+                            <m.div 
+                                key="ai-loading-indicator"
+                                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.15 } }}
+                                className="flex gap-3 justify-start items-center select-none"
+                            >
                                 <div 
                                     style={{ background: 'var(--top-nav-gradient, linear-gradient(135deg, #163d18 0%, #297a33 100%))' }}
                                     className="w-8 h-8 rounded-2xl text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-950/25 mt-0.5 border border-white/25 select-none ring-2 ring-emerald-500/10"
@@ -2121,173 +2968,189 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                         {currentModeConfig.loadingText}
                                     </p>
                                 </div>
-                            </div>
+                            </m.div>
                         )}
+                        </AnimatePresence>
 
                         <div ref={chatEndRef} />
+                        </div>
                     </div>
 
                     {/* Preview Selected Images */}
                     {selectedImages.length > 0 && (
-                        <div className="px-3.5 py-2 border-t border-[#8b6f47]/15 dark:border-white/10 bg-emerald-50/70 dark:bg-[#091811] flex items-center justify-between gap-2 shrink-0 backdrop-blur-md">
-                            <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5">
-                                <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 whitespace-nowrap flex items-center gap-1">
-                                    <span>📸 Ảnh khám bệnh</span>
-                                    <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/80 dark:bg-emerald-800/60 rounded-full font-black">
-                                        {selectedImages.length}/4
+                        <div className="px-3.5 py-2 border-t border-[#8b6f47]/15 dark:border-white/10 bg-emerald-50/70 dark:bg-[#091811] shrink-0 backdrop-blur-md">
+                            <div className={`flex items-center justify-between gap-2 ${isStandalone ? 'max-w-4xl mx-auto w-full' : ''}`}>
+                                <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar py-0.5">
+                                    <span className="text-[10px] font-black uppercase text-emerald-800 dark:text-emerald-400 whitespace-nowrap flex items-center gap-1">
+                                        <span>📸 Ảnh khám bệnh</span>
+                                        <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/80 dark:bg-emerald-800/60 rounded-full font-black">
+                                            {selectedImages.length}/4
+                                        </span>
                                     </span>
+                                    {selectedImages.map((img, idx) => (
+                                        <div key={idx} className="relative group w-12 h-12 rounded-xl overflow-hidden border-2 border-emerald-500/60 shadow-xs shrink-0 bg-black/5">
+                                            <img src={img} alt="Preview" className="w-full h-full object-cover" />
+                                            <button 
+                                                type="button"
+                                                onClick={() => handleRemoveImage(idx)}
+                                                title="Xóa ảnh này"
+                                                className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                            >
+                                                <X size={14} className="text-white drop-shadow-sm" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <span className="text-[9.5px] font-bold text-emerald-700/90 dark:text-emerald-400/90 whitespace-nowrap shrink-0 hidden sm:inline-block">
+                                    Nhấn Gửi để chẩn đoán ngay
                                 </span>
-                                {selectedImages.map((img, idx) => (
-                                    <div key={idx} className="relative group w-12 h-12 rounded-xl overflow-hidden border-2 border-emerald-500/60 shadow-xs shrink-0 bg-black/5">
-                                        <img src={img} alt="Preview" className="w-full h-full object-cover" />
-                                        <button 
-                                            type="button"
-                                            onClick={() => handleRemoveImage(idx)}
-                                            title="Xóa ảnh này"
-                                            className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                        >
-                                            <X size={14} className="text-white drop-shadow-sm" />
-                                        </button>
-                                    </div>
-                                ))}
                             </div>
-                            <span className="text-[9.5px] font-bold text-emerald-700/90 dark:text-emerald-400/90 whitespace-nowrap shrink-0 hidden sm:inline-block">
-                                Nhấn Gửi để chẩn đoán ngay
-                            </span>
                         </div>
                     )}
 
                     {/* Quick Suggestion Chips */}
                     {currentModeConfig.suggestions && currentModeConfig.suggestions.length > 0 && (
-                        <div className="px-3 py-2 bg-stone-50/90 dark:bg-[#06110c]/90 border-t border-[#8b6f47]/15 dark:border-white/5 flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0 select-none backdrop-blur-sm">
-                            <span className="text-[9.5px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500 shrink-0 flex items-center gap-1">
-                                <Sparkles size={11} className="text-amber-500" /> Gợi ý:
-                            </span>
-                            {currentModeConfig.suggestions.map((sug, sIdx) => (
-                                <button
-                                    key={sIdx}
-                                    type="button"
-                                    onClick={() => handleSend(sug.query)}
-                                    disabled={isLoading}
-                                    title={sug.query}
-                                    className="shrink-0 px-3 py-1 rounded-full text-[10.5px] font-bold bg-white/95 dark:bg-white/10 text-stone-700 dark:text-stone-200 hover:text-[#2d5016] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/10 hover:border-emerald-500 dark:hover:border-emerald-400 shadow-2xs hover:shadow-xs active:scale-95 transition-all select-none cursor-pointer"
-                                >
-                                    {sug.label}
-                                </button>
-                            ))}
+                        <div className="px-3 sm:px-4 py-2 bg-stone-50/90 dark:bg-[#06110c]/90 border-t border-[#8b6f47]/15 dark:border-white/10 shrink-0 select-none backdrop-blur-md">
+                            <div className={`flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-0.5 ${isStandalone ? 'max-w-4xl mx-auto w-full' : ''}`}>
+                                <span className="text-[9.5px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500 shrink-0 flex items-center gap-1 mr-0.5">
+                                    <Sparkles size={11} className="text-amber-500" /> Gợi ý:
+                                </span>
+                                {currentModeConfig.suggestions.map((sug, sIdx) => {
+                                    const SugIcon = sug.icon || Sparkles;
+                                    return (
+                                        <button
+                                            key={sIdx}
+                                            type="button"
+                                            onClick={() => handleSend(sug.query)}
+                                            disabled={isLoading}
+                                            title={sug.query}
+                                            className="shrink-0 px-3 py-1.5 rounded-full text-[10.5px] sm:text-[11px] font-bold bg-white/95 dark:bg-white/10 text-stone-700 dark:text-stone-200 hover:text-[#163d18] dark:hover:text-emerald-300 border border-[#8b6f47]/15 dark:border-white/10 hover:border-emerald-500/60 dark:hover:border-emerald-400/60 shadow-2xs hover:shadow-xs active:scale-95 transition-all select-none cursor-pointer flex items-center gap-1.5"
+                                        >
+                                            <SugIcon size={13} className={cn("shrink-0", sug.iconColor || "text-emerald-600 dark:text-emerald-400")} />
+                                            <span>{sug.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
                     {/* Input Controls */}
-                    <div className="p-3 border-t border-[#8b6f47]/15 dark:border-white/10 bg-white/95 dark:bg-[#07130e]/95 shrink-0 backdrop-blur-md">
-                        <form 
-                            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                            className="flex items-center gap-2"
-                        >
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                onChange={handleImageSelect} 
-                                accept="image/*" 
-                                multiple 
-                                className="hidden" 
-                            />
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                title="Tải ảnh hoặc nhấn Ctrl+V để dán ảnh trực tiếp"
-                                className="p-2.5 rounded-2xl bg-stone-100/90 hover:bg-emerald-50 hover:text-[#2d5016] dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 border border-[#8b6f47]/20 dark:border-white/10 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center shadow-2xs"
+                    <div className="p-2.5 sm:p-3.5 border-t border-[#8b6f47]/15 dark:border-white/10 bg-white/95 dark:bg-[#07130e]/95 shrink-0 backdrop-blur-xl">
+                        <div className={isStandalone ? "max-w-4xl mx-auto w-full" : ""}>
+                            <form 
+                                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                                className="flex items-center gap-2"
                             >
-                                <ImageIcon size={16} />
-                            </button>
-
-                            <div className="flex-1 relative">
-                                <input
-                                    ref={inputRef}
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onPaste={handlePaste}
-                                    placeholder={
-                                        selectedImages.length > 0
-                                            ? "Nhập thêm ghi chú hoặc nhấn Gửi để chẩn đoán bệnh..."
-                                            : `${currentModeConfig.placeholder} (Ctrl+V để dán ảnh)`
-                                    }
-                                    style={{
-                                        fontSize: `${Math.max(12, Math.min(15, fontSize))}px`
-                                    }}
-                                    className="w-full px-3.5 py-2.5 bg-stone-100/90 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-2xl font-medium outline-none focus:bg-white dark:focus:bg-black/40 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleImageSelect} 
+                                    accept="image/*" 
+                                    multiple 
+                                    className="hidden" 
                                 />
-                            </div>
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    title="Tải ảnh hoặc nhấn Ctrl+V để dán ảnh trực tiếp"
+                                    className="p-2.5 sm:p-3 rounded-2xl bg-stone-100 hover:bg-emerald-50 hover:text-[#2d5016] dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-stone-300 border border-[#8b6f47]/20 dark:border-white/10 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center justify-center shadow-xs"
+                                >
+                                    <Camera size={18} />
+                                </button>
 
-                            <button
-                                type="submit"
-                                disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
-                                style={{
-                                    background: (!isLoading && (input.trim() || selectedImages.length > 0)) 
-                                        ? 'var(--button-gradient, linear-gradient(135deg, #2d5016 0%, #3e6d23 100%))' 
-                                        : undefined
-                                }}
-                                className="px-4 py-2.5 rounded-2xl bg-stone-300 dark:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition-all shrink-0 cursor-pointer"
+                                <div className="flex-1 relative">
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        onPaste={handlePaste}
+                                        placeholder={
+                                            selectedImages.length > 0
+                                                ? "Nhập thêm ghi chú hoặc nhấn Gửi để chẩn đoán bệnh..."
+                                                : `${currentModeConfig.placeholder} (Ctrl+V để dán ảnh)`
+                                        }
+                                        style={{
+                                            fontSize: `${Math.max(12.5, Math.min(15, fontSize))}px`
+                                        }}
+                                        className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 bg-stone-100 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 text-stone-900 dark:text-white placeholder-stone-400 dark:placeholder-stone-500 rounded-2xl font-medium outline-none focus:bg-white dark:focus:bg-black/40 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-inner"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || (!input.trim() && selectedImages.length === 0)}
+                                    style={{
+                                        background: (!isLoading && (input.trim() || selectedImages.length > 0)) 
+                                            ? 'var(--button-gradient, linear-gradient(135deg, #163d18 0%, #2b7a33 100%))' 
+                                            : undefined
+                                    }}
+                                    className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-stone-300 dark:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-emerald-950/25 transition-all shrink-0 cursor-pointer"
+                                >
+                                    <span>{selectedImages.length > 0 && !input.trim() ? 'Khám ảnh' : 'Gửi'}</span>
+                                    <Send size={14} />
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* RESIZE HANDLERS (8 HƯỚNG & 4 GÓC TỰ DO) - ONLY IN FLOATING POPUP MODE */}
+                    {!isStandalone && (
+                        <>
+                            {/* Top edge */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('n', e)}
+                                className="absolute top-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                                title="Kéo để chỉnh chiều cao"
+                            />
+                            {/* Bottom edge */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('s', e)}
+                                className="absolute bottom-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                                title="Kéo để chỉnh chiều cao"
+                            />
+                            {/* Left edge */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('w', e)}
+                                className="absolute left-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                                title="Kéo để chỉnh chiều rộng"
+                            />
+                            {/* Right edge */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('e', e)}
+                                className="absolute right-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
+                                title="Kéo để chỉnh chiều rộng"
+                            />
+                            {/* Top-Left corner */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('nw', e)}
+                                className="absolute top-0 left-0 w-3.5 h-3.5 cursor-nwse-resize z-50 hover:bg-emerald-500/30 rounded-tl-3xl"
+                            />
+                            {/* Top-Right corner */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('ne', e)}
+                                className="absolute top-0 right-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-tr-3xl"
+                            />
+                            {/* Bottom-Left corner */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('sw', e)}
+                                className="absolute bottom-0 left-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-bl-3xl"
+                            />
+                            {/* Bottom-Right corner with visual resize grip indicator */}
+                            <div 
+                                onMouseDown={(e) => handleResizeStart('se', e)}
+                                className="absolute bottom-0.5 right-0.5 w-4 h-4 cursor-nwse-resize z-50 flex items-center justify-center group/grip opacity-60 hover:opacity-100 transition-opacity"
+                                title="Kéo để thay đổi kích thước tự do"
                             >
-                                <span>{selectedImages.length > 0 && !input.trim() ? 'Khám ảnh' : 'Gửi'}</span>
-                                <Send size={13} />
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* RESIZE HANDLERS (8 HƯỚNG & 4 GÓC TỰ DO) */}
-                    {/* Top edge */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('n', e)}
-                        className="absolute top-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
-                        title="Kéo để chỉnh chiều cao"
-                    />
-                    {/* Bottom edge */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('s', e)}
-                        className="absolute bottom-0 left-3 right-3 h-2 cursor-ns-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
-                        title="Kéo để chỉnh chiều cao"
-                    />
-                    {/* Left edge */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('w', e)}
-                        className="absolute left-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
-                        title="Kéo để chỉnh chiều rộng"
-                    />
-                    {/* Right edge */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('e', e)}
-                        className="absolute right-0 top-3 bottom-3 w-2 cursor-ew-resize z-50 hover:bg-emerald-500/20 active:bg-emerald-500/40 transition-colors"
-                        title="Kéo để chỉnh chiều rộng"
-                    />
-                    {/* Top-Left corner */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('nw', e)}
-                        className="absolute top-0 left-0 w-3.5 h-3.5 cursor-nwse-resize z-50 hover:bg-emerald-500/30 rounded-tl-3xl"
-                    />
-                    {/* Top-Right corner */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('ne', e)}
-                        className="absolute top-0 right-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-tr-3xl"
-                    />
-                    {/* Bottom-Left corner */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('sw', e)}
-                        className="absolute bottom-0 left-0 w-3.5 h-3.5 cursor-nesw-resize z-50 hover:bg-emerald-500/30 rounded-bl-3xl"
-                    />
-                    {/* Bottom-Right corner with visual resize grip indicator */}
-                    <div 
-                        onMouseDown={(e) => handleResizeStart('se', e)}
-                        className="absolute bottom-0.5 right-0.5 w-4 h-4 cursor-nwse-resize z-50 flex items-center justify-center group/grip opacity-60 hover:opacity-100 transition-opacity"
-                        title="Kéo để thay đổi kích thước tự do"
-                    >
-                        <svg className="w-2.5 h-2.5 text-stone-400 dark:text-stone-500 group-hover/grip:text-emerald-500" viewBox="0 0 6 6" fill="currentColor">
-                            <circle cx="5" cy="5" r="0.75" />
-                            <circle cx="5" cy="2.5" r="0.75" />
-                            <circle cx="2.5" cy="5" r="0.75" />
-                        </svg>
-                    </div>
+                                <svg className="w-2.5 h-2.5 text-stone-400 dark:text-stone-500 group-hover/grip:text-emerald-500" viewBox="0 0 6 6" fill="currentColor">
+                                    <circle cx="5" cy="5" r="0.75" />
+                                    <circle cx="5" cy="2.5" r="0.75" />
+                                    <circle cx="2.5" cy="5" r="0.75" />
+                                </svg>
+                            </div>
+                        </>
+                    )}
                 </m.div>
             )}
         </AnimatePresence>

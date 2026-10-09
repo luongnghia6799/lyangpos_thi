@@ -17,8 +17,8 @@ const ActionTooltip = ({ text, children, position = "top", className = "" }) => 
     <div className={cn("relative group/tip flex items-center justify-center", className)}>
         {children}
         <div className={cn(
-            "absolute pointer-events-none px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap shadow-2xl border border-white/10 dark:border-white/20 transition-all duration-150 opacity-0 group-hover/tip:opacity-100 z-[999999]",
-            "bg-slate-900/95 text-white dark:bg-[#2a2723] dark:text-[#f3ede2]",
+            "absolute pointer-events-none px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap shadow-xl border transition-all duration-150 opacity-0 group-hover/tip:opacity-100 z-[999999] backdrop-blur-xl",
+            "bg-[#fbf9f4]/95 text-[#2d5016] border-[#8b6f47]/30 shadow-[#8b6f47]/10 dark:bg-[#1c1916]/95 dark:text-[#d4a574] dark:border-white/20 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5",
             position === "top" && "bottom-full mb-2 left-1/2 -translate-x-1/2 translate-y-1 group-hover/tip:translate-y-0",
             position === "bottom" && "top-full mt-2 left-1/2 -translate-x-1/2 -translate-y-1 group-hover/tip:translate-y-0",
             position === "bottom-left" && "top-full mt-2 right-0 -translate-y-1 group-hover/tip:translate-y-0",
@@ -519,8 +519,8 @@ export default function DailyOrderHistoryModal({
                                                 {onPrintOrder && (
                                                     <ActionTooltip text={type === 'Purchase' ? "In Phiếu Nhập Hàng" : "In Hóa Đơn Bán Hàng"}>
                                                         <button
-                                                            onClick={() => onPrintOrder(order, 'Sale')}
-                                                            className="p-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95"
+                                                            onClick={() => onPrintOrder(order, type === 'Purchase' ? 'Purchase' : 'Sale')}
+                                                            className="p-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95 cursor-pointer"
                                                         >
                                                             <Printer size={15} />
                                                         </button>
@@ -829,12 +829,24 @@ export default function DailyOrderHistoryModal({
                                     {onPrintOrder && (
                                         <button
                                             onClick={() => {
-                                                onPrintOrder(selectedDetailOrder, 'Sale');
+                                                onPrintOrder(selectedDetailOrder, type === 'Purchase' ? 'Purchase' : 'Sale');
                                             }}
-                                            className="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/25 font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5"
+                                            className="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/25 font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                                         >
                                             <Printer size={15} />
-                                            <span>In hóa đơn</span>
+                                            <span>{type === 'Purchase' ? 'In phiếu nhập' : 'In hóa đơn'}</span>
+                                        </button>
+                                    )}
+
+                                    {onPrintOrder && type === 'Sale' && (
+                                        <button
+                                            onClick={() => {
+                                                onPrintOrder(selectedDetailOrder, 'Delivery');
+                                            }}
+                                            className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl border border-amber-500/25 font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                                        >
+                                            <Package size={15} />
+                                            <span>In phiếu xuất</span>
                                         </button>
                                     )}
 

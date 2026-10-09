@@ -40,18 +40,26 @@ const resolveApiUrl = (val) => {
     return `http://${clean}:${DEFAULT_PORT}`;
 };
 
+const isBrowserRemote = typeof window !== 'undefined' && window.location && window.location.hostname && 
+            window.location.hostname !== 'localhost' && 
+            window.location.hostname !== '127.0.0.1' && 
+            window.location.hostname !== 'tauri.localhost';
+
 const savedIp = localStorage.getItem('server_ip');
 const envApiUrl = import.meta.env.VITE_API_URL;
-if (savedIp) {
+
+if (isBrowserRemote) {
+    // When loaded from phone/browser over network, prioritize the current origin host IP
+    if (savedIp && savedIp !== 'localhost' && savedIp !== '127.0.0.1' && !savedIp.includes('localhost') && !savedIp.includes('127.0.0.1')) {
+        axios.defaults.baseURL = resolveApiUrl(savedIp);
+    } else {
+        axios.defaults.baseURL = window.location.origin;
+        try { localStorage.setItem('server_ip', window.location.hostname); } catch (e) {}
+    }
+} else if (savedIp) {
     axios.defaults.baseURL = resolveApiUrl(savedIp);
 } else if (envApiUrl) {
     axios.defaults.baseURL = resolveApiUrl(envApiUrl);
-} else if (typeof window !== 'undefined' && window.location && window.location.hostname && 
-           window.location.hostname !== 'localhost' && 
-           window.location.hostname !== '127.0.0.1' && 
-           window.location.hostname !== 'tauri.localhost') {
-    // Direct Web access from Phone/Laptop: automatically use the current origin
-    axios.defaults.baseURL = window.location.origin;
 } else {
     axios.defaults.baseURL = `http://localhost:${DEFAULT_PORT}`;
 }
@@ -264,6 +272,7 @@ const SummaryLite = lazy(() => import('./pages/LyangPOS_lite/summarylite'));
 const LedgerLite = lazy(() => import('./pages/LyangPOS_lite/ledgerlite'));
 const SettingsLite = lazy(() => import('./pages/LyangPOS_lite/settingslite'));
 const PrintOnly = lazy(() => import('./pages/LyangPOS/PrintOnly'));
+const BacSiSauQuy = lazy(() => import('./pages/LyangPOS/BacSiSauQuy'));
 
 
 const ProtectedRoute = ({ children }) => {
@@ -386,9 +395,11 @@ const AppLayout = () => {
         await axios.get('/api/ping', { timeout: 3000 });
       } catch (err) {
         console.warn('[Connection Auto-Recovery] Base URL ping failed:', axios.defaults.baseURL);
-        const savedIp = localStorage.getItem('server_ip');
+        if (isBrowserRemote) {
+          axios.defaults.baseURL = window.location.origin;
+        } else {
           try {
-            // Try localhost fallback if custom server IP failed
+            // Try localhost fallback if custom server IP failed on desktop
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 2000);
             const res = await fetch(`http://localhost:${DEFAULT_PORT}/api/ping`, { signal: controller.signal });
@@ -401,6 +412,7 @@ const AppLayout = () => {
           } catch (e) {
             // Both failed
           }
+        }
       }
     };
     checkServerConnection();
@@ -794,6 +806,10 @@ function App() {
                 <Route path="/welcome" element={<Welcome />} />
                 <Route path="/packing-display" element={<PackingDisplay />} />
                 <Route path="/print-only/:orderId" element={<PrintOnly />} />
+                <Route path="/bacsisauquy" element={<BacSiSauQuy />} />
+                <Route path="/bac-si-sau-quy" element={<Navigate to="/bacsisauquy" replace />} />
+                <Route path="/ai-consult" element={<Navigate to="/bacsisauquy" replace />} />
+                <Route path="/ai-chat" element={<Navigate to="/bacsisauquy" replace />} />
                 <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
               </Routes>
             </Suspense>

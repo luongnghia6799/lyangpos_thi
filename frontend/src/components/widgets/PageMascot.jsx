@@ -58,6 +58,13 @@ function wrapAngle(angle) {
 }
 
 const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
+  const [currentHash, setCurrentHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''));
+  useEffect(() => {
+    const handleHash = () => setCurrentHash(window.location.hash || '');
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
@@ -404,7 +411,8 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
     return false;
   };
 
-  if (!config.enabled) return null;
+  const isHiddenRoute = currentHash.includes('bacsisauquy') || currentHash.includes('packing-display') || currentHash.includes('print-only');
+  if (!config.enabled || isHiddenRoute) return null;
 
   const size = config.size || 110;
 

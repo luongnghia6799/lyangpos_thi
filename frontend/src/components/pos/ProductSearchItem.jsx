@@ -66,17 +66,17 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
           </div>
 
           {product.is_combo && (
-            <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">
+            <span className="shrink-0 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 via-amber-500/20 to-orange-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-black tracking-widest border border-amber-500/30 dark:border-amber-400/40 shadow-xs shadow-amber-500/10">
               COMBO
             </span>
           )}
 
           {showLastPurchaseBadge && lastPurchase && (
             <span 
-              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-600 dark:bg-indigo-600 text-white text-[11px] font-black border border-indigo-700 dark:border-indigo-500 shadow-xs animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none" 
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/15 via-indigo-500/20 to-violet-500/15 dark:from-indigo-500/25 dark:to-violet-500/30 text-indigo-700 dark:text-indigo-300 text-[10.5px] font-black border border-indigo-500/30 dark:border-indigo-400/40 shadow-xs shadow-indigo-500/10 animate-in fade-in zoom-in-90 duration-200 transition-all hover:scale-105 select-none backdrop-blur-md" 
               title={`Đã mua: ${formatRelativePurchaseDate(lastPurchase.last_date)} (Giá: ${formatNumber(lastPurchase.last_price)}đ)`}
             >
-              <Clock size={11} className="text-white shrink-0" />
+              <Clock size={11} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
               Đã mua: {formatRelativePurchaseDate(lastPurchase.last_date)}
             </span>
           )}
@@ -97,37 +97,37 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
               });
             }}
             className={cn(
-              "px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case",
+              "px-2.5 py-0.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95 group/stock cursor-pointer select-none shadow-xs shrink-0 normal-case border backdrop-blur-md",
               product.stock <= 0
-                ? "bg-rose-600 text-white"
+                ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10 hover:border-rose-500/60"
                 : product.stock < 10
-                  ? "bg-amber-500 text-slate-950"
-                  : "bg-[#2d5016] dark:bg-emerald-600 text-white"
+                  ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10 hover:border-amber-500/60"
+                  : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10 hover:border-emerald-500/60"
             )}
             title="Kiểm tồn nhanh"
           >
             <div className="flex items-center gap-1 tabular-nums">
               {product.stock <= 0 ? (
-                <PackageX size={12} strokeWidth={2.8} className="text-white shrink-0" />
+                <PackageX size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
               ) : product.stock < 10 ? (
-                <CircleAlert size={12} strokeWidth={2.8} className="text-slate-950 shrink-0" />
+                <CircleAlert size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
               ) : (
-                <PackageCheck size={12} strokeWidth={2.8} className="text-white shrink-0" />
+                <PackageCheck size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               )}
-              <span className={cn("tabular-nums font-black", product.stock < 10 && product.stock > 0 ? "text-slate-950" : "text-white")}>
+              <span className="tabular-nums font-black">
                 {product.stock}
               </span>
             </div>
 
             {accountingEnabled && (
               <>
-                <span className={cn("w-px h-3 shrink-0", product.stock < 10 && product.stock > 0 ? "bg-slate-950/30" : "bg-white/40")} />
+                <span className="w-px h-3 bg-current opacity-25 shrink-0" />
                 <div 
-                  className={cn("inline-flex items-center gap-1 shrink-0 whitespace-nowrap", product.stock < 10 && product.stock > 0 ? "text-slate-950" : "text-white/90")} 
+                  className="inline-flex items-center gap-1 shrink-0 whitespace-nowrap opacity-90" 
                   title="Tồn sổ sách kế toán"
                 >
-                  <ReceiptText size={11} strokeWidth={2.4} className={cn("shrink-0", product.stock < 10 && product.stock > 0 ? "text-slate-950" : "text-white")} />
-                  <span className={cn("tabular-nums font-black", product.stock < 10 && product.stock > 0 ? "text-slate-950" : "text-white")}>
+                  <ReceiptText size={11} strokeWidth={2.4} className="shrink-0" />
+                  <span className="tabular-nums font-black">
                     {product.accounting_stock || 0}
                   </span>
                 </div>
@@ -188,6 +188,23 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
         </div>
       </div>
     </div>
+  );
+}, (prev, next) => {
+  return (
+    prev.product?.id === next.product?.id &&
+    prev.product?.stock === next.product?.stock &&
+    prev.product?.sale_price === next.product?.sale_price &&
+    prev.product?.bulk_price === next.product?.bulk_price &&
+    prev.product?.cost_price === next.product?.cost_price &&
+    prev.product?.latest_cost_price === next.product?.latest_cost_price &&
+    prev.product?.name === next.product?.name &&
+    prev.isActive === next.isActive &&
+    prev.index === next.index &&
+    prev.displayPrice === next.displayPrice &&
+    prev.showLastPurchaseBadge === next.showLastPurchaseBadge &&
+    prev.lastPurchase === next.lastPurchase &&
+    prev.accountingEnabled === next.accountingEnabled &&
+    prev.product?.accounting_stock === next.product?.accounting_stock
   );
 });
 

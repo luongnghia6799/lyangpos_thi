@@ -221,47 +221,95 @@ const Ls = (v, N) => {
     const pitch = localStorage.getItem("pos_speech_pitch") || "0";
     return C.includes("localhost") && typeof window < "u" && window.location && window.location.hostname && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1" && !window.location.hostname.includes("tauri") && (C = C.replace("localhost", window.location.hostname)), `${C.replace(/\/+$/, "")}/api/tts?text=${encodeURIComponent(v)}&voice=${N}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
   },
-  qn = async (v, N) => {
+  qn = async (v, N, repeatCount = null, forceStart = false) => {
     if (!v || v.length === 0) return;
-    window.currentPackingQueue && window.currentPackingQueue.stop();
-    
+
+    if (!forceStart && window.currentPackingQueue) {
+      window.currentPackingQueue.stop();
+      return;
+    }
+
+    if (window.currentPackingQueue) {
+      window.currentPackingQueue.stop();
+    }
+
+    let totalLoops = 1;
+    if (repeatCount !== null && repeatCount !== undefined) {
+      totalLoops = (repeatCount === "Infinity" || repeatCount === "loop" || repeatCount === Infinity)
+        ? Infinity
+        : Math.max(1, parseInt(repeatCount, 10) || 1);
+    } else {
+      const stored = localStorage.getItem("pos_packing_repeat_count");
+      totalLoops = (stored === "Infinity" || stored === "loop")
+        ? Infinity
+        : Math.max(1, parseInt(stored, 10) || 1);
+    }
+
     let isStopped = false;
     window.currentPackingQueue = {
       stop: () => {
         isStopped = true;
         stopAllTTS();
         window.currentPackingQueue = null;
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("pos_packing_tts_status", {
+            detail: { isPlaying: false, currentLoop: 0, totalLoops }
+          }));
+        }
       }
     };
 
     const S = localStorage.getItem("pos_tts_cart_speech_order") || "name_first";
     const itemGap = parseFloat(localStorage.getItem("pos_speech_gap") || "150");
 
-    await speakAudioSequence(["Soạn hàng"]);
-    if (isStopped) return;
-    await new Promise(res => setTimeout(res, Math.max(100, itemGap)));
-
-    for (let i = 0; i < v.length; i++) {
-      if (isStopped) break;
-      const B = v[i];
-      const ue = B.quantity || 0;
-      const Ie = N.find(Le => Le.id === B.product_id) || B;
-      const dt = (Ie && Ie.alias && Ie.alias.trim()) || (B.alias && B.alias.trim()) || B.product_name;
-
-      const tokens = [];
-      if (S === "qty_first") {
-        if (ue) tokens.push(ue);
-        if (dt) tokens.push(dt);
-      } else {
-        if (dt) tokens.push(dt);
-        if (ue) tokens.push(ue);
+    let loop = 0;
+    while (!isStopped && loop < totalLoops) {
+      loop++;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pos_packing_tts_status", {
+          detail: { isPlaying: true, currentLoop: loop, totalLoops }
+        }));
       }
 
-      await speakAudioSequence(tokens);
+      if (loop > 1) {
+        await new Promise(res => setTimeout(res, 1200));
+        if (isStopped) break;
+      }
+
+      await speakAudioSequence(["Soạn hàng"]);
       if (isStopped) break;
-      await new Promise(res => setTimeout(res, Math.max(150, itemGap * 1.5)));
+      await new Promise(res => setTimeout(res, Math.max(100, itemGap)));
+
+      for (let i = 0; i < v.length; i++) {
+        if (isStopped) break;
+        const B = v[i];
+        const ue = B.quantity || 0;
+        const Ie = N.find(Le => Le.id === B.product_id) || B;
+        const dt = (Ie && Ie.alias && Ie.alias.trim()) || (B.alias && B.alias.trim()) || B.product_name;
+
+        const tokens = [];
+        if (S === "qty_first") {
+          if (ue) tokens.push(ue);
+          if (dt) tokens.push(dt);
+        } else {
+          if (dt) tokens.push(dt);
+          if (ue) tokens.push(ue);
+        }
+
+        await speakAudioSequence(tokens);
+        if (isStopped) break;
+        await new Promise(res => setTimeout(res, Math.max(150, itemGap * 1.5)));
+      }
     }
 
+    if (!isStopped) {
+      window.currentPackingQueue = null;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("pos_packing_tts_status", {
+          detail: { isPlaying: false, currentLoop: 0, totalLoops }
+        }));
+      }
+    }
   };
 
 // Isolated component for TTS Precache progress & actions to prevent re-rendering the whole 6300-line POS page
@@ -1718,7 +1766,122 @@ function POSPage({
       return t === null ? true : t === "true";
     }),
     [showCartColorCustomizer, setShowCartColorCustomizer] = i.useState(false),
-    [itemContextMenu, setItemContextMenu] = i.useState(null);
+    [itemContextMenu, setItemContextMenu] = i.useState(null),
+    [packingRepeatCount, setPackingRepeatCount] = i.useState(() => {
+      const saved = localStorage.getItem("pos_packing_repeat_count");
+      if (saved === "Infinity" || saved === "loop") return Infinity;
+      return saved ? (parseInt(saved, 10) || 1) : 1;
+    }),
+    [isPackingSpeaking, setIsPackingSpeaking] = i.useState(false),
+    [packingSpeakingLoop, setPackingSpeakingLoop] = i.useState({ current: 0, total: 1 }),
+    [isPackingRepeatMenuOpen, setIsPackingRepeatMenuOpen] = i.useState(false),
+    [packingRepeatMenuPos, setPackingRepeatMenuPos] = i.useState({ x: 0, y: 0 });
+
+  const packingLongPressTimerRef = i.useRef(null);
+  const isPackingLongPressRef = i.useRef(false);
+
+  const startPackingLongPress = i.useCallback((e) => {
+    if (e.button && e.button !== 0) return;
+    isPackingLongPressRef.current = false;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = {
+      x: clientX || rect.left + rect.width / 2,
+      y: (clientY || rect.bottom) + 8
+    };
+
+    if (packingLongPressTimerRef.current) {
+      clearTimeout(packingLongPressTimerRef.current);
+    }
+    packingLongPressTimerRef.current = setTimeout(() => {
+      isPackingLongPressRef.current = true;
+      setPackingRepeatMenuPos(pos);
+      setIsPackingRepeatMenuOpen(true);
+      if (typeof window !== "undefined" && window.navigator && window.navigator.vibrate) {
+        try { window.navigator.vibrate(50); } catch (_) {}
+      }
+    }, 400);
+  }, []);
+
+  const cancelPackingLongPress = i.useCallback(() => {
+    if (packingLongPressTimerRef.current) {
+      clearTimeout(packingLongPressTimerRef.current);
+      packingLongPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePackingSpeakerClick = i.useCallback((e) => {
+    if (isPackingLongPressRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      isPackingLongPressRef.current = false;
+      return;
+    }
+    e.stopPropagation();
+    if (isPackingSpeaking || (window.currentPackingQueue && !window.currentPackingQueue.isStopped)) {
+      if (window.currentPackingQueue) {
+        window.currentPackingQueue.stop();
+      }
+      setIsPackingSpeaking(false);
+      Ve.success("Đã dừng đọc danh sách soạn hàng");
+      return;
+    }
+    if (ve && ve.length > 0) {
+      qn(ve, T, packingRepeatCount, true);
+    } else {
+      Ve.error("Giỏ hàng đang trống!");
+    }
+  }, [isPackingSpeaking, ve, T, packingRepeatCount]);
+
+  const handlePackingContextMenu = i.useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cancelPackingLongPress();
+    setPackingRepeatMenuPos({ x: e.clientX, y: e.clientY });
+    setIsPackingRepeatMenuOpen(true);
+  }, [cancelPackingLongPress]);
+
+  const selectPackingRepeat = i.useCallback((val) => {
+    setIsPackingRepeatMenuOpen(false);
+    if (val === "stop") {
+      if (window.currentPackingQueue) {
+        window.currentPackingQueue.stop();
+      }
+      setIsPackingSpeaking(false);
+      Ve.success("Đã dừng đọc danh sách soạn hàng");
+      return;
+    }
+
+    setPackingRepeatCount(val);
+    localStorage.setItem("pos_packing_repeat_count", String(val));
+    const label = val === Infinity || val === "Infinity" ? "liên tục" : `${val} lần`;
+
+    if (ve && ve.length > 0) {
+      Ve.success(`Bắt đầu đọc soạn hàng (${label})`);
+      qn(ve, T, val, true);
+    } else {
+      Ve.success(`Đã lưu cài đặt phát lại: ${label}`);
+    }
+  }, [ve, T]);
+
+  i.useEffect(() => {
+    const handleTtsStatus = (e) => {
+      if (e.detail) {
+        setIsPackingSpeaking(Boolean(e.detail.isPlaying));
+        if (e.detail.currentLoop !== undefined) {
+          setPackingSpeakingLoop({ 
+            current: e.detail.currentLoop, 
+            total: e.detail.totalLoops === undefined ? 1 : e.detail.totalLoops 
+          });
+        }
+      }
+    };
+    window.addEventListener('pos_packing_tts_status', handleTtsStatus);
+    return () => {
+      window.removeEventListener('pos_packing_tts_status', handleTtsStatus);
+    };
+  }, []);
   i.useEffect(() => {
     localStorage.setItem("pos_new_style", JSON.stringify(Je));
     document.documentElement.style.setProperty("--pos-accent", Je.accent);
@@ -4046,19 +4209,43 @@ function POSPage({
                             style={{
                               backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
                             }}
-                          ><tr className="border-none"><th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined, ...(cartColorConfig.headerText === 'default' ? {} : {}) }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th><th onClick={t => {
-                                t.stopPropagation();
-                                if (ve && ve.length > 0) {
-                                  const anyPacked = ve.some(item => item.isPacked);
-                                  if (anyPacked) {
-                                    H(r => r.map(item => ({ ...item, isPacked: false })));
-                                    G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
-                                  } else {
-                                    H(r => r.map(item => ({ ...item, isPacked: true })));
-                                    G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
-                                  }
-                                }
-                              }} className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }} title="Bấm để uncheck toàn bộ / soạn lại"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span></th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
+                          ><tr className="border-none"><th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined, ...(cartColorConfig.headerText === 'default' ? {} : {}) }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th><th 
+  onMouseDown={startPackingLongPress}
+  onMouseUp={cancelPackingLongPress}
+  onMouseLeave={cancelPackingLongPress}
+  onTouchStart={startPackingLongPress}
+  onTouchEnd={cancelPackingLongPress}
+  onContextMenu={handlePackingContextMenu}
+  onClick={t => {
+    if (isPackingLongPressRef.current) {
+      t.preventDefault();
+      t.stopPropagation();
+      isPackingLongPressRef.current = false;
+      return;
+    }
+    t.stopPropagation();
+    if (ve && ve.length > 0) {
+      const anyPacked = ve.some(item => item.isPacked);
+      if (anyPacked) {
+        H(r => r.map(item => ({ ...item, isPacked: false })));
+        G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
+      } else {
+        H(r => r.map(item => ({ ...item, isPacked: true })));
+        G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
+      }
+    }
+  }} 
+  className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap cursor-pointer hover:text-primary transition-colors select-none relative" 
+  style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }} 
+  title="Bấm để uncheck toàn bộ / soạn lại (Đè để chọn số lần đọc lặp)"
+>
+  <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span>
+  {packingRepeatCount !== 1 && (
+    <span className="ml-1 px-1 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8.5px] font-black inline-block align-middle scale-90">
+      {packingRepeatCount === Infinity || packingRepeatCount === 'Infinity' ? '∞' : `${packingRepeatCount}x`}
+    </span>
+  )}
+</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={t => {
@@ -4121,21 +4308,56 @@ function POSPage({
       position: { x: e.clientX, y: e.clientY }
     });
   }
-}}><td onClick={t => {
-                              t.stopPropagation(), ve && ve.length > 0 ? qn(ve, T) : Ve.error("Giỏ hàng đang trống!");
-                            }} title="Bấm để đọc toàn bộ danh sách soạn hàng" className="py-2.5 px-1 text-center cursor-pointer select-none group/speaker-td"><div className="w-8 h-8 mx-auto rounded-xl flex items-center justify-center bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black hover:border-transparent hover:scale-110 active:scale-95 transition-all duration-200"><Nd size={15} strokeWidth={2.5} className="group-hover/speaker-td:animate-pulse" /></div></td><td onClick={t => {
-                                t.stopPropagation();
-                                if (ve && ve.length > 0) {
-                                  const anyPacked = ve.some(item => item.isPacked);
-                                  if (anyPacked) {
-                                    H(r => r.map(item => ({ ...item, isPacked: false })));
-                                    G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
-                                  } else {
-                                    H(r => r.map(item => ({ ...item, isPacked: true })));
-                                    G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
-                                  }
-                                }
-                              }} title="Bấm để uncheck toàn bộ danh sách để soạn lại" className="py-2.5 px-1 text-center cursor-pointer select-none"><div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95"><Ot size={16} strokeWidth={2.5} /></div></td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input id="pos-quick-product-search" type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-10 pr-16 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
+}}><td 
+  onMouseDown={startPackingLongPress}
+  onMouseUp={cancelPackingLongPress}
+  onMouseLeave={cancelPackingLongPress}
+  onTouchStart={startPackingLongPress}
+  onTouchEnd={cancelPackingLongPress}
+  onClick={handlePackingSpeakerClick}
+  onContextMenu={handlePackingContextMenu}
+  title={isPackingSpeaking ? "Đang đọc danh sách soạn hàng (Bấm để dừng, đè để đổi số lần lặp)" : "Bấm để đọc toàn bộ danh sách soạn hàng (Đè để chọn số lần lặp)"} 
+  className="py-2.5 px-1 text-center cursor-pointer select-none group/speaker-td relative"
+>
+  <div className={c(
+    "w-8 h-8 mx-auto rounded-xl flex items-center justify-center border transition-all duration-200 relative select-none",
+    isPackingSpeaking
+      ? "bg-emerald-500 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse"
+      : "bg-transparent text-primary dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/15 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black hover:border-transparent hover:scale-110 active:scale-95"
+  )}>
+    <Nd size={15} strokeWidth={2.5} className={isPackingSpeaking ? "animate-pulse" : "group-hover/speaker-td:animate-pulse"} />
+    {packingRepeatCount !== 1 && (
+      <span className={c(
+        "absolute -top-1.5 -right-1.5 px-1 min-w-[15px] h-[15px] rounded-full text-[9px] font-black flex items-center justify-center leading-none shadow-xs ring-1 ring-white/50 dark:ring-black/50 pointer-events-none",
+        isPackingSpeaking ? "bg-amber-500 text-white" : "bg-[#8b6f47] dark:bg-[#d4a574] text-white dark:text-black"
+      )}>
+        {packingRepeatCount === Infinity || packingRepeatCount === 'Infinity' ? '∞' : `${packingRepeatCount}x`}
+      </span>
+    )}
+  </div>
+</td>
+<td 
+  onContextMenu={handlePackingContextMenu}
+  onClick={t => {
+    t.stopPropagation();
+    if (ve && ve.length > 0) {
+      const anyPacked = ve.some(item => item.isPacked);
+      if (anyPacked) {
+        H(r => r.map(item => ({ ...item, isPacked: false })));
+        G({ message: "Đã uncheck toàn bộ danh sách để soạn lại!", type: "info" });
+      } else {
+        H(r => r.map(item => ({ ...item, isPacked: true })));
+        G({ message: "Đã đánh dấu đã soạn toàn bộ!", type: "success" });
+      }
+    }
+  }} 
+  title="Bấm để uncheck toàn bộ danh sách để soạn lại (Chuột phải để chọn số lần đọc lặp)" 
+  className="py-2.5 px-1 text-center cursor-pointer select-none"
+>
+  <div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95">
+    <Ot size={16} strokeWidth={2.5} />
+  </div>
+</td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input id="pos-quick-product-search" type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-10 pr-16 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
@@ -5828,10 +6050,7 @@ function POSPage({
                 const prod = T.find(s => s.id === (item.id || item.product_id)) || item;
                 const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
                 const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || prod.product_name}${ingInfo}`;
-                window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
-                setTimeout(() => {
-                  window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
-                }, 150);
+                window.dispatchEvent(new CustomEvent('open-ai-consult', { detail: { query } }));
               }}
               onViewHistory={item => {
                 if (itemContextMenu?.type === 'partner') {
@@ -5850,6 +6069,121 @@ function POSPage({
               }}
               onDelete={itemContextMenu?.onDelete}
             />
+            {/* Popover chọn số lần lặp đọc soạn hàng */}
+            <Ee>
+              <Ws>
+                {isPackingRepeatMenuOpen && (
+                  <div 
+                    className="fixed inset-0 z-[99999] bg-black/25 backdrop-blur-[1px] select-none"
+                    onClick={() => setIsPackingRepeatMenuOpen(false)}
+                    onContextMenu={e => { e.preventDefault(); setIsPackingRepeatMenuOpen(false); }}
+                  >
+                    <x.div
+                      initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.94, y: -4 }}
+                      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        position: "fixed",
+                        left: typeof window !== "undefined" ? Math.max(12, Math.min(window.innerWidth - 300, packingRepeatMenuPos.x - 20)) : 100,
+                        top: typeof window !== "undefined" ? Math.max(12, Math.min(window.innerHeight - 380, packingRepeatMenuPos.y)) : 100,
+                      }}
+                      className="w-[280px] bg-white/95 dark:bg-[#1a1c23]/95 backdrop-blur-xl border border-amber-500/25 dark:border-white/15 rounded-2xl shadow-2xl p-2.5 overflow-hidden ring-1 ring-black/5"
+                    >
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-2 py-1.5 mb-1.5 border-b border-slate-100 dark:border-white/10">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                            <jo size={15} strokeWidth={2.5} />
+                          </div>
+                          <div>
+                            <div className="text-[12px] font-black tracking-tight text-slate-800 dark:text-slate-100">
+                              Lặp Đọc Soạn Hàng
+                            </div>
+                            <div className="text-[10px] font-medium text-slate-400 dark:text-slate-400">
+                              {isPackingSpeaking 
+                                ? `Đang đọc lượt ${packingSpeakingLoop.current}/${packingSpeakingLoop.total === Infinity ? '∞' : packingSpeakingLoop.total}` 
+                                : "Chọn số lần phát lại danh sách"}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setIsPackingRepeatMenuOpen(false)}
+                          className="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors"
+                        >
+                          <Xn size={14} />
+                        </button>
+                      </div>
+
+                      {/* Options */}
+                      <div className="space-y-1">
+                        {[
+                          { value: 1, label: "Đọc 1 lần", desc: "Mặc định, đọc hết danh sách rồi dừng", badge: "1x" },
+                          { value: 2, label: "Lặp lại 2 lần", desc: "Đọc lại danh sách 2 lượt liên tiếp", badge: "2x" },
+                          { value: 3, label: "Lặp lại 3 lần", desc: "Đọc lại danh sách 3 lượt liên tiếp", badge: "3x" },
+                          { value: 5, label: "Lặp lại 5 lần", desc: "Đọc lại danh sách 5 lượt liên tiếp", badge: "5x" },
+                          { value: Infinity, label: "Lặp liên tục", desc: "Phát vòng lặp vô hạn cho tới khi bấm dừng", badge: "∞" },
+                        ].map((opt) => {
+                          const isSelected = packingRepeatCount === opt.value || (opt.value === Infinity && (packingRepeatCount === Infinity || packingRepeatCount === 'Infinity'));
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => selectPackingRepeat(opt.value)}
+                              className={c(
+                                "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all duration-150 group",
+                                isSelected
+                                  ? "bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30"
+                                  : "hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-transparent"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={c(
+                                  "w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 border",
+                                  isSelected
+                                    ? "bg-amber-500 text-white border-amber-600 shadow-xs"
+                                    : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 group-hover:border-amber-500/40"
+                                )}>
+                                  {opt.badge}
+                                </span>
+                                <div className="truncate">
+                                  <div className="text-[12px] leading-tight font-black">{opt.label}</div>
+                                  <div className="text-[10px] text-slate-400 dark:text-slate-400 font-normal truncate">{opt.desc}</div>
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <Os size={14} strokeWidth={3} className="text-amber-600 dark:text-amber-400 shrink-0 ml-1.5" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* If currently speaking or stop button */}
+                      {isPackingSpeaking && (
+                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => selectPackingRepeat("stop")}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white dark:text-red-400 dark:hover:text-white font-bold text-xs transition-all duration-150 border border-red-500/20"
+                          >
+                            <Uo size={14} strokeWidth={2.5} />
+                            <span>Dừng đọc danh sách ngay</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Footnote */}
+                      <div className="mt-2 px-1 text-[9.5px] text-slate-400 dark:text-slate-400 text-center font-medium">
+                        💡 Đè nút soạn ({'>'} 400ms) để chọn nhanh số lần đọc
+                      </div>
+                    </x.div>
+                  </div>
+                )}
+              </Ws>
+            </Ee>
             </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }
 export default POSPage;

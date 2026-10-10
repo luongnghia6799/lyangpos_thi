@@ -227,7 +227,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         transition={{ type: "spring", stiffness: 420, damping: 26 }}
                         className={cn(
                             "absolute z-30 pointer-events-none select-none flex items-end",
-                            isCollapsed ? "-top-[26px] -right-1 w-9 h-9" : "-top-[28px] right-3.5 w-10 h-10"
+                            isCollapsed ? "-top-[28px] -right-1.5 w-9 h-9" : "-top-[30px] right-3.5 w-10 h-10"
                         )}
                     >
                         <m.img 
@@ -463,7 +463,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.7 }}
                             transition={{ type: "spring", stiffness: 420, damping: 26 }}
-                            className="absolute z-30 pointer-events-none select-none -top-[26px] -right-1 w-9 h-9"
+                            className="absolute z-30 pointer-events-none select-none -top-[28px] -right-1.5 w-9 h-9"
                         >
                             <m.img 
                                 src="/assets/images/mascot_active_pill.png" 

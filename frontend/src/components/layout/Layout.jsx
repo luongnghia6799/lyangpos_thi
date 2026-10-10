@@ -165,7 +165,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     const content = (
-        <div className={cn("relative py-0.5", isCollapsed ? "px-0 flex justify-center" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1"))}>
+        <div className={cn("relative", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
             <Link
                 to={path}
                 onClick={onClick}
@@ -396,7 +396,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     return (
         <div
             ref={groupRef}
-            className="flex flex-col gap-1 py-0.5 relative group/group"
+            className="flex flex-col gap-1 py-1.5 relative group/group"
         >
             <button
                 type="button"
@@ -407,7 +407,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                 } : undefined}
                 className={cn(
                     "group relative flex items-center transition-colors duration-200 cursor-pointer",
-                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-0.5 rounded-2xl",
+                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" : "gap-4 px-4 py-3 mx-3 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
                         : ((isAnyChildActive || isFlyoutOpen)
@@ -1940,7 +1940,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className="flex-1 overflow-y-auto no-scrollbar pt-8 pb-4">
+            <div className="flex-1 overflow-y-auto no-scrollbar pt-8 pb-4 space-y-1">
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup

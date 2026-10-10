@@ -192,7 +192,7 @@ function ResizableDropdownContainer({
         {/* Scrollable list container - lightweight, instant height, zero layout lag */}
         <div
           ref={scrollRef}
-          className="overflow-y-auto overscroll-contain no-scrollbar flex-1 p-1.5"
+          className="overflow-y-auto overscroll-contain no-scrollbar flex-1 p-0"
           style={{
             maxHeight: customSize.maxHeight,
           }}

@@ -461,11 +461,8 @@ html.has-wallpaper.dark .dropdown-premium {
 
 
 .dropdown-item {
-  @apply p-3 cursor-pointer transition-all duration-150 border-0 relative;
+  @apply p-3 cursor-pointer transition-colors duration-150 border-0 relative;
   border-bottom: none !important;
-  border-radius: 0.875rem !important;
-  margin: 2px 4px;
-  overflow: hidden;
 }
 
 .dropdown-item p,
@@ -483,20 +480,18 @@ html.has-wallpaper.dark .dropdown-premium {
 .dropdown-item.active {
   background: linear-gradient(135deg, var(--primary-color, #2d5016) 0%, var(--primary-hover, #3d6b1e) 100%) !important;
   color: white !important;
-  border-radius: 0.875rem !important;
 }
 
 .dropdown-item:hover::before,
 .dropdown-item.active::before {
   content: '';
   position: absolute;
-  left: 6px;
-  top: 10px;
-  bottom: 10px;
-  width: 3.5px;
-  border-radius: 9999px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
   background: var(--color-ring, #d4a574);
-  box-shadow: 0 0 10px rgba(var(--primary-rgb, 45, 80, 22), 0.6);
+  box-shadow: 2px 0 10px rgba(var(--primary-rgb, 45, 80, 22), 0.6);
   z-index: 30;
 }
 

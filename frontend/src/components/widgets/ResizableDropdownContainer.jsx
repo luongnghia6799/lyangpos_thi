@@ -201,7 +201,7 @@ function ResizableDropdownContainer({
         </div>
 
         {/* Sleek Minimal Bottom Handle Bar */}
-        <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-transparent flex items-center justify-between px-2.5 select-none transition-colors">
+        <div className="relative shrink-0 h-4 bg-transparent flex items-center justify-between px-2.5 select-none transition-colors">
           {/* Left: subtle reset button when customized */}
           <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
             {isCustomized && (

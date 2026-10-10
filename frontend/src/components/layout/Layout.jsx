@@ -348,7 +348,7 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
                     height: `${currentCfg.size}px`
                 }}
                 className={cn(
-                    "absolute z-30 select-none flex items-end pointer-events-auto",
+                    "absolute z-[99999] select-none flex items-end pointer-events-auto",
                     isEditing
                         ? "cursor-grab active:cursor-grabbing ring-2 ring-emerald-400 ring-offset-2 ring-offset-black/20 rounded-2xl shadow-xl shadow-emerald-500/20"
                         : "cursor-pointer"
@@ -425,7 +425,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     const content = (
-        <div className={cn("relative", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
+        <div className={cn("relative", active ? "z-40" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
             <Link
                 to={path}
                 onClick={onClick}
@@ -638,7 +638,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     return (
         <div
             ref={groupRef}
-            className="flex flex-col gap-1 py-1.5 relative group/group"
+            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-40" : "z-10")}
         >
             <button
                 type="button"
@@ -2167,7 +2167,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className="flex-1 overflow-y-auto no-scrollbar pt-8 pb-4 space-y-1">
+            <div className={cn("flex-1 no-scrollbar pt-8 pb-4 space-y-1", isSidebarCollapsed ? "overflow-visible" : "overflow-y-auto")}>
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup

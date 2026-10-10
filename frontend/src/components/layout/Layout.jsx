@@ -52,7 +52,11 @@ import {
     Wrench,
     Bell,
     Palette,
-    MoreHorizontal
+    MoreHorizontal,
+    RotateCcw,
+    Move,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 
@@ -153,8 +157,8 @@ const useCartColorConfig = () => {
 };
 
 const DEFAULT_MASCOT_CONFIG = {
-    collapsed: { size: 36, top: -26, right: -6 },
-    expanded: { size: 40, top: -28, right: 14 }
+    collapsed: { size: 36, top: -26, right: -6, visible: true },
+    expanded: { size: 40, top: -28, right: 14, visible: true }
 };
 
 const ActivePillMascot = memo(({ isCollapsed }) => {
@@ -181,12 +185,21 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
         const handleSync = (e) => {
             if (e.detail) setConfig(e.detail);
         };
+        const handleToggleEdit = () => {
+            setIsEditing(prev => !prev);
+        };
         window.addEventListener('mascot_config_updated', handleSync);
-        return () => window.removeEventListener('mascot_config_updated', handleSync);
+        window.addEventListener('toggle_mascot_edit_mode', handleToggleEdit);
+        return () => {
+            window.removeEventListener('mascot_config_updated', handleSync);
+            window.removeEventListener('toggle_mascot_edit_mode', handleToggleEdit);
+        };
     }, []);
 
     const mode = isCollapsed ? 'collapsed' : 'expanded';
     const currentCfg = config[mode] || DEFAULT_MASCOT_CONFIG[mode];
+
+    if (currentCfg.visible === false) return null;
 
     useEffect(() => {
         if (!isEditing) {
@@ -1240,6 +1253,77 @@ export default function Layout({ children }) {
         };
     }, []);
 
+    const [mascotConfig, setMascotConfig] = useState(() => {
+        try {
+            const saved = localStorage.getItem('pos_mascot_pill_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return {
+                    collapsed: { ...DEFAULT_MASCOT_CONFIG.collapsed, ...parsed.collapsed },
+                    expanded: { ...DEFAULT_MASCOT_CONFIG.expanded, ...parsed.expanded }
+                };
+            }
+        } catch (e) {}
+        return DEFAULT_MASCOT_CONFIG;
+    });
+    const [mascotTargetMode, setMascotTargetMode] = useState(() => (localStorage.getItem('sidebar_collapsed') === 'true' ? 'collapsed' : 'expanded'));
+
+    useEffect(() => {
+        const handleMascotSync = (e) => {
+            if (e.detail) setMascotConfig(e.detail);
+        };
+        window.addEventListener('mascot_config_updated', handleMascotSync);
+        return () => window.removeEventListener('mascot_config_updated', handleMascotSync);
+    }, []);
+
+    useEffect(() => {
+        setMascotTargetMode(isSidebarCollapsed ? 'collapsed' : 'expanded');
+    }, [isSidebarCollapsed]);
+
+    const updateMascotSetting = (mode, field, val) => {
+        setMascotConfig(prev => {
+            const curMode = prev[mode] || DEFAULT_MASCOT_CONFIG[mode];
+            const updated = {
+                ...prev,
+                [mode]: {
+                    ...curMode,
+                    [field]: Number(val)
+                }
+            };
+            localStorage.setItem('pos_mascot_pill_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('mascot_config_updated', { detail: updated }));
+            return updated;
+        });
+    };
+
+    const toggleMascotVisibility = (mode) => {
+        setMascotConfig(prev => {
+            const curMode = prev[mode] || DEFAULT_MASCOT_CONFIG[mode];
+            const updated = {
+                ...prev,
+                [mode]: {
+                    ...curMode,
+                    visible: curMode.visible === false ? true : false
+                }
+            };
+            localStorage.setItem('pos_mascot_pill_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('mascot_config_updated', { detail: updated }));
+            return updated;
+        });
+    };
+
+    const resetMascotSetting = (mode) => {
+        setMascotConfig(prev => {
+            const updated = {
+                ...prev,
+                [mode]: { ...DEFAULT_MASCOT_CONFIG[mode] }
+            };
+            localStorage.setItem('pos_mascot_pill_config', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('mascot_config_updated', { detail: updated }));
+            return updated;
+        });
+    };
+
     const userMenuRef = useRef(null);
     const navigate = useNavigate();
 
@@ -2076,7 +2160,7 @@ export default function Layout({ children }) {
                                 color: liteTheme.text
                             } : {}}
                             className={cn(
-                                "absolute top-2 left-[calc(100%+12px)] w-64 backdrop-blur-2xl rounded-2xl shadow-xl shadow-black/10 p-2 z-[1100]",
+                                "absolute top-2 left-[calc(100%+12px)] w-72 max-h-[85vh] overflow-y-auto custom-scrollbar backdrop-blur-2xl rounded-2xl shadow-xl shadow-black/10 p-2.5 z-[1100]",
                                 isLiteMode ? "border" : "bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10"
                             )}
                         >
@@ -2088,6 +2172,151 @@ export default function Layout({ children }) {
                                     </Link>
                                 </>
                             )}
+
+                            {/* Mascot Lyang Configuration Card */}
+                            <div className="my-1.5 p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-400/5 border border-amber-500/20 dark:border-amber-400/15">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <img 
+                                            src="/assets/images/mascot_active_pill.png" 
+                                            alt="Bé Lyang" 
+                                            className="w-5 h-5 object-contain select-none"
+                                            draggable="false"
+                                        />
+                                        <span className="font-black text-xs text-amber-900 dark:text-amber-200 tracking-tight">
+                                            Mascot Bé Lyang
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleMascotVisibility(mascotTargetMode)}
+                                            title={(mascotConfig[mascotTargetMode]?.visible !== false) ? "Ẩn Mascot" : "Hiện Mascot"}
+                                            className={cn(
+                                                "p-1 rounded-md transition-colors cursor-pointer",
+                                                (mascotConfig[mascotTargetMode]?.visible !== false)
+                                                    ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                                                    : "text-gray-400 hover:bg-gray-500/10"
+                                            )}
+                                        >
+                                            {(mascotConfig[mascotTargetMode]?.visible !== false) ? <Eye size={13} /> : <EyeOff size={13} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => resetMascotSetting(mascotTargetMode)}
+                                            title="Khôi phục mặc định"
+                                            className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                        >
+                                            <RotateCcw size={13} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mode Switcher: Thu gọn vs Mở rộng */}
+                                <div className="flex rounded-lg bg-black/5 dark:bg-white/5 p-0.5 text-[10px] font-black mb-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMascotTargetMode('collapsed')}
+                                        className={cn(
+                                            "flex-1 py-1 rounded-md transition-all text-center flex items-center justify-center gap-1 cursor-pointer",
+                                            mascotTargetMode === 'collapsed'
+                                                ? "bg-white dark:bg-zinc-800 text-amber-700 dark:text-amber-300 shadow-xs"
+                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+                                        )}
+                                    >
+                                        <span>Thu gọn</span>
+                                        {isSidebarCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMascotTargetMode('expanded')}
+                                        className={cn(
+                                            "flex-1 py-1 rounded-md transition-all text-center flex items-center justify-center gap-1 cursor-pointer",
+                                            mascotTargetMode === 'expanded'
+                                                ? "bg-white dark:bg-zinc-800 text-amber-700 dark:text-amber-300 shadow-xs"
+                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+                                        )}
+                                    >
+                                        <span>Mở rộng</span>
+                                        {!isSidebarCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                    </button>
+                                </div>
+
+                                {mascotConfig[mascotTargetMode]?.visible === false ? (
+                                    <div className="py-2 text-center text-[11px] font-semibold text-gray-400 italic">
+                                        Mascot đang bị ẩn ở chế độ này
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 text-[11px]">
+                                        {/* Slider Size */}
+                                        <div>
+                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
+                                                <span>Kích thước</span>
+                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).size}px
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="20"
+                                                max="90"
+                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).size}
+                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'size', e.target.value)}
+                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
+                                            />
+                                        </div>
+
+                                        {/* Slider Right / X */}
+                                        <div>
+                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
+                                                <span>Vị trí Ngang (X)</span>
+                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).right}px
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="-40"
+                                                max="50"
+                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).right}
+                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'right', e.target.value)}
+                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
+                                            />
+                                        </div>
+
+                                        {/* Slider Top / Y */}
+                                        <div>
+                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
+                                                <span>Vị trí Dọc (Y)</span>
+                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).top}px
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="-60"
+                                                max="20"
+                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).top}
+                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'top', e.target.value)}
+                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
+                                            />
+                                        </div>
+
+                                        {/* Drag directly shortcut */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                window.dispatchEvent(new CustomEvent('toggle_mascot_edit_mode'));
+                                                setShowUserMenu(false);
+                                            }}
+                                            className="w-full mt-1.5 py-1.5 px-2 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-800 dark:text-emerald-300 font-black text-[10px] flex items-center justify-center gap-1.5 transition-colors border border-emerald-500/20 cursor-pointer"
+                                        >
+                                            <Move size={12} />
+                                            <span>Kéo thả chuột trên Mascot</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                             <button
                                 onClick={toggleGpuDisabled}
                                 style={isLiteMode ? { color: liteTheme.text } : {}}

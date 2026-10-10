@@ -228,7 +228,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         transition={{ type: "spring", stiffness: 420, damping: 26 }}
                         className={cn(
                             "absolute z-30 pointer-events-none select-none flex items-end",
-                            isCollapsed ? "-top-[28px] -right-1.5 w-9 h-9" : "-top-[30px] right-3.5 w-10 h-10"
+                            isCollapsed ? "-top-[26px] -right-1.5 w-9 h-9" : "-top-[28px] right-3.5 w-10 h-10"
                         )}
                     >
                         <img 
@@ -406,7 +406,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                     borderColor: `${accentCol}80`
                 } : undefined}
                 className={cn(
-                    "group relative flex items-center transition-colors duration-200 overflow-hidden cursor-pointer",
+                    "group relative flex items-center transition-colors duration-200 cursor-pointer",
                     isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto mb-0.5" : "gap-4 px-4 py-3 mx-3 mb-0.5 rounded-2xl",
                     isLite
                         ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
@@ -455,7 +455,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                             exit={{ opacity: 0, scale: 0.7 }}
                             whileHover={{ scale: 1.15, rotate: 4, transition: { duration: 0.2 } }}
                             transition={{ type: "spring", stiffness: 420, damping: 26 }}
-                            className="absolute z-30 pointer-events-none select-none -top-[28px] -right-1.5 w-9 h-9"
+                            className="absolute z-30 pointer-events-none select-none -top-[26px] -right-1.5 w-9 h-9"
                         >
                             <img 
                                 src="/assets/images/mascot_active_pill.png" 
@@ -1940,7 +1940,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className="flex-1 overflow-y-auto no-scrollbar py-4">
+            <div className="flex-1 overflow-y-auto no-scrollbar pt-8 pb-4">
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup

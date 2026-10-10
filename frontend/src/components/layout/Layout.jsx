@@ -217,6 +217,38 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     </div>
                 )}
 
+                {/* Mascot resting on top of active pill waving hello */}
+                {active && !isFlyout && (
+                    <m.div
+                        layoutId="active-nav-mascot"
+                        initial={{ opacity: 0, scale: 0.7, y: 6 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.7 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 26 }}
+                        className={cn(
+                            "absolute z-30 pointer-events-none select-none flex items-end",
+                            isCollapsed ? "-top-[26px] -right-1 w-9 h-9" : "-top-[28px] right-3.5 w-10 h-10"
+                        )}
+                    >
+                        <m.img 
+                            src="/assets/images/mascot_active_pill.png" 
+                            alt="Mascot Hello" 
+                            animate={{ 
+                                rotate: [0, 6, -3, 5, 0],
+                                y: [0, -2, 0]
+                            }}
+                            transition={{
+                                duration: 2.6,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                ease: "easeInOut"
+                            }}
+                            className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]"
+                            draggable="false"
+                        />
+                    </m.div>
+                )}
+
                 <div
                     className={cn(
                         "relative z-10 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110",
@@ -416,14 +448,41 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
 
                 {/* Active Indicator for Collapsed Mode */}
                 {isCollapsed && isAnyChildActive && (
-                    <div 
-                        style={hasCustomAccent ? {
-                            backgroundColor: cartColorConfig.headerText !== 'default' 
-                                ? cartColorConfig.headerText 
-                                : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
-                        } : undefined}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
-                    />
+                    <>
+                        <div 
+                            style={hasCustomAccent ? {
+                                backgroundColor: cartColorConfig.headerText !== 'default' 
+                                    ? cartColorConfig.headerText 
+                                    : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
+                            } : undefined}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
+                        />
+                        <m.div
+                            layoutId="active-nav-mascot"
+                            initial={{ opacity: 0, scale: 0.7, y: 6 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.7 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 26 }}
+                            className="absolute z-30 pointer-events-none select-none -top-[26px] -right-1 w-9 h-9"
+                        >
+                            <m.img 
+                                src="/assets/images/mascot_active_pill.png" 
+                                alt="Mascot Hello" 
+                                animate={{ 
+                                    rotate: [0, 6, -3, 5, 0],
+                                    y: [0, -2, 0]
+                                }}
+                                transition={{
+                                    duration: 2.6,
+                                    repeat: Infinity,
+                                    repeatType: "reverse",
+                                    ease: "easeInOut"
+                                }}
+                                className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]"
+                                draggable="false"
+                            />
+                        </m.div>
+                    </>
                 )}
 
                 {/* Tooltip for Collapsed NavGroup (only when flyout is closed) */}

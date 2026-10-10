@@ -234,7 +234,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                         <img 
                             src="/assets/images/mascot_active_pill.png" 
                             alt="Mascot Hello" 
-                            className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.22)]"
+                            className="w-full h-full object-contain"
                             draggable="false"
                         />
                     </m.div>
@@ -460,7 +460,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                             <img 
                                 src="/assets/images/mascot_active_pill.png" 
                                 alt="Mascot Hello" 
-                                className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.22)]"
+                                className="w-full h-full object-contain"
                                 draggable="false"
                             />
                         </m.div>

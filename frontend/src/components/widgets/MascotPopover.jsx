@@ -158,17 +158,17 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
             zIndex: 100000,
             transformOrigin: `${popoverStyle.originX} ${popoverStyle.originY}`
           }}
-          className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-amber-200/80 dark:border-slate-700/80 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 dark:text-slate-100 select-none ring-1 ring-black/5"
+          className="bg-[#faf8f3] dark:bg-[#1a1e17] backdrop-blur-xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden text-stone-800 dark:text-stone-100 select-none ring-1 ring-[#8b6f47]/10"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 shrink-0">
+          <div className="px-4 py-3 border-b border-[#8b6f47]/20 dark:border-white/10 flex items-center justify-between bg-[#f4efe4]/80 dark:bg-white/[0.03] shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-white shadow-sm shadow-orange-500/20">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#2d5016] to-[#477a27] dark:from-emerald-700 dark:to-emerald-600 flex items-center justify-center text-white shadow-md shadow-[#2d5016]/20">
                 <Sparkles size={14} />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <h3 className="font-black text-xs uppercase tracking-wider text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5">
                   Linh Vật ({MASCOT_LIST.length})
                 </h3>
               </div>
@@ -180,7 +180,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                 type="button"
                 onClick={handleResetPosition}
                 title="Đặt lại vị trí góc dưới"
-                className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-xl bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/15 flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-white transition-colors cursor-pointer border border-[#8b6f47]/15 dark:border-white/10"
               >
                 <RotateCcw size={12} />
               </button>
@@ -189,7 +189,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-xl bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/15 flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-white transition-colors cursor-pointer border border-[#8b6f47]/15 dark:border-white/10"
               >
                 <X size={14} />
               </button>
@@ -197,16 +197,16 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
           </div>
 
           {/* Body Content */}
-          <div className="p-3.5 overflow-y-auto space-y-3.5 flex-1 custom-scrollbar">
+          <div className="p-3.5 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
             {/* Search Input */}
             <div className="relative w-full">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8b6f47]/60 dark:text-stone-400" />
               <input
                 type="text"
                 placeholder="Tìm nhân vật..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-7.5 pr-2.5 py-1.5 text-[11px] rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:border-amber-500 transition-colors"
+                className="w-full pl-8 pr-2.5 py-1.5 text-[11px] rounded-xl bg-[#f4efe4] dark:bg-[#23271f] border border-[#8b6f47]/25 dark:border-white/10 outline-none focus:ring-1 focus:ring-[#2d5016] dark:focus:ring-emerald-500 font-medium text-stone-800 dark:text-stone-100 placeholder:text-[#8b6f47]/50 transition-colors"
               />
             </div>
 
@@ -219,8 +219,8 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
                     selectedCategory === cat.id
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-[#2d5016] dark:bg-emerald-600 text-white shadow-xs'
+                      : 'bg-[#8b6f47]/10 dark:bg-white/5 text-[#8b6f47] dark:text-[#d4a574] hover:bg-[#8b6f47]/20 dark:hover:bg-white/10 border border-[#8b6f47]/15 dark:border-white/5'
                   }`}
                 >
                   {cat.label}
@@ -229,7 +229,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
             </div>
 
             {/* Character Grid */}
-            <div className="grid grid-cols-4 gap-1.5 max-h-[190px] overflow-y-auto p-1 custom-scrollbar rounded-2xl bg-slate-50/60 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+            <div className="grid grid-cols-4 gap-1.5 max-h-[190px] overflow-y-auto p-1.5 custom-scrollbar rounded-2xl bg-[#f4efe4]/60 dark:bg-[#23271f]/60 border border-[#8b6f47]/20 dark:border-white/10">
               {filteredMascots.map((char) => {
                 const isSelected = config.characterId === char.id;
                 return (
@@ -239,12 +239,12 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                     onClick={() => handleSelectCharacter(char.id)}
                     className={`relative flex flex-col items-center p-1.5 rounded-xl border transition-all text-center cursor-pointer group ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 shadow-xs ring-1 ring-amber-500/30'
-                        : 'border-slate-200/60 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'border-[#2d5016] dark:border-emerald-500 bg-[#2d5016]/10 dark:bg-emerald-950/40 shadow-xs ring-1 ring-[#2d5016]/40 dark:ring-emerald-500/40'
+                        : 'border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40 dark:hover:border-white/20 bg-[#faf8f3] dark:bg-[#1a1e17] hover:bg-white dark:hover:bg-[#262c21]'
                     }`}
                   >
                     {isSelected && (
-                      <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                      <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#2d5016] dark:bg-emerald-600 text-white flex items-center justify-center shadow-xs">
                         <Check size={8} strokeWidth={3} />
                       </div>
                     )}
@@ -261,7 +261,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                       className="rounded-full mb-1 group-hover:scale-110 transition-transform duration-150"
                     />
 
-                    <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 truncate w-full">
+                    <span className="text-[9.5px] font-bold text-stone-800 dark:text-stone-200 truncate w-full">
                       {char.name}
                     </span>
                   </button>
@@ -269,7 +269,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
               })}
 
               {filteredMascots.length === 0 && (
-                <div className="col-span-full py-6 text-center text-[11px] text-slate-400">
+                <div className="col-span-full py-6 text-center text-[11px] text-[#8b6f47]/60 dark:text-stone-400">
                   Không tìm thấy "{searchQuery}"
                 </div>
               )}
@@ -277,10 +277,10 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
 
             {/* Quick Sliders */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+              <div className="p-2.5 rounded-xl bg-[#f4efe4] dark:bg-[#23271f] border border-[#8b6f47]/20 dark:border-white/10 space-y-1">
                 <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Kích thước</span>
-                  <span className="text-amber-600 dark:text-amber-400">{config.size || 110}px</span>
+                  <span className="text-stone-600 dark:text-stone-400">Kích thước</span>
+                  <span className="text-[#2d5016] dark:text-emerald-400 font-mono font-black">{config.size || 110}px</span>
                 </div>
                 <input
                   type="range"
@@ -289,14 +289,14 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                   step="5"
                   value={config.size || 110}
                   onChange={(e) => updateConfig({ ...config, size: Number(e.target.value) })}
-                  className="w-full accent-amber-500 cursor-pointer h-1"
+                  className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer h-1"
                 />
               </div>
 
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
+              <div className="p-2.5 rounded-xl bg-[#f4efe4] dark:bg-[#23271f] border border-[#8b6f47]/20 dark:border-white/10 space-y-1">
                 <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">Độ rõ nét</span>
-                  <span className="text-amber-600 dark:text-amber-400">{Math.round((config.opacity ?? 1) * 100)}%</span>
+                  <span className="text-stone-600 dark:text-stone-400">Độ rõ nét</span>
+                  <span className="text-[#2d5016] dark:text-emerald-400 font-mono font-black">{Math.round((config.opacity ?? 1) * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -305,7 +305,7 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                   step="0.05"
                   value={config.opacity ?? 1}
                   onChange={(e) => updateConfig({ ...config, opacity: Number(e.target.value) })}
-                  className="w-full accent-amber-500 cursor-pointer h-1"
+                  className="w-full accent-[#2d5016] dark:accent-emerald-500 cursor-pointer h-1"
                 />
               </div>
             </div>
@@ -317,12 +317,12 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                 onClick={() => updateConfig({ ...config, locked: !config.locked })}
                 className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer ${
                   config.locked
-                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300'
-                    : 'border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                    ? 'border-amber-600/50 bg-amber-500/10 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 font-bold'
+                    : 'border-[#8b6f47]/20 dark:border-white/10 bg-[#faf8f3] dark:bg-[#1a1e17] text-stone-700 dark:text-stone-300 hover:border-[#8b6f47]/40 font-medium'
                 }`}
               >
-                {config.locked ? <Lock size={13} /> : <Unlock size={13} className="text-slate-400" />}
-                <span className="text-[9.5px] font-semibold">{config.locked ? 'Đã khóa' : 'Kéo tự do'}</span>
+                {config.locked ? <Lock size={13} /> : <Unlock size={13} className="text-[#8b6f47]/60 dark:text-stone-400" />}
+                <span className="text-[9.5px]">{config.locked ? 'Đã khóa' : 'Kéo tự do'}</span>
               </button>
 
               <button
@@ -334,12 +334,12 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                 }}
                 className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer ${
                   config.soundEnabled
-                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'
-                    : 'border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                    ? 'border-[#2d5016] dark:border-emerald-600 bg-[#2d5016]/10 dark:bg-emerald-950/30 text-[#2d5016] dark:text-emerald-300 font-bold'
+                    : 'border-[#8b6f47]/20 dark:border-white/10 bg-[#faf8f3] dark:bg-[#1a1e17] text-stone-700 dark:text-stone-300 hover:border-[#8b6f47]/40 font-medium'
                 }`}
               >
-                {config.soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} className="text-slate-400" />}
-                <span className="text-[9.5px] font-semibold">{config.soundEnabled ? 'Âm thanh' : 'Tắt âm'}</span>
+                {config.soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} className="text-[#8b6f47]/60 dark:text-stone-400" />}
+                <span className="text-[9.5px]">{config.soundEnabled ? 'Âm thanh' : 'Tắt âm'}</span>
               </button>
 
               <button
@@ -347,12 +347,12 @@ const MascotPopover = ({ isOpen, onClose, mascotPos, mascotSize = 110 }) => {
                 onClick={() => updateConfig({ ...config, showQuotes: !config.showQuotes })}
                 className={`p-2 rounded-xl border flex flex-col items-center justify-center gap-1 text-center transition-all cursor-pointer ${
                   config.showQuotes
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300'
-                    : 'border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                    ? 'border-[#8b6f47] dark:border-[#d4a574] bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 text-[#8b6f47] dark:text-[#d4a574] font-bold'
+                    : 'border-[#8b6f47]/20 dark:border-white/10 bg-[#faf8f3] dark:bg-[#1a1e17] text-stone-700 dark:text-stone-300 hover:border-[#8b6f47]/40 font-medium'
                 }`}
               >
-                <MessageSquare size={13} className={config.showQuotes ? 'text-blue-500' : 'text-slate-400'} />
-                <span className="text-[9.5px] font-semibold">Lời chúc</span>
+                <MessageSquare size={13} className={config.showQuotes ? 'text-[#8b6f47] dark:text-[#d4a574]' : 'text-[#8b6f47]/60 dark:text-stone-400'} />
+                <span className="text-[9.5px]">Lời chúc</span>
               </button>
             </div>
           </div>

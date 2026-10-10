@@ -5024,6 +5024,8 @@ function POSPage({
     <div className="flex items-center gap-2.5 pointer-events-auto">
       <x.div
         key="partner-card-bubble"
+        id="partner-card-bubble"
+        data-bubble="partner"
         layout
         initial={{ opacity: 0, scale: 0.92, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -5186,6 +5188,8 @@ function POSPage({
       </x.div>
       <x.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="relative group/note-container pointer-events-auto">
         <x.div
+          id="note-bubble"
+          data-bubble="note"
           layout
           initial={false}
           whileHover={{ scale: 1.08 }}
@@ -5215,6 +5219,8 @@ function POSPage({
       </x.div>
       <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/ship-container pointer-events-auto">
         <x.div
+          id="ship-bubble"
+          data-bubble="ship"
           layout
           initial={false}
           whileHover={{ scale: 1.08 }}
@@ -5289,6 +5295,8 @@ function POSPage({
       {I === "Cash" && (
         <x.div
           key="cash-bubble"
+          id="cash-bubble"
+          data-bubble="cash"
           layout
           initial={{
             opacity: 0,
@@ -5437,6 +5445,8 @@ function POSPage({
     </P>
     <x.div
       key="total-amount-bubble"
+      id="total-amount-bubble"
+      data-bubble="total"
       layout
       initial={{ opacity: 0, scale: 0.92, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}

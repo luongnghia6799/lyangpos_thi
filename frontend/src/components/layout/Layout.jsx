@@ -67,6 +67,7 @@ import { cn, playNotificationSound } from '../../lib/utils';
 import { checkIsAdmin } from '../../lib/auth';
 import { createPortal } from 'react-dom';
 import ContextMenu from '../widgets/ContextMenu';
+import ButtonMascotOverlay from '../widgets/ButtonMascotOverlay';
 import { getLiteTheme } from '../../lib/liteTheme';
 import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
@@ -2079,6 +2080,7 @@ export default function Layout({ children }) {
             className="flex h-screen w-full main-content-bg overflow-hidden transition-colors selection:bg-emerald-100 dark:selection:bg-emerald-900/40"
         >
             <ContextMenu />
+            <ButtonMascotOverlay />
 
             {isLiteMode && !['/pos', '/poslite', '/purchase'].includes(location.pathname) && (
                 <div ref={liteMenuContainerRef} className="fixed inset-0 pointer-events-none z-[9999] no-print">

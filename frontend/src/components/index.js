@@ -143,4 +143,8 @@ export * from './widgets/Portal';
 export { default as Portal } from './widgets/Portal';
 export * from './widgets/Toast';
 export { default as Toast } from './widgets/Toast';
+export * from './widgets/ButtonMascotOverlay';
+export { default as ButtonMascotOverlay } from './widgets/ButtonMascotOverlay';
+export * from './widgets/ButtonMascotPromptModal';
+export { default as ButtonMascotPromptModal } from './widgets/ButtonMascotPromptModal';
 

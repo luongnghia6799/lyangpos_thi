@@ -162,7 +162,7 @@ function ResizableDropdownContainer({
       transition={{ duration: 0.12, ease: "easeOut" }}
       className={`${
         isFixed ? "fixed" : "absolute top-full left-0 mt-2"
-      } frosted-glass !z-[400000] rounded-2xl flex flex-col ${className}`}
+      } !z-[400000] !overflow-visible flex flex-col`}
       style={{
         ...(isFixed
           ? {
@@ -177,75 +177,78 @@ function ResizableDropdownContainer({
       {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
       <DropdownMascot />
 
-      {/* Right Edge Resize Handle */}
-      <div
-        onPointerDown={(e) => startDrag(e, "width")}
-        onDoubleClick={() => resetSize("width")}
-        className="absolute top-0 right-0 w-3 h-full cursor-ew-resize hover:bg-primary/15 transition-colors z-30 flex items-center justify-center group/sidehandle"
-        title="Kéo mép phải để đổi chiều rộng (Nhấp đúp để đặt lại)"
-      >
-        <div className="w-0.5 h-8 rounded-full bg-slate-300/40 dark:bg-slate-700/40 group-hover/sidehandle:bg-primary group-hover/sidehandle:scale-y-125 transition-all" />
-      </div>
-
-      {/* Scrollable list container - lightweight, instant height, zero layout lag */}
-      <div
-        ref={scrollRef}
-        className="overflow-y-auto overscroll-contain no-scrollbar flex-1 rounded-2xl"
-        style={{
-          maxHeight: customSize.maxHeight,
-        }}
-      >
-        {children}
-      </div>
-
-      {/* Sleek Minimal Bottom Handle Bar */}
-      <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-transparent flex items-center justify-between px-2.5 select-none transition-colors">
-        {/* Left: subtle reset button when customized */}
-        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
-          {isCustomized && (
-            <button
-              onClick={() => resetSize("both")}
-              type="button"
-              className="flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider text-primary hover:opacity-75 transition-all cursor-pointer bg-transparent border-0 p-0 shadow-none"
-              title="Đặt lại kích thước mặc định"
-            >
-              <RotateCcw size={8} strokeWidth={2.5} />
-              <span>Đặt lại</span>
-            </button>
-          )}
+      {/* Main card body with frosted-glass, rounded-2xl, and overflow-hidden */}
+      <div className={`w-full flex-1 frosted-glass rounded-2xl overflow-hidden flex flex-col border border-black/10 dark:border-white/10 shadow-2xl relative ${className || ""}`}>
+        {/* Right Edge Resize Handle */}
+        <div
+          onPointerDown={(e) => startDrag(e, "width")}
+          onDoubleClick={() => resetSize("width")}
+          className="absolute top-0 right-0 w-3 h-full cursor-ew-resize hover:bg-primary/15 transition-colors z-30 flex items-center justify-center group/sidehandle"
+          title="Kéo mép phải để đổi chiều rộng (Nhấp đúp để đặt lại)"
+        >
+          <div className="w-0.5 h-8 rounded-full bg-slate-300/40 dark:bg-slate-700/40 group-hover/sidehandle:bg-primary group-hover/sidehandle:scale-y-125 transition-all" />
         </div>
 
-        {/* Center: bottom handle pill for height resize */}
+        {/* Scrollable list container - lightweight, instant height, zero layout lag */}
         <div
-          onPointerDown={(e) => startDrag(e, "height")}
-          onDoubleClick={() => resetSize("height")}
-          className="group/handle py-1.5 px-6 cursor-ns-resize flex items-center justify-center -my-1"
-          title="Kéo để chỉnh chiều cao (Nhấp đúp để đặt lại)"
+          ref={scrollRef}
+          className="overflow-y-auto overscroll-contain no-scrollbar flex-1 p-1.5"
+          style={{
+            maxHeight: customSize.maxHeight,
+          }}
         >
-          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 group-hover/handle:bg-primary group-hover/handle:scale-y-125 transition-all" />
+          {children}
         </div>
 
-        {/* Right: Corner diagonal grip for simultaneous width + height resize */}
-        <div
-          onPointerDown={(e) => startDrag(e, "both")}
-          onDoubleClick={() => resetSize("both")}
-          className="group/corner -mr-1 p-1 cursor-nwse-resize text-slate-400 dark:text-slate-600 hover:text-primary transition-colors flex items-center justify-center"
-          title="Kéo góc để chỉnh rộng + cao (Nhấp đúp để đặt lại)"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            className="opacity-60 group-hover/corner:opacity-100 group-hover/corner:scale-110 transition-all"
+        {/* Sleek Minimal Bottom Handle Bar */}
+        <div className="relative shrink-0 h-4 border-t border-black/5 dark:border-white/5 bg-transparent flex items-center justify-between px-2.5 select-none transition-colors">
+          {/* Left: subtle reset button when customized */}
+          <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
+            {isCustomized && (
+              <button
+                onClick={() => resetSize("both")}
+                type="button"
+                className="flex items-center gap-1 text-[8.5px] font-black uppercase tracking-wider text-primary hover:opacity-75 transition-all cursor-pointer bg-transparent border-0 p-0 shadow-none"
+                title="Đặt lại kích thước mặc định"
+              >
+                <RotateCcw size={8} strokeWidth={2.5} />
+                <span>Đặt lại</span>
+              </button>
+            )}
+          </div>
+
+          {/* Center: bottom handle pill for height resize */}
+          <div
+            onPointerDown={(e) => startDrag(e, "height")}
+            onDoubleClick={() => resetSize("height")}
+            className="group/handle py-1.5 px-6 cursor-ns-resize flex items-center justify-center -my-1"
+            title="Kéo để chỉnh chiều cao (Nhấp đúp để đặt lại)"
           >
-            <path
-              d="M10 2L2 10M10 6L6 10M10 10L10 10.01"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
+            <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700 group-hover/handle:bg-primary group-hover/handle:scale-y-125 transition-all" />
+          </div>
+
+          {/* Right: Corner diagonal grip for simultaneous width + height resize */}
+          <div
+            onPointerDown={(e) => startDrag(e, "both")}
+            onDoubleClick={() => resetSize("both")}
+            className="group/corner -mr-1 p-1 cursor-nwse-resize text-slate-400 dark:text-slate-600 hover:text-primary transition-colors flex items-center justify-center"
+            title="Kéo góc để chỉnh rộng + cao (Nhấp đúp để đặt lại)"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              className="opacity-60 group-hover/corner:opacity-100 group-hover/corner:scale-110 transition-all"
+            >
+              <path
+                d="M10 2L2 10M10 6L6 10M10 10L10 10.01"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 

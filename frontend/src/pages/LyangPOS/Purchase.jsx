@@ -2250,7 +2250,7 @@ export default function Purchase() {
                                         className="dropdown-premium dropdown-app-bg absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
                                         ref={partnerDropdownRef}
                                     >
-                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0 ">
+                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-1.5">
                                             {!partnerSearch && (
                                                 <div
                                                     data-index={0}
@@ -2961,7 +2961,7 @@ export default function Purchase() {
                                                                             {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
                                                                             <DropdownMascot title="Bé Lyang - Trợ lý nhập hàng thông minh" />
 
-                                                                            <div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar p-0 rounded-2xl" ref={productDropdownRef}>
+                                                                            <div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar p-1.5 rounded-2xl" ref={productDropdownRef}>
                                                                                 {filteredProducts.map((p, idx) => (
                                                                                     <div
                                                                                         key={p.id}

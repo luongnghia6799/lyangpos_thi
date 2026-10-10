@@ -56,6 +56,10 @@ import PackingDisplayModeModal from "../../components/modals/PackingDisplayModeM
 import ProductSearchItem from "../../components/pos/ProductSearchItem";
 import PartnerSearchItem from "../../components/pos/PartnerSearchItem";
 import POSSummaryPanel from "../../components/pos/POSSummaryPanel";
+import PackingRepeatMenuPopover from "../../components/pos/PackingRepeatMenuPopover";
+import QuickRowDeletePrompt from "../../components/pos/QuickRowDeletePrompt";
+import HeldOrdersDrawer from "../../components/pos/HeldOrdersDrawer";
+import RemoteTerminalInspectPopover from "../../components/pos/RemoteTerminalInspectPopover";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -4044,110 +4048,34 @@ function POSPage({
                             return s && !t.has(s) ? (t.add(s), !0) : !1;
                           });
                         return a.length > 0 && <span className="absolute -top-1 -right-1 flex h-3 min-w-3 px-0.5 items-center justify-center rounded-full bg-emerald-500 text-[6.5px] font-black text-white shadow-xs ring-1 ring-card">{a.length}</span>;
-                      })()}</button><P>{Zt ? <Fn><x.div initial={{
-                          opacity: 0,
-                          scale: 0.95,
-                          y: -10
-                        }} animate={{
-                          opacity: 1,
-                          scale: 1,
-                          y: 0
-                        }} exit={{
-                          opacity: 0,
-                          scale: 0.95,
-                          y: -10
-                        }} transition={{
-                          duration: 0.15,
-                          ease: "easeOut"
-                        }} style={(() => {
-                          if (bs.current) {
-                            const t = bs.current.getBoundingClientRect();
-                            return {
-                              position: "fixed",
-                              top: t.bottom + 6 + "px",
-                              right: Math.max(10, window.innerWidth - t.right) + "px",
-                              zIndex: 99999
-                            };
-                          }
-                          return {
-                            position: "fixed",
-                            top: "100px",
-                            right: "100px",
-                            zIndex: 99999
-                          };
-                        })()} className="w-[340px] bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-3.5 space-y-3 text-foreground ring-1 ring-border" onClick={t => t.stopPropagation()}><div className="pb-2 border-b border-border flex items-center justify-between"><span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"><div className="flex items-center gap-1.5"><TvMonitorIcon size={12} className="text-emerald-500" />MÁY TRẠM HOẠT ĐỘNG</div></span><button onClick={() => Ma(!1)} className="text-muted-foreground hover:text-rose-500 text-sm font-black p-1 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer">✕</button></div><div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 pr-1">{(() => {
-                              const t = new Set(),
-                                a = [],
-                                r = [...hr].sort((s, n) => {
-                                  const l = (s.terminal_name || "").includes("MÁY POS") || (s.terminal_id || "").includes("127.0.0.1"),
-                                    d = (n.terminal_name || "").includes("MÁY POS") || (n.terminal_id || "").includes("127.0.0.1");
-                                  return l && !d ? 1 : !l && d ? -1 : (n.terminal_id || "").length - (s.terminal_id || "").length;
-                                });
-                              for (const s of r) {
-                                const n = s.ip_address || s.terminal_id;
-                                n && !t.has(n) && (t.add(n), a.push(s));
-                              }
-                              return a.length === 0 ? <div className="p-4 text-center text-xs font-black uppercase tracking-widest text-muted-foreground">Không tìm thấy máy trạm nào online</div> : a.map(s => {
-                                const n = q === s.terminal_id,
-                                  l = s.total_items || (s.cart ? s.cart.reduce((u, h) => u + (h.quantity || 1), 0) : 0),
-                                  d = (s.terminal_id || "").includes("Mobile") || (s.current_page || "").includes("Mobile"),
-                                  o = s.total_amount || 0;
-                                return <div key={s.terminal_id} className={c("w-full p-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all relative overflow-hidden", n ? "bg-emerald-500/15 border-emerald-500 text-foreground shadow-md shadow-emerald-500/5" : "bg-card/60 border-border hover:bg-card")}><div className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" onClick={() => {
-                                    br(s.terminal_id), Ma(!1), f("remote_inspect");
-                                  }}><div className={c("w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 text-sm", n ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" : "bg-card border-border text-muted-foreground")}>{d ? <Rs size={16} /> : <TvMonitorIcon size={16} />}</div><div className="min-w-0 flex-1"><div className="text-xs font-black uppercase tracking-wide truncate text-foreground">{s.user_name && !s.user_name.includes("Thu ngân") ? `${s.user_name} (${s.ip_address})` : `MÁY POS (${s.ip_address})`}</div><div className="text-[10px] font-bold text-muted-foreground truncate flex items-center gap-1"><Qn size={10} />{s.terminal_name || s.terminal_id}</div></div></div><div className="text-right shrink-0 flex flex-col items-end gap-0.5"><div className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center gap-0.5">{z(o)}đ</div><div className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-lg border border-amber-500/10 tabular-nums">{l} món</div></div><button onClick={u => {
-                                    u.stopPropagation(), hn(s.cart);
-                                  }} className="p-2 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white rounded-xl transition-all border border-emerald-500/20 cursor-pointer shadow-xs" title="Sao chép nhanh giỏ hàng từ máy này"><Pn size={13} /></button></div>;
-                              });
-                            })()}</div></x.div></Fn> : null}</P></div></div><HeavyClock variant="purchase" gpuDisabled={Ya} /></div></div></div><P>{va && <Ee><div className="fixed inset-0 z-[2000] flex justify-end font-sans"><x.div initial={{
-                  opacity: 0
-                }} animate={{
-                  opacity: 1
-                }} exit={{
-                  opacity: 0
-                }} className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => St(!1)} /><x.div initial={{
-                  x: "100%",
-                  opacity: 0
-                }} animate={{
-                  x: 0,
-                  opacity: 1
-                }} exit={{
-                  x: "100%",
-                  opacity: 0
-                }} transition={{
-                  type: "spring",
-                  damping: 32,
-                  stiffness: 260
-                }} className="relative w-full max-w-[440px] h-full bg-[#f8f6f0]/95 dark:bg-[#022c22]/95 backdrop-blur-[100px] flex flex-col border-l border-[#8b6f47]/20 dark:border-white/10 shadow-2xl"><div className="p-5 border-b border-[#8b6f47]/15 dark:border-white/10 relative overflow-hidden group"><div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.03] -rotate-12 translate-x-4 -translate-y-4 pointer-events-none transition-transform group-hover:scale-110 duration-700 text-[#8b6f47] dark:text-white"><Comp_jt size={100} /></div><div className="flex justify-between items-center relative z-10"><div className="flex items-center gap-4"><div className="w-9 h-9 bg-amber-500/10 dark:bg-white/10 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-500/20 dark:border-white/10 shadow-xs"><Comp_jt size={18} strokeWidth={2.5} /></div><div><h3 className="font-black text-[14px] text-stone-800 dark:text-white uppercase tracking-tighter leading-none mb-1">Hóa đơn chờ</h3><p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />Đang treo ({Fe.length})</p></div></div><button onClick={() => St(!1)} className="w-9 h-9 flex items-center justify-center bg-stone-200/60 dark:bg-white/10 hover:bg-rose-500/15 dark:hover:bg-rose-500/20 text-stone-500 hover:text-rose-600 dark:text-white/60 dark:hover:text-rose-400 rounded-xl transition-all hover:rotate-90 border border-stone-200/80 dark:border-white/10 cursor-pointer"><Comp_ke size={16} strokeWidth={3} /></button></div></div><div className="flex-1 overflow-y-auto no-scrollbar px-5 py-6 space-y-4">{Fe.length === 0 ? <div className="text-center py-40 opacity-30 dark:opacity-20"><Comp_jt size={60} strokeWidth={1} className="mx-auto mb-8 text-stone-700 dark:text-white" /><p className="font-black uppercase text-[10px] tracking-[0.4em] text-stone-700 dark:text-white">Trống trải...</p></div> : <P mode="popLayout">{Fe.map((t, a) => <x.div key={t.id} id={a === 0 ? "first-held-card" : void 0} tabIndex={0} layout={!0} initial={{
-                        opacity: 0,
-                        x: 20
-                      }} animate={{
-                        opacity: 1,
-                        x: 0
-                      }} exit={{
-                        opacity: 0,
-                        scale: 0.9,
-                        x: 20
-                      }} transition={{
-                        delay: a * 0.04
-                      }} className="bg-white/90 dark:bg-white/[0.04] border border-[#8b6f47]/20 dark:border-white/5 rounded-2xl p-4 hover:border-amber-500/50 dark:hover:border-amber-500/40 focus:border-amber-500 focus:bg-white dark:focus:bg-white/[0.08] transition-all group hover:bg-white dark:hover:bg-white/[0.08] outline-none focus:outline-none cursor-pointer shadow-xs hover:shadow-md" onKeyDown={r => {
-                        if (r.key === "ArrowDown") {
-                          r.preventDefault();
-                          const s = r.currentTarget.nextElementSibling;
-                          s && s.focus();
-                        } else if (r.key === "ArrowUp") {
-                          r.preventDefault();
-                          const s = r.currentTarget.previousElementSibling;
-                          s && s.focus();
-                        } else r.key === "Enter" && (r.preventDefault(), jn(t));
-                      }}><div className="flex justify-between items-start mb-3"><div className="flex-1 pr-3 min-w-0"><div className="font-black text-stone-800 dark:text-white uppercase text-xs leading-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">{t.partner ? t.partner.name : "KHÁCH BÁN LẺ"}</div><div className="flex items-center gap-3 mt-1.5"><div className="text-[8px] font-black text-stone-500 dark:text-white/30 bg-stone-100 dark:bg-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider tabular-nums border border-stone-200 dark:border-white/5">{t.time}</div><div className="text-[8px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/5 px-1.5 py-0.5 rounded border border-amber-500/20 dark:border-amber-500/10 uppercase tracking-widest">{t.cart.length} món</div></div></div></div>{t.cart && t.cart.length > 0 && <div className="border-t border-[#8b6f47]/15 dark:border-white/5 mt-2 pt-2 flex flex-wrap gap-1 mb-3">{t.cart.slice(0, 3).map((r, s) => <div key={s} className="px-1.5 py-0.5 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 dark:border-amber-500/10 rounded-md text-[8px] font-black text-amber-700 dark:text-amber-400/90 uppercase flex items-center gap-1 transition-all hover:bg-amber-500/15 dark:hover:bg-amber-500/10"><span className="truncate max-w-[70px]">{r.product_name}</span><div className="w-px h-1.5 bg-amber-500/30 dark:bg-amber-500/20" /><span className="text-amber-600 dark:text-amber-300 font-bold">{z(r.quantity)}</span></div>)}{t.cart.length > 3 && <div className="px-1.5 py-0.5 bg-stone-100 dark:bg-white/5 border border-stone-200 dark:border-white/5 rounded-md text-[8px] font-black text-stone-500 dark:text-white/30 uppercase tracking-tighter">+{t.cart.length - 3} món</div>}</div>}<div className="flex justify-between items-center bg-stone-100/90 dark:bg-black/20 p-3 rounded-xl border border-stone-200/80 dark:border-white/5"><div className="text-amber-600 dark:text-amber-400 font-black text-lg tracking-tighter tabular-nums">{z(t.total)}</div><div className="flex gap-2"><x.button whileHover={{
-                              scale: 1.05
-                            }} whileTap={{
-                              scale: 0.95
-                            }} onClick={() => cl(t.id)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-500 hover:text-white rounded-lg transition-all border border-rose-500/20 dark:border-rose-500/10 active:scale-95 flex items-center justify-center cursor-pointer shadow-xs" title="Xóa hóa đơn chờ"><Comp_pa size={12} strokeWidth={2.5} /></x.button><x.button whileHover={{
-                              scale: 1.05
-                            }} whileTap={{
-                              scale: 0.95
-                            }} onClick={() => jn(t)} className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-500/20 dark:hover:bg-amber-500 text-white dark:text-amber-400 dark:hover:text-white px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all border border-amber-500 dark:border-amber-500/10 active:scale-95 cursor-pointer shadow-xs">MỞ LẠI</x.button></div></div></x.div>)}</P>}</div><div className="p-5 border-t border-[#8b6f47]/15 dark:border-white/10"><button onClick={() => St(!1)} className="w-full py-3.5 rounded-xl border border-stone-300 dark:border-white/10 text-stone-500 dark:text-white/30 font-black uppercase text-[9px] hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-white transition-all tracking-[0.3em] active:scale-[0.98] cursor-pointer">Đóng</button></div></x.div></div></Ee>}</P><div className="flex-1 flex gap-3 px-4 pb-4 print:hidden min-h-0"><x.div initial={!1} animate={{
+                      })()}</button>
+                      <RemoteTerminalInspectPopover
+                        isOpen={Zt}
+                        anchorRef={bs}
+                        onClose={() => Ma(!1)}
+                        terminals={hr}
+                        activeTerminalId={q}
+                        onInspectTerminal={(termId) => {
+                          br(termId);
+                          Ma(!1);
+                          f("remote_inspect");
+                        }}
+                        onCopyCart={(cart) => hn(cart)}
+                      />
+                    </div>
+                  </div>
+                  <HeavyClock variant="purchase" gpuDisabled={Ya} />
+                </div>
+              </div>
+            </div>
+            <HeldOrdersDrawer
+              isOpen={va}
+              heldOrders={Fe}
+              onClose={() => St(!1)}
+              onRestoreOrder={jn}
+              onDeleteHeldOrder={cl}
+            />
+            <div className="flex-1 flex gap-3 px-4 pb-4 print:hidden min-h-0"><x.div initial={!1} animate={{
               width: Ze === "bottom" ? "100%" : ka ? "calc(100% - 370px)" : "calc(100% - 100px)"
             }} transition={{
               type: "spring",
@@ -5835,23 +5763,16 @@ function POSPage({
               onConfirm={(name, price) => Cn(name, price)}
             /><P>{Ui && us && <Comp_rd order={us} partner={Y.find(t => t.id === us.partner_id)} onClose={() => Yt(!1)} onSave={() => {
               Yt(!1), _e && E.invalidateQueries(["orders"]);
-            }} />}</P><P>{Da && <Comp_sd isOpen={!!Da} title={Da.title} message={Da.message} onConfirm={Da.onConfirm} onCancel={() => et(null)} />}</P><Ee><P>{Qt && pt && <Comp_ld product={pt} isOpen={Qt} onClose={() => Dt(!1)} onSave={ml} coordinates={Ki} />}</P></Ee><Ee><P>{Fi && <x.div initial={{
-                opacity: 0,
-                y: -20,
-                scale: 0.9
-              }} animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1
-              }} exit={{
-                opacity: 0,
-                y: -20,
-                scale: 0.9
-              }} className="fixed top-6 right-6 z-[2000000] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border border-rose-500/20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl no-print overflow-hidden"><div className="p-2 rounded-xl text-white shadow-lg bg-rose-500 shadow-rose-500/25 shrink-0"><Comp_pa size={20} /></div><div className="flex flex-col min-w-[140px] max-w-[180px]"><span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 opacity-70">Hành động</span><span className="font-bold text-xs tracking-tight text-slate-800 dark:text-white/95 leading-snug">Xóa dòng thứ mấy?</span></div><input type="text" autoFocus={!0} value={mn} onChange={t => Wa(t.target.value)} onKeyDown={t => {
-                  t.key === "Enter" ? (t.preventDefault(), Vi()) : t.key === "Escape" && (gr(!1), Wa(""));
-                }} placeholder="Số..." className="w-16 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center text-sm font-black text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all" /><button onClick={() => {
-                  gr(!1), Wa("");
-                }} className="ml-2 p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white"><Comp_ke size={16} /></button></x.div>}</P></Ee>
+            }} />}</P><P>{Da && <Comp_sd isOpen={!!Da} title={Da.title} message={Da.message} onConfirm={Da.onConfirm} onCancel={() => et(null)} />}</P><Ee><P>{Qt && pt && <Comp_ld product={pt} isOpen={Qt} onClose={() => Dt(!1)} onSave={ml} coordinates={Ki} />}</P></Ee>            <QuickRowDeletePrompt
+              isOpen={Fi}
+              value={mn}
+              onChange={Wa}
+              onSubmit={Vi}
+              onClose={() => {
+                gr(!1);
+                Wa("");
+              }}
+            />
             <OrderNoteModal
               isOpen={Ti}
               initialNote={K}
@@ -6080,120 +6001,15 @@ function POSPage({
               onDelete={itemContextMenu?.onDelete}
             />
             {/* Popover chọn số lần lặp đọc soạn hàng */}
-            <Ee>
-              <Ws>
-                {isPackingRepeatMenuOpen && (
-                  <div 
-                    className="fixed inset-0 z-[99999] bg-black/25 backdrop-blur-[1px] select-none"
-                    onClick={() => setIsPackingRepeatMenuOpen(false)}
-                    onContextMenu={e => { e.preventDefault(); setIsPackingRepeatMenuOpen(false); }}
-                  >
-                    <x.div
-                      initial={{ opacity: 0, scale: 0.92, y: -6 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.94, y: -4 }}
-                      transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        position: "fixed",
-                        left: typeof window !== "undefined" ? Math.max(12, Math.min(window.innerWidth - 300, packingRepeatMenuPos.x - 20)) : 100,
-                        top: typeof window !== "undefined" ? Math.max(12, Math.min(window.innerHeight - 380, packingRepeatMenuPos.y)) : 100,
-                      }}
-                      className="w-[280px] bg-white/95 dark:bg-[#1a1c23]/95 backdrop-blur-xl border border-amber-500/25 dark:border-white/15 rounded-2xl shadow-2xl p-2.5 overflow-hidden ring-1 ring-black/5"
-                    >
-                      {/* Header */}
-                      <div className="flex items-center justify-between px-2 py-1.5 mb-1.5 border-b border-slate-100 dark:border-white/10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                            <jo size={15} strokeWidth={2.5} />
-                          </div>
-                          <div>
-                            <div className="text-[12px] font-black tracking-tight text-slate-800 dark:text-slate-100">
-                              Lặp Đọc Soạn Hàng
-                            </div>
-                            <div className="text-[10px] font-medium text-slate-400 dark:text-slate-400">
-                              {isPackingSpeaking 
-                                ? `Đang đọc lượt ${packingSpeakingLoop.current}/${packingSpeakingLoop.total === Infinity ? '∞' : packingSpeakingLoop.total}` 
-                                : "Chọn số lần phát lại danh sách"}
-                            </div>
-                          </div>
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={() => setIsPackingRepeatMenuOpen(false)}
-                          className="w-6 h-6 rounded-md hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors"
-                        >
-                          <Xn size={14} />
-                        </button>
-                      </div>
-
-                      {/* Options */}
-                      <div className="space-y-1">
-                        {[
-                          { value: 1, label: "Đọc 1 lần", desc: "Mặc định, đọc hết danh sách rồi dừng", badge: "1x" },
-                          { value: 2, label: "Lặp lại 2 lần", desc: "Đọc lại danh sách 2 lượt liên tiếp", badge: "2x" },
-                          { value: 3, label: "Lặp lại 3 lần", desc: "Đọc lại danh sách 3 lượt liên tiếp", badge: "3x" },
-                          { value: 5, label: "Lặp lại 5 lần", desc: "Đọc lại danh sách 5 lượt liên tiếp", badge: "5x" },
-                          { value: Infinity, label: "Lặp liên tục", desc: "Phát vòng lặp vô hạn cho tới khi bấm dừng", badge: "∞" },
-                        ].map((opt) => {
-                          const isSelected = packingRepeatCount === opt.value || (opt.value === Infinity && (packingRepeatCount === Infinity || packingRepeatCount === 'Infinity'));
-                          return (
-                            <button
-                              key={opt.value}
-                              type="button"
-                              onClick={() => selectPackingRepeat(opt.value)}
-                              className={c(
-                                "w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all duration-150 group",
-                                isSelected
-                                  ? "bg-amber-500/15 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30"
-                                  : "hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 border border-transparent"
-                              )}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className={c(
-                                  "w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 border",
-                                  isSelected
-                                    ? "bg-amber-500 text-white border-amber-600 shadow-xs"
-                                    : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 group-hover:border-amber-500/40"
-                                )}>
-                                  {opt.badge}
-                                </span>
-                                <div className="truncate">
-                                  <div className="text-[12px] leading-tight font-black">{opt.label}</div>
-                                  <div className="text-[10px] text-slate-400 dark:text-slate-400 font-normal truncate">{opt.desc}</div>
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Os size={14} strokeWidth={3} className="text-amber-600 dark:text-amber-400 shrink-0 ml-1.5" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* If currently speaking or stop button */}
-                      {isPackingSpeaking && (
-                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/10">
-                          <button
-                            type="button"
-                            onClick={() => selectPackingRepeat("stop")}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white dark:text-red-400 dark:hover:text-white font-bold text-xs transition-all duration-150 border border-red-500/20"
-                          >
-                            <Uo size={14} strokeWidth={2.5} />
-                            <span>Dừng đọc danh sách ngay</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Footnote */}
-                      <div className="mt-2 px-1 text-[9.5px] text-slate-400 dark:text-slate-400 text-center font-medium">
-                        💡 Đè nút soạn ({'>'} 400ms) để chọn nhanh số lần đọc
-                      </div>
-                    </x.div>
-                  </div>
-                )}
-              </Ws>
-            </Ee>
+            <PackingRepeatMenuPopover
+              isOpen={isPackingRepeatMenuOpen}
+              onClose={() => setIsPackingRepeatMenuOpen(false)}
+              position={packingRepeatMenuPos}
+              isPackingSpeaking={isPackingSpeaking}
+              packingSpeakingLoop={packingSpeakingLoop}
+              packingRepeatCount={packingRepeatCount}
+              onSelectRepeat={selectPackingRepeat}
+            />
             </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }
 export default POSPage;

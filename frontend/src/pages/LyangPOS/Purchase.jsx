@@ -28,6 +28,7 @@ import CustomSelect from '../../components/forms/CustomSelect';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
 import OrderDatePickerModal from '../../components/modals/OrderDatePickerModal';
 import PriceRaiseModal from '../../components/modals/PriceRaiseModal';
+import DropdownMascot from '../../components/widgets/DropdownMascot';
 import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
 import CartColorCustomizerModal, { 
     DEFAULT_CART_COLOR_CONFIG, 
@@ -2955,26 +2956,8 @@ export default function Purchase() {
                                                                                 maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480)
                                                                             }}
                                                                         >
-                                                                            {/* Bé Lyang Mascot - Chibi nhô đầu vẫy tay chào ở góc trên của Dropdown */}
-                                                                            <m.div
-                                                                                initial={{ opacity: 0, y: 8, scale: 0.7 }}
-                                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                                exit={{ opacity: 0, scale: 0.7 }}
-                                                                                whileHover={{ scale: 1.18, rotate: 4, y: -2, transition: { duration: 0.18 } }}
-                                                                                transition={{ type: "spring", stiffness: 450, damping: 24, delay: 0.03 }}
-                                                                                className="absolute -top-7.5 right-6 z-[400050] pointer-events-auto select-none cursor-pointer flex items-end group/mascot-drop"
-                                                                                title="Bé Lyang - Trợ lý nhập hàng thông minh"
-                                                                            >
-                                                                                <img
-                                                                                    src="/assets/images/mascot_active_pill.png"
-                                                                                    alt="Bé Lyang"
-                                                                                    className="w-11 h-11 object-contain pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]"
-                                                                                    draggable="false"
-                                                                                />
-                                                                                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 dark:bg-black/90 text-amber-300 dark:text-emerald-300 text-[9.5px] font-black px-2 py-0.5 rounded-full whitespace-nowrap opacity-0 group-hover/mascot-drop:opacity-100 transition-opacity pointer-events-none shadow-md border border-white/10 backdrop-blur-md">
-                                                                                    Bé Lyang chào bạn! 🌾
-                                                                                </span>
-                                                                            </m.div>
+                                                                            {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
+                                                                            <DropdownMascot title="Bé Lyang - Trợ lý nhập hàng thông minh" />
 
                                                                             <div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar p-0 rounded-2xl" ref={productDropdownRef}>
                                                                                 {filteredProducts.map((p, idx) => (

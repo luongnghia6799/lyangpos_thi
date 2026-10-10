@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { motion as x } from "framer-motion";
 import { Sliders, RotateCcw } from "lucide-react";
+import DropdownMascot from "./DropdownMascot";
 
 /**
  * ResizableDropdownContainer
@@ -173,27 +174,8 @@ function ResizableDropdownContainer({
         ...style,
       }}
     >
-      {/* Bé Lyang Mascot - Chibi nhô đầu vẫy tay chào ở góc trên của Dropdown */}
-      <x.div
-        initial={{ opacity: 0, y: 8, scale: 0.7 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.7 }}
-        whileHover={{ scale: 1.18, rotate: 4, y: -2, transition: { duration: 0.18 } }}
-        transition={{ type: "spring", stiffness: 450, damping: 24, delay: 0.03 }}
-        className="absolute -top-7.5 right-6 z-[400050] pointer-events-auto select-none cursor-pointer flex items-end group/mascot-drop"
-        title="Bé Lyang - Trợ lý bán hàng thông minh"
-      >
-        <img
-          src="/assets/images/mascot_active_pill.png"
-          alt="Bé Lyang"
-          className="w-11 h-11 object-contain pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]"
-          draggable="false"
-        />
-        {/* Subtle greeting tooltip on hover */}
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 dark:bg-black/90 text-amber-300 dark:text-emerald-300 text-[9.5px] font-black px-2 py-0.5 rounded-full whitespace-nowrap opacity-0 group-hover/mascot-drop:opacity-100 transition-opacity pointer-events-none shadow-md border border-white/10 backdrop-blur-md">
-          Bé Lyang chào bạn! 🌾
-        </span>
-      </x.div>
+      {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
+      <DropdownMascot />
 
       {/* Right Edge Resize Handle */}
       <div

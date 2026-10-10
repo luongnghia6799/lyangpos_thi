@@ -5,7 +5,8 @@ const Portal = ({ children }) => {
     const [mountNode] = useState(() => {
         const div = document.createElement('div');
         div.className = 'no-print';
-        div.style.zIndex = '99999'; // Keep z-index just in case, but no layout styles
+        div.style.position = 'relative';
+        div.style.zIndex = '999999';
         return div;
     });
 

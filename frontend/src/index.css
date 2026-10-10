@@ -375,6 +375,12 @@ input, button, select, textarea, optgroup, option {
   overscroll-behavior: contain !important;
 }
 
+.dropdown-premium.overflow-visible,
+.dropdown-premium.\!overflow-visible,
+.\!overflow-visible {
+  overflow: visible !important;
+}
+
 .dropdown-premium.blur-max,
 .blur-max {
   backdrop-filter: blur(72px) saturate(220%) !important;

@@ -182,10 +182,11 @@ const DropdownMascot = ({ title = "Bé Lyang - Trợ lý bán hàng thông minh"
                 top: `${config.top}px`,
                 right: `${config.right}px`,
                 width: `${config.size}px`,
-                height: `${config.size}px`
+                height: `${config.size}px`,
+                zIndex: 999999
             }}
             className={cn(
-                "absolute z-[400050] select-none flex items-end pointer-events-auto transition-transform duration-100",
+                "absolute !z-[999999] select-none flex items-end pointer-events-auto transition-transform duration-100",
                 isEditing
                     ? "cursor-grab active:cursor-grabbing ring-2 ring-emerald-400 ring-offset-2 ring-offset-black/20 rounded-2xl shadow-xl shadow-emerald-500/20"
                     : "cursor-pointer group/mascot-drop hover:scale-110 hover:rotate-3"

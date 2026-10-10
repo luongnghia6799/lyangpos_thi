@@ -2948,12 +2948,14 @@ export default function Purchase() {
                                                                             transition={{
                                                                                 duration: 0.15
                                                                             }}
-                                                                            className="dropdown-premium backdrop-blur-2xl fixed !z-[400000] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-visible"
+                                                                            className="frosted-glass backdrop-blur-2xl fixed !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 !overflow-visible"
                                                                             style={{
                                                                                 top: workingSearchCoords.top,
                                                                                 left: workingSearchCoords.left,
                                                                                 width: Math.min(workingSearchCoords.width || 600, typeof window !== 'undefined' ? window.innerWidth - (workingSearchCoords.left || 0) - 16 : 600),
-                                                                                maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480)
+                                                                                maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480),
+                                                                                zIndex: 999999,
+                                                                                overflow: 'visible'
                                                                             }}
                                                                         >
                                                                             {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}

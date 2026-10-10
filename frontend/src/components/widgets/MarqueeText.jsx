@@ -1,5 +1,10 @@
-import React, { useRef, useState, useEffect, memo } from 'react';
+import React, { useRef, useLayoutEffect, useEffect, memo } from 'react';
 
+/**
+ * MarqueeText - Zero-thrashing, high-performance marquee text.
+ * Measures overflow cleanly and updates CSS custom properties directly on the DOM,
+ * avoiding double re-render flashes, layout thrashing, and lag during rapid keyboard navigation or hovering.
+ */
 export const MarqueeText = memo(({
   text,
   className = "",
@@ -13,58 +18,69 @@ export const MarqueeText = memo(({
 }) => {
   const containerRef = useRef(null);
   const textRef = useRef(null);
-  const [overflowDist, setOverflowDist] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const isCurrentlyActive = Boolean(isActive || active || isHovered);
+  const isCurrentlyActive = Boolean(isActive || active);
 
-  // Measure only when the item is active or hovered to prevent layout thrashing on list mount
-  useEffect(() => {
-    if (!isCurrentlyActive) {
-      if (overflowDist !== 0) setOverflowDist(0);
-      return;
+  // Sync is-active class with DOM directly without triggering component re-render
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    if (isCurrentlyActive) {
+      el.classList.add('is-active');
+    } else {
+      el.classList.remove('is-active');
     }
+  }, [isCurrentlyActive]);
+
+  // Measure overflow and set CSS variables directly on DOM
+  useEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+    if (!container || !textEl) return;
 
     const measure = () => {
-      if (containerRef.current && textRef.current) {
-        const containerW = containerRef.current.clientWidth;
-        const textW = textRef.current.scrollWidth;
-        const dist = textW > containerW + 2 ? textW - containerW : 0;
-        setOverflowDist(prev => (prev === dist ? prev : dist));
+      if (!container || !textEl) return;
+      const containerW = container.clientWidth;
+      const textW = textEl.scrollWidth;
+      const isOverflow = textW > containerW + 2;
+
+      if (isOverflow) {
+        const dist = textW - containerW;
+        const duration = Math.max(2.8, Math.min(9, (dist / 30) + 1.8));
+        textEl.style.setProperty('--marquee-scroll', `-${dist + 16}px`);
+        textEl.style.setProperty('--marquee-duration', `${duration}s`);
+        if (!textEl.classList.contains('is-overflowing')) {
+          textEl.classList.add('animate-marquee-on-hover', 'is-overflowing');
+          textEl.classList.remove('truncate', 'max-w-full');
+        }
+      } else {
+        textEl.style.removeProperty('--marquee-scroll');
+        textEl.style.removeProperty('--marquee-duration');
+        if (textEl.classList.contains('is-overflowing')) {
+          textEl.classList.remove('animate-marquee-on-hover', 'is-overflowing');
+          textEl.classList.add('truncate', 'max-w-full');
+        }
       }
     };
 
-    // Defer measurement to next frame after paint to ensure clean non-blocking layout
-    let innerRafId;
-    const rafId = requestAnimationFrame(() => {
-      innerRafId = requestAnimationFrame(measure);
-    });
+    measure();
 
     let ro;
-    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+    let rafId = null;
+    if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => {
-        requestAnimationFrame(measure);
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          measure();
+        });
       });
-      ro.observe(containerRef.current);
+      ro.observe(container);
     }
 
     return () => {
-      cancelAnimationFrame(rafId);
-      if (innerRafId) cancelAnimationFrame(innerRafId);
+      if (rafId) cancelAnimationFrame(rafId);
       if (ro) ro.disconnect();
     };
-  }, [isCurrentlyActive, text]);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
-
-  const isOverflowing = overflowDist > 0;
-  const shouldAnimate = isCurrentlyActive && isOverflowing;
-  const duration = Math.max(2.8, Math.min(9, (overflowDist / 30) + 1.8));
+  }, [text]);
 
   return (
     <div
@@ -72,25 +88,15 @@ export const MarqueeText = memo(({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       title={title !== undefined ? title : text}
       style={style}
       className={`w-full overflow-hidden whitespace-nowrap relative select-none py-0.5 leading-normal ${className}`}
     >
       <span
         ref={textRef}
-        className={`inline-block whitespace-nowrap leading-normal ${
-          shouldAnimate ? 'animate-marquee-on-hover is-overflowing is-active' : 'truncate max-w-full'
+        className={`inline-block whitespace-nowrap leading-normal truncate max-w-full ${
+          isCurrentlyActive ? 'is-active' : ''
         }`}
-        style={
-          shouldAnimate
-            ? {
-                '--marquee-scroll': `-${overflowDist + 16}px`,
-                '--marquee-duration': `${duration}s`,
-              }
-            : undefined
-        }
       >
         {text}
       </span>
@@ -99,5 +105,6 @@ export const MarqueeText = memo(({
 });
 
 export default MarqueeText;
+
 
 

@@ -59,8 +59,8 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
               style={{
                 color: isActive ? colorTheme.accent : colorTheme.main,
                 fontSize: "16px",
-                transform: isActive ? "translateX(6px)" : "none",
-                transition: "transform 180ms ease, color 180ms ease"
+                transform: isActive ? "translateX(4px)" : "none",
+                transition: "transform 140ms ease, color 140ms ease"
               }}
             />
           </div>
@@ -204,7 +204,9 @@ const ProductSearchItem = React.memo(function ProductSearchItem({
     prev.showLastPurchaseBadge === next.showLastPurchaseBadge &&
     prev.lastPurchase === next.lastPurchase &&
     prev.accountingEnabled === next.accountingEnabled &&
-    prev.product?.accounting_stock === next.product?.accounting_stock
+    prev.product?.accounting_stock === next.product?.accounting_stock &&
+    prev.colorTheme?.accent === next.colorTheme?.accent &&
+    prev.colorTheme?.main === next.colorTheme?.main
   );
 });
 

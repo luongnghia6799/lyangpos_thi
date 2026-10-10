@@ -7,6 +7,18 @@ import { applyCartThemeToDom } from './components/modals/CartColorCustomizerModa
 
 // Native Tauri Fullscreen & Escape Hotkey Handler & Theme Sync
 if (typeof window !== 'undefined') {
+  // Suppress benign ResizeObserver loop completed / limit exceeded notifications
+  window.addEventListener('error', (e) => {
+    const msg = e?.message || '';
+    if (
+      msg.includes('ResizeObserver loop completed with undelivered notifications') ||
+      msg.includes('ResizeObserver loop limit exceeded')
+    ) {
+      e.stopImmediatePropagation?.();
+      e.preventDefault?.();
+    }
+  }, true);
+
   applyCartThemeToDom();
 
   try {

@@ -234,14 +234,25 @@ export default function Purchase() {
     const [cartColorConfig, setCartColorConfig] = useState(() => {
         try {
             const saved = localStorage.getItem("pos_cart_color_config");
-            return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.constrainCartAboveBubbles === false) {
+                    parsed.constrainCartAboveBubbles = true;
+                    localStorage.setItem("pos_cart_color_config", JSON.stringify(parsed));
+                }
+                return {
+                    ...DEFAULT_CART_COLOR_CONFIG,
+                    ...parsed,
+                    constrainCartAboveBubbles: true
+                };
+            }
+            return DEFAULT_CART_COLOR_CONFIG;
         } catch {
             return DEFAULT_CART_COLOR_CONFIG;
         }
     });
     const [availableTemplates, setAvailableTemplates] = useState([]);
     const [currentTemplateId, setCurrentTemplateId] = useState(null);
-    const [showHotkeysGuide, setShowHotkeysGuide] = useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true");
 
     // Quick Audit Popout States
     const [isAuditOpen, setIsAuditOpen] = useState(false);
@@ -739,7 +750,6 @@ export default function Purchase() {
     const [historyPartner, setHistoryPartner] = useState(null);
     const [summaryLayoutMode, setSummaryLayoutMode] = useState(() => localStorage.getItem('purchase_summary_layout_mode') || 'sidebar');
     const [typingSoundEnabled, setTypingSoundEnabled] = useState(() => localStorage.getItem('pos_typing_sound_enabled') !== 'false');
-    const [showEmptyCartGuide, setShowEmptyCartGuide] = useState(() => localStorage.getItem('pos_show_empty_cart_guide') !== 'false');
     const partnerBubbleRef = useRef(null);
     const totalBubbleRef = useRef(null);
     const cartScrollContainerRef = useRef(null);
@@ -789,34 +799,64 @@ export default function Purchase() {
         }
 
         let debounceTimer = null;
+        let observedP = null;
+        let observedT = null;
+
+        const ro = new ResizeObserver(() => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(measureAndApply, 50);
+        });
+
+        const attachObservers = () => {
+            const pEl = partnerBubbleRef.current || document.getElementById('supplier-bubble') || document.querySelector('[data-bubble="supplier"]');
+            const tEl = totalBubbleRef.current || document.getElementById('purchase-total-bubble') || document.querySelector('[data-bubble="total"]');
+            if (pEl && pEl !== observedP) {
+                if (observedP) ro.unobserve(observedP);
+                ro.observe(pEl);
+                observedP = pEl;
+            }
+            if (tEl && tEl !== observedT) {
+                if (observedT) ro.unobserve(observedT);
+                ro.observe(tEl);
+                observedT = tEl;
+            }
+        };
 
         const measureAndApply = () => {
             if (!cartScrollContainerRef.current) return;
-            const pH = partnerBubbleRef.current ? partnerBubbleRef.current.offsetHeight : 0;
-            const tH = totalBubbleRef.current ? totalBubbleRef.current.offsetHeight : 0;
+            attachObservers();
+            const pEl = partnerBubbleRef.current || document.getElementById('supplier-bubble') || document.querySelector('[data-bubble="supplier"]');
+            const tEl = totalBubbleRef.current || document.getElementById('purchase-total-bubble') || document.querySelector('[data-bubble="total"]');
+            const pH = pEl ? Math.max(pEl.offsetHeight || 0, Math.round(pEl.getBoundingClientRect?.().height || 0)) : 0;
+            const tH = tEl ? Math.max(tEl.offsetHeight || 0, Math.round(tEl.getBoundingClientRect?.().height || 0)) : 0;
             const maxH = Math.max(pH, tH);
-            const targetH = maxH > 0 ? maxH + 24 : 100;
+            const fallback = selectedPartner ? 100 : 85;
+            const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
             const targetVal = `${targetH}px`;
             if (cartScrollContainerRef.current.style.getPropertyValue('--cart-bubble-bottom') !== targetVal) {
                 cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', targetVal);
             }
+            checkCartScroll();
         };
 
         measureAndApply();
 
-        const ro = new ResizeObserver(() => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(measureAndApply, 120);
-        });
+        const rafId = requestAnimationFrame(measureAndApply);
+        const timer1 = setTimeout(measureAndApply, 100);
+        const timer2 = setTimeout(measureAndApply, 350);
 
-        if (partnerBubbleRef.current) ro.observe(partnerBubbleRef.current);
-        if (totalBubbleRef.current) ro.observe(totalBubbleRef.current);
+        attachObservers();
+        window.addEventListener('resize', measureAndApply, { passive: true });
 
         return () => {
+            cancelAnimationFrame(rafId);
+            clearTimeout(timer1);
+            clearTimeout(timer2);
             ro.disconnect();
             if (debounceTimer) clearTimeout(debounceTimer);
+            window.removeEventListener('resize', measureAndApply);
         };
-    }, [summaryLayoutMode, isSidebarExpanded, cartColorConfig?.constrainCartAboveBubbles]);
+    }, [summaryLayoutMode, isSidebarExpanded, cartColorConfig?.constrainCartAboveBubbles, selectedPartner, cart.length, amountPaid, paymentMethod, checkCartScroll]);
 
     useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
@@ -843,8 +883,6 @@ export default function Purchase() {
                     setTransparentCartTable(data.value === 'true');
                 } else if (data.key === 'pos_typing_sound_enabled') {
                     setTypingSoundEnabled(data.value !== 'false');
-                } else if (data.key === 'pos_show_empty_cart_guide') {
-                    setShowEmptyCartGuide(data.value !== 'false');
                 }
             } else if (data.type === 'CART_COLOR_CONFIG_UPDATED' || (data.type === 'UI_SETTING_UPDATED' && data.key === 'pos_cart_color_config')) {
                 try {
@@ -2703,127 +2741,6 @@ export default function Purchase() {
                                     </m.div>
                                 )}
                             </AnimatePresence>
-                            <AnimatePresence>
-                                {showEmptyCartGuide && !historyLoading && cart.length === 0 && !workingItem.product && !searchTerm && (
-                                    <m.div
-                                        key="purchase-empty-cart-overlay"
-                                        initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                                        className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
-                                    >
-                                        <div className="flex flex-col items-center justify-center max-w-xl w-full mx-auto pointer-events-auto">
-                                            {/* Mascot Header */}
-                                            <div
-                                                onClick={() => setShowHotkeysGuide(prev => {
-                                                    const next = !prev;
-                                                    try { localStorage.setItem("pos_show_hotkeys_guide", String(next)); } catch (e) {}
-                                                    return next;
-                                                })}
-                                                className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
-                                            >
-                                                <div className="relative shrink-0">
-                                                    <m.img
-                                                        src="/assets/images/user_mascot.png"
-                                                        alt="Lyang Mascot"
-                                                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
-                                                        draggable="false"
-                                                        initial={{ scale: 0.8, rotate: -6 }}
-                                                        animate={{ scale: 1, rotate: 0 }}
-                                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col justify-center">
-                                                    <span className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight flex items-center gap-2">
-                                                        <span>Giỏ Hàng Chưa Có Sản Phẩm</span>
-                                                    </span>
-                                                    <span className="text-xs sm:text-sm font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-1 whitespace-nowrap">
-                                                        Gõ tên sản phẩm (F2) hoặc quét mã vạch ở ô trên để bắt đầu tạo đơn
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Fully Transparent Shortcut Grid (Collapsed by Default, toggled on click) */}
-                                            <AnimatePresence>
-                                                {showHotkeysGuide && (
-                                                    <m.div
-                                                        key="hotkeys-guide-panel"
-                                                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
-                                                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                                                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                                                        className="w-full overflow-hidden"
-                                                    >
-                                                        <div className="w-full pt-1">
-                                                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
-                                                                {/* F2: Tìm kiếm */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
-                                                                </m.div>
-
-                                                                {/* F3: Chọn NCC */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn NCC</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
-                                                                </m.div>
-
-                                                                {/* F4: Tạm đơn */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạm đơn</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
-                                                                </m.div>
-
-                                                                {/* F6: Thêm SP mới */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thêm SP mới</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
-                                                                </m.div>
-
-                                                                {/* F9: Lưu & In */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu & In</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
-                                                                </m.div>
-
-                                                                {/* Ctrl+S: Lưu đơn */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu đơn</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+S</kbd>
-                                                                </m.div>
-
-                                                                {/* Tab: Chuyển ô */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
-                                                                </m.div>
-
-                                                                {/* Enter: Thêm vào đơn */}
-                                                                <m.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                                                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào đơn</span>
-                                                                    <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
-                                                                </m.div>
-                                                            </div>
-
-                                                            <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
-                                                                    <span>Đóng popup / Hủy</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
-                                                                    <span>Đổi chế độ nhập</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </m.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-                                    </m.div>
-                                )}
-                            </AnimatePresence>
                             <div className="w-full h-full relative bg-transparent">
                                 <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-200 ease-out" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}>
                                     <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (summaryLayoutMode === 'sidebar' && !isSidebarExpanded ? "pb-[400px]" : "pb-6"))}>
@@ -4220,6 +4137,8 @@ export default function Purchase() {
                                         {/* Floating Supplier Bubble - Bottom Left */}
                                         <m.div
                                             key="partner-bubble"
+                                            id="supplier-bubble"
+                                            data-bubble="supplier"
                                             ref={partnerBubbleRef}
                                             layout
                                             initial={{
@@ -4447,6 +4366,8 @@ export default function Purchase() {
                                         {/* Floating Total & Payment Bubble - Bottom Right */}
                                         <m.div
                                             key="total-bubble"
+                                            id="purchase-total-bubble"
+                                            data-bubble="total"
                                             ref={totalBubbleRef}
                                             layout
                                             initial={{

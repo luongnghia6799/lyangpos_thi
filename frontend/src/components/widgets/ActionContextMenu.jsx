@@ -121,7 +121,7 @@ export default function ActionContextMenu({
   }, []);
 
   const currentChar = MASCOT_LIST.find((c) => c.id === mascotConfig?.characterId) || MASCOT_LIST[0];
-  const mascotImageUrl = currentChar?.directions || '/mascots/cheobingo-directions.webp';
+  const mascotImageUrl = currentChar?.directions || '/mascots/lyang-directions.webp';
 
   useEffect(() => {
     if (!isOpen) return;

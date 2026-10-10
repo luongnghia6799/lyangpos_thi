@@ -8,7 +8,13 @@ const MascotSettingsModal = ({ isOpen, onClose }) => {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
-      if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.characterId === 'cheobingo' || !parsed.characterId) {
+          parsed.characterId = 'lyang';
+        }
+        return { ...DEFAULT_MASCOT_CONFIG, ...parsed };
+      }
     } catch (e) {}
     return DEFAULT_MASCOT_CONFIG;
   });
@@ -20,7 +26,13 @@ const MascotSettingsModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       try {
         const saved = localStorage.getItem('lyang_mascot_config');
-        if (saved) setConfig({ ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) });
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.characterId === 'cheobingo' || !parsed.characterId) {
+            parsed.characterId = 'lyang';
+          }
+          setConfig({ ...DEFAULT_MASCOT_CONFIG, ...parsed });
+        }
       } catch (e) {}
     }
   }, [isOpen]);

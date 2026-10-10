@@ -6,15 +6,17 @@ import {
     Save, History, Package, ArrowRight, RotateCcw,
     CheckCircle2, AlertTriangle, Info, ArrowLeftRight,
     Calendar, Filter, RefreshCw, Layers, TrendingUp,
-    ListChecks, Edit3, RotateCw, ChevronLeft, ChevronRight
+    ListChecks, Edit3, RotateCw, ChevronLeft, ChevronRight,
+    Bot, Sparkles, Link as LinkIcon, BookmarkPlus
 } from 'lucide-react';
-
 
 import { formatNumber, cn } from '../../lib/utils';
 import Toast from '../../components/widgets/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 import ProductAutocomplete from '../../components/forms/ProductAutocomplete';
 import { useProductData } from '../../queries/useProductData';
+import StockConversionMappingModal from '../../components/modals/StockConversionMappingModal';
+import AIScanStockConversionModal from '../../components/modals/AIScanStockConversionModal';
 
 export default function StockConversion() {
     const queryClient = useQueryClient();
@@ -23,6 +25,19 @@ export default function StockConversion() {
     const [toast, setToast] = useState(null);
     const [mode, setMode] = useState('convert'); // 'convert' or 'history'
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // AI Scan & Mapping Modals state
+    const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+    const [isAiScanModalOpen, setIsAiScanModalOpen] = useState(false);
+    const [settings, setSettings] = useState({});
+    const [mappings, setMappings] = useState(() => {
+        try {
+            const saved = localStorage.getItem('stock_conversion_mappings');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
 
     // refs for focus management
     const sourceSearchRef = useRef(null);
@@ -147,6 +162,89 @@ export default function StockConversion() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Load settings & conversion mappings from backend
+    useEffect(() => {
+        axios.get('/api/settings').then(res => {
+            const data = res.data || {};
+            setSettings(data);
+            if (data.stock_conversion_mappings) {
+                try {
+                    const parsed = typeof data.stock_conversion_mappings === 'string'
+                        ? JSON.parse(data.stock_conversion_mappings)
+                        : data.stock_conversion_mappings;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setMappings(parsed);
+                        localStorage.setItem('stock_conversion_mappings', JSON.stringify(parsed));
+                    }
+                } catch (e) {}
+            }
+        }).catch(err => console.error('Failed to load settings', err));
+
+        // Listen for BroadcastChannel updates from other tabs
+        let bc;
+        try {
+            bc = new BroadcastChannel('pos_data_sync');
+            bc.onmessage = (e) => {
+                if (e.data?.type === 'UI_SETTING_UPDATED' && e.data?.key === 'stock_conversion_mappings') {
+                    try {
+                        const parsed = typeof e.data.value === 'string' ? JSON.parse(e.data.value) : e.data.value;
+                        if (Array.isArray(parsed)) setMappings(parsed);
+                    } catch (err) {}
+                }
+            };
+        } catch (e) {}
+
+        return () => {
+            if (bc) bc.close();
+        };
+    }, []);
+
+    const handleSaveMappings = (newMappings) => {
+        setMappings(newMappings);
+        try {
+            localStorage.setItem('stock_conversion_mappings', JSON.stringify(newMappings));
+            axios.post('/api/settings', { stock_conversion_mappings: JSON.stringify(newMappings) }).catch(() => {});
+            const bc = new BroadcastChannel('pos_data_sync');
+            bc.postMessage({ type: 'UI_SETTING_UPDATED', key: 'stock_conversion_mappings', value: JSON.stringify(newMappings) });
+            bc.close();
+        } catch (e) {}
+    };
+
+    const handleSaveMappingQuick = (sourceId, destId, mult) => {
+        const existingIdx = mappings.findIndex(m => m.source_product_id === sourceId);
+        let updated;
+        const newEntry = {
+            source_product_id: sourceId,
+            dest_product_id: destId,
+            multiplier: Number(mult),
+            note: 'Cấu hình liên kết xé lẻ',
+            updated_at: new Date().toISOString()
+        };
+        if (existingIdx > -1) {
+            updated = [...mappings];
+            updated[existingIdx] = newEntry;
+        } else {
+            updated = [newEntry, ...mappings];
+        }
+        handleSaveMappings(updated);
+        showToast('Đã lưu cấu hình liên kết xé lẻ!', 'success');
+    };
+
+    const handleQuickSaveCurrentMapping = () => {
+        if (!sourceProduct || !destProduct || Number(multiplier) <= 0) return;
+        handleSaveMappingQuick(sourceProduct.id, destProduct.id, multiplier);
+    };
+
+    const isCurrentPairMapped = useMemo(() => {
+        if (!sourceProduct || !destProduct) return false;
+        return mappings.some(m => m.source_product_id === sourceProduct.id && m.dest_product_id === destProduct.id);
+    }, [mappings, sourceProduct, destProduct]);
+
+    const currentSourceMapping = useMemo(() => {
+        if (!sourceProduct) return null;
+        return mappings.find(m => m.source_product_id === sourceProduct.id) || null;
+    }, [mappings, sourceProduct]);
 
 
     const addToQueue = () => {
@@ -329,7 +427,28 @@ export default function StockConversion() {
                     </div>
                 </div>
 
-                <div className="flex p-1.5 bg-transparent border border-border rounded-2xl relative">
+                <div className="flex flex-wrap items-center gap-2.5">
+                    <m.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => setIsAiScanModalOpen(true)}
+                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[11px] uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all active:scale-95"
+                    >
+                        <Sparkles size={16} />
+                        <span>AI Scan Ảnh</span>
+                    </m.button>
+
+                    <m.button
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => setIsMappingModalOpen(true)}
+                        className="px-3.5 py-2.5 rounded-2xl bg-card border border-primary/20 hover:border-primary/50 text-primary font-black text-[11px] uppercase tracking-wider flex items-center gap-2 transition-all shadow-2xs active:scale-95"
+                    >
+                        <LinkIcon size={14} />
+                        <span>Cài Đặt Liên Kết ({mappings.length})</span>
+                    </m.button>
+
+                    <div className="flex p-1.5 bg-transparent border border-border rounded-2xl relative">
                     <button
                         onClick={() => setMode('convert')}
                         className={cn(
@@ -363,6 +482,7 @@ export default function StockConversion() {
                         )}
                     </button>
                 </div>
+            </div>
             </div>
 
             <div className="flex-1 pos-card rounded-2xl border border-border overflow-hidden flex flex-col shadow-none">
@@ -413,6 +533,17 @@ export default function StockConversion() {
                                                     const p = allProducts.find(prod => prod.id === productId);
                                                     if (p) {
                                                         setSourceProduct(p);
+                                                        const map = mappings.find(m => m.source_product_id === p.id);
+                                                        if (map) {
+                                                            const mappedDest = allProducts.find(prod => prod.id === map.dest_product_id);
+                                                            if (mappedDest) {
+                                                                setDestProduct(mappedDest);
+                                                                setMultiplier(map.multiplier || (p.multiplier > 1 ? p.multiplier : 50));
+                                                                showToast(`⚡ Đã tự động chọn "${mappedDest.name}" theo liên kết xé lẻ!`);
+                                                                setTimeout(() => sourceQtyRef.current?.focus(), 50);
+                                                                return;
+                                                            }
+                                                        }
                                                         if (p.multiplier > 1) setMultiplier(p.multiplier);
                                                         setTimeout(() => sourceQtyRef.current?.focus(), 50);
                                                     }
@@ -421,8 +552,15 @@ export default function StockConversion() {
                                                 className="w-full"
                                             />
                                         ) : (
-                                            <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="bg-primary/5 p-4 rounded-xl border border-primary/10 w-full">
-                                                <div className="text-lg font-black text-primary uppercase leading-tight mb-2">{sourceProduct.name}</div>
+                                            <m.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="bg-primary/5 p-4 rounded-xl border border-primary/10 w-full space-y-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="text-lg font-black text-primary uppercase leading-tight truncate">{sourceProduct.name}</div>
+                                                    {currentSourceMapping && (
+                                                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase flex items-center gap-1 shrink-0 border border-emerald-500/20">
+                                                            <CheckCircle2 size={11} /> Đã Cài Liên Kết
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="grid grid-cols-3 gap-6">
                                                     <div>
                                                         <div className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Tồn hiện tại</div>
@@ -530,6 +668,32 @@ export default function StockConversion() {
                                             </m.div>
                                         )}
 
+                                        {/* Mapping Quick Save / Status */}
+                                        {sourceProduct && destProduct && (
+                                            <div className="flex items-center justify-between text-[11px] px-1 pt-1">
+                                                {isCurrentPairMapped ? (
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                                                        <CheckCircle2 size={13} /> Đã lưu cặp xé lẻ mặc định ({multiplier} {destProduct.unit}/{sourceProduct.unit})
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleQuickSaveCurrentMapping}
+                                                        className="text-primary hover:underline font-black flex items-center gap-1.5 transition-all text-xs"
+                                                    >
+                                                        <BookmarkPlus size={14} /> ⭐ Lưu cặp này làm liên kết mặc định
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsMappingModalOpen(true)}
+                                                    className="text-muted-foreground hover:text-foreground text-[10px] font-bold flex items-center gap-1 ml-auto"
+                                                >
+                                                    <LinkIcon size={11} /> Cài đặt liên kết
+                                                </button>
+                                            </div>
+                                        )}
+
                                         <div className="relative">
                                             <label className="absolute -top-2.5 left-4 px-2 bg-card border border-border rounded-lg text-[9px] font-black text-primary uppercase tracking-widest shadow-none z-10">Nhận được (Số Kg thực tế sau hao hụt)</label>
                                             <input
@@ -631,9 +795,23 @@ export default function StockConversion() {
                                     </div>
 
                                     {pendingItems.length === 0 ? (
-                                        <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 py-20">
-                                            <ListChecks size={48} className="mb-3 text-muted" />
-                                            <span className="font-black text-xs uppercase tracking-[0.25em] text-muted">Trống danh sách chờ</span>
+                                        <div className="flex-1 flex flex-col items-center justify-center text-center py-20 space-y-3">
+                                            <div className="p-4 rounded-full bg-primary/10 text-primary">
+                                                <ListChecks size={36} />
+                                            </div>
+                                            <div>
+                                                <span className="font-black text-xs uppercase tracking-[0.25em] text-foreground block">Trống danh sách chờ</span>
+                                                <p className="text-[11px] text-muted-foreground mt-1 max-w-xs mx-auto">
+                                                    Chọn sản phẩm bên trái hoặc sử dụng AI Scan để tự động thêm các mặt hàng xé lẻ
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAiScanModalOpen(true)}
+                                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95 transition-all mt-2"
+                                            >
+                                                <Sparkles size={14} /> Quét Ảnh Bằng AI Ngay
+                                            </button>
                                         </div>
                                     ) : (
                                         <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -947,6 +1125,30 @@ export default function StockConversion() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Cài đặt liên kết xé lẻ modal */}
+            <StockConversionMappingModal
+                isOpen={isMappingModalOpen}
+                onClose={() => setIsMappingModalOpen(false)}
+                mappings={mappings}
+                onSaveMappings={handleSaveMappings}
+                allProducts={allProducts}
+                showToast={showToast}
+            />
+
+            {/* AI Scan xé lẻ modal */}
+            <AIScanStockConversionModal
+                isOpen={isAiScanModalOpen}
+                onClose={() => setIsAiScanModalOpen(false)}
+                allProducts={allProducts}
+                mappings={mappings}
+                onAddBatchToQueue={(newItems) => {
+                    setPendingItems(prev => [...newItems, ...prev]);
+                }}
+                onSaveMappingQuick={handleSaveMappingQuick}
+                showToast={showToast}
+                settings={settings}
+            />
         </div>
     </div>
     );

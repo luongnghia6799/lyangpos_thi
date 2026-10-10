@@ -39,6 +39,14 @@ export default class ErrorBoundary extends React.Component {
     componentDidMount() {
         // Global error listener for non-react errors (e.g. chunk loading failures)
         this.globalErrorListener = (event) => {
+            const msg = event?.message || (typeof event === 'string' ? event : '');
+            if (
+                msg.includes('ResizeObserver loop completed with undelivered notifications') ||
+                msg.includes('ResizeObserver loop limit exceeded')
+            ) {
+                // Benign browser notification when ResizeObserver defers notifications to the next frame. Ignore.
+                return;
+            }
             console.error("Global window.onerror caught:", event);
             const error = event.error || { message: event.message };
             this.setState({

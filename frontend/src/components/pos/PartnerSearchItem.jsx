@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion as m } from 'framer-motion';
 import { User, Phone, MapPin } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import MarqueeText from '@/components/widgets/MarqueeText';
@@ -20,10 +19,10 @@ const PartnerSearchItem = React.memo(function PartnerSearchItem({
   const debt = partner.debt_balance || 0;
 
   return (
-    <m.div
+    <div
       key={partner.id}
       data-index={targetIndex}
-      onMouseMove={() => onHover?.(targetIndex)}
+      onMouseEnter={() => onHover?.(targetIndex)}
       onMouseDown={(e) => {
         e.preventDefault();
         onSelect?.(partner);
@@ -129,7 +128,7 @@ const PartnerSearchItem = React.memo(function PartnerSearchItem({
           {debt > 0 ? "KHÁCH NỢ" : debt < 0 ? "MÌNH NỢ" : "HẾT NỢ"}
         </div>
       </div>
-    </m.div>
+    </div>
   );
 }, (prev, next) => {
   return (

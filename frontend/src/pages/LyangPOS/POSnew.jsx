@@ -729,8 +729,6 @@ function POSPage({
     [soundThemeCartAdd, setSoundThemeCartAdd] = i.useState(() => localStorage.getItem("pos_sound_theme_cart_add") || "barcode_beep"),
     [soundThemeTyping, setSoundThemeTyping] = i.useState(() => localStorage.getItem("pos_sound_theme_typing") || "mechanical"),
     [soundThemeError, setSoundThemeError] = i.useState(() => localStorage.getItem("pos_sound_theme_error") || "buzz_low"),
-    [showHotkeysGuide, setShowHotkeysGuide] = i.useState(() => localStorage.getItem("pos_show_hotkeys_guide") === "true"),
-    [showEmptyCartGuide, setShowEmptyCartGuide] = i.useState(() => localStorage.getItem("pos_show_empty_cart_guide") !== "false"),
     [showMascotCustomizer, setShowMascotCustomizer] = i.useState(false),
     [mascotWatermarkVisible, setMascotWatermarkVisible] = i.useState(() => localStorage.getItem("pos_mascot_watermark_visible") !== "false"),
     [mascotWatermarkPos, setMascotWatermarkPos] = i.useState(() => localStorage.getItem("pos_mascot_watermark_pos") || "bottom-right"),
@@ -1367,7 +1365,19 @@ function POSPage({
     [cartColorConfig, setCartColorConfig] = i.useState(() => {
       try {
         const saved = localStorage.getItem("pos_cart_color_config");
-        return saved ? JSON.parse(saved) : DEFAULT_CART_COLOR_CONFIG;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.constrainCartAboveBubbles === false) {
+            parsed.constrainCartAboveBubbles = true;
+            localStorage.setItem("pos_cart_color_config", JSON.stringify(parsed));
+          }
+          return {
+            ...DEFAULT_CART_COLOR_CONFIG,
+            ...parsed,
+            constrainCartAboveBubbles: true
+          };
+        }
+        return DEFAULT_CART_COLOR_CONFIG;
       } catch {
         return DEFAULT_CART_COLOR_CONFIG;
       }
@@ -1400,30 +1410,31 @@ function POSPage({
   i.useEffect(() => {
     if (isCartRowDropdownOpen) {
       let rafId = null;
+      const measureCartCoords = () => {
+        const el = document.getElementById(`row-name-${Tt}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.bottom > 0) {
+            const nextTop = Math.round(rect.bottom + 6),
+              nextLeft = Math.round(rect.left),
+              nextWidth = Math.round(Math.max(rect.width, 700));
+            setCartRowSearchCoords(prev => {
+              if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) {
+                return prev;
+              }
+              return { top: nextTop, left: nextLeft, width: nextWidth };
+            });
+          }
+        }
+      };
       const updateCartCoords = (e) => {
         if (e && e.target && e.target.closest && (e.target.closest('#cart-row-product-dropdown') || e.target.closest('.frosted-glass'))) {
           return;
         }
         if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          const el = document.getElementById(`row-name-${Tt}`);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            if (rect.width > 0 && rect.bottom > 0) {
-              const nextTop = Math.round(rect.bottom + 6),
-                nextLeft = Math.round(rect.left),
-                nextWidth = Math.round(Math.max(rect.width, 700));
-              setCartRowSearchCoords(prev => {
-                if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) {
-                  return prev;
-                }
-                return { top: nextTop, left: nextLeft, width: nextWidth };
-              });
-            }
-          }
-        });
+        rafId = requestAnimationFrame(measureCartCoords);
       };
-      updateCartCoords();
+      measureCartCoords();
       window.addEventListener("resize", updateCartCoords, { passive: true });
       window.addEventListener("scroll", updateCartCoords, { passive: true, capture: true });
       return () => {
@@ -1438,29 +1449,30 @@ function POSPage({
   i.useEffect(() => {
     if (isProductSearchOpen) {
       let rafId = null;
+      const measureCoords = () => {
+        if (se.current) {
+          const rect = se.current.getBoundingClientRect();
+          if (rect.width > 0 && rect.bottom > 0) {
+            const nextTop = Math.round(rect.bottom + 6),
+              nextLeft = Math.round(rect.left),
+              nextWidth = Math.round(Math.max(rect.width, 700));
+            setProductSearchCoords(prev => {
+              if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) {
+                return prev;
+              }
+              return { top: nextTop, left: nextLeft, width: nextWidth };
+            });
+          }
+        }
+      };
       const updateCoords = (e) => {
         if (e && e.target && e.target.closest && (e.target.closest('#pos-product-dropdown') || e.target.closest('.frosted-glass'))) {
           return;
         }
         if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          if (se.current) {
-            const rect = se.current.getBoundingClientRect();
-            if (rect.width > 0 && rect.bottom > 0) {
-              const nextTop = Math.round(rect.bottom + 6),
-                nextLeft = Math.round(rect.left),
-                nextWidth = Math.round(Math.max(rect.width, 700));
-              setProductSearchCoords(prev => {
-                if (prev.top === nextTop && prev.left === nextLeft && prev.width === nextWidth) {
-                  return prev;
-                }
-                return { top: nextTop, left: nextLeft, width: nextWidth };
-              });
-            }
-          }
-        });
+        rafId = requestAnimationFrame(measureCoords);
       };
-      updateCoords();
+      measureCoords();
       window.addEventListener("resize", updateCoords, { passive: true });
       window.addEventListener("scroll", updateCoords, { passive: true, capture: true });
       return () => {
@@ -1812,8 +1824,6 @@ function POSPage({
         setTransparentCartTable(data.value === "true");
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_typing_sound_enabled") {
         setTypingSoundEnabled(data.value !== "false");
-      } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_show_empty_cart_guide") {
-        setShowEmptyCartGuide(data.value !== "false");
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_sound_theme_success") {
         setSoundThemeSuccess(data.value);
       } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_sound_theme_action") {
@@ -2238,34 +2248,64 @@ function POSPage({
     }
 
     let debounceTimer = null;
+    let observedP = null;
+    let observedT = null;
+
+    const ro = new ResizeObserver(() => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(measureAndApply, 50);
+    });
+
+    const attachObservers = () => {
+      const pEl = partnerBubbleRef.current || document.getElementById('partner-bubble') || document.querySelector('[data-bubble="partner"]');
+      const tEl = totalBubbleRef.current || document.getElementById('total-bubble') || document.querySelector('[data-bubble="total"]');
+      if (pEl && pEl !== observedP) {
+        if (observedP) ro.unobserve(observedP);
+        ro.observe(pEl);
+        observedP = pEl;
+      }
+      if (tEl && tEl !== observedT) {
+        if (observedT) ro.unobserve(observedT);
+        ro.observe(tEl);
+        observedT = tEl;
+      }
+    };
 
     const measureAndApply = () => {
       if (!cartScrollContainerRef.current) return;
-      const pH = partnerBubbleRef.current ? partnerBubbleRef.current.offsetHeight : 0;
-      const tH = totalBubbleRef.current ? totalBubbleRef.current.offsetHeight : 0;
+      attachObservers();
+      const pEl = partnerBubbleRef.current || document.getElementById('partner-bubble') || document.querySelector('[data-bubble="partner"]');
+      const tEl = totalBubbleRef.current || document.getElementById('total-bubble') || document.querySelector('[data-bubble="total"]');
+      const pH = pEl ? Math.max(pEl.offsetHeight || 0, Math.round(pEl.getBoundingClientRect?.().height || 0)) : 0;
+      const tH = tEl ? Math.max(tEl.offsetHeight || 0, Math.round(tEl.getBoundingClientRect?.().height || 0)) : 0;
       const maxH = Math.max(pH, tH);
-      const targetH = maxH > 0 ? maxH + 24 : 100;
+      const fallback = (p || g === "remote_inspect") ? 100 : 85;
+      const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
       const targetVal = `${targetH}px`;
       if (cartScrollContainerRef.current.style.getPropertyValue('--cart-bubble-bottom') !== targetVal) {
         cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', targetVal);
       }
+      checkCartScroll();
     };
 
     measureAndApply();
 
-    const ro = new ResizeObserver(() => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(measureAndApply, 120);
-    });
+    const rafId = requestAnimationFrame(measureAndApply);
+    const timer1 = setTimeout(measureAndApply, 100);
+    const timer2 = setTimeout(measureAndApply, 350);
 
-    if (partnerBubbleRef.current) ro.observe(partnerBubbleRef.current);
-    if (totalBubbleRef.current) ro.observe(totalBubbleRef.current);
+    attachObservers();
+    window.addEventListener('resize', measureAndApply, { passive: true });
 
     return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       ro.disconnect();
       if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('resize', measureAndApply);
     };
-  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles]);
+  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles, p, y.length, ve.length, I, $, checkCartScroll]);
 
   i.useEffect(() => {
     const t = a => {
@@ -3959,154 +3999,7 @@ function POSPage({
                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                 boxShadow: getCartBoxShadow(cartColorConfig)
               }}
-            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P><P>{showEmptyCartGuide && ve.length === 0 && !m.product && !Z && (g !== "remote_inspect" || !k?.cart || k.cart.length === 0) && !(g === "remote_inspect" && k) && (
-              <x.div
-                key="pos-empty-cart-overlay"
-                initial={{ opacity: 0, scale: 0.92, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                className="absolute inset-x-0 top-[110px] bottom-4 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4"
-              >
-                <div className="flex flex-col items-center justify-center max-w-4xl w-full mx-auto pointer-events-auto">
-                  <div 
-                    onClick={() => setShowHotkeysGuide(prev => {
-                      const next = !prev;
-                      try { localStorage.setItem("pos_show_hotkeys_guide", String(next)); } catch (e) {}
-                      return next;
-                    })}
-                    className="flex items-center gap-3.5 mb-2 cursor-pointer group select-none transition-transform hover:scale-[1.02] active:scale-98 text-left"
-                  >
-                    <div className="relative shrink-0">
-                      <x.img
-                        src="/assets/images/user_mascot.png"
-                        alt="Lyang Mascot"
-                        className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-contain drop-shadow-2xl mix-blend-multiply dark:mix-blend-normal select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
-                        draggable="false"
-                        initial={{ scale: 0.8, rotate: -6 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      />
-                    </div>
-                    <div className="flex flex-col justify-center">
-                      <span className="text-lg sm:text-xl md:text-2xl font-black uppercase tracking-wider text-[#2d5016] dark:text-[#d4a574] leading-tight flex items-center gap-2">
-                        <span>Giỏ Hàng Chưa Có Sản Phẩm</span>
-                      </span>
-                      <span className="text-xs sm:text-sm font-bold text-[#8b6f47]/90 dark:text-slate-400 leading-normal mt-1 whitespace-nowrap">
-                        Gõ tên sản phẩm (F2) hoặc quét mã vạch ở ô trên để bắt đầu tạo đơn
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Fully Transparent Shortcut Grid (Collapsed by Default) */}
-                  <Ws>
-                    {showHotkeysGuide && (
-                      <x.div
-                        key="hotkeys-guide-panel"
-                        initial={{ opacity: 0, height: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, height: "auto", scale: 1 }}
-                        exit={{ opacity: 0, height: 0, scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                        className="w-full overflow-hidden"
-                      >
-                        <div className="w-full pt-1">
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-left">
-                            {/* F2: Tìm kiếm */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tìm kiếm SP</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F2</kbd>
-                            </x.div>
-
-                            {/* F3: Chọn khách */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Chọn khách</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F3</kbd>
-                            </x.div>
-
-                            {/* F4: Tạo đơn mới */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Tạo đơn mới</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F4</kbd>
-                            </x.div>
-
-                            {/* F6: Món tự do */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Món tự do</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F6</kbd>
-                            </x.div>
-
-                            {/* F8: Lưu tạm */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu tạm đơn</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F8</kbd>
-                            </x.div>
-
-                            {/* F9: Thanh toán */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Thanh toán</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F9</kbd>
-                            </x.div>
-
-                            {/* F10: Đọc tiền */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Đọc số tiền</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F10</kbd>
-                            </x.div>
-
-                            {/* F12: Lưu / In */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 truncate pr-1">Lưu / In đơn</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#2d5016] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">F12</kbd>
-                            </x.div>
-
-                            {/* Tab: Chuyển ô */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Chuyển ô</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Tab</kbd>
-                            </x.div>
-
-                            {/* Enter: Thêm món */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Thêm vào giỏ</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Enter</kbd>
-                            </x.div>
-
-                            {/* Ctrl+Z: Hoàn tác */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Hoàn tác</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+Z</kbd>
-                            </x.div>
-
-                            {/* Ctrl+Arrow: Đổi hóa đơn */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đổi tab đơn</span>
-                              <kbd className="px-1 py-0.5 bg-[#8b6f47] text-white rounded-lg text-[8px] font-black font-mono shadow-2xs shrink-0">Ctrl+▲▼</kbd>
-                            </x.div>
-
-                            {/* Ctrl+S: Đơn ngày */}
-                            <x.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-between p-1.5 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 hover:border-amber-600/40 transition-colors group cursor-default">
-                              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200 group-hover:text-amber-700 dark:group-hover:text-amber-400 truncate pr-1">Đơn ngày</span>
-                              <kbd className="px-1.5 py-0.5 bg-[#8b6f47] text-white rounded-md text-[9px] font-black font-mono shadow-2xs shrink-0">Ctrl+S</kbd>
-                            </x.div>
-                          </div>
-
-                          <div className="mt-2.5 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400 px-1 font-bold">
-                            <div className="flex items-center gap-1.5">
-                              <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Esc</kbd>
-                              <span>Đóng popup / Hủy</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <kbd className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black font-mono">Ctrl+Space</kbd>
-                              <span>Đơn treo / Chờ</span>
-                            </div>
-                          </div>
-                        </div>
-                      </x.div>
-                    )}
-                  </Ws>
-                </div>
-              </x.div>
-            )}</P>{mascotWatermarkVisible && (
+            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P>{mascotWatermarkVisible && (
               <div 
                 className={c(
                   "absolute pointer-events-none select-none z-0 overflow-hidden flex transition-all duration-200",
@@ -4871,6 +4764,8 @@ function POSPage({
                           }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
   <x.div
     key="partner-bubble"
+    id="partner-bubble"
+    data-bubble="partner"
     ref={partnerBubbleRef}
     layout
     initial={{
@@ -5133,6 +5028,8 @@ function POSPage({
   </x.div>
   <x.div
     key="total-bubble"
+    id="total-bubble"
+    data-bubble="total"
     ref={totalBubbleRef}
     layout
     initial={{

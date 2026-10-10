@@ -68,7 +68,14 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
   const [config, setConfig] = useState(() => {
     try {
       const saved = localStorage.getItem('lyang_mascot_config');
-      if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.characterId === 'cheobingo' || !parsed.characterId) {
+          parsed.characterId = 'lyang';
+          localStorage.setItem('lyang_mascot_config', JSON.stringify(parsed));
+        }
+        return { ...DEFAULT_MASCOT_CONFIG, ...parsed };
+      }
     } catch (e) {}
     return DEFAULT_MASCOT_CONFIG;
   });
@@ -126,6 +133,9 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
         const saved = localStorage.getItem('lyang_mascot_config');
         if (saved) {
           const parsed = JSON.parse(saved);
+          if (parsed.characterId === 'cheobingo') {
+            parsed.characterId = 'lyang';
+          }
           setConfig((prev) => ({ ...prev, ...parsed }));
           if (parsed.position) {
             setPos(parsed.position);

@@ -1,20 +1,11 @@
 // Danh sach 60 Mascot cho LyangPOS
 export const MASCOT_LIST = [
   {
-    "id": "cheobingo",
-    "name": "Cheobingo",
-    "category": "human",
-    "emoji": "😎",
-    "desc": "Mascot Cheobingo 2D Chibi năng động & thân thiện",
-    "directions": "/mascots/cheobingo-directions.webp",
-    "reactions": "/mascots/cheobingo-reactions.webp"
-  },
-  {
     "id": "lyang",
-    "name": "Bé Lyang (Logo)",
+    "name": "Bé Lyang Chibi",
     "category": "human",
     "emoji": "🌾",
-    "desc": "Linh vật chính thức của LyangPOS",
+    "desc": "Linh vật chính thức của LyangPOS (Cute Chibi)",
     "directions": "/mascots/lyang-directions.webp",
     "reactions": "/mascots/lyang-reactions.webp"
   },
@@ -566,7 +557,7 @@ export const MASCOT_QUOTES = [
 
 export const DEFAULT_MASCOT_CONFIG = {
   enabled: true,
-  characterId: 'cheobingo',
+  characterId: 'lyang',
   size: 110,
   opacity: 1,
   showQuotes: true,

@@ -523,7 +523,6 @@ export default function CartColorCustomizerModal({
     // Additional display settings stored in localStorage
     const [transparentCartTable, setTransparentCartTable] = useState(() => localStorage.getItem("pos_transparent_cart_table") === "true");
     const [showLastPurchaseBadge, setShowLastPurchaseBadge] = useState(() => localStorage.getItem("pos_show_last_purchase_badge") !== "false");
-    const [showEmptyCartGuide, setShowEmptyCartGuide] = useState(() => localStorage.getItem("pos_show_empty_cart_guide") !== "false");
 
     // Mascot Watermark settings
     const [mascotWatermarkVisible, setMascotWatermarkVisible] = useState(() => localStorage.getItem("pos_mascot_watermark_visible") !== "false");
@@ -560,7 +559,6 @@ export default function CartColorCustomizerModal({
         if (isOpen) {
             setTransparentCartTable(localStorage.getItem("pos_transparent_cart_table") === "true");
             setShowLastPurchaseBadge(localStorage.getItem("pos_show_last_purchase_badge") !== "false");
-            setShowEmptyCartGuide(localStorage.getItem("pos_show_empty_cart_guide") !== "false");
             setMascotWatermarkVisible(localStorage.getItem("pos_mascot_watermark_visible") !== "false");
             setMascotWatermarkPos(localStorage.getItem("pos_mascot_watermark_pos") || "bottom-right");
             setMascotWatermarkScale(parseFloat(localStorage.getItem("pos_mascot_watermark_scale") || "100"));
@@ -652,13 +650,6 @@ export default function CartColorCustomizerModal({
         setShowLastPurchaseBadge(val);
         localStorage.setItem("pos_show_last_purchase_badge", val ? "true" : "false");
         broadcastSetting("pos_show_last_purchase_badge", val ? "true" : "false");
-    };
-
-    const handleToggleEmptyCartGuide = () => {
-        const val = !showEmptyCartGuide;
-        setShowEmptyCartGuide(val);
-        localStorage.setItem("pos_show_empty_cart_guide", val ? "true" : "false");
-        broadcastSetting("pos_show_empty_cart_guide", val ? "true" : "false");
     };
 
     const handleToggleMascotVisible = () => {
@@ -2284,45 +2275,6 @@ export default function CartColorCustomizerModal({
                                         "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
                                         showLastPurchaseBadge
                                             ? "bg-indigo-600 border-indigo-600 justify-end"
-                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                    )}>
-                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                    </div>
-                                </div>
-
-                                {/* Empty Cart Guide & Mascot Banner */}
-                                <div 
-                                    onClick={handleToggleEmptyCartGuide}
-                                    className={cn(
-                                        "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
-                                        showEmptyCartGuide
-                                            ? "bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/15 dark:border-amber-400/30"
-                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3.5">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                            showEmptyCartGuide
-                                                ? "bg-amber-500 text-white shadow-md shadow-amber-500/30"
-                                                : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                        )}>
-                                            <ShoppingCart size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                                Hình Hướng Dẫn & Linh Vật Khi Giỏ Trống
-                                            </span>
-                                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                {showEmptyCartGuide ? "Bật: Hiện linh vật cậu bé và bảng phím tắt nhanh khi chưa có món" : "Tắt: Ẩn hoàn toàn bảng trống, giao diện tối giản tối đa"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={cn(
-                                        "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                        showEmptyCartGuide
-                                            ? "bg-amber-500 border-amber-500 justify-end"
                                             : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
                                     )}>
                                         <div className="w-5 h-5 rounded-full bg-white shadow-sm" />

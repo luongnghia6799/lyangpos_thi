@@ -11,7 +11,9 @@ const ProductAutocomplete = React.forwardRef(({
     onChange,
     onKeyDown: parentKeyDown,
     placeholder = "🔍 Tìm sản phẩm...",
-    className
+    className,
+    dropdownAlign = "left",
+    dropdownClassName
 }, ref) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -139,7 +141,13 @@ const ProductAutocomplete = React.forwardRef(({
                             duration: 0.12,
                             ease: "easeOut"
                         }}
-                        className="absolute top-full left-0 right-0 rounded-2xl mt-2 z-[100] overflow-hidden w-full min-w-[500px] frosted-glass"
+                        className={cn(
+                            "absolute top-full mt-2 z-[100] overflow-hidden rounded-2xl shadow-2xl frosted-glass border border-border/40",
+                            dropdownAlign === 'right'
+                                ? "right-0 left-auto w-[min(90vw,480px)]"
+                                : "left-0 min-w-full sm:w-[480px] max-w-[85vw]",
+                            dropdownClassName
+                        )}
                     >
                             <ul ref={listRef} className="max-h-60 overflow-y-auto overscroll-contain no-scrollbar rounded-2xl">
                                 {filteredOptions.map((p, index) => (

@@ -682,7 +682,15 @@ function App() {
     window.addEventListener('keydown', handleF11Toggle);
 
     const handleGpuState = () => {
-      setGpuDisabled(localStorage.getItem("pos_gpu_disabled") === "true");
+      const disabled = localStorage.getItem("pos_gpu_disabled") === "true";
+      setGpuDisabled(disabled);
+      if (disabled) {
+        document.documentElement.classList.add("gpu-disabled");
+        document.documentElement.classList.add("gpu-disabled-mode");
+      } else {
+        document.documentElement.classList.remove("gpu-disabled");
+        document.documentElement.classList.remove("gpu-disabled-mode");
+      }
     };
     window.addEventListener("gpu_state_changed", handleGpuState);
     window.addEventListener("storage", handleGpuState);
@@ -690,8 +698,10 @@ function App() {
     // Initial mount check
     if (localStorage.getItem("pos_gpu_disabled") === "true") {
       document.documentElement.classList.add("gpu-disabled");
+      document.documentElement.classList.add("gpu-disabled-mode");
     } else {
       document.documentElement.classList.remove("gpu-disabled");
+      document.documentElement.classList.remove("gpu-disabled-mode");
     }
 
     return () => {

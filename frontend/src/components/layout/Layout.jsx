@@ -217,33 +217,24 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     </div>
                 )}
 
-                {/* Mascot resting on top of active pill waving hello */}
+                {/* Mascot resting on top of active pill waving hello (static at rest, 0% GPU) */}
                 {active && !isFlyout && (
                     <m.div
                         layoutId="active-nav-mascot"
                         initial={{ opacity: 0, scale: 0.7, y: 6 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.7 }}
+                        whileHover={{ scale: 1.15, rotate: 4, transition: { duration: 0.2 } }}
                         transition={{ type: "spring", stiffness: 420, damping: 26 }}
                         className={cn(
                             "absolute z-30 pointer-events-none select-none flex items-end",
                             isCollapsed ? "-top-[28px] -right-1.5 w-9 h-9" : "-top-[30px] right-3.5 w-10 h-10"
                         )}
                     >
-                        <m.img 
+                        <img 
                             src="/assets/images/mascot_active_pill.png" 
                             alt="Mascot Hello" 
-                            animate={{ 
-                                rotate: [0, 6, -3, 5, 0],
-                                y: [0, -2, 0]
-                            }}
-                            transition={{
-                                duration: 2.6,
-                                repeat: Infinity,
-                                repeatType: "reverse",
-                                ease: "easeInOut"
-                            }}
-                            className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]"
+                            className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.22)]"
                             draggable="false"
                         />
                     </m.div>
@@ -462,23 +453,14 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                             initial={{ opacity: 0, scale: 0.7, y: 6 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.7 }}
+                            whileHover={{ scale: 1.15, rotate: 4, transition: { duration: 0.2 } }}
                             transition={{ type: "spring", stiffness: 420, damping: 26 }}
                             className="absolute z-30 pointer-events-none select-none -top-[28px] -right-1.5 w-9 h-9"
                         >
-                            <m.img 
+                            <img 
                                 src="/assets/images/mascot_active_pill.png" 
                                 alt="Mascot Hello" 
-                                animate={{ 
-                                    rotate: [0, 6, -3, 5, 0],
-                                    y: [0, -2, 0]
-                                }}
-                                transition={{
-                                    duration: 2.6,
-                                    repeat: Infinity,
-                                    repeatType: "reverse",
-                                    ease: "easeInOut"
-                                }}
-                                className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]"
+                                className="w-full h-full object-contain filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.22)]"
                                 draggable="false"
                             />
                         </m.div>
@@ -986,8 +968,10 @@ export default function Layout({ children }) {
         localStorage.setItem("pos_gpu_disabled", String(nextVal));
         if (nextVal) {
             document.documentElement.classList.add("gpu-disabled");
+            document.documentElement.classList.add("gpu-disabled-mode");
         } else {
             document.documentElement.classList.remove("gpu-disabled");
+            document.documentElement.classList.remove("gpu-disabled-mode");
         }
         window.dispatchEvent(new Event("gpu_state_changed"));
     };
@@ -1877,6 +1861,28 @@ export default function Layout({ children }) {
                                     </Link>
                                 </>
                             )}
+                            <button
+                                onClick={toggleGpuDisabled}
+                                style={isLiteMode ? { color: liteTheme.text } : {}}
+                                className={cn(
+                                    "flex items-center justify-between w-full p-2.5 rounded-xl font-bold text-xs transition-colors my-0.5",
+                                    gpuDisabled
+                                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                                        : "hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-gray-700 dark:text-emerald-100/70"
+                                )}
+                                title={gpuDisabled ? "Bấm để bật đồ họa cao" : "Bấm để tắt hiệu ứng blur và hoạt ảnh liên tục giúp giảm tải GPU"}
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    <Zap size={16} className={gpuDisabled ? "text-amber-500 fill-amber-500" : "text-gray-400"} />
+                                    <span>Tiết kiệm GPU</span>
+                                </div>
+                                <span className={cn(
+                                    "text-[10px] px-2 py-0.5 rounded-md font-black tracking-wide",
+                                    gpuDisabled ? "bg-amber-500 text-white shadow-xs" : "bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400"
+                                )}>
+                                    {gpuDisabled ? "BẬT" : "TẮT"}
+                                </span>
+                            </button>
                             <button
                                 onClick={() => {
                                     sessionStorage.removeItem('user');

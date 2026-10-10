@@ -199,8 +199,6 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
     const mode = isCollapsed ? 'collapsed' : 'expanded';
     const currentCfg = config[mode] || DEFAULT_MASCOT_CONFIG[mode];
 
-    if (currentCfg.visible === false) return null;
-
     useEffect(() => {
         if (!isEditing) {
             setTooltipPos(null);
@@ -340,6 +338,8 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
             return updated;
         });
     };
+
+    if (currentCfg.visible === false) return null;
 
     return (
         <>

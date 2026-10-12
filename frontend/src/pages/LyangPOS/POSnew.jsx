@@ -1421,7 +1421,7 @@ function POSPage({
     xs = i.useRef(null),
     hs = i.useRef(null),
     Ea = i.useRef(null),
-    [cartColorConfig, setCartColorConfig] = i.useState(() => {
+    [rawCartColorConfig, setCartColorConfig] = i.useState(() => {
       try {
         const saved = localStorage.getItem("pos_cart_color_config");
         if (saved) {
@@ -1441,6 +1441,7 @@ function POSPage({
         return DEFAULT_CART_COLOR_CONFIG;
       }
     }),
+    [isZenTheme, setIsZenTheme] = i.useState(() => localStorage.getItem("ui_theme_zen_botanical") === "true"),
     [productSearchCoords, setProductSearchCoords] = i.useState({ top: 0, left: 0, width: 700 }),
     [cartRowSearchCoords, setCartRowSearchCoords] = i.useState({ top: 0, left: 0, width: 700 }),
     [hr, qa] = i.useState([]),
@@ -1465,6 +1466,61 @@ function POSPage({
       });
       gr(!1), Wa("");
     };
+
+  i.useEffect(() => {
+    const handleZenThemeChange = () => {
+      setIsZenTheme(localStorage.getItem("ui_theme_zen_botanical") === "true");
+    };
+    window.addEventListener("zen_theme_changed", handleZenThemeChange);
+    window.addEventListener("storage", handleZenThemeChange);
+    let syncChan;
+    try {
+      syncChan = new BroadcastChannel("pos_data_sync");
+      syncChan.onmessage = (e) => {
+        if (e.data?.type === "UI_SETTING_UPDATED" && e.data?.key === "ui_theme_zen_botanical") {
+          setIsZenTheme(e.data.value === "true");
+        }
+      };
+    } catch (err) {}
+    return () => {
+      window.removeEventListener("zen_theme_changed", handleZenThemeChange);
+      window.removeEventListener("storage", handleZenThemeChange);
+      if (syncChan) syncChan.close();
+    };
+  }, []);
+
+  const toggleZenTheme = () => {
+    const nextVal = !isZenTheme;
+    setIsZenTheme(nextVal);
+    localStorage.setItem("ui_theme_zen_botanical", String(nextVal));
+    window.dispatchEvent(new Event("zen_theme_changed"));
+    window.dispatchEvent(new Event("storage"));
+    try {
+      const syncChan = new BroadcastChannel("pos_data_sync");
+      syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "ui_theme_zen_botanical", value: String(nextVal) });
+      syncChan.close();
+    } catch (err) {}
+    try {
+      axios.post("/api/settings", { ui_theme_zen_botanical: String(nextVal) });
+    } catch (err) {}
+  };
+
+  const cartColorConfig = i.useMemo(() => {
+    if (!isZenTheme) return rawCartColorConfig;
+    return {
+      ...rawCartColorConfig,
+      headerBg: rawCartColorConfig?.headerBg && rawCartColorConfig.headerBg !== 'default' ? rawCartColorConfig.headerBg : '#7D8B6E',
+      headerText: rawCartColorConfig?.headerText && rawCartColorConfig.headerText !== 'default' ? rawCartColorConfig.headerText : '#FAF7F2',
+      accentColor: rawCartColorConfig?.accentColor && rawCartColorConfig.accentColor !== 'default' ? rawCartColorConfig.accentColor : '#7D8B6E',
+      borderColor: rawCartColorConfig?.borderColor && rawCartColorConfig.borderColor !== 'default' ? rawCartColorConfig.borderColor : '#7D8B6E',
+      cartValuesColor: rawCartColorConfig?.cartValuesColor && rawCartColorConfig.cartValuesColor !== 'default' ? rawCartColorConfig.cartValuesColor : '#DE8C5A',
+      productTextColor: rawCartColorConfig?.productTextColor && rawCartColorConfig.productTextColor !== 'default' ? rawCartColorConfig.productTextColor : '#2E2820',
+      bubbleBg: rawCartColorConfig?.bubbleBg && rawCartColorConfig.bubbleBg !== 'default' ? rawCartColorConfig.bubbleBg : '#7D8B6E',
+      bubbleTextColor: rawCartColorConfig?.bubbleTextColor && rawCartColorConfig.bubbleTextColor !== 'default' ? rawCartColorConfig.bubbleTextColor : '#FFFFFF',
+      btnBg: rawCartColorConfig?.btnBg && rawCartColorConfig.btnBg !== 'default' ? rawCartColorConfig.btnBg : '#7D8B6E',
+      btnSavePrintBg: rawCartColorConfig?.btnSavePrintBg && rawCartColorConfig.btnSavePrintBg !== 'default' ? rawCartColorConfig.btnSavePrintBg : '#7D8B6E',
+    };
+  }, [isZenTheme, rawCartColorConfig]);
   const isCartRowDropdownOpen = Boolean(Tt !== null && zt);
   i.useEffect(() => {
     if (isCartRowDropdownOpen) {
@@ -3571,10 +3627,10 @@ function POSPage({
   return <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
     type: "just"
   } : void 0}><><div id="pos-root-container" style={{
-    '--pos-accent': Je.accent,
+    '--pos-accent': isZenTheme ? '#7D8B6E' : Je.accent,
     '--radius-pos': `${Je.radius}rem`,
     '--bg-transparent-blur': `${Je.blur}px`
-  }} className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode")}><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><x.button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 450, damping: 25 }} className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none">{(() => {
+  }} className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative z-0", Ya && "gpu-disabled-mode", isZenTheme && "zen-botanical-pos")}><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><div className="flex items-center gap-2"><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span><x.button type="button" onClick={toggleZenTheme} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} title={isZenTheme ? "Đang bật Zen Botanical (Bấm để đổi)" : "Chuyển sang Zen Botanical"} className={c("flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all cursor-pointer shrink-0 shadow-2xs", isZenTheme ? "bg-[#7D8B6E] text-white border-[#6E7C5D] shadow-xs" : "bg-[#7D8B6E]/10 hover:bg-[#7D8B6E]/20 text-[#4D603E] dark:text-[#C5D5B8] border-[#7D8B6E]/30")}><span>🌱 Zen</span></x.button></div></div><x.button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 450, damping: 25 }} className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none">{(() => {
                     const originalDateStr = le?.date ? le.date.slice(0, 10) : '';
                     let isDateModified = false;
                     if (customOrderDate) {

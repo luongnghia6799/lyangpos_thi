@@ -169,6 +169,80 @@ input, button, select, textarea, optgroup, option {
   --primary-hover: #22c55e;
 }
 
+/* ==========================================================================
+   ZEN BOTANICAL THEME (Sage Green + Warm Cream Paper + Terracotta)
+   ========================================================================== */
+.zen-botanical-pos,
+[data-theme='zen_botanical'] {
+  --primary-color: #7D8B6E;
+  --primary-hover: #6C7A5D;
+  --bg-color: #FAF7F2;
+  --text-main: #342D24;
+  --text-muted: #7D7363;
+  --border-color: rgba(125, 139, 110, 0.28);
+  --card-bg: #FFFDF9;
+  --secondary-color: #DE8C5A;
+  --accent-color: #7D8B6E;
+  --leaf-green: #7D8B6E;
+  --terracotta: #DE8C5A;
+  background-color: #FAF7F2 !important;
+  color: #342D24;
+}
+
+.dark.zen-botanical-pos,
+.dark[data-theme='zen_botanical'] {
+  --primary-color: #8F9F7E;
+  --primary-hover: #7D8B6E;
+  --bg-color: #161B14;
+  --text-main: #F0ECE4;
+  --text-muted: #A39B8F;
+  --border-color: rgba(143, 159, 126, 0.25);
+  --card-bg: #1E241C;
+  --secondary-color: #E29668;
+  --accent-color: #8F9F7E;
+  background-color: #161B14 !important;
+  color: #F0ECE4;
+}
+
+.zen-botanical-pos table thead tr {
+  background: linear-gradient(135deg, #7D8B6E 0%, #6D7B5E 100%) !important;
+  color: #FAF7F2 !important;
+}
+
+.zen-botanical-pos table thead th {
+  color: #FAF7F2 !important;
+}
+
+.zen-botanical-pos tbody tr {
+  background-color: #FFFDF9;
+  border-bottom-color: #EFE8DC !important;
+}
+
+.zen-botanical-pos tbody tr:hover {
+  background-color: #F5EFE3 !important;
+}
+
+.dark .zen-botanical-pos tbody tr {
+  background-color: #1E241C;
+  border-bottom-color: #2D3729 !important;
+}
+
+.dark .zen-botanical-pos tbody tr:hover {
+  background-color: #272F24 !important;
+}
+
+.zen-botanical-pos .pos-card,
+.zen-botanical-pos .bg-card {
+  background-color: #FFFDF9 !important;
+  border-color: #E8E0D1 !important;
+}
+
+.dark .zen-botanical-pos .pos-card,
+.dark .zen-botanical-pos .bg-card {
+  background-color: #1E241C !important;
+  border-color: #2F392B !important;
+}
+
 [data-theme='luxury'] {
   --primary-color: #8B5A2B;
   /* Leather Brown */

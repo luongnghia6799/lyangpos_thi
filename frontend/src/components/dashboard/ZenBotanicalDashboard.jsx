@@ -33,11 +33,11 @@ import { formatCurrency, formatNumber, cn } from '../../lib/utils';
 // Botanical Landscape SVG Banner
 const ZenLandscapeBanner = memo(({ weather, currentTime, shopName, onToggleZen }) => {
     return (
-        <div className="relative w-full rounded-[28px] overflow-hidden bg-gradient-to-b from-[#F7F2E7] via-[#EDE4D2] to-[#E5DAC6] dark:from-[#242A21] dark:via-[#1D221A] dark:to-[#161B14] border border-[#E4DAC7] dark:border-[#333C2F] shadow-[0_8px_30px_rgb(125,139,110,0.08)]">
+        <div className="relative w-full rounded-2xl sm:rounded-[24px] overflow-hidden bg-gradient-to-b from-[#F7F2E7] via-[#EDE4D2] to-[#E5DAC6] dark:from-[#242A21] dark:via-[#1D221A] dark:to-[#161B14] border border-[#E4DAC7] dark:border-[#333C2F] shadow-[0_8px_30px_rgb(125,139,110,0.08)]">
             {/* Scenic Vector Landscape matching user photo */}
-            <div className="relative h-48 sm:h-56 md:h-64 w-full overflow-hidden select-none">
+            <div className="relative h-44 sm:h-52 md:h-60 w-full overflow-hidden select-none">
                 <svg
-                    viewBox="0 0 1000 360"
+                    viewBox="0 0 1440 360"
                     preserveAspectRatio="xMidYMid slice"
                     className="absolute inset-0 w-full h-full pointer-events-none"
                 >
@@ -75,50 +75,50 @@ const ZenLandscapeBanner = memo(({ weather, currentTime, shopName, onToggleZen }
                     </defs>
 
                     {/* Sky Background Tint */}
-                    <rect width="1000" height="360" fill="#FAF6EE" className="dark:fill-[#20261D]" />
+                    <rect width="1440" height="360" fill="#FAF6EE" className="dark:fill-[#20261D]" />
 
                     {/* Terracotta Morning Sun */}
-                    <circle cx="680" cy="115" r="44" fill="#DE8C5A" className="opacity-95" />
-                    <circle cx="680" cy="115" r="58" fill="url(#zenSunGlow)" className="opacity-40 animate-pulse" />
+                    <circle cx="1020" cy="115" r="44" fill="#DE8C5A" className="opacity-95" />
+                    <circle cx="1020" cy="115" r="58" fill="url(#zenSunGlow)" className="opacity-40 animate-pulse" />
 
                     {/* Soft Watercolor Clouds */}
                     <path
-                        d="M380,85 Q420,70 470,85 Q510,75 550,88 Q565,100 540,105 Q450,110 380,95 Z"
+                        d="M580,85 Q620,70 670,85 Q710,75 750,88 Q765,100 740,105 Q650,110 580,95 Z"
                         fill="#FFFFFF"
                         opacity="0.55"
                     />
                     <path
-                        d="M150,105 Q190,95 240,105 Q270,98 300,108 Q290,120 230,120 Q160,118 150,105 Z"
+                        d="M250,105 Q290,95 340,105 Q370,98 400,108 Q390,120 330,120 Q260,118 250,105 Z"
                         fill="#FFFFFF"
                         opacity="0.4"
                     />
 
                     {/* Distant Mountain Ridge */}
                     <path
-                        d="M0,230 Q160,150 320,195 T640,165 T1000,190 L1000,360 L0,360 Z"
+                        d="M0,230 Q240,150 480,195 T960,165 T1440,190 L1440,360 L0,360 Z"
                         fill="url(#zenDistantMtn)"
                         className="dark:opacity-40"
                     />
 
                     {/* Mid Mountain Ridge */}
                     <path
-                        d="M0,255 Q200,180 430,225 T800,190 T1000,245 L1000,360 L0,360 Z"
+                        d="M0,255 Q290,180 620,225 T1150,190 T1440,245 L1440,360 L0,360 Z"
                         fill="url(#zenMidMtn)"
                         className="dark:opacity-60"
                     />
 
                     {/* Foreground Rolling Hills */}
                     <path
-                        d="M0,285 Q260,220 520,270 T1000,240 L1000,360 L0,360 Z"
+                        d="M0,285 Q370,220 750,270 T1440,240 L1440,360 L0,360 Z"
                         fill="url(#zenFrontMtn)"
                     />
                     <path
-                        d="M0,320 Q350,265 720,315 T1000,295 L1000,360 L0,360 Z"
+                        d="M0,320 Q500,265 1050,315 T1440,295 L1440,360 L0,360 Z"
                         fill="url(#zenForegroundHill)"
                     />
 
                     {/* Botanical Plant Stem & Leaves on Right side (matching image) */}
-                    <g transform="translate(810, 80) scale(1.15)">
+                    <g transform="translate(1220, 65) scale(1.18)">
                         {/* Main Stem */}
                         <path d="M45,240 Q40,160 52,90 Q58,40 60,10" stroke="#3D5235" strokeWidth="4.5" strokeLinecap="round" fill="none" />
                         
@@ -525,7 +525,7 @@ export default function ZenBotanicalDashboard({
     };
 
     return (
-        <div className="space-y-6 pb-12 max-w-[1400px] mx-auto animate-[fadeIn_0.3s_ease-out]">
+        <div className="space-y-4 pb-8 w-full animate-[fadeIn_0.3s_ease-out]">
             {/* 1. TOP SCENIC LANDSCAPE BANNER */}
             <ZenLandscapeBanner
                 weather={weather}
@@ -535,7 +535,7 @@ export default function ZenBotanicalDashboard({
             />
 
             {/* 2. "TODAY" (HÔM NAY) SECTION (MATCHING USER REFERENCE DESIGN) */}
-            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-[28px] border border-[#E9E2D4] dark:border-[#2F392B] p-6 sm:p-7 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-5">
+            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-2xl sm:rounded-[24px] border border-[#E9E2D4] dark:border-[#2F392B] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-4 w-full">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#332C22] dark:text-[#EDE7DD] tracking-tight">
@@ -649,7 +649,7 @@ export default function ZenBotanicalDashboard({
             </div>
 
             {/* 4. EXTENDED ANALYTICS: REVENUE CHART IN SAGE & TERRACOTTA PALETTE */}
-            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-[28px] border border-[#E9E2D4] dark:border-[#2F392B] p-6 sm:p-7 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-4">
+            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-2xl sm:rounded-[24px] border border-[#E9E2D4] dark:border-[#2F392B] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-4 w-full">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-[#7D8B6E]/15 text-[#556945] dark:text-[#AFC1A0] flex items-center justify-center">

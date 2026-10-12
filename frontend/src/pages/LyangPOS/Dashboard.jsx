@@ -923,7 +923,7 @@ export default function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className={cn("p-6 space-y-6 min-h-screen relative overflow-y-auto no-scrollbar bg-transparent transition-colors duration-700", gpuDisabled ? "gpu-disabled-mode" : "")}
+            className={cn("px-2 sm:px-3 lg:px-4 py-2.5 sm:py-3 space-y-4 min-h-screen w-full relative overflow-y-auto no-scrollbar bg-transparent transition-colors duration-700", gpuDisabled ? "gpu-disabled-mode" : "")}
         >
 
             {/* Avatar Customization Modal */}
@@ -1053,7 +1053,7 @@ export default function Dashboard() {
                     onToggleZen={toggleZenTheme}
                 />
             ) : (
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 max-w-[1600px] mx-auto">
+                <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 w-full">
                 {/* 1. Header Hero - Span 7 (60% on desktop) */}
                 <m.div 
                     variants={itemVariants} 

@@ -76,6 +76,7 @@ import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/widgets/Toast';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
+import ZenBotanicalDashboard from '../../components/dashboard/ZenBotanicalDashboard';
 
 
 ChartJS.register(
@@ -199,6 +200,46 @@ const ClockWidget = memo(() => {
 export default function Dashboard() {
     const navigate = useNavigate();
     const [hideStats, setHideStats] = useState(() => localStorage.getItem('hide_dashboard_stats') === 'true');
+    const [isZenTheme, setIsZenTheme] = useState(() => localStorage.getItem('ui_theme_zen_botanical') === 'true');
+
+    useEffect(() => {
+        const handleZenThemeChange = () => {
+            setIsZenTheme(localStorage.getItem('ui_theme_zen_botanical') === 'true');
+        };
+        window.addEventListener('zen_theme_changed', handleZenThemeChange);
+        window.addEventListener('storage', handleZenThemeChange);
+        let syncChan;
+        try {
+            syncChan = new BroadcastChannel('pos_data_sync');
+            syncChan.onmessage = (e) => {
+                if (e.data?.type === 'UI_SETTING_UPDATED' && e.data?.key === 'ui_theme_zen_botanical') {
+                    setIsZenTheme(e.data.value === 'true');
+                }
+            };
+        } catch (err) {}
+        return () => {
+            window.removeEventListener('zen_theme_changed', handleZenThemeChange);
+            window.removeEventListener('storage', handleZenThemeChange);
+            if (syncChan) syncChan.close();
+        };
+    }, []);
+
+    const toggleZenTheme = () => {
+        const nextVal = !isZenTheme;
+        setIsZenTheme(nextVal);
+        localStorage.setItem('ui_theme_zen_botanical', String(nextVal));
+        window.dispatchEvent(new Event('zen_theme_changed'));
+        window.dispatchEvent(new Event('storage'));
+        try {
+            const syncChan = new BroadcastChannel('pos_data_sync');
+            syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'ui_theme_zen_botanical', value: String(nextVal) });
+            syncChan.close();
+        } catch (err) {}
+        try {
+            axios.post('/api/settings', { ui_theme_zen_botanical: String(nextVal) });
+        } catch (err) {}
+    };
+
     const [stats, setStats] = useState({
         revenue: 0, cash_revenue: 0, debt_revenue: 0, profit: 0, customer_debt: 0, supplier_debt: 0,
         customer_debt_list: [], supplier_debt_list: [],
@@ -1002,7 +1043,17 @@ export default function Dashboard() {
                 return null;
             })()}
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 max-w-[1600px] mx-auto">
+            {isZenTheme ? (
+                <ZenBotanicalDashboard
+                    stats={stats}
+                    filters={filters}
+                    setFilters={setFilters}
+                    weather={weather}
+                    shopInfo={shopInfo}
+                    onToggleZen={toggleZenTheme}
+                />
+            ) : (
+                <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 max-w-[1600px] mx-auto">
                 {/* 1. Header Hero - Span 7 (60% on desktop) */}
                 <m.div 
                     variants={itemVariants} 
@@ -1101,6 +1152,17 @@ export default function Dashboard() {
 
                             {/* Action Buttons Row */}
                             <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+                                {/* Zen Botanical Style Switch Button */}
+                                <button
+                                    type="button"
+                                    onClick={toggleZenTheme}
+                                    className="px-2.5 py-1 rounded-full border border-[#7D8B6E]/40 bg-[#7D8B6E]/15 text-[#4D603E] dark:text-[#C5D5B8] hover:bg-[#7D8B6E] hover:text-white transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-bold shadow-2xs"
+                                    title="Chuyển sang giao diện Zen Botanical"
+                                >
+                                    <Leaf size={12} className="text-[#6D835A]" />
+                                    <span>Zen Botanical</span>
+                                </button>
+
                                 {/* Appearance Customizer Button */}
                                 <button
                                     onClick={() => setShowWallpaperSettings(true)}
@@ -1724,6 +1786,7 @@ export default function Dashboard() {
                     </div>
                 </m.div>
             </div>
+            )}
             {/* Toast Notifications */}
             <AnimatePresence>
                 {toast && (

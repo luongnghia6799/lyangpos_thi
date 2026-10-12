@@ -43,6 +43,7 @@ export default function Settings() {
         gemini_api_key_2: '',
         gemini_api_key_3: '',
         brands_directory: '',
+        ui_theme_zen_botanical: localStorage.getItem('ui_theme_zen_botanical') || DEFAULT_SETTINGS.ui_theme_zen_botanical || 'false',
         ui_loading_style: localStorage.getItem('ui_loading_style') || DEFAULT_SETTINGS.ui_loading_style || 'ring',
         pos_order_switch_animation: localStorage.getItem('pos_order_switch_animation') || DEFAULT_SETTINGS.pos_order_switch_animation || 'ring',
         ui_show_doraemon: localStorage.getItem('ui_show_doraemon') || DEFAULT_SETTINGS.ui_show_doraemon,
@@ -1436,6 +1437,84 @@ export default function Settings() {
                                                         <Monitor size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Tùy chọn Mascot, Con trỏ & Hệ thống
                                                     </h3>
                                                     
+                                                    {/* ZEN BOTANICAL THEME TOGGLE */}
+                                                    <div className="p-4 bg-gradient-to-r from-[#7D8B6E]/15 via-[#F4EFE6]/30 to-[#DE8C5A]/10 dark:from-[#7D8B6E]/20 dark:via-slate-800/40 dark:to-[#DE8C5A]/15 rounded-2xl border-2 border-[#7D8B6E]/30 dark:border-[#7D8B6E]/40 group hover:border-[#7D8B6E] transition-all shadow-xs">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="w-10 h-10 bg-[#7D8B6E] text-[#FAF7F2] rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-[#7D8B6E]/30">
+                                                                    <Leaf size={20} />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">
+                                                                            Giao diện Zen Botanical (Thanh bình & Tự nhiên)
+                                                                        </span>
+                                                                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[#7D8B6E] text-white uppercase tracking-wider">
+                                                                            Mới
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-[8.5px] font-medium text-gray-500 dark:text-slate-400 mt-1 leading-snug">
+                                                                        Phong cách mộc mạc tối giản: Núi đồi xanh xô thơm (Sage Green), nắng ấm đất nung (Terracotta) và nền giấy ấm. Bắt đầu với tab <strong>Bảng tin (Dashboard)</strong>.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={async () => {
+                                                                    const isCurrentOn = settings.ui_theme_zen_botanical === 'true';
+                                                                    const newVal = isCurrentOn ? 'false' : 'true';
+                                                                    updateSetting('ui_theme_zen_botanical', newVal);
+                                                                    localStorage.setItem('ui_theme_zen_botanical', newVal);
+                                                                    window.dispatchEvent(new Event('zen_theme_changed'));
+                                                                    window.dispatchEvent(new Event('storage'));
+                                                                    try {
+                                                                        const syncChan = new BroadcastChannel('pos_data_sync');
+                                                                        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'ui_theme_zen_botanical', value: newVal });
+                                                                        syncChan.close();
+                                                                    } catch (err) {}
+                                                                    try {
+                                                                        await axios.post('/api/settings', { ui_theme_zen_botanical: newVal });
+                                                                    } catch (err) {
+                                                                        console.error('Lỗi khi lưu cài đặt Zen theme:', err);
+                                                                    }
+                                                                    setToast({ 
+                                                                        message: newVal === 'true' ? "Đã bật giao diện Zen Botanical cho Bảng tin Dashboard" : "Đã chuyển về giao diện Dashboard mặc định", 
+                                                                        type: "success" 
+                                                                    });
+                                                                }}
+                                                                className={cn(
+                                                                    "relative w-12 h-6.5 rounded-full transition-all duration-300 outline-none shrink-0 border cursor-pointer",
+                                                                    settings.ui_theme_zen_botanical === 'true' 
+                                                                        ? "bg-[#7D8B6E] border-[#6E7C5D] shadow-sm shadow-[#7D8B6E]/30" 
+                                                                        : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
+                                                                )}
+                                                            >
+                                                                <div className={cn(
+                                                                    "absolute top-[3px] left-[3px] w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md flex items-center justify-center text-[9px] font-black",
+                                                                    settings.ui_theme_zen_botanical === 'true' ? "translate-x-[22px] text-[#7D8B6E]" : "translate-x-0 text-slate-400"
+                                                                )}>
+                                                                    {settings.ui_theme_zen_botanical === 'true' ? '✓' : ''}
+                                                                </div>
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Color Palette Preview Strip */}
+                                                        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-[#7D8B6E]/20 dark:border-slate-700/60">
+                                                            <span className="text-[8.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bảng màu đặc trưng:</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#7D8B6E] text-white">
+                                                                    Sage Green
+                                                                </span>
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#F4EFE6] text-[#3D372E] border border-[#E2D8C7]">
+                                                                    Warm Cream
+                                                                </span>
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#DE8C5A] text-white">
+                                                                    Terracotta
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
                                                     <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">

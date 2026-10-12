@@ -149,6 +149,7 @@ export const DEFAULT_SETTINGS = {
     invoice_hide_old_debt_on_cash: 'false',
     invoice_show_cash_given: 'true',
     ui_enable_smart_sorting: 'false',
+    ui_theme_zen_botanical: 'false', // 'true' for Zen Botanical aesthetic, 'false' for classic
     app_font_family: 'Be Vietnam Pro', // Global UI font
     ui_loading_style: 'ring', // 'ring', 'minimal', 'compact', 'vibrant'
     pos_order_switch_animation: 'ring', // 'ring', 'minimal', 'slide', 'pulse', 'none'

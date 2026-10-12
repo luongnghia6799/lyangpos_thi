@@ -297,7 +297,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
     };
 
     return (
-        <Portal>
+        <Portal zIndex={2000000}>
             <AnimatePresence>
                 {isOpen && (
                     <m.div
@@ -306,7 +306,8 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-[500000] flex items-center justify-center p-4 overflow-y-auto bg-slate-950/70 backdrop-blur-sm android-webview"
+                        className="fixed inset-0 z-[2000000] flex items-center justify-center p-4 overflow-y-auto bg-slate-950/70 backdrop-blur-sm android-webview"
+                        style={{ zIndex: 2000000 }}
                         onClick={onClose}
                     >
                         <m.div

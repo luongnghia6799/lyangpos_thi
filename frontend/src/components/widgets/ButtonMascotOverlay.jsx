@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion as m, AnimatePresence } from 'framer-motion';
+import { motion as m } from 'framer-motion';
 import { RotateCcw, Trash2, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { playPopSound } from '../../lib/mascots';
@@ -12,6 +12,26 @@ import {
   getMascotImageInfo,
   DEFAULT_BUTTON_MASCOT_CONFIG
 } from '../../lib/buttonMascots';
+
+/**
+ * Custom equality check for React.memo to completely eliminate unwanted re-renders
+ */
+function areSingleMascotPropsEqual(prev, next) {
+  return (
+    prev.mascotKey === next.mascotKey &&
+    prev.buttonEl === next.buttonEl &&
+    prev.isEditing === next.isEditing &&
+    prev.config.size === next.config.size &&
+    prev.config.top === next.config.top &&
+    prev.config.right === next.config.right &&
+    prev.config.visible === next.config.visible &&
+    prev.config.characterId === next.config.characterId &&
+    prev.onStartEdit === next.onStartEdit &&
+    prev.onStopEdit === next.onStopEdit &&
+    prev.onChangeConfig === next.onChangeConfig &&
+    prev.onRemove === next.onRemove
+  );
+}
 
 /**
  * Mascot từng nút bấm (Được gắn cố định vào nút tương ứng)
@@ -28,22 +48,41 @@ const SingleButtonMascot = memo(({
 }) => {
   const mascotRef = useRef(null);
   const tooltipRef = useRef(null);
-  const [coords, setCoords] = useState(null);
+  const hasAnimatedRef = useRef(false);
 
-  const charInfo = getMascotImageInfo(config.characterId);
+  const charInfo = useMemo(() => getMascotImageInfo(config.characterId), [config.characterId]);
   const size = config.size || DEFAULT_BUTTON_MASCOT_CONFIG.size;
   const topOffset = config.top ?? DEFAULT_BUTTON_MASCOT_CONFIG.top;
   const rightOffset = config.right ?? DEFAULT_BUTTON_MASCOT_CONFIG.right;
 
-  // Tính toán tọa độ chính xác neo vào nút bấm
+  // Tính toán tọa độ ngay lần render đầu tiên (không khởi tạo null để tránh 2-pass render nhấp nháy)
+  const [coords, setCoords] = useState(() => {
+    if (!buttonEl || !document.body.contains(buttonEl)) return null;
+    const rect = buttonEl.getBoundingClientRect();
+    const isVisible = (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.bottom >= -50 &&
+      rect.top <= window.innerHeight + 50 &&
+      rect.right >= -50 &&
+      rect.left <= window.innerWidth + 50
+    );
+    if (!isVisible) return null;
+    return {
+      top: Math.round(rect.top + topOffset),
+      left: Math.round(rect.right - rightOffset - size),
+      btnRect: rect
+    };
+  });
+
+  // Tính toán tọa độ chính xác neo vào nút bấm (so sánh giá trị trước khi setState để chống re-render vô ích)
   const updatePosition = useCallback(() => {
     if (!buttonEl || !document.body.contains(buttonEl)) {
-      setCoords(null);
+      setCoords((prev) => (prev ? null : prev));
       return;
     }
 
     const rect = buttonEl.getBoundingClientRect();
-    // Kiểm tra xem nút có đang hiển thị trên viewport không
     const isVisible = (
       rect.width > 0 &&
       rect.height > 0 &&
@@ -54,23 +93,46 @@ const SingleButtonMascot = memo(({
     );
 
     if (!isVisible) {
-      setCoords(null);
+      setCoords((prev) => (prev ? null : prev));
       return;
     }
 
-    // Mascot ngồi ở góc trên bên phải của nút (tương tự như pill trên sidebar)
     const mascotTop = Math.round(rect.top + topOffset);
     const mascotLeft = Math.round(rect.right - rightOffset - size);
 
-    setCoords({
-      top: mascotTop,
-      left: mascotLeft,
-      btnRect: rect
+    setCoords((prev) => {
+      if (
+        prev &&
+        prev.top === mascotTop &&
+        prev.left === mascotLeft &&
+        prev.btnRect.width === rect.width &&
+        prev.btnRect.height === rect.height
+      ) {
+        return prev; // Tọa độ không đổi -> React bỏ qua không re-render
+      }
+      return {
+        top: mascotTop,
+        left: mascotLeft,
+        btnRect: rect
+      };
     });
   }, [buttonEl, topOffset, rightOffset, size]);
 
   useEffect(() => {
     updatePosition();
+
+    // 1. Theo dõi liên tục trong 1.5s đầu sau khi mount để bám sát chuyển động spring animation và font loading
+    let animId;
+    const startTime = performance.now();
+    const trackAnimation = (now) => {
+      updatePosition();
+      if (now - startTime < 1500) {
+        animId = requestAnimationFrame(trackAnimation);
+      }
+    };
+    animId = requestAnimationFrame(trackAnimation);
+
+    // 2. Lắng nghe Scroll và Resize
     const handleScrollOrResize = () => {
       requestAnimationFrame(updatePosition);
     };
@@ -78,11 +140,30 @@ const SingleButtonMascot = memo(({
     window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true });
     window.addEventListener('resize', handleScrollOrResize, { passive: true });
 
+    // 3. ResizeObserver trên buttonEl và cha để tự động cập nhật khi đổi kích thước/nội dung
+    let ro;
+    if (typeof ResizeObserver !== 'undefined' && buttonEl) {
+      ro = new ResizeObserver(() => {
+        requestAnimationFrame(updatePosition);
+      });
+      ro.observe(buttonEl);
+      if (buttonEl.parentElement) {
+        ro.observe(buttonEl.parentElement);
+      }
+    }
+
     return () => {
+      if (animId) cancelAnimationFrame(animId);
       window.removeEventListener('scroll', handleScrollOrResize, true);
       window.removeEventListener('resize', handleScrollOrResize);
+      if (ro) ro.disconnect();
     };
-  }, [updatePosition]);
+  }, [updatePosition, buttonEl]);
+
+  // Đánh dấu đã chạy animation xuất hiện một lần
+  useEffect(() => {
+    hasAnimatedRef.current = true;
+  }, []);
 
   // Cuộn chuột để phóng to / thu nhỏ kích thước khi đang ở chế độ Edit
   useEffect(() => {
@@ -198,7 +279,7 @@ const SingleButtonMascot = memo(({
 
   // Tính toán vị trí thông minh cho Tooltip để không bao giờ đè lên Mascot (kể cả khi ở sát góc màn hình)
   const tooltipPos = useMemo(() => {
-    if (!coords) return null;
+    if (!coords || !isEditing) return null;
 
     const tooltipW = 280;
     const tooltipH = 135;
@@ -237,7 +318,7 @@ const SingleButtonMascot = memo(({
     targetTop = Math.max(12, Math.min(screenH - tooltipH - 12, targetTop));
 
     return { top: targetTop, left: targetLeft };
-  }, [coords, size]);
+  }, [coords, size, isEditing]);
 
   if (!coords) return null;
 
@@ -245,7 +326,7 @@ const SingleButtonMascot = memo(({
     <>
       <m.div
         ref={mascotRef}
-        initial={{ opacity: 0, scale: 0.7, y: 6 }}
+        initial={hasAnimatedRef.current ? false : { opacity: 0, scale: 0.7 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.6 }}
         whileHover={!isEditing ? { scale: 1.15, rotate: 3, transition: { duration: 0.18 } } : {}}
@@ -283,6 +364,8 @@ const SingleButtonMascot = memo(({
           <img
             src={charInfo.url}
             alt="Mascot"
+            loading="eager"
+            decoding="sync"
             className="w-full h-full object-contain pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]"
             draggable="false"
           />
@@ -367,7 +450,7 @@ const SingleButtonMascot = memo(({
       )}
     </>
   );
-});
+}, areSingleMascotPropsEqual);
 
 /**
  * Overlay tổng quản lý các Mascot của tất cả các nút
@@ -376,6 +459,40 @@ export default function ButtonMascotOverlay() {
   const [mascots, setMascots] = useState(() => getStoredButtonMascots());
   const [editingKey, setEditingKey] = useState(null);
   const [, setTick] = useState(0);
+
+  // Bộ nhớ đệm DOM element tránh re-query DOM không cần thiết
+  const buttonElMapRef = useRef(new Map());
+  const mascotsRef = useRef(mascots);
+  mascotsRef.current = mascots;
+
+  // Stable callbacks để SingleButtonMascot không bị re-render do thay đổi reference
+  const handleStartEdit = useCallback((k) => setEditingKey(k), []);
+  const handleStopEdit = useCallback(() => setEditingKey(null), []);
+
+  const handleChangeConfig = useCallback((key, patch, saveToStorage = false) => {
+    setMascots((prev) => {
+      const cur = prev[key] || {};
+      const updated = {
+        ...prev,
+        [key]: { ...cur, ...patch }
+      };
+      if (saveToStorage) {
+        setButtonMascot(key, { ...cur, ...patch });
+      }
+      return updated;
+    });
+  }, []);
+
+  const handleRemove = useCallback((key) => {
+    removeButtonMascot(key);
+    buttonElMapRef.current.delete(key);
+    setMascots((prev) => {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    });
+    setEditingKey(null);
+  }, []);
 
   // Đồng bộ danh sách Mascot từ localStorage & sự kiện CustomEvent
   useEffect(() => {
@@ -423,14 +540,45 @@ export default function ButtonMascotOverlay() {
     };
   }, []);
 
-  // Lắng nghe thay đổi DOM (khi chuyển tab, mở modal hoặc tải nội dung mới) để re-bind các button
+  // Lắng nghe thay đổi DOM thông minh:
+  // CHỈ re-render khi có mascot đang cấu hình nhưng chưa tìm thấy button tương ứng trong DOM
   useEffect(() => {
     let timeoutId = null;
-    const observer = new MutationObserver(() => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setTick((t) => t + 1);
-      }, 120);
+    const observer = new MutationObserver((mutations) => {
+      // Bỏ qua mutations xuất phát từ chính mascot overlay hoặc tooltip
+      const isInternal = mutations.every((m) => {
+        const target = m.target;
+        return (
+          target &&
+          typeof target.closest === 'function' &&
+          (target.closest('[data-button-mascot-overlay]') || target.closest('.group\\/btn-mascot'))
+        );
+      });
+      if (isInternal) return;
+
+      const currentMascots = mascotsRef.current;
+      const keys = Object.keys(currentMascots);
+      if (keys.length === 0) return;
+
+      // Kiểm tra xem có mascot nào chưa gắn được button không
+      const hasMissing = keys.some((key) => {
+        if (currentMascots[key]?.visible === false) return false;
+        const cached = buttonElMapRef.current.get(key);
+        if (cached && document.body.contains(cached)) return false;
+        const found = findButtonBySignature(key);
+        if (found) {
+          buttonElMapRef.current.set(key, found);
+          return true; // Tìm thấy nút mới, cần re-render để hiển thị
+        }
+        return false;
+      });
+
+      if (hasMissing) {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          setTick((t) => t + 1);
+        }, 150);
+      }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
@@ -440,39 +588,23 @@ export default function ButtonMascotOverlay() {
     };
   }, []);
 
-  const handleChangeConfig = useCallback((key, patch, saveToStorage = false) => {
-    setMascots((prev) => {
-      const cur = prev[key] || {};
-      const updated = {
-        ...prev,
-        [key]: { ...cur, ...patch }
-      };
-      if (saveToStorage) {
-        setButtonMascot(key, { ...cur, ...patch });
-      }
-      return updated;
-    });
-  }, []);
-
-  const handleRemove = useCallback((key) => {
-    removeButtonMascot(key);
-    setMascots((prev) => {
-      const copy = { ...prev };
-      delete copy[key];
-      return copy;
-    });
-    setEditingKey(null);
-  }, []);
-
   const mascotEntries = Object.entries(mascots);
   if (mascotEntries.length === 0) return null;
 
   return createPortal(
-    <div className="fixed inset-0 pointer-events-none z-[99997] no-print">
+    <div data-button-mascot-overlay="true" className="fixed inset-0 pointer-events-none z-[99997] no-print">
       {mascotEntries.map(([key, config]) => {
         if (config.visible === false) return null;
-        const buttonEl = findButtonBySignature(key);
-        if (!buttonEl) return null;
+        let buttonEl = buttonElMapRef.current.get(key);
+        if (!buttonEl || !document.body.contains(buttonEl)) {
+          buttonEl = findButtonBySignature(key);
+          if (buttonEl) {
+            buttonElMapRef.current.set(key, buttonEl);
+          } else {
+            buttonElMapRef.current.delete(key);
+            return null;
+          }
+        }
 
         return (
           <SingleButtonMascot
@@ -481,8 +613,8 @@ export default function ButtonMascotOverlay() {
             config={config}
             buttonEl={buttonEl}
             isEditing={editingKey === key}
-            onStartEdit={(k) => setEditingKey(k)}
-            onStopEdit={() => setEditingKey(null)}
+            onStartEdit={handleStartEdit}
+            onStopEdit={handleStopEdit}
             onChangeConfig={handleChangeConfig}
             onRemove={handleRemove}
           />

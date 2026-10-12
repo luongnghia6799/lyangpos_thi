@@ -130,10 +130,10 @@ const QuickDebtModal = ({ isOpen, onClose, partner, onSave, initialData = null }
     };
 
     return (
-        <Portal>
+        <Portal zIndex={2000000}>
             <AnimatePresence>
                 {isOpen && (
-                    <div className="fixed inset-0 z-[200000] flex items-center justify-center p-4 select-none">
+                    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-4 select-none" style={{ zIndex: 2000000 }}>
                         <m.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}

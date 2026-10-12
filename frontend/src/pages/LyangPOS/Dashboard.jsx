@@ -76,21 +76,7 @@ import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
 import Toast from '../../components/widgets/Toast';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
-import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
-import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
-import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';
-import presetMarketIllustration from '../../assets/wallpapers/preset_market_illustration.jpg';
-import presetMascotFarm from '../../assets/wallpapers/preset_mascot_farm.jpg';
-import presetMascotLatte from '../../assets/wallpapers/preset_mascot_latte.jpg';
 
-const WALLPAPER_PRESETS = [
-    { id: 1, name: "Signature Lyang", path: preset1Signature, desc: "Tối giản ấm cúng" },
-    { id: 2, name: "Cafe Latte", path: preset2Latte, desc: "Cà phê & Trà" },
-    { id: 3, name: "Nông Trại Xanh (Vector)", path: presetFarmIllustration, desc: "Đồi xanh & Xe táo" },
-    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" },
-    { id: 5, name: "Bé Mascot Nông Trại", path: presetMascotFarm, desc: "Đồi chè & Táo đỏ" },
-    { id: 6, name: "Bé Mascot Đồng Quê", path: presetMascotLatte, desc: "Bình yên & Dễ đọc chữ" }
-];
 
 ChartJS.register(
     CategoryScale,
@@ -149,15 +135,35 @@ const getInitials = (name) => {
 
 
 
+const sanitizeAvatarUrl = (url) => {
+    if (!url || typeof url !== 'string' || url === 'undefined' || url === 'null') return '';
+    const trimmed = url.trim();
+    if (
+        trimmed.includes('user_mascot') || 
+        trimmed.includes('farmer_boy') || 
+        trimmed.includes('plant_doctor') || 
+        trimmed.includes('doraemon')
+    ) {
+        return '/mascots/avatar-lyang.webp';
+    }
+    return trimmed;
+};
+
 const getAvatarSrc = (url) => {
-    if (!url || url === 'undefined' || url === 'null') return '';
-    const normalized = url.replace(/\\/g, '/').trim();
-    if (normalized.startsWith('http') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+    const cleanUrl = sanitizeAvatarUrl(url);
+    if (!cleanUrl) return '';
+    const normalized = cleanUrl.replace(/\\/g, '/');
+    if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
         return normalized;
     }
-    const base = axios.defaults.baseURL || 'http://localhost:3579';
-    const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
-    return encodeURI(fullPath);
+    // Only backend uploaded files (e.g. /uploads/...) need the backend baseURL
+    if (normalized.startsWith('/uploads/') || normalized.startsWith('uploads/')) {
+        const base = axios.defaults.baseURL || 'http://localhost:3579';
+        const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
+        return encodeURI(fullPath);
+    }
+    // Frontend static assets (/mascots/..., /logo.png, etc.)
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
 };
 
 const ClockWidget = memo(() => {
@@ -209,9 +215,6 @@ export default function Dashboard() {
     });
     const [weather, setWeather] = useState({ temp: 28, desc: 'Nắng nhẹ', icon: Sun, city: 'Vụ mùa' });
     const [isWeatherLoading, setIsWeatherLoading] = useState(false);
-    const [showMascot, setShowMascot] = useState(() => localStorage.getItem('ui_show_dashboard_mascot') === 'true');
-    const [animateMascot, setAnimateMascot] = useState(() => localStorage.getItem('ui_mascot_animate') === 'true');
-    const [mascotConfig, setMascotConfig] = useState({ x: 0, y: 0, scale: 1.5 });
     const [avatarUrl, setAvatarUrl] = useState(() => {
         const u = JSON.parse(sessionStorage.getItem('user') || '{}');
         return (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
@@ -444,33 +447,6 @@ export default function Dashboard() {
             syncChannel.close();
         };
     }, []);
-
-    useEffect(() => {
-        const saved = localStorage.getItem('mascot_config');
-        if (saved) {
-            try {
-                setMascotConfig(JSON.parse(saved));
-            } catch (e) {
-                console.error("Error loading mascot config", e);
-            }
-        }
-
-        const handleStorageChange = () => {
-            setShowMascot(localStorage.getItem('ui_show_dashboard_mascot') !== 'false');
-        };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    const saveMascotConfig = (updates) => {
-        const newConfig = { ...mascotConfig, ...updates };
-        setMascotConfig(newConfig);
-        localStorage.setItem('mascot_config', JSON.stringify(newConfig));
-    };
-
-    const handleDragEnd = (event, info) => {
-        saveMascotConfig({ x: mascotConfig.x + info.offset.x, y: mascotConfig.y + info.offset.y });
-    };
 
     const fetchWeather = async (lat = null, lon = null, cityName = null) => {
         setIsWeatherLoading(true);
@@ -959,6 +935,10 @@ export default function Dashboard() {
                                                         src={getAvatarSrc(avatarUrl)} 
                                                         alt="Avatar Preview" 
                                                         className="w-full h-full object-cover rounded-2xl" 
+                                                        onError={(e) => {
+                                                            e.currentTarget.onerror = null;
+                                                            e.currentTarget.src = "/logo.png";
+                                                        }}
                                                     />
                                                 ) : (
                                                     <img 
@@ -1042,6 +1022,10 @@ export default function Dashboard() {
                                         src={getAvatarSrc(avatarUrl)} 
                                         alt="Avatar" 
                                         className="w-full h-full aspect-square object-cover" 
+                                        onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = "/logo.png";
+                                        }}
                                     />
                                 ) : (
                                     <div className="w-full h-full aspect-square flex items-center justify-center p-4">
@@ -1751,72 +1735,7 @@ export default function Dashboard() {
                 )}
             </AnimatePresence>
 
-            {/* Floating Mascot */}
-            <AnimatePresence>
-                {showMascot && !gpuDisabled && (
-                    <m.div
-                        drag
-                        dragMomentum={false}
-                        onDragEnd={handleDragEnd}
-                        animate={{
-                            x: mascotConfig.x,
-                            y: mascotConfig.y,
-                        }}
-                        whileDrag={{ cursor: 'grabbing', scale: mascotConfig.scale * 1.05 }}
-                        className="fixed z-[9999] cursor-grab group"
-                        style={{
-                            top: '20%',
-                            left: '80%',
-                            width: `${12 * mascotConfig.scale}rem`,
-                            height: `${12 * mascotConfig.scale}rem`
-                        }}
-                    >
-                        <m.img
-                            src="/assets/images/user_mascot.png"
-                            alt="Mascot"
-                            animate={animateMascot ? {
-                                y: [0, -15, 0],
-                                rotate: [-1, 1, -1]
-                            } : {}}
-                            transition={animateMascot ? {
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            } : {}}
-                            className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal drop-shadow-2xl select-none"
-                            draggable="false"
-                        />
-                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-4 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-3 shadow-none border border-[#d4a574]/20 text-[10px] font-black uppercase text-[#8b6f47] min-w-[200px]">
-                            <div className="flex items-center gap-1">
-                                <span>Nhảy</span>
-                                <input
-                                    type="checkbox"
-                                    checked={animateMascot}
-                                    onChange={(e) => {
-                                        const nextVal = e.target.checked;
-                                        setAnimateMascot(nextVal);
-                                        localStorage.setItem('ui_mascot_animate', nextVal.toString());
-                                    }}
-                                    className="cursor-pointer rounded accent-[#2d5016]"
-                                />
-                            </div>
-                            <div className="h-3 w-px bg-[#d4a574]/30" />
-                            <div className="flex items-center gap-1.5 flex-1">
-                                <span>Size</span>
-                                <input
-                                    type="range"
-                                    min="0.5"
-                                    max="3"
-                                    step="0.1"
-                                    value={mascotConfig.scale}
-                                    onChange={(e) => saveMascotConfig({ scale: parseFloat(e.target.value) })}
-                                    className="w-16 h-1 bg-[#d4a574]/30 rounded-lg appearance-none cursor-pointer accent-[#2d5016]"
-                                />
-                            </div>
-                        </div>
-                    </m.div>
-                )}
-            </AnimatePresence>
+
 
             {/* Premium Loading Overlay */}
             <LoadingOverlay isVisible={loading && !stats.revenue} message="Đang thu hoạch dữ liệu..." />
@@ -1943,62 +1862,7 @@ export default function Dashboard() {
                                                     </label>
                                                 )}
 
-                                                {/* Brand Default Wallpaper Preset Gallery */}
-                                                <div className="space-y-2 pt-2 border-t border-border/60">
-                                                    <div className="flex items-center justify-between">
-                                                        <label className="text-xs font-bold text-foreground/80 uppercase tracking-wider flex items-center gap-1.5">
-                                                            <Sparkles size={14} className="text-amber-500" />
-                                                            Bộ sưu tập hình nền LyangPOS
-                                                        </label>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-1 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl border border-border/60">
-                                                        {WALLPAPER_PRESETS.map((preset) => (
-                                                            <button
-                                                                key={preset.id}
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    try {
-                                                                        const response = await fetch(preset.path);
-                                                                        const blob = await response.blob();
-                                                                        const reader = new FileReader();
-                                                                        reader.onloadend = () => {
-                                                                            const base64 = reader.result;
-                                                                            setAppWallpaper(prev => ({
-                                                                                ...prev,
-                                                                                image: base64,
-                                                                                size: 'cover',
-                                                                                position: 'center',
-                                                                                opacity: 90,
-                                                                                blur: 0,
-                                                                                glassBlur: 8,
-                                                                                glassOpacity: 15
-                                                                            }));
-                                                                        };
-                                                                        reader.readAsDataURL(blob);
-                                                                    } catch (err) {
-                                                                        console.error('Error loading preset wallpaper:', err);
-                                                                    }
-                                                                }}
-                                                                className="group/preset relative flex flex-col items-center gap-1 p-1 rounded-xl border border-border/80 hover:border-primary bg-card/60 hover:bg-primary/5 transition-all cursor-pointer shadow-2xs hover:scale-[1.03] active:scale-95 text-left"
-                                                                title={preset.desc}
-                                                            >
-                                                                <div className="w-full h-14 rounded-lg overflow-hidden border border-border/60 relative">
-                                                                    <img 
-                                                                        src={preset.path} 
-                                                                        alt={preset.name} 
-                                                                        className="w-full h-full object-cover group-hover/preset:scale-110 transition-transform duration-300"
-                                                                    />
-                                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-1">
-                                                                        <span className="text-[7.5px] font-black text-white uppercase tracking-wider truncate">Chọn</span>
-                                                                    </div>
-                                                                </div>
-                                                                <span className="text-[9px] font-bold text-foreground truncate w-full text-center leading-tight">
-                                                                    {preset.name}
-                                                                </span>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
+
                                             </div>
 
                                             {/* Size & Position */}
@@ -2209,108 +2073,7 @@ export default function Dashboard() {
                                                 )}
                                             </div>
 
-                                            {/* Wallpaper Color Filter Presets */}
-                                            <div className="space-y-3 pt-3 border-t border-border/60">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-xs font-black text-foreground/90 uppercase tracking-wider flex items-center gap-1.5">
-                                                        <Sparkles size={14} className="text-amber-500" />
-                                                        Bộ Lọc Màu Hình Nền
-                                                    </label>
-                                                    {(appWallpaper.filterPreset || appWallpaper.brightness !== 100 || appWallpaper.contrast !== 100 || appWallpaper.saturate !== 100 || appWallpaper.sepia > 0 || appWallpaper.tintColor) && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setAppWallpaper(prev => ({
-                                                                ...prev,
-                                                                filterPreset: 'normal',
-                                                                brightness: 100,
-                                                                contrast: 100,
-                                                                saturate: 100,
-                                                                sepia: 0,
-                                                                hueRotate: 0,
-                                                                grayscale: 0,
-                                                                invert: 0,
-                                                                tintColor: '',
-                                                                tintOpacity: 20
-                                                            }))}
-                                                            className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
-                                                        >
-                                                            Đặt lại màu gốc
-                                                        </button>
-                                                    )}
-                                                </div>
 
-                                                <div className="grid grid-cols-4 gap-1.5">
-                                                    {[
-                                                        { id: 'normal', label: 'Gốc', filter: { brightness: 100, contrast: 100, saturate: 100, sepia: 0, hueRotate: 0, grayscale: 0, tintColor: '' } },
-                                                        { id: 'warm', label: 'Ấm Áp', filter: { brightness: 102, contrast: 105, saturate: 120, sepia: 25, hueRotate: 0, grayscale: 0, tintColor: '#ffedd5', tintOpacity: 15 } },
-                                                        { id: 'cool', label: 'Tươi Mát', filter: { brightness: 100, contrast: 105, saturate: 115, sepia: 0, hueRotate: 180, grayscale: 0, tintColor: '#e0f2fe', tintOpacity: 15 } },
-                                                        { id: 'vintage', label: 'Vintage', filter: { brightness: 95, contrast: 90, saturate: 85, sepia: 50, hueRotate: 0, grayscale: 0, tintColor: '#fef3c7', tintOpacity: 25 } },
-                                                        { id: 'nature', label: 'Xanh Lá', filter: { brightness: 100, contrast: 110, saturate: 130, sepia: 0, hueRotate: 85, grayscale: 0, tintColor: '#dcfce7', tintOpacity: 20 } },
-                                                        { id: 'dramatic', label: 'Tương Phản', filter: { brightness: 105, contrast: 135, saturate: 125, sepia: 0, hueRotate: 0, grayscale: 0, tintColor: '' } },
-                                                        { id: 'mono', label: 'Đen Trắng', filter: { brightness: 100, contrast: 120, saturate: 0, sepia: 0, hueRotate: 0, grayscale: 100, tintColor: '' } },
-                                                        { id: 'cinema', label: 'Điện Ảnh', filter: { brightness: 90, contrast: 125, saturate: 110, sepia: 15, hueRotate: 0, grayscale: 0, tintColor: '#1e1b4b', tintOpacity: 20, tintBlendMode: 'color-burn' } }
-                                                    ].map(preset => {
-                                                        const isCurrent = appWallpaper.filterPreset === preset.id || (!appWallpaper.filterPreset && preset.id === 'normal');
-                                                        return (
-                                                            <button
-                                                                key={preset.id}
-                                                                type="button"
-                                                                onClick={() => setAppWallpaper(prev => ({
-                                                                    ...prev,
-                                                                    filterPreset: preset.id,
-                                                                    ...preset.filter
-                                                                }))}
-                                                                className={cn(
-                                                                    "py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all border text-center cursor-pointer",
-                                                                    isCurrent 
-                                                                        ? "bg-[#2d5016] text-white border-[#2d5016] dark:bg-emerald-600 dark:border-emerald-500 shadow-xs" 
-                                                                        : "bg-black/[0.03] dark:bg-white/[0.05] border-border/80 text-foreground/80 hover:border-[#2d5016]/50"
-                                                                )}
-                                                            >
-                                                                {preset.label}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                                {/* Tint Overlay Color Picker */}
-                                                <div className="space-y-2 pt-2 border-t border-border/40">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Phủ Màu Tint (Color Overlay)</span>
-                                                        {appWallpaper.tintColor && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAppWallpaper(prev => ({ ...prev, tintColor: '' }))}
-                                                                className="text-[10px] text-rose-500 hover:underline cursor-pointer"
-                                                            >
-                                                                Xóa phủ màu
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="color"
-                                                            value={appWallpaper.tintColor || "#2d5016"}
-                                                            onChange={(e) => setAppWallpaper(prev => ({ ...prev, tintColor: e.target.value }))}
-                                                            className="w-10 h-9 rounded-lg border border-border cursor-pointer p-0.5 bg-transparent"
-                                                        />
-                                                        <div className="flex-1 flex items-center gap-2">
-                                                            <input
-                                                                type="range"
-                                                                min="0"
-                                                                max="90"
-                                                                value={appWallpaper.tintOpacity !== undefined ? appWallpaper.tintOpacity : 20}
-                                                                onChange={(e) => setAppWallpaper(prev => ({ ...prev, tintOpacity: parseInt(e.target.value) }))}
-                                                                className="flex-1 accent-[#2d5016] dark:accent-emerald-500"
-                                                                disabled={!appWallpaper.tintColor}
-                                                            />
-                                                            <span className="text-xs font-bold text-primary min-w-[36px] text-right">
-                                                                {appWallpaper.tintColor ? `${appWallpaper.tintOpacity ?? 20}%` : '0%'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     )}
 

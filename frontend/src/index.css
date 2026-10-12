@@ -73,6 +73,8 @@
 }
 
 html, body, #root {
+  height: 100%;
+  overflow: hidden;
   scroll-behavior: smooth;
   overscroll-behavior-y: none;
   overscroll-behavior-x: none;
@@ -87,7 +89,8 @@ body {
   text-rendering: optimizeLegibility;
   background-color: var(--bg-color);
   color: var(--text-main);
-  overflow-x: hidden;
+  overflow: hidden;
+  height: 100%;
   font-family: var(--app-global-font);
 }
 

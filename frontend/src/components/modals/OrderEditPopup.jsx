@@ -331,10 +331,10 @@ export default function OrderEditPopup({ isOpen, order, partner, onClose, onSave
     }, [products, searchTerm]);
 
     return (
-        <Portal>
+        <Portal zIndex={2000000}>
             <AnimatePresence>
                 {effectiveIsOpen && activeOrder && (
-                    <div className="fixed inset-0 z-[500000] flex items-center justify-center p-3 sm:p-5 select-none">
+                    <div className="fixed inset-0 z-[2000000] flex items-center justify-center p-3 sm:p-5 select-none" style={{ zIndex: 2000000 }}>
                         {/* Backdrop with fade in/out matching ReminderModal */}
                         <m.div
                             initial={{ opacity: 0 }}

@@ -41,18 +41,44 @@ const FloatingBackground = ({ isDark }) => {
 
 // Preset avatar illustrations
 const USER_AVATAR_PRESETS = [
-    '/assets/images/user_mascot.png',
-    '/assets/images/cute_farmer_boy.png',
-    '/assets/images/plant_doctor.png',
-    logo,
-    '/doraemon.png'
+    '/mascots/avatar-lyang.webp',
+    '/mascots/avatar-fox.webp',
+    '/mascots/avatar-fox-ink.webp',
+    '/mascots/avatar-fox-paper.webp',
+    '/mascots/avatar-fox-pixel.webp',
+    '/mascots/avatar-fox-riso.webp',
+    '/mascots/avatar-fox-sketch.webp',
+    '/mascots/avatar-wizard.webp',
+    '/mascots/avatar-panda.webp',
+    '/mascots/avatar-knight.webp',
+    '/mascots/avatar-kamran.webp'
 ];
+
+const sanitizeAvatarUrl = (url) => {
+    if (!url || typeof url !== 'string' || url === 'undefined' || url === 'null') return '';
+    const trimmed = url.trim();
+    if (
+        trimmed.includes('user_mascot') || 
+        trimmed.includes('farmer_boy') || 
+        trimmed.includes('plant_doctor') || 
+        trimmed.includes('doraemon')
+    ) {
+        return USER_AVATAR_PRESETS[0];
+    }
+    return trimmed;
+};
 
 const getUserAvatar = (user, index = 0) => {
     if (!user) return USER_AVATAR_PRESETS[0];
-    if (user.avatar) return user.avatar;
+    if (user.avatar) {
+        const clean = sanitizeAvatarUrl(user.avatar);
+        if (clean) return clean;
+    }
     const custom = localStorage.getItem(`user_avatar_${user.username}`) || localStorage.getItem(`user_avatar_${user.id}`);
-    if (custom) return custom;
+    if (custom) {
+        const clean = sanitizeAvatarUrl(custom);
+        if (clean) return clean;
+    }
     
     // Hash username for consistent avatar assignment
     const key = user.username || String(user.id || index);

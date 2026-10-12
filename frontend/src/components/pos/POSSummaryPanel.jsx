@@ -616,11 +616,13 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 </m.button>
 
                 <m.button
+                  whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 24 }}
                   disabled={effectiveCartLength === 0 || isSaving}
                   onClick={() => onSaveAndPrintOrder(true)}
                   style={getButtonComputedStyle(cartColorConfig, 'save_print')}
-                  className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print cursor-pointer"
+                  className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 group/btn-print cursor-pointer"
                   title="Lưu và In hóa đơn [F9]"
                 >
                   <div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none">
@@ -1113,7 +1115,10 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
               className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"
             >
               {/* Partner Icon & Popout */}
-              <div
+              <m.div
+                whileHover={{ scale: 1.08, y: -2 }}
+                whileTap={{ scale: 0.92 }}
+                transition={{ type: "spring", stiffness: 480, damping: 25 }}
                 onClick={onTogglePartnerPopout}
                 style={getButtonComputedStyle(cartColorConfig, 'partner')}
                 className={cn(
@@ -1130,14 +1135,15 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     #{partner.id}
                   </div>
                 )}
-              </div>
+              </m.div>
 
               {/* Action Buttons in Mini Sidebar */}
               <div className="flex flex-col items-center gap-3.5 shrink-0 relative z-[50]">
                 {partner && (
                   <m.button
-                    whileHover={{ scale: 1.08, rotate: 5 }}
+                    whileHover={{ scale: 1.08, rotate: 5, y: -2 }}
                     whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 480, damping: 25 }}
                     onClick={onOpenQuickDebt}
                     style={getButtonComputedStyle(cartColorConfig, 'quick_debt')}
                     className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group/qd relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer"
@@ -1149,8 +1155,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
 
                 {partner && (
                   <m.button
-                    whileHover={{ scale: 1.08, rotate: -5 }}
+                    whileHover={{ scale: 1.08, rotate: -5, y: -2 }}
                     whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 480, damping: 25 }}
                     onClick={onOpenQuickVoucher}
                     style={getButtonComputedStyle(cartColorConfig, 'quick_voucher')}
                     className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors group/qv relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer"
@@ -1162,8 +1169,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
 
                 <div className="relative group/ship-mini">
                   <m.button
-                    whileHover={{ scale: 1.08, rotate: 8 }}
+                    whileHover={{ scale: 1.08, rotate: 8, y: -2 }}
                     whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 480, damping: 25 }}
                     onClick={onOpenShippingPanel}
                     className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-[#2d5016] transition-colors group/ship relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer"
                     title="Quản lý giao hàng"
@@ -1184,8 +1192,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
               {/* Expand Toggle Button */}
               <div className="flex-1 flex items-center justify-center w-full min-h-[60px] relative">
                 <m.button
-                  whileHover={{ scale: 1.08, x: -2 }}
+                  whileHover={{ scale: 1.08, x: -3 }}
                   whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 25 }}
                   onClick={() => onToggleSidebar(true)}
                   style={getButtonComputedStyle(cartColorConfig, 'toggle')}
                   className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400 border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 rounded-2xl flex items-center justify-center transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
@@ -1198,8 +1207,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
               {/* Hold, Save, Print Icons */}
               <div className="flex flex-col gap-3 pb-4 px-3">
                 <m.button
-                  whileHover={{ scale: 1.08 }}
+                  whileHover={{ scale: 1.08, y: -2 }}
                   whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 25 }}
                   onClick={onHoldOrder}
                   disabled={cart.length === 0}
                   style={getButtonComputedStyle(cartColorConfig, 'hold')}
@@ -1210,8 +1220,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 </m.button>
 
                 <m.button
-                  whileHover={{ scale: 1.08 }}
+                  whileHover={{ scale: 1.08, y: -2 }}
                   whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 25 }}
                   onClick={() => onSaveOrder(false)}
                   disabled={cart.length === 0 || isSaving}
                   style={getButtonComputedStyle(cartColorConfig, 'save')}
@@ -1226,8 +1237,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 </m.button>
 
                 <m.button
-                  whileHover={{ scale: 1.08, y: -1 }}
+                  whileHover={{ scale: 1.08, y: -2 }}
                   whileTap={{ scale: 0.92 }}
+                  transition={{ type: "spring", stiffness: 480, damping: 25 }}
                   onClick={() => onSaveAndPrintOrder(true)}
                   disabled={cart.length === 0 || isSaving}
                   style={getButtonComputedStyle(cartColorConfig, 'save_print')}
@@ -1245,6 +1257,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                   <m.button
                     whileHover={{ scale: 1.08, rotate: 180 }}
                     whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 480, damping: 25 }}
                     onClick={onToggleTheme}
                     style={getButtonComputedStyle(cartColorConfig, 'theme')}
                     className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 rounded-2xl flex items-center justify-center"

@@ -125,14 +125,47 @@ export function getButtonSignature(btn) {
   const existingKey = btn.getAttribute('data-pos-mascot-key');
   if (existingKey) return existingKey;
 
-  // Nếu có ID duy nhất
+  // 1. Nếu là bubble cụ thể
+  if (btn.id === 'total-amount-bubble') {
+    const key = 'btn_bubble_total';
+    btn.setAttribute('data-pos-mascot-key', key);
+    return key;
+  }
+  if (btn.id === 'total-bubble') {
+    const childTotal = btn.querySelector('#total-amount-bubble');
+    if (childTotal) {
+      const key = 'btn_bubble_total';
+      childTotal.setAttribute('data-pos-mascot-key', key);
+      return key;
+    }
+    const key = 'btn_bubble_total';
+    btn.setAttribute('data-pos-mascot-key', key);
+    return key;
+  }
+  if (btn.dataset?.bubble) {
+    const key = `btn_bubble_${btn.dataset.bubble}`;
+    btn.setAttribute('data-pos-mascot-key', key);
+    return key;
+  }
+  if (btn.id === 'cash-bubble') {
+    const key = 'btn_bubble_cash';
+    btn.setAttribute('data-pos-mascot-key', key);
+    return key;
+  }
+  if (btn.id === 'partner-card-bubble') {
+    const key = 'btn_bubble_partner';
+    btn.setAttribute('data-pos-mascot-key', key);
+    return key;
+  }
+
+  // 2. Nếu có ID duy nhất
   if (btn.id && btn.id.trim()) {
     const key = `btn_id_${btn.id.trim()}`;
     btn.setAttribute('data-pos-mascot-key', key);
     return key;
   }
 
-  // Dựa trên pathname hiện tại + nhãn nút + vị trí trong danh sách các nút cùng nhãn
+  // 3. Dựa trên pathname hiện tại + nhãn nút + vị trí trong danh sách các nút cùng nhãn
   const pathname = (typeof window !== 'undefined' ? window.location.pathname : 'global')
     .replace(/[^a-zA-Z0-9]/g, '_') || 'root';
 
@@ -157,7 +190,30 @@ export function findButtonBySignature(signature) {
   const byAttr = document.querySelector(`[data-pos-mascot-key="${signature}"]`);
   if (byAttr) return byAttr;
 
-  // 2. Thử tìm bằng ID
+  // 2. Thử tìm bằng bubble
+  if (signature.startsWith('btn_bubble_')) {
+    const bubbleType = signature.replace('btn_bubble_', '');
+    if (bubbleType === 'total') {
+      const byTotal = document.getElementById('total-amount-bubble') ||
+                      document.getElementById('purchase-total-bubble') ||
+                      document.querySelector('#total-bubble [data-bubble="total"]') ||
+                      document.querySelector('[data-bubble="total"]') ||
+                      document.getElementById('total-bubble');
+      if (byTotal) {
+        byTotal.setAttribute('data-pos-mascot-key', signature);
+        return byTotal;
+      }
+    }
+    const byBubble = (bubbleType === 'cash' ? document.getElementById('cash-bubble') : null) ||
+      (bubbleType === 'partner' ? document.getElementById('partner-card-bubble') : null) ||
+      document.querySelector(`[data-bubble="${bubbleType}"]`);
+    if (byBubble) {
+      byBubble.setAttribute('data-pos-mascot-key', signature);
+      return byBubble;
+    }
+  }
+
+  // 3. Thử tìm bằng ID
   if (signature.startsWith('btn_id_')) {
     const id = signature.replace('btn_id_', '');
     const byId = document.getElementById(id);
@@ -167,8 +223,13 @@ export function findButtonBySignature(signature) {
     }
   }
 
-  // 3. Quét tất cả interactive elements trên trang hiện tại để khớp signature
+  // 4. Quét tất cả interactive elements trên trang hiện tại để khớp signature
   const allElements = getAllInteractiveElements();
+  for (const b of allElements) {
+    if (b.getAttribute('data-pos-mascot-key') === signature) {
+      return b;
+    }
+  }
   for (const b of allElements) {
     if (getButtonSignature(b) === signature) {
       return b;

@@ -12,21 +12,45 @@ import {
 import { cn } from '../../lib/utils';
 import Toast from '../../components/widgets/Toast';
 import ConfirmModal from '../../components/modals/ConfirmModal';
-import logo from '../../assets/logo.png';
-
 export const USER_AVATAR_PRESETS = [
-    { id: 'mascot', name: 'Bé Lyang Chibi', url: '/assets/images/user_mascot.png' },
-    { id: 'farmer_boy', name: 'Cậu Bé Nông Dân', url: '/assets/images/cute_farmer_boy.png' },
-    { id: 'plant_doctor', name: 'Bác Sĩ Cây Trồng', url: '/assets/images/plant_doctor.png' },
-    { id: 'logo', name: 'Logo LyangPOS', url: logo },
-    { id: 'doraemon', name: 'Doraemon', url: '/doraemon.png' },
+    { id: 'lyang', name: 'Bé Lyang', url: '/mascots/avatar-lyang.webp' },
+    { id: 'fox', name: 'Cáo Foxy', url: '/mascots/avatar-fox.webp' },
+    { id: 'fox-ink', name: 'Cáo Mực', url: '/mascots/avatar-fox-ink.webp' },
+    { id: 'fox-paper', name: 'Cáo Giấy', url: '/mascots/avatar-fox-paper.webp' },
+    { id: 'fox-pixel', name: 'Cáo Pixel', url: '/mascots/avatar-fox-pixel.webp' },
+    { id: 'fox-riso', name: 'Cáo Riso', url: '/mascots/avatar-fox-riso.webp' },
+    { id: 'fox-sketch', name: 'Cáo Phác', url: '/mascots/avatar-fox-sketch.webp' },
+    { id: 'wizard', name: 'Phù Thủy', url: '/mascots/avatar-wizard.webp' },
+    { id: 'panda', name: 'Gấu Trúc', url: '/mascots/avatar-panda.webp' },
+    { id: 'knight', name: 'Hiệp Sĩ', url: '/mascots/avatar-knight.webp' },
+    { id: 'kamran', name: 'Lập Trình', url: '/mascots/avatar-kamran.webp' },
 ];
+
+const sanitizeAvatarUrl = (url) => {
+    if (!url || typeof url !== 'string' || url === 'undefined' || url === 'null') return '';
+    const trimmed = url.trim();
+    if (
+        trimmed.includes('user_mascot') || 
+        trimmed.includes('farmer_boy') || 
+        trimmed.includes('plant_doctor') || 
+        trimmed.includes('doraemon')
+    ) {
+        return USER_AVATAR_PRESETS[0].url;
+    }
+    return trimmed;
+};
 
 export const getUserAvatar = (user, index = 0) => {
     if (!user) return USER_AVATAR_PRESETS[0].url;
-    if (user.avatar) return user.avatar;
+    if (user.avatar) {
+        const clean = sanitizeAvatarUrl(user.avatar);
+        if (clean) return clean;
+    }
     const custom = localStorage.getItem(`user_avatar_${user.username}`) || localStorage.getItem(`user_avatar_${user.id}`);
-    if (custom) return custom;
+    if (custom) {
+        const clean = sanitizeAvatarUrl(custom);
+        if (clean) return clean;
+    }
     
     // Hash username for consistent avatar assignment
     const key = user.username || String(user.id || index);
@@ -466,9 +490,15 @@ export default function RoleManager() {
                                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 lowercase font-medium">bấm để chọn</span>
                                 </div>
 
-                                <div className="grid grid-cols-5 gap-3">
+                                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-56 overflow-y-auto p-2.5 custom-scrollbar">
                                     {USER_AVATAR_PRESETS.map((preset) => {
-                                        const isChosen = selectedAvatarUrl === preset.url;
+                                        const isChosen = Boolean(
+                                            selectedAvatarUrl && (
+                                                selectedAvatarUrl === preset.url ||
+                                                selectedAvatarUrl.endsWith(preset.url) ||
+                                                (preset.id && selectedAvatarUrl.includes(`avatar-${preset.id}.webp`))
+                                            )
+                                        );
                                         return (
                                             <button
                                                 key={preset.id}
@@ -477,19 +507,25 @@ export default function RoleManager() {
                                                 className={cn(
                                                     "p-2 rounded-2xl border transition-all flex flex-col items-center gap-1.5 group cursor-pointer relative",
                                                     isChosen 
-                                                        ? "bg-emerald-500/15 border-emerald-500 shadow-md shadow-emerald-500/20 scale-105" 
+                                                        ? "bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/50 shadow-md shadow-emerald-500/20" 
                                                         : "bg-black/5 dark:bg-white/5 border-border hover:border-emerald-500/50 hover:bg-black/10 dark:hover:bg-white/10"
                                                 )}
                                             >
-                                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-slate-800 flex items-center justify-center p-1 shadow-xs">
+                                                <div className={cn(
+                                                    "w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center p-1 shadow-xs transition-transform",
+                                                    isChosen ? "bg-white dark:bg-slate-800 scale-105" : "bg-white dark:bg-slate-800 group-hover:scale-105"
+                                                )}>
                                                     <img src={preset.url} alt={preset.name} className="w-full h-full object-contain select-none" />
                                                 </div>
-                                                <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 truncate w-full text-center">
+                                                <span className={cn(
+                                                    "text-[9px] font-black w-full text-center truncate transition-colors",
+                                                    isChosen ? "text-emerald-700 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"
+                                                )}>
                                                     {preset.name}
                                                 </span>
                                                 {isChosen && (
-                                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-                                                        <Check size={11} strokeWidth={3.5} />
+                                                    <div className="absolute top-1 right-1 w-4.5 h-4.5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs ring-2 ring-white dark:ring-slate-900 z-10 pointer-events-none">
+                                                        <Check size={10} strokeWidth={3.5} />
                                                     </div>
                                                 )}
                                             </button>
@@ -545,6 +581,13 @@ export default function RoleManager() {
                                         if (editingAvatarUser.id) {
                                             localStorage.setItem(`user_avatar_${editingAvatarUser.username}`, selectedAvatarUrl);
                                             localStorage.setItem(`user_avatar_${editingAvatarUser.id}`, selectedAvatarUrl);
+                                            let curUser = {};
+                                            try {
+                                                curUser = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user') || '{}');
+                                            } catch (e) {}
+                                            if (curUser.id === editingAvatarUser.id || curUser.username === editingAvatarUser.username) {
+                                                localStorage.setItem('user_avatar', selectedAvatarUrl);
+                                            }
                                             setToast({ message: `Đã lưu avatar cho ${editingAvatarUser.display_name || editingAvatarUser.username}`, type: 'success' });
                                             setUsers(prev => [...prev]);
                                         } else {

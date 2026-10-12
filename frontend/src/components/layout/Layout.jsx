@@ -359,10 +359,11 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
                     top: `${currentCfg.top}px`,
                     right: `${currentCfg.right}px`,
                     width: `${currentCfg.size}px`,
-                    height: `${currentCfg.size}px`
+                    height: `${currentCfg.size}px`,
+                    zIndex: 999999
                 }}
                 className={cn(
-                    "absolute z-[99999] select-none flex items-end pointer-events-auto",
+                    "absolute z-[999999] select-none flex items-end pointer-events-auto",
                     isEditing
                         ? "cursor-grab active:cursor-grabbing ring-2 ring-emerald-400 ring-offset-2 ring-offset-black/20 rounded-2xl shadow-xl shadow-emerald-500/20"
                         : "cursor-pointer"
@@ -439,7 +440,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     const content = (
-        <div className={cn("relative", active ? "z-40" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
+        <div className={cn("relative", active ? "z-[99999]" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
             <Link
                 to={path}
                 onClick={onClick}
@@ -652,7 +653,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     return (
         <div
             ref={groupRef}
-            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-40" : "z-10")}
+            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-[99999]" : "z-10")}
         >
             <button
                 type="button"
@@ -1052,15 +1053,35 @@ const FloatingLiteMenu = ({ liteTheme, navigate, containerRef }) => {
     );
 };
 
+const sanitizeAvatarUrl = (url) => {
+    if (!url || typeof url !== 'string' || url === 'undefined' || url === 'null') return '';
+    const trimmed = url.trim();
+    if (
+        trimmed.includes('user_mascot') || 
+        trimmed.includes('farmer_boy') || 
+        trimmed.includes('plant_doctor') || 
+        trimmed.includes('doraemon')
+    ) {
+        return '/mascots/avatar-lyang.webp';
+    }
+    return trimmed;
+};
+
 const getAvatarSrc = (url) => {
-    if (!url || url === 'undefined' || url === 'null') return '';
-    const normalized = url.replace(/\\/g, '/').trim();
-    if (normalized.startsWith('http') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
+    const cleanUrl = sanitizeAvatarUrl(url);
+    if (!cleanUrl) return '';
+    const normalized = cleanUrl.replace(/\\/g, '/');
+    if (normalized.startsWith('http://') || normalized.startsWith('https://') || normalized.startsWith('data:') || normalized.startsWith('blob:')) {
         return normalized;
     }
-    const base = axios.defaults.baseURL || 'http://localhost:3579';
-    const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
-    return encodeURI(fullPath);
+    // Only backend uploaded files (e.g. /uploads/...) need the backend baseURL
+    if (normalized.startsWith('/uploads/') || normalized.startsWith('uploads/')) {
+        const base = axios.defaults.baseURL || 'http://localhost:3579';
+        const fullPath = `${base.replace(/\/+$/, '')}/${normalized.replace(/^\/+/, '')}`;
+        return encodeURI(fullPath);
+    }
+    // Frontend static assets (/mascots/..., /logo.png, etc.) are served from frontend origin
+    return normalized.startsWith('/') ? normalized : `/${normalized}`;
 };
 
 export default function Layout({ children }) {
@@ -1217,10 +1238,14 @@ export default function Layout({ children }) {
         window.dispatchEvent(new Event("gpu_state_changed"));
     };
     const [avatarUrl, setAvatarUrl] = useState(() => {
-        const u = JSON.parse(sessionStorage.getItem('user') || '{}');
-        return (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
+        let u = {};
+        try {
+            u = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user') || '{}');
+        } catch (e) {}
+        const raw = (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
                (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
                localStorage.getItem('user_avatar') || '';
+        return sanitizeAvatarUrl(raw);
     });
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(localStorage.getItem('sidebar_collapsed') === 'true');
     const [isSidebarHidden, setIsSidebarHidden] = useState(localStorage.getItem('sidebar_hidden') === 'true');
@@ -2054,11 +2079,14 @@ export default function Layout({ children }) {
 
     useEffect(() => {
         const updateAvatar = () => {
-            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            let u = {};
+            try {
+                u = JSON.parse(sessionStorage.getItem('user') || localStorage.getItem('user') || '{}');
+            } catch (e) {}
             const custom = (u.username && localStorage.getItem(`user_avatar_${u.username}`)) ||
                            (u.id && localStorage.getItem(`user_avatar_${u.id}`)) ||
                            localStorage.getItem('user_avatar') || '';
-            setAvatarUrl(custom);
+            setAvatarUrl(sanitizeAvatarUrl(custom));
         };
         window.addEventListener('user_avatar_updated', updateAvatar);
         window.addEventListener('storage', updateAvatar);
@@ -2077,7 +2105,7 @@ export default function Layout({ children }) {
     return (
         <div 
             style={isLiteMode ? { backgroundColor: liteTheme.bg } : {}}
-            className="flex h-screen w-full main-content-bg overflow-hidden transition-colors selection:bg-emerald-100 dark:selection:bg-emerald-900/40"
+            className="relative flex h-screen w-full main-content-bg overflow-hidden transition-colors selection:bg-emerald-100 dark:selection:bg-emerald-900/40"
         >
             <ContextMenu />
             <ButtonMascotOverlay />
@@ -2118,7 +2146,7 @@ export default function Layout({ children }) {
                         backdropFilter: 'blur(20px)'
                      } : undefined}
                      className={cn(
-                        "absolute top-0 left-0 bottom-0 h-full flex flex-col z-[1000] print:hidden overflow-visible shrink-0 pt-4",
+                        "absolute top-0 left-0 bottom-0 h-full max-h-screen flex flex-col z-[10050] print:hidden overflow-visible shrink-0 pt-4",
                         customSidebarStyle?.enabled ? "" : "bg-transparent"
                      )}
                  >
@@ -2137,6 +2165,10 @@ export default function Layout({ children }) {
                             alt="Logo" 
                             draggable="false"
                             className="w-full h-full aspect-square object-cover rounded-2xl select-none pointer-events-none" 
+                            onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = "/logo.png";
+                            }}
                         />
                     ) : (
                         <img 
@@ -2175,150 +2207,6 @@ export default function Layout({ children }) {
                                 </>
                             )}
 
-                            {/* Mascot Lyang Configuration Card */}
-                            <div className="my-1.5 p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-400/5 border border-amber-500/20 dark:border-amber-400/15">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                        <img 
-                                            src="/assets/images/mascot_active_pill.png" 
-                                            alt="Bé Lyang" 
-                                            className="w-5 h-5 object-contain select-none"
-                                            draggable="false"
-                                        />
-                                        <span className="font-black text-xs text-amber-900 dark:text-amber-200 tracking-tight">
-                                            Mascot Bé Lyang
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleMascotVisibility(mascotTargetMode)}
-                                            title={(mascotConfig[mascotTargetMode]?.visible !== false) ? "Ẩn Mascot" : "Hiện Mascot"}
-                                            className={cn(
-                                                "p-1 rounded-md transition-colors cursor-pointer",
-                                                (mascotConfig[mascotTargetMode]?.visible !== false)
-                                                    ? "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
-                                                    : "text-gray-400 hover:bg-gray-500/10"
-                                            )}
-                                        >
-                                            {(mascotConfig[mascotTargetMode]?.visible !== false) ? <Eye size={13} /> : <EyeOff size={13} />}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => resetMascotSetting(mascotTargetMode)}
-                                            title="Khôi phục mặc định"
-                                            className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                                        >
-                                            <RotateCcw size={13} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Mode Switcher: Thu gọn vs Mở rộng */}
-                                <div className="flex rounded-lg bg-black/5 dark:bg-white/5 p-0.5 text-[10px] font-black mb-2.5">
-                                    <button
-                                        type="button"
-                                        onClick={() => setMascotTargetMode('collapsed')}
-                                        className={cn(
-                                            "flex-1 py-1 rounded-md transition-all text-center flex items-center justify-center gap-1 cursor-pointer",
-                                            mascotTargetMode === 'collapsed'
-                                                ? "bg-white dark:bg-zinc-800 text-amber-700 dark:text-amber-300 shadow-xs"
-                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-                                        )}
-                                    >
-                                        <span>Thu gọn</span>
-                                        {isSidebarCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setMascotTargetMode('expanded')}
-                                        className={cn(
-                                            "flex-1 py-1 rounded-md transition-all text-center flex items-center justify-center gap-1 cursor-pointer",
-                                            mascotTargetMode === 'expanded'
-                                                ? "bg-white dark:bg-zinc-800 text-amber-700 dark:text-amber-300 shadow-xs"
-                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-                                        )}
-                                    >
-                                        <span>Mở rộng</span>
-                                        {!isSidebarCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                                    </button>
-                                </div>
-
-                                {mascotConfig[mascotTargetMode]?.visible === false ? (
-                                    <div className="py-2 text-center text-[11px] font-semibold text-gray-400 italic">
-                                        Mascot đang bị ẩn ở chế độ này
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2 text-[11px]">
-                                        {/* Slider Size */}
-                                        <div>
-                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
-                                                <span>Kích thước</span>
-                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).size}px
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="20"
-                                                max="90"
-                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).size}
-                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'size', e.target.value)}
-                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
-                                            />
-                                        </div>
-
-                                        {/* Slider Right / X */}
-                                        <div>
-                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
-                                                <span>Vị trí Ngang (X)</span>
-                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).right}px
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-40"
-                                                max="50"
-                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).right}
-                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'right', e.target.value)}
-                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
-                                            />
-                                        </div>
-
-                                        {/* Slider Top / Y */}
-                                        <div>
-                                            <div className="flex items-center justify-between text-gray-700 dark:text-zinc-300 font-bold mb-1">
-                                                <span>Vị trí Dọc (Y)</span>
-                                                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                                                    {(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).top}px
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-60"
-                                                max="20"
-                                                value={(mascotConfig[mascotTargetMode] || DEFAULT_MASCOT_CONFIG[mascotTargetMode]).top}
-                                                onChange={(e) => updateMascotSetting(mascotTargetMode, 'top', e.target.value)}
-                                                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-amber-600 dark:accent-amber-500"
-                                            />
-                                        </div>
-
-                                        {/* Drag directly shortcut */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                window.dispatchEvent(new CustomEvent('toggle_mascot_edit_mode'));
-                                                setShowUserMenu(false);
-                                            }}
-                                            className="w-full mt-1.5 py-1.5 px-2 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-800 dark:text-emerald-300 font-black text-[10px] flex items-center justify-center gap-1.5 transition-colors border border-emerald-500/20 cursor-pointer"
-                                        >
-                                            <Move size={12} />
-                                            <span>Kéo thả chuột trên Mascot</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
                             <button
                                 onClick={toggleGpuDisabled}
                                 style={isLiteMode ? { color: liteTheme.text } : {}}
@@ -2398,7 +2286,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className={cn("flex-1 no-scrollbar pt-8 pb-4 space-y-1", isSidebarCollapsed ? "overflow-visible" : "overflow-y-auto")}>
+            <div className={cn("flex-1 min-h-0 no-scrollbar pt-8 pb-3 space-y-1", isSidebarCollapsed ? "overflow-visible" : "overflow-y-auto")}>
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup
@@ -2467,27 +2355,7 @@ export default function Layout({ children }) {
                                 </div>
                             </m.button>
 
-                            {/* Toggle Extra Actions Button */}
-                            <m.button
-                                whileHover={{ scale: 1.12 }}
-                                whileTap={{ scale: 0.88 }}
-                                onClick={toggleExtraActions}
-                                className={cn(
-                                    "w-9 h-9 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer",
-                                    isExtraActionsExpanded 
-                                        ? "bg-white/20 text-emerald-200 shadow-inner" 
-                                        : "bg-white/5 hover:bg-white/15 text-white/75 hover:text-white"
-                                )}
-                                title={isExtraActionsExpanded ? "Thu gọn bớt tiện ích" : "Mở rộng thêm tiện ích (Loa, Phông, Màu giỏ, Đóng...)"}
-                            >
-                                {isExtraActionsExpanded ? (
-                                    <ChevronUp size={16} className="text-emerald-300" />
-                                ) : (
-                                    <MoreHorizontal size={16} />
-                                )}
-                            </m.button>
-
-                            {/* Extra Collapsible Action Buttons */}
+                            {/* Extra Collapsible Action Buttons (Animate upwards above toggle button) */}
                             <AnimatePresence initial={false}>
                                 {isExtraActionsExpanded && (
                                     <m.div
@@ -2555,6 +2423,26 @@ export default function Layout({ children }) {
                                     </m.div>
                                 )}
                             </AnimatePresence>
+
+                            {/* Toggle Extra Actions Button */}
+                            <m.button
+                                whileHover={{ scale: 1.12 }}
+                                whileTap={{ scale: 0.88 }}
+                                onClick={toggleExtraActions}
+                                className={cn(
+                                    "w-9 h-9 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer",
+                                    isExtraActionsExpanded 
+                                        ? "bg-white/20 text-emerald-200 shadow-inner" 
+                                        : "bg-white/5 hover:bg-white/15 text-white/75 hover:text-white"
+                                )}
+                                title={isExtraActionsExpanded ? "Thu gọn bớt tiện ích" : "Mở rộng thêm tiện ích (Loa, Phông, Màu giỏ, Đóng...)"}
+                            >
+                                {isExtraActionsExpanded ? (
+                                    <ChevronDown size={16} className="text-emerald-300" />
+                                ) : (
+                                    <ChevronUp size={16} />
+                                )}
+                            </m.button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-5 gap-1 justify-items-center transition-all duration-300 w-full">

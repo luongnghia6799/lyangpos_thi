@@ -25,7 +25,8 @@ import MarqueeText from '@/components/widgets/MarqueeText';
 import ActiveIngredientTooltip from '@/components/widgets/ActiveIngredientTooltipContent';
 import {
   getCartTextPillStyle,
-  getCartTextShadowStyle
+  getCartTextShadowStyle,
+  getBadgeComputedStyle
 } from '@/components/modals/CartColorCustomizerModal';
 
 /**
@@ -434,8 +435,8 @@ const CartTableRow = React.memo(function CartTableRow({
                     >
                       <div className="flex items-center gap-1.5 z-10">
                         {item.ai_matched_status === "matched" ? (
-                          <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500/15 to-teal-500/20 text-emerald-700 dark:text-emerald-300 text-[9.5px] font-black flex items-center gap-1.5 border border-emerald-500/30 dark:border-emerald-400/40 shadow-xs shadow-emerald-500/10 w-fit backdrop-blur-md">
-                            <Sparkles size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#2d5016]/20 text-[#1b340d] dark:bg-emerald-500/25 dark:text-emerald-200 text-[9.5px] font-black flex items-center gap-1.5 border-2 border-[#2d5016]/45 dark:border-emerald-400/50 shadow-xs w-fit">
+                            <Sparkles size={11} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
                             <span className="truncate max-w-[320px]">{`AI Tự khớp: "${item.ai_original_name}"`}</span>
                             <button
                               type="button"
@@ -443,15 +444,15 @@ const CartTableRow = React.memo(function CartTableRow({
                                 e.stopPropagation();
                                 onUpdateField?.(index, "ai_scanned", undefined);
                               }}
-                              className="hover:bg-emerald-500/25 rounded-full p-0.5 text-emerald-800 dark:text-emerald-200 transition-all inline-flex items-center justify-center ml-0.5"
+                              className="hover:bg-[#2d5016]/30 dark:hover:bg-emerald-500/30 rounded-full p-0.5 text-[#1b340d] dark:text-emerald-200 transition-all inline-flex items-center justify-center ml-0.5"
                               title="Xác nhận khớp đúng"
                             >
                               <Check size={10} strokeWidth={3} />
                             </button>
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 to-orange-500/20 text-amber-800 dark:text-amber-300 text-[9.5px] font-black flex items-center gap-1.5 border border-amber-500/30 dark:border-amber-400/40 shadow-xs shadow-amber-500/10 w-fit backdrop-blur-md">
-                            <TriangleAlert size={11} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-950 dark:text-amber-200 text-[9.5px] font-black flex items-center gap-1.5 border-2 border-amber-500/50 dark:border-amber-400/60 shadow-xs w-fit">
+                            <TriangleAlert size={11} className="text-amber-700 dark:text-amber-400 shrink-0" />
                             <span className="truncate max-w-[320px]">{`AI không khớp được: "${item.ai_original_name}"`}</span>
                             <button
                               type="button"
@@ -459,7 +460,7 @@ const CartTableRow = React.memo(function CartTableRow({
                                 e.stopPropagation();
                                 onUpdateField?.(index, "ai_scanned", undefined);
                               }}
-                              className="hover:bg-amber-500/25 rounded-full p-0.5 text-amber-800 dark:text-amber-200 transition-all inline-flex items-center justify-center ml-0.5"
+                              className="hover:bg-amber-500/35 rounded-full p-0.5 text-amber-950 dark:text-amber-200 transition-all inline-flex items-center justify-center ml-0.5"
                               title="Bỏ qua cảnh báo"
                             >
                               <XIcon size={10} strokeWidth={3} />
@@ -492,12 +493,12 @@ const CartTableRow = React.memo(function CartTableRow({
                         setShowComboDetails(true);
                       }}
                       className={cn(
-                        "px-2.5 py-0.5 rounded-full text-[10.5px] font-black tracking-wider border flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs select-none backdrop-blur-md",
+                        "px-2.5 py-0.5 rounded-full text-[10.5px] font-black tracking-wider border-2 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs select-none",
                         comboDetails?.shortageItems?.length > 0
-                          ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 hover:bg-rose-500/30"
+                          ? "bg-rose-500/25 text-rose-950 dark:text-rose-200 border-rose-500/50 hover:bg-rose-500/35"
                           : (comboDetails?.outOfStockItems?.length > 0 || comboDetails?.lowStockItems?.length > 0)
-                            ? "bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                            : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 dark:border-amber-400/40 hover:bg-amber-500/25"
+                            ? "bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/50 hover:bg-amber-500/35"
+                            : "bg-[#8b6f47]/20 text-[#4e391e] dark:bg-[#d4a574]/25 dark:text-[#f7e6d0] border-[#8b6f47]/45 dark:border-[#d4a574]/50 hover:bg-[#8b6f47]/30 dark:hover:bg-[#d4a574]/35"
                       )}
                       title="Bấm để mở popout xem chi tiết tồn kho các món trong Combo"
                     >
@@ -511,23 +512,24 @@ const CartTableRow = React.memo(function CartTableRow({
 
                   <div
                     onClick={handleStockClick}
+                    style={getBadgeComputedStyle(cartColorConfig, 'stock')}
                     className={cn(
-                      "relative cursor-pointer px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-colors flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none backdrop-blur-md",
+                      "relative cursor-pointer px-2.5 py-0.5 rounded-full text-[11px] font-black border-2 transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none",
                       item.stock <= 0
-                        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 hover:bg-rose-500/25"
+                        ? "bg-rose-500/25 text-rose-950 dark:text-rose-200 border-rose-500/50 dark:border-rose-400/60 hover:bg-rose-500/35"
                         : item.stock < 10
-                          ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 hover:bg-amber-500/25"
-                          : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 hover:bg-emerald-500/25"
+                          ? "bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/50 dark:border-amber-400/60 hover:bg-amber-500/35"
+                          : "bg-[#2d5016]/20 text-[#1b340d] dark:bg-emerald-500/25 dark:text-emerald-200 border-[#2d5016]/45 dark:border-emerald-400/50 hover:bg-[#2d5016]/30 dark:hover:bg-emerald-500/35"
                     )}
                     title="Kiểm tồn nhanh"
                   >
                     <div className="flex items-center gap-1 tabular-nums">
                       {item.stock <= 0 ? (
-                        <PackageX size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                        <PackageX size={12} strokeWidth={2.8} className="text-rose-700 dark:text-rose-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                       ) : item.stock < 10 ? (
-                        <CircleAlert size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <CircleAlert size={12} strokeWidth={2.8} className="text-amber-700 dark:text-amber-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                       ) : (
-                        <PackageCheck size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <PackageCheck size={12} strokeWidth={2.8} className="text-[#2d5016] dark:text-emerald-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                       )}
                       <span className="tabular-nums font-black">{item.stock}</span>
                     </div>
@@ -547,10 +549,11 @@ const CartTableRow = React.memo(function CartTableRow({
 
                 {showLastPurchaseBadge && partnerLastPurchases && partnerLastPurchases[item.product_id] && (
                   <div
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 dark:border-indigo-400/40 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap transition-colors hover:bg-indigo-500/25 backdrop-blur-md"
+                    style={getBadgeComputedStyle(cartColorConfig, 'last_purchase')}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#8b6f47]/20 text-[#4e391e] dark:bg-[#d4a574]/25 dark:text-[#f7e6d0] border-2 border-[#8b6f47]/45 dark:border-[#d4a574]/50 text-[10px] font-black shadow-xs tracking-tight select-none whitespace-nowrap transition-colors hover:bg-[#8b6f47]/30 dark:hover:bg-[#d4a574]/35"
                     title={`Lần mua gần nhất: ${formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)} | Giá: ${formatNumber(partnerLastPurchases[item.product_id].last_price)}đ | SL: ${formatNumber(partnerLastPurchases[item.product_id].last_quantity)}`}
                   >
-                    <Clock size={11} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                    <Clock size={11} strokeWidth={2.6} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'last_purchase')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'last_purchase').color } : undefined} />
                     <span>Đã mua: {formatRelativePurchaseDate(partnerLastPurchases[item.product_id].last_date)}</span>
                   </div>
                 )}
@@ -760,7 +763,7 @@ const CartTableRow = React.memo(function CartTableRow({
             />
             {item.price === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-emerald-500/35 dark:border-emerald-400/40 shadow-xs shadow-emerald-500/10 backdrop-blur-md">
+                <span className="bg-[#2d5016]/20 text-[#1b340d] dark:bg-emerald-500/25 dark:text-emerald-200 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider border-2 border-[#2d5016]/45 dark:border-emerald-400/50 shadow-xs">
                   HÀNG TẶNG 0đ
                 </span>
               </div>
@@ -778,8 +781,11 @@ const CartTableRow = React.memo(function CartTableRow({
                 key={`loss-${stableKey}`}
                 className="overflow-hidden"
               >
-                <div className="bg-rose-500/15 dark:bg-rose-500/25 text-rose-700 dark:text-rose-300 text-[9px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-rose-500/30 dark:border-rose-400/40">
-                  <CircleAlert size={11} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                <div 
+                  style={getBadgeComputedStyle(cartColorConfig, 'loss')}
+                  className="bg-rose-500/25 dark:bg-rose-500/30 text-rose-950 dark:text-rose-200 text-[9.5px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs"
+                >
+                  <CircleAlert size={11} strokeWidth={2.8} className="text-rose-700 dark:text-rose-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />
                   <span>LỖ VỐN (VỐN: {formatNumber(item.cost_price)}đ)</span>
                 </div>
               </m.div>
@@ -793,8 +799,11 @@ const CartTableRow = React.memo(function CartTableRow({
                 key={`below-new-${stableKey}`}
                 className="overflow-hidden"
               >
-                <div className="bg-orange-500/15 dark:bg-orange-500/25 text-orange-700 dark:text-orange-300 text-[9px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border border-orange-500/30 dark:border-orange-400/40">
-                  <TrendingDown size={11} className="text-orange-600 dark:text-orange-400 shrink-0" />
+                <div 
+                  style={getBadgeComputedStyle(cartColorConfig, 'loss')}
+                  className="bg-orange-500/25 dark:bg-orange-500/30 text-orange-950 dark:text-orange-200 text-[9.5px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 pointer-events-none border-2 border-orange-500/50 dark:border-orange-400/60 shadow-xs"
+                >
+                  <TrendingDown size={11} strokeWidth={2.8} className="text-orange-700 dark:text-orange-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />
                   <span>DƯỚI VỐN MỚI ({formatNumber(item.latest_cost_price)}đ)</span>
                 </div>
               </m.div>
@@ -808,8 +817,11 @@ const CartTableRow = React.memo(function CartTableRow({
                 key={`low-price-${stableKey}`}
                 className="overflow-hidden"
               >
-                <div className="bg-amber-500/15 dark:bg-amber-500/25 text-amber-800 dark:text-amber-300 text-[9px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-amber-500/30 dark:border-amber-400/40">
-                  <BadgePercent size={11} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <div 
+                  style={getBadgeComputedStyle(cartColorConfig, 'low_price')}
+                  className="bg-[#d97706]/20 dark:bg-amber-500/25 text-[#78350f] dark:text-amber-200 text-[9.5px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#b45309]/50 dark:border-amber-400/50 shadow-xs"
+                >
+                  <BadgePercent size={11} strokeWidth={2.8} className="text-[#b45309] dark:text-amber-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'low_price')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'low_price').color } : undefined} />
                   <span>GIÁ THẤP ({formatNumber((posMode === 'Wholesale' && product?.bulk_price) || product?.sale_price || item.sale_price)}đ)</span>
                 </div>
               </m.div>
@@ -823,8 +835,11 @@ const CartTableRow = React.memo(function CartTableRow({
                 key={`sync-${stableKey}`}
                 className="overflow-hidden"
               >
-                <div className="bg-emerald-500/15 dark:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-[9px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border border-emerald-500/30 dark:border-emerald-400/40">
-                  <ArrowLeftRight size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <div 
+                  style={getBadgeComputedStyle(cartColorConfig, 'stock')}
+                  className="bg-[#2d5016]/20 dark:bg-emerald-500/25 text-[#1b340d] dark:text-emerald-200 text-[9.5px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#2d5016]/45 dark:border-emerald-400/50 shadow-xs"
+                >
+                  <ArrowLeftRight size={11} strokeWidth={2.8} className="text-[#2d5016] dark:text-emerald-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                   <span>ĐỒNG BỘ GIÁ</span>
                 </div>
               </m.div>
@@ -852,7 +867,7 @@ const CartTableRow = React.memo(function CartTableRow({
           {formatNumber(item.price * item.quantity)}
         </div>
         {item.quantity < 0 && (
-          <span className="inline-block px-2.5 py-0.5 bg-gradient-to-r from-rose-500/15 to-red-500/20 text-rose-700 dark:text-rose-300 rounded-full text-[9px] font-black uppercase tracking-widest border border-rose-500/30 dark:border-rose-400/40 shadow-xs shadow-rose-500/10 mt-1 backdrop-blur-md">
+          <span className="inline-block px-2.5 py-0.5 bg-rose-500/25 text-rose-950 dark:text-rose-200 rounded-full text-[9px] font-black uppercase tracking-widest border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs mt-1">
             Hàng trả
           </span>
         )}

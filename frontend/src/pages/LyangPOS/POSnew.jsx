@@ -42,6 +42,7 @@ import CartColorCustomizerModal, {
   getBubbleComputedStyle,
   getButtonComputedStyle,
   getBubbleBadgeStyle,
+  getBadgeComputedStyle,
   compressImageForWatermark
 } from "../../components/modals/CartColorCustomizerModal";
 import DynamicIcon from "../../components/widgets/DynamicIcon";
@@ -56,10 +57,14 @@ import PackingDisplayModeModal from "../../components/modals/PackingDisplayModeM
 import ProductSearchItem from "../../components/pos/ProductSearchItem";
 import PartnerSearchItem from "../../components/pos/PartnerSearchItem";
 import POSSummaryPanel from "../../components/pos/POSSummaryPanel";
+import POSFloatingBubbles from "../../components/pos/POSFloatingBubbles";
+import POSPartnerDropdown from "../../components/pos/POSPartnerDropdown";
+import POSProductDropdown from "../../components/pos/POSProductDropdown";
 import PackingRepeatMenuPopover from "../../components/pos/PackingRepeatMenuPopover";
 import QuickRowDeletePrompt from "../../components/pos/QuickRowDeletePrompt";
 import HeldOrdersDrawer from "../../components/pos/HeldOrdersDrawer";
 import RemoteTerminalInspectPopover from "../../components/pos/RemoteTerminalInspectPopover";
+import OrderSwitchOverlay from "../../components/pos/OrderSwitchOverlay";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -1015,6 +1020,8 @@ function POSPage({
     [ka, en] = i.useState(!1),
     [Ze, _i] = i.useState(() => localStorage.getItem("pos_summary_layout_mode") || "sidebar"),
     [ir, Ni] = i.useState(() => localStorage.getItem("pos_save_notice_style") || "card"),
+    [posOrderSwitchAnim, setPosOrderSwitchAnim] = i.useState(() => localStorage.getItem("pos_order_switch_animation") || "ring"),
+    [navDirection, setNavDirection] = i.useState("prev"),
     Ci = () => {
       const t = Ze === "sidebar" ? "bottom" : "sidebar";
       _i(t), localStorage.setItem("pos_summary_layout_mode", t);
@@ -2002,6 +2009,8 @@ function POSPage({
           ...r,
           ui_enable_smart_sorting: data.value
         }));
+      } else if (data.type === "UI_SETTING_UPDATED" && data.key === "pos_order_switch_animation") {
+        setPosOrderSwitchAnim(data.value);
       } else if (data.type === "CART_COLOR_CONFIG_UPDATED" || (data.type === "UI_SETTING_UPDATED" && data.key === "pos_cart_color_config")) {
         try {
           const cfg = typeof data.value === "string" ? JSON.parse(data.value) : (data.config || data.value);
@@ -2411,68 +2420,8 @@ function POSPage({
       if (cartScrollContainerRef.current) {
         cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
       }
-      return;
     }
-
-    let debounceTimer = null;
-    let observedP = null;
-    let observedT = null;
-
-    const ro = new ResizeObserver(() => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(measureAndApply, 50);
-    });
-
-    const attachObservers = () => {
-      const pEl = partnerBubbleRef.current || document.getElementById('partner-bubble') || document.querySelector('[data-bubble="partner"]');
-      const tEl = totalBubbleRef.current || document.getElementById('total-bubble') || document.querySelector('[data-bubble="total"]');
-      if (pEl && pEl !== observedP) {
-        if (observedP) ro.unobserve(observedP);
-        ro.observe(pEl);
-        observedP = pEl;
-      }
-      if (tEl && tEl !== observedT) {
-        if (observedT) ro.unobserve(observedT);
-        ro.observe(tEl);
-        observedT = tEl;
-      }
-    };
-
-    const measureAndApply = () => {
-      if (!cartScrollContainerRef.current) return;
-      attachObservers();
-      const pEl = partnerBubbleRef.current || document.getElementById('partner-bubble') || document.querySelector('[data-bubble="partner"]');
-      const tEl = totalBubbleRef.current || document.getElementById('total-bubble') || document.querySelector('[data-bubble="total"]');
-      const pH = pEl ? Math.max(pEl.offsetHeight || 0, Math.round(pEl.getBoundingClientRect?.().height || 0)) : 0;
-      const tH = tEl ? Math.max(tEl.offsetHeight || 0, Math.round(tEl.getBoundingClientRect?.().height || 0)) : 0;
-      const maxH = Math.max(pH, tH);
-      const fallback = (p || g === "remote_inspect") ? 100 : 85;
-      const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
-      const targetVal = `${targetH}px`;
-      if (cartScrollContainerRef.current.style.getPropertyValue('--cart-bubble-bottom') !== targetVal) {
-        cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', targetVal);
-      }
-      checkCartScroll();
-    };
-
-    measureAndApply();
-
-    const rafId = requestAnimationFrame(measureAndApply);
-    const timer1 = setTimeout(measureAndApply, 100);
-    const timer2 = setTimeout(measureAndApply, 350);
-
-    attachObservers();
-    window.addEventListener('resize', measureAndApply, { passive: true });
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      ro.disconnect();
-      if (debounceTimer) clearTimeout(debounceTimer);
-      window.removeEventListener('resize', measureAndApply);
-    };
-  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles, p, y.length, ve.length, I, $, checkCartScroll]);
+  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles]);
 
   i.useEffect(() => {
     const t = a => {
@@ -2553,6 +2502,7 @@ function POSPage({
       Ue(!1);
     },
     na = async t => {
+      setNavDirection(t);
       let a;
       if (t === "prev" ? a = Ce + 1 : a = Math.max(0, Ce - 1), a === 0) {
         Ds();
@@ -2628,6 +2578,8 @@ function POSPage({
         s !== null && (r.ui_show_doraemon = s);
         const n = localStorage.getItem("ui_enable_smart_sorting");
         r.ui_enable_smart_sorting = n !== null ? n : Tr.ui_enable_smart_sorting, Na(r);
+        const savedOrderSwitchAnim = localStorage.getItem("pos_order_switch_animation") || a.data?.pos_order_switch_animation;
+        if (savedOrderSwitchAnim) setPosOrderSwitchAnim(savedOrderSwitchAnim);
       } catch (t) {
         console.error(t);
       }
@@ -3800,42 +3752,40 @@ function POSPage({
                         damping: 25
                       }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
                           t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
-                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><Ws>{Me && <ResizableDropdownContainer key="pos-partner-dropdown" id="pos-partner-dropdown" dropdownKey="pos-partner-dropdown" storageKey="pos_partner_dropdown_size" coords={null} defaultWidth={600} defaultMaxHeight={500} className="!z-[3000] frosted-glass dropdown-frosted-glass" scrollRef={xs} itemCount={Cr.length + (yt ? 1 : 0)}>{!yt && <x.div data-index={0} className={c("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", We === 0 && "active")} onMouseMove={() => { if (We !== 0) rs(0); }} onMouseDown={e => {
-                          e.preventDefault();
-                          W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge(""), Ue(!1), setTimeout(() => se.current?.focus(), 50);
-                        }}><div className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-all relative z-10 shrink-0 border", We === 0 ? "bg-white/20 text-white border-transparent" : "bg-black/[0.04] dark:bg-white/10 text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 shadow-xs")}><Ir size={22} strokeWidth={2.5} /></div><div className="relative z-10 py-1"><p className={c("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", We === 0 ? "text-white" : "text-slate-900 dark:text-white")}>KHÁCH VÃNG LAI</p><p className={c("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", We === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</p></div></x.div>}{Cr.map((t, a) => {
-                          const isItemActive = yt ? We === a : We === a + 1;
-                          const targetIndex = yt ? a : a + 1;
-                          return (
-                            <PartnerSearchItem
-                              key={t.id}
-                              partner={t}
-                              isActive={isItemActive}
-                              index={a}
-                              targetIndex={targetIndex}
-                              onHover={(idx) => {
-                                if (We !== idx) rs(idx);
-                              }}
-                              onSelect={(partner) => {
-                                W(!1);
-                                g === "remote_inspect" ? Aa(partner) : F(partner);
-                                Ge("");
-                                Ue(!1);
-                                setTimeout(() => se.current?.focus(), 50);
-                              }}
-                              onContextMenu={(e, partner) => {
-                                setItemContextMenu({
-                                  type: 'partner',
-                                  data: partner,
-                                  position: { x: e.clientX, y: e.clientY }
-                                });
-                              }}
-                            />
-                          );
-                        })}{yt && <div className="dropdown-item flex items-center justify-between group/add border-t border-black/5 dark:border-white/5 px-4 py-3 cursor-pointer" onMouseDown={e => {
-                          e.preventDefault();
-                          dn(yt), cr(!0), Ue(!1);
-                        }}><div className="flex items-center gap-3"><div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center group-hover/add:rotate-90 transition-transform text-primary shrink-0"><Ot size={18} strokeWidth={3} /></div><div className="py-0.5"><p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-normal">Đối tác mới</p><p className="text-sm font-black uppercase tracking-tight text-primary leading-snug pt-0.5">Tạo nhanh "{yt}"</p></div></div><Dr size={18} strokeWidth={3} className="opacity-40 group-hover/add:translate-x-1 transition-transform" /></div>}</ResizableDropdownContainer>}</Ws></div><x.button whileHover={{
+                        }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><POSPartnerDropdown
+  isOpen={Me}
+  searchQuery={yt}
+  filteredPartners={Cr}
+  activeIndex={We}
+  scrollRef={xs}
+  onHover={rs}
+  onSelectRetail={() => {
+    W(!1);
+    g === "remote_inspect" ? Aa(null) : F(null);
+    Ge("");
+    Ue(!1);
+    setTimeout(() => se.current?.focus(), 50);
+  }}
+  onSelectPartner={(partner) => {
+    W(!1);
+    g === "remote_inspect" ? Aa(partner) : F(partner);
+    Ge("");
+    Ue(!1);
+    setTimeout(() => se.current?.focus(), 50);
+  }}
+  onCreateQuickPartner={(name) => {
+    dn(name);
+    cr(!0);
+    Ue(!1);
+  }}
+  onContextMenu={(e, partner) => {
+    setItemContextMenu({
+      type: 'partner',
+      data: partner,
+      position: { x: e.clientX, y: e.clientY }
+    });
+  }}
+/></div><x.button whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
@@ -3981,7 +3931,39 @@ function POSPage({
                             value: t
                           }), a.close();
                         } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
+                      
+                      {/* Chọn kiểu hoạt ảnh quay lại đơn trước */}
+                      <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <jo size={13} className="text-primary dark:text-emerald-400 shrink-0" strokeWidth={2.5} /> Hoạt ảnh chuyển đơn:
+                          </span>
+                        </div>
+                        <select
+                          value={posOrderSwitchAnim}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPosOrderSwitchAnim(val);
+                            localStorage.setItem("pos_order_switch_animation", val);
+                            try {
+                              const syncChan = new BroadcastChannel("pos_data_sync");
+                              syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_order_switch_animation", value: val });
+                              syncChan.close();
+                            } catch {}
+                            window.dispatchEvent(new CustomEvent("pos_order_switch_anim_changed", { detail: val }));
+                            M.post("/api/settings", { pos_order_switch_animation: val }).catch(() => {});
+                          }}
+                          className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none cursor-pointer focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-xs"
+                        >
+                          <option value="ring">Vòng xoay Vụ Mùa (Mặc định)</option>
+                          <option value="minimal">Thanh nổi Mini (Không che màn hình)</option>
+                          <option value="slide">Trượt thẻ đơn (Mượt mà 60 FPS)</option>
+                          <option value="pulse">Hào quang nhịp thở (Phát sáng viền)</option>
+                          <option value="none">Tắt hoạt ảnh (Tức thì 0 delay)</option>
+                        </select>
+                      </div>
+                      <button onClick={() => {
                         const t = !blockTabPrice;
                         setBlockTabPrice(t), localStorage.setItem("pos_block_tab_unit_price", t ? "true" : "false");
                         try {
@@ -4090,7 +4072,14 @@ function POSPage({
                 borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
                 boxShadow: getCartBoxShadow(cartColorConfig)
               }}
-            ><P>{fn && <x.div key="history-sync-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 z-[200] flex flex-col items-center justify-center gap-3.5 bg-transparent select-none rounded-3xl pointer-events-none"><div className="relative w-16 h-16 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[2.5px] border-emerald-500/30 border-t-emerald-600 dark:border-white/10 dark:border-t-emerald-400 animate-spin" /><div className="absolute -inset-1.5 rounded-full border border-dashed border-[#8b6f47]/20 dark:border-white/10 pointer-events-none" /><div className="w-9 h-9 flex items-center justify-center relative z-10"><img src={kl} alt="LyangPOS" className="w-full h-full object-contain rounded-xl drop-shadow-md" /></div></div><div className="flex flex-col items-center gap-1"><span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span></span><span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/80 border border-[#8b6f47]/25 dark:border-white/10 shadow-xs">Đang đồng bộ dữ liệu...</span></div></x.div>}</P>{mascotWatermarkVisible && (
+            >
+              <OrderSwitchOverlay
+                isVisible={fn}
+                style={posOrderSwitchAnim}
+                direction={navDirection}
+                logo={kl}
+                message="Đang đồng bộ dữ liệu..."
+              />{mascotWatermarkVisible && (
               <div 
                 className={c(
                   "absolute pointer-events-none select-none z-0 overflow-hidden flex transition-all duration-200",
@@ -4114,7 +4103,7 @@ function POSPage({
                   draggable="false"
                 />
               </div>
-            )}<div className="w-full h-full relative bg-transparent"><div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-200 ease-out" style={{ bottom: (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}><div className={c("w-full transition-colors relative", (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (Ze === "sidebar" && !ka ? "pb-[400px]" : "pb-6"))}><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}<div className="w-full h-full relative bg-transparent"><div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}><div className={c("w-full transition-colors relative", (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (Ze === "sidebar" && !ka ? "pb-[400px]" : "pb-6"))}><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -4439,27 +4428,19 @@ function POSPage({
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
                                 }} tabIndex={-1} className="h-8 px-2.5 bg-transparent hover:bg-primary text-primary hover:text-white dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 border border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent dark:hover:border-transparent transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-primary/15 text-primary group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
-  <ResizableDropdownContainer
-    key="pos-product-dropdown"
+  <POSProductDropdown
     id="pos-product-dropdown"
     dropdownKey="pos-product-dropdown"
     storageKey="pos_product_dropdown_size"
     coords={productSearchCoords}
-    defaultWidth={720}
-    defaultMaxHeight={480}
     scrollRef={hs}
-    itemCount={wt.length}
-  >
-{wt.map((t, a) => (
-  <ProductSearchItem
-    key={t.id}
-    product={t}
-    isActive={a === De}
-    index={a}
+    products={wt}
+    activeIndex={De}
+    searchQuery={Z}
     colorTheme={Mt}
     showLastPurchaseBadge={showLastPurchaseBadge}
-    lastPurchase={partnerLastPurchases?.[t.id]}
-    accountingEnabled={isAccountingFeatureEnabled}
+    partnerLastPurchases={partnerLastPurchases}
+    isAccountingFeatureEnabled={isAccountingFeatureEnabled}
     onHover={(idx) => {
       if (De !== idx) Ft(idx);
     }}
@@ -4487,112 +4468,101 @@ function POSPage({
         position: { x: e.clientX, y: e.clientY }
       });
     }}
+    onCreateNewProduct={(query) => {
+      dn(query);
+      ur(!0);
+    }}
   />
-))}
-{Z && wt.length === 0 && <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
-                                      dn(Z), ur(!0);
-                                    }}><Ot size={18} strokeWidth={3} /><span>Thêm sản phẩm mới: "{Z}"</span></div>}</ResizableDropdownContainer>)}
+)}
 {Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && (
-  <ResizableDropdownContainer
-    key="cart-row-product-dropdown"
+  <POSProductDropdown
     id="cart-row-product-dropdown"
     dropdownKey="cart-row-product-dropdown"
     storageKey="pos_product_dropdown_size"
     coords={cartRowSearchCoords}
-    defaultWidth={720}
-    defaultMaxHeight={480}
     scrollRef={Ea}
-    itemCount={cartFilteredProducts.length}
-  >
-{cartFilteredProducts.map((r, s) => {
-  const curRow = ve[Tt];
-  const hasCustomPrice = Boolean(p && p.id && R && R[r.id] !== void 0);
-  const displayPrice = hasCustomPrice ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price);
-  return (
-    <ProductSearchItem
-      key={r.id}
-      product={r}
-      isActive={s === It}
-      index={s}
-      colorTheme={Mt}
-      displayPrice={displayPrice}
-      showLastPurchaseBadge={showLastPurchaseBadge}
-      lastPurchase={partnerLastPurchases?.[r.id]}
-      accountingEnabled={isAccountingFeatureEnabled}
-      onHover={(idx) => {
-        if (It !== idx) Ca(idx);
-      }}
-      onSelect={(selectedProd) => {
-        if (!curRow) return;
-        let n = [...y];
-        const l = n.findIndex(u => u.cartId === curRow.cartId);
-        if (l === -1) return;
-        const d = n[l].quantity;
-        const o = n.findIndex((u, h) => h !== l && u.product_id === selectedProd.id);
-        if (o > -1) {
-          n[o].quantity += d;
-          n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
-          n.splice(l, 1);
+    products={cartFilteredProducts}
+    activeIndex={It}
+    searchQuery={zt}
+    colorTheme={Mt}
+    showLastPurchaseBadge={showLastPurchaseBadge}
+    partnerLastPurchases={partnerLastPurchases}
+    isAccountingFeatureEnabled={isAccountingFeatureEnabled}
+    getCustomPrice={(r) => {
+      const hasCustomPrice = Boolean(p && p.id && R && R[r.id] !== void 0);
+      return hasCustomPrice ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price);
+    }}
+    onHover={(idx) => {
+      if (It !== idx) Ca(idx);
+    }}
+    onSelect={(selectedProd) => {
+      const curRow = ve[Tt];
+      if (!curRow) return;
+      let n = [...y];
+      const l = n.findIndex(u => u.cartId === curRow.cartId);
+      if (l === -1) return;
+      const d = n[l].quantity;
+      const hasCustomPrice = Boolean(p && p.id && R && R[selectedProd.id] !== void 0);
+      const displayPrice = hasCustomPrice ? R[selectedProd.id] : ((Te === "Wholesale" && selectedProd.bulk_price) || selectedProd.sale_price);
+      const o = n.findIndex((u, h) => h !== l && u.product_id === selectedProd.id);
+      if (o > -1) {
+        n[o].quantity += d;
+        n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
+        n.splice(l, 1);
+      } else {
+        n[l] = {
+          ...n[l],
+          product_id: selectedProd.id,
+          product_name: selectedProd.name,
+          unit: selectedProd.unit,
+          secondary_unit: selectedProd.secondary_unit,
+          multiplier: selectedProd.multiplier || 1,
+          price: displayPrice,
+          cost_price: selectedProd.cost_price,
+          latest_cost_price: selectedProd.latest_cost_price,
+          stock: selectedProd.stock,
+          is_combo: selectedProd.is_combo,
+          active_ingredient: selectedProd.active_ingredient,
+          is_manual_price: false
+        };
+        delete n[l]?.ai_scanned;
+      }
+      H(n);
+      ct(null);
+      ls("");
+      setTimeout(() => {
+        const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
+        const b = ve.findIndex(O => O.cartId === targetCartId);
+        const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
+        const w = document.getElementById(`qty-sec-${S}`);
+        if (Te === "Wholesale" && w && !w.disabled) {
+          w.focus();
+          w.select?.();
         } else {
-          n[l] = {
-            ...n[l],
-            product_id: selectedProd.id,
-            product_name: selectedProd.name,
-            unit: selectedProd.unit,
-            secondary_unit: selectedProd.secondary_unit,
-            multiplier: selectedProd.multiplier || 1,
-            price: displayPrice,
-            cost_price: selectedProd.cost_price,
-            latest_cost_price: selectedProd.latest_cost_price,
-            stock: selectedProd.stock,
-            is_combo: selectedProd.is_combo,
-            active_ingredient: selectedProd.active_ingredient,
-            is_manual_price: false
-          };
-          delete n[l]?.ai_scanned;
+          const O = document.getElementById(`qty-main-${S}`);
+          O?.focus();
+          O?.select?.();
         }
-        H(n);
-        ct(null);
-        ls("");
-        setTimeout(() => {
-          const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
-          const b = ve.findIndex(O => O.cartId === targetCartId);
-          const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
-          const w = document.getElementById(`qty-sec-${S}`);
-          if (Te === "Wholesale" && w && !w.disabled) {
-            w.focus();
-            w.select?.();
-          } else {
-            const O = document.getElementById(`qty-main-${S}`);
-            O?.focus();
-            O?.select?.();
-          }
-        }, 100);
-      }}
-      onQuickStock={(prod, coords) => {
-        Xt(prod);
-        za(coords);
-        Dt(!0);
-      }}
-      onContextMenu={(e, prod) => {
-        setItemContextMenu({
-          type: 'product',
-          data: prod,
-          position: { x: e.clientX, y: e.clientY }
-        });
-      }}
-    />
-  );
-})}
-{zt && cartFilteredProducts.length === 0 && (
-  <div className="dropdown-item flex items-center justify-center gap-3 font-black uppercase text-[12px] tracking-widest border-t border-transparent" onClick={() => {
-    dn(zt), ur(!0);
-  }}>
-    <Ot size={18} strokeWidth={3} />
-    <span>Thêm sản phẩm mới: "{zt}"</span>
-  </div>
-)}
-</ResizableDropdownContainer>)}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground"><input type="number" step="any" tabIndex={Te === "Wholesale" ? 0 : -1} className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+      }, 100);
+    }}
+    onQuickStock={(prod, coords) => {
+      Xt(prod);
+      za(coords);
+      Dt(!0);
+    }}
+    onContextMenu={(e, prod) => {
+      setItemContextMenu({
+        type: 'product',
+        data: prod,
+        position: { x: e.clientX, y: e.clientY }
+      });
+    }}
+    onCreateNewProduct={(query) => {
+      dn(query);
+      ur(!0);
+    }}
+  />
+)}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground"><input type="number" step="any" tabIndex={Te === "Wholesale" ? 0 : -1} className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -4666,28 +4636,28 @@ function POSPage({
       className="overflow-hidden flex items-center gap-1"
     >
       {m.price < m.product.cost_price && (
-        <div key="input-loss" className="bg-rose-500/15 dark:bg-rose-500/25 text-rose-700 dark:text-rose-300 text-[8.5px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1 border border-rose-500/30 dark:border-rose-400/40">
-          <Comp_da size={11} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400" />LỖ VỐN
+        <div key="input-loss" style={getBadgeComputedStyle(cartColorConfig, 'loss')} className="bg-rose-500/25 dark:bg-rose-500/30 text-rose-950 dark:text-rose-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs">
+          <Comp_da size={11} strokeWidth={2.8} className="text-rose-700 dark:text-rose-400" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />LỖ VỐN
         </div>
       )}
       {m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && (
-        <div key="input-below-new" className="bg-orange-500/15 dark:bg-orange-500/25 text-orange-700 dark:text-orange-300 text-[8.5px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1 border border-orange-500/30 dark:border-orange-400/40">
-          <$n size={11} strokeWidth={2.6} className="text-orange-600 dark:text-orange-400" />DƯỚI VỐN NHẬP
+        <div key="input-below-new" style={getBadgeComputedStyle(cartColorConfig, 'loss')} className="bg-orange-500/25 dark:bg-orange-500/30 text-orange-950 dark:text-orange-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-orange-500/50 dark:border-orange-400/60 shadow-xs">
+          <$n size={11} strokeWidth={2.8} className="text-orange-700 dark:text-orange-400" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />DƯỚI VỐN NHẬP
         </div>
       )}
       {m.price < ((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price) && m.price >= (m.product.latest_cost_price || m.product.cost_price) && (
-        <div key="input-low-price" className="bg-amber-500/15 dark:bg-amber-500/25 text-amber-800 dark:text-amber-300 text-[8.5px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1 border border-amber-500/30 dark:border-amber-400/40">
-          <Cd size={11} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400" />GIÁ THẤP ({z((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price)}đ)
+        <div key="input-low-price" style={getBadgeComputedStyle(cartColorConfig, 'low_price')} className="bg-[#d97706]/20 dark:bg-amber-500/25 text-[#78350f] dark:text-amber-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#b45309]/50 dark:border-amber-400/50 shadow-xs">
+          <Cd size={11} strokeWidth={2.8} className="text-[#b45309] dark:text-amber-400" style={getBadgeComputedStyle(cartColorConfig, 'low_price')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'low_price').color } : undefined} />GIÁ THẤP ({z((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price)}đ)
         </div>
       )}
       {p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && (
-        <div key="input-sync" className="bg-emerald-500/15 dark:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-[8.5px] px-2 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1 border border-emerald-500/30 dark:border-emerald-400/40">
-          <Sd size={11} className="text-emerald-600 dark:text-emerald-400" /><span className="text-[8.5px] font-black uppercase tracking-wider">Đồng bộ giá</span>
+        <div key="input-sync" style={getBadgeComputedStyle(cartColorConfig, 'stock')} className="bg-[#2d5016]/20 dark:bg-emerald-500/25 text-[#1b340d] dark:text-emerald-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#2d5016]/45 dark:border-emerald-400/50 shadow-xs">
+          <Sd size={11} strokeWidth={2.8} className="text-[#2d5016] dark:text-emerald-400" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} /><span className="text-[9px] font-black uppercase tracking-wider">Đồng bộ giá</span>
         </div>
       )}
     </x.div>
   )}
-</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2.5 py-0.5 bg-gradient-to-r from-rose-500/15 to-red-500/20 text-rose-700 dark:text-rose-300 rounded-full text-[8.5px] font-black uppercase tracking-widest border border-rose-500/30 dark:border-rose-400/40 shadow-xs shadow-rose-500/10 mt-0.5 backdrop-blur-md">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2.5 py-0.5 bg-rose-500/25 text-rose-950 dark:text-rose-200 rounded-full text-[8.5px] font-black uppercase tracking-widest border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -4911,543 +4881,54 @@ function POSPage({
                           }} transition={{
                             duration: 0.85,
                             ease: "easeInOut"
-                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && <>
-  <x.div
-    key="partner-bubble"
-    id="partner-bubble"
-    data-bubble="partner"
-    ref={partnerBubbleRef}
-    layout
-    initial={{
-      opacity: 0,
-      scale: 0.92,
-      y: 24,
-      filter: "blur(12px)"
+                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && (
+  <POSFloatingBubbles
+    partner={p}
+    livePartner={Pe}
+    debtBeforeOrder={de}
+    debtAfterOrder={it}
+    isRemoteInspect={g === "remote_inspect"}
+    remoteState={k}
+    cartColorConfig={cartColorConfig}
+    onOpenPartnerHistory={() => setIsHistoryPanelOpen(true)}
+    onOpenPartnerSearch={() => Xr(!0)}
+    orderNote={K}
+    isNoteOpen={lr}
+    onToggleNote={() => as(!lr)}
+    onCloseNote={() => as(!1)}
+    onChangeOrderNote={$e}
+    shippingStatus={tt}
+    shippingAddress={vr}
+    shippingPhone={kr}
+    onToggleShipping={() => {
+      tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
     }}
-    animate={{
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      filter: "blur(0.01px)"
+    onCloseShipping={() => qt(null)}
+    onSaveShipping={({ address, phone }) => {
+      ra(address);
+      sa(phone);
     }}
-    exit={{
-      opacity: 0,
-      scale: 0.92,
-      y: 24,
-      filter: "blur(12px)",
-      transition: {
-        duration: 0.2,
-        ease: "easeInOut"
-      }
+    paymentMethod={I}
+    onSelectPaymentMethod={method => {
+      ge(method);
+      if (method === "Cash") re($);
+      else re(0);
     }}
-    transition={{
-      layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
-      type: "spring",
-      stiffness: 350,
-      damping: 26,
-      mass: 0.8
-    }}
-    className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
-  >
-    <div className="flex items-center gap-2.5 pointer-events-auto">
-      <x.div
-        key="partner-card-bubble"
-        id="partner-card-bubble"
-        data-bubble="partner"
-        layout
-        initial={{ opacity: 0, scale: 0.92, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 12 }}
-        transition={{
-          layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
-          type: "spring",
-          stiffness: 400,
-          damping: 28
-        }}
-        onClick={t => {
-          t.stopPropagation(), p ? setIsHistoryPanelOpen(true) : Xr(!0);
-        }}
-        style={getBubbleComputedStyle(cartColorConfig, 'partner')}
-        className="flex items-start group/partner-bubble cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
-      >
-        <Gn className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color, opacity: 0.1 } : undefined} />
-        <x.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="flex flex-col max-w-[300px] min-w-[200px] relative z-10">
-          <div className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-            Đối tác / Khách hàng
-          </div>
-          <div className="flex items-center gap-1.5 mb-1">
-            {g === "remote_inspect" ? (
-              <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-md text-[9px] font-black tracking-wider shrink-0 border border-emerald-500/20">
-                MÁY TRẠM
-              </span>
-            ) : (
-              p && (
-                <span 
-                  className={c("px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", !getBubbleComputedStyle(cartColorConfig, 'partner')?.color && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30")}
-                  style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color, borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}40`, backgroundColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}20` } : undefined}
-                >
-                  ID: {p.id}
-                </span>
-              )
-            )}
-            <div className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-              {g === "remote_inspect" ? k?.partner_name || "Khách bán lẻ" : p ? p.name : "Khách bán lẻ"}
-            </div>
-          </div>
-          <P initial={false}>
-            {Pe && (
-              <x.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{
-                  height: { duration: 0.26, ease: [0.25, 1, 0.5, 1] },
-                  opacity: { duration: 0.18, ease: "easeOut" }
-                }}
-                className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
-                style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}40` } : undefined}
-              >
-                {(Pe.phone || Pe.cccd) && (
-                  <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-                    {Pe.phone && (
-                      <div className="flex items-center gap-1" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-                        <Mr size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
-                        <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.phone}</span>
-                      </div>
-                    )}
-                    {Pe.cccd && (
-                      <div className="flex items-center gap-1" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-                        <Comp_ca size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
-                        <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.cccd}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {Pe.address && (
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>
-                    <Us size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined} />
-                    <span className="truncate leading-normal" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'partner').color } : undefined}>{Pe.address}</span>
-                  </div>
-                )}
-                {(g === "remote_inspect" ? Pe.debt_balance || 0 : (it !== 0 || de !== 0)) && (
-                  <div className="w-full mt-0.5 pt-1 border-t border-[#8b6f47]/15 dark:border-[#d4a574]/15" style={getBubbleComputedStyle(cartColorConfig, 'partner')?.color ? { borderColor: `${getBubbleComputedStyle(cartColorConfig, 'partner').color}25` } : undefined}>
-                    {(() => {
-                      const tc = getBubbleComputedStyle(cartColorConfig, 'partner')?.color;
-                      if (g === "remote_inspect") {
-                        const a = Pe.debt_balance || 0;
-                        return (
-                          <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                              <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
-                              <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className={c("text-xs font-black tabular-nums", a > 0 ? "text-rose-600 dark:text-rose-400" : a < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
-                                {z(Math.abs(a))}đ
-                              </span>
-                              <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", a > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : a < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                                {a > 0 ? "Khách nợ" : a < 0 ? "Mình nợ" : "Hết nợ"}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      if (it - de === 0) {
-                        return (
-                          <div className="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                            <div className="flex items-center gap-1 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                              <Va size={11} className="shrink-0" style={tc ? { color: tc } : undefined} />
-                              <span style={tc ? { color: tc } : undefined}>Dư nợ:</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className={c("text-xs font-black tabular-nums", de > 0 ? "text-rose-600 dark:text-rose-400" : de < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500")}>
-                                {z(Math.abs(de))}đ
-                              </span>
-                              <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", de > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : de < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                                {de > 0 ? "Khách nợ" : de < 0 ? "Mình nợ" : "Hết nợ"}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      const S_delta = it - de;
-                      return (
-                        <div className="flex flex-col gap-1 w-full">
-                          <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined}>
-                            <span className="flex items-center gap-1">
-                              <Va size={11} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" style={tc ? { color: tc } : undefined} />
-                              <span style={tc ? { color: tc } : undefined}>Biến động nợ</span>
-                            </span>
-                            <span className={c("text-[8px] font-black px-1.5 py-0.5 rounded-md", it > 0 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20" : it < 0 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-500")}>
-                              {it > 0 ? "Khách nợ" : it < 0 ? "Mình nợ" : "Hết nợ"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-black/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-[#d4a574]/20 shadow-xs" style={tc ? { borderColor: `${tc}30`, backgroundColor: `${tc}15` } : undefined}>
-                            <div className="flex flex-col">
-                              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-none mb-0.5" style={tc ? { color: tc, opacity: 0.7 } : undefined}>
-                                Hiện tại
-                              </span>
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 line-through decoration-rose-400/60 tabular-nums" style={tc ? { color: tc, opacity: 0.8 } : undefined}>
-                                {z(Math.abs(de))}đ
-                              </span>
-                            </div>
-                            <div className={c("flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black tracking-tight", S_delta > 0 ? "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25" : "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25")}>
-                              <span>➔</span>
-                              <span>{S_delta > 0 ? `+${z(S_delta)}` : `-${z(Math.abs(S_delta))}`}</span>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              <span className="text-[8px] font-bold text-rose-500/80 dark:text-rose-400/80 uppercase leading-none mb-0.5">
-                                Sau đơn
-                              </span>
-                              <span className={c("text-[11px] font-black tabular-nums", it > 0 ? "text-rose-600 dark:text-rose-400" : it < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#2d5016] dark:text-emerald-400")}>
-                                {z(Math.abs(it))}đ
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </x.div>
-            )}
-          </P>
-        </x.div>
-      </x.div>
-      <x.div layout transition={{ layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] } }} className="relative group/note-container pointer-events-auto">
-        <x.div
-          id="note-bubble"
-          data-bubble="note"
-          layout
-          initial={false}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          transition={{
-            layout: { duration: 0.28, ease: [0.25, 1, 0.5, 1] },
-            type: "spring",
-            stiffness: 450,
-            damping: 25
-          }}
-          onClick={t => {
-            t.stopPropagation(), as(!lr);
-          }}
-          style={getButtonComputedStyle(cartColorConfig, 'note')}
-          className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-colors transition-shadow cursor-pointer border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", K || lr ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")}
-          title="Ghi chú hóa đơn"
-        >
-          <Comp_ca size={18} className={K || lr ? "text-white" : "transition-colors"} strokeWidth={2.5} />
-          {K && !lr && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-800" />}
-        </x.div>
-        <OrderNotePopup
-          isOpen={lr}
-          initialNote={K}
-          onClose={() => as(!1)}
-          onSave={newNote => $e(newNote)}
-        />
-      </x.div>
-      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative group/ship-container pointer-events-auto">
-        <x.div
-          id="ship-bubble"
-          data-bubble="ship"
-          layout
-          initial={false}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          transition={{
-            layout: { type: "spring", stiffness: 350, damping: 28 },
-            type: "spring",
-            stiffness: 450,
-            damping: 25
-          }}
-          onClick={t => {
-            t.stopPropagation(), tt ? qt(null) : (qt("Shipping"), p && (ra(p.address || ""), sa(p.phone || "")));
-          }}
-          style={getButtonComputedStyle(cartColorConfig, 'ship')}
-          className={c("w-11 h-11 rounded-2xl flex items-center justify-center transition-colors transition-shadow cursor-pointer border-2 shadow-[0_8px_18px_rgba(139,111,71,0.22)] dark:shadow-[0_8px_18px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_24px_rgba(139,111,71,0.28)]", tt ? "bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/25" : "bg-[#fbf9f4] dark:bg-[#1a1e17] text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/40 dark:border-[#d4a574]/35 hover:bg-[#8b6f47]/10 hover:border-[#2d5016] hover:text-[#2d5016] dark:hover:border-emerald-400 dark:hover:text-emerald-400")}
-          title="Giao hàng tận nơi"
-        >
-          <Comp_u_t size={18} strokeWidth={2.5} className={tt ? "text-white" : "transition-colors"} />
-          {tt && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-800" />}
-        </x.div>
-        <ShippingInfoPopup
-          isOpen={tt === "Shipping"}
-          initialAddress={vr}
-          initialPhone={kr}
-          onClose={() => qt(null)}
-          onSave={({ address, phone }) => {
-            ra(address);
-            sa(phone);
-          }}
-        />
-      </x.div>
-    </div>
-  </x.div>
-  <x.div
-    key="total-bubble"
-    id="total-bubble"
-    data-bubble="total"
-    ref={totalBubbleRef}
-    layout
-    initial={{
-      opacity: 0,
-      scale: 0.92,
-      y: 24,
-      filter: "blur(12px)"
-    }}
-    animate={{
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      filter: "blur(0.01px)"
-    }}
-    exit={{
-      opacity: 0,
-      scale: 0.92,
-      y: 24,
-      filter: "blur(12px)",
-      transition: {
-        duration: 0.2,
-        ease: "easeInOut"
-      }
-    }}
-    transition={{
-      layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.8 },
-      type: "spring",
-      stiffness: 350,
-      damping: 26,
-      mass: 0.8
-    }}
-    className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
-  >
-    <P mode="popLayout">
-      {I === "Cash" && (
-        <x.div
-          key="cash-bubble"
-          id="cash-bubble"
-          data-bubble="cash"
-          layout
-          initial={{
-            opacity: 0,
-            scale: 0.85,
-            x: 30,
-            filter: "blur(8px)"
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            x: 0,
-            filter: "blur(0px)"
-          }}
-          exit={{
-            opacity: 0,
-            scale: 0.85,
-            x: 30,
-            filter: "blur(8px)",
-            transition: {
-              duration: 0.2,
-              ease: "easeInOut"
-            }
-          }}
-          transition={{
-            layout: { type: "spring", stiffness: 350, damping: 28 },
-            type: "spring",
-            stiffness: 400,
-            damping: 28
-          }}
-          style={getBubbleComputedStyle(cartColorConfig, 'cash')}
-          className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-shadow transition-border duration-300 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
-        >
-          <Comp_oa className="absolute -right-3 -bottom-3 w-24 h-24 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/cash-calculator:scale-110 group-hover/cash-calculator:-rotate-6 pointer-events-none select-none" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color, opacity: 0.1 } : undefined} />
-          <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex flex-col relative z-10 w-full">
-            <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined}>Khách đưa (F1)</span>
-            <div className="flex items-center gap-2.5">
-              <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="relative flex items-center min-w-[70px] group/input-wrapper h-full">
-                <span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">{z(V) || "0"}</span>
-                <input id="cash-given-compact" ref={xr} type="text" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined} className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" value={z(V)} autoComplete="off" onChange={t => Ye(parseFloat(t.target.value.replace(/,/g, "")) || 0)} onFocus={t => t.target.select()} />
-              </x.div>
-              <P>
-                {V > 0 && (
-                  <x.div
-                    layout
-                    initial={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
-                    animate={{ opacity: 1, scale: 1, width: "auto", x: 0 }}
-                    exit={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
-                    transition={{
-                      layout: { type: "spring", stiffness: 350, damping: 28 },
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 26
-                    }}
-                    className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5 overflow-hidden"
-                  >
-                    <span className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap" style={getBubbleComputedStyle(cartColorConfig, 'cash')?.color ? { color: getBubbleComputedStyle(cartColorConfig, 'cash').color } : undefined}>Tiền thối</span>
-                    <span className={c("text-xl font-black tabular-nums transition-colors", V > $ ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 opacity-50")}>{z(Math.max(0, V - $))}</span>
-                  </x.div>
-                )}
-              </P>
-            </div>
-          </x.div>
-        </x.div>
-      )}
-    </P>
-    <P mode="popLayout">
-      {(p || g === "remote_inspect") && (
-        <x.div
-          key="payment-toggle-bubble"
-          layout
-          initial={{
-            opacity: 0,
-            scale: 0.85,
-            x: 25,
-            filter: "blur(8px)"
-          }}
-          animate={{
-            opacity: 1,
-            scale: 1,
-            x: 0,
-            filter: "blur(0px)"
-          }}
-          exit={{
-            opacity: 0,
-            scale: 0.85,
-            x: 25,
-            filter: "blur(8px)",
-            transition: {
-              duration: 0.18,
-              ease: "easeOut"
-            }
-          }}
-          transition={{
-            layout: { type: "spring", stiffness: 350, damping: 28 },
-            type: "spring",
-            stiffness: 400,
-            damping: 28
-          }}
-          style={getBubbleComputedStyle(cartColorConfig, 'payment')}
-          className="w-[155px] pointer-events-auto flex items-center bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl p-1 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 group/payment-toggle relative h-[56px] transition-shadow transition-border duration-300"
-        >
-          <x.div
-            layout={!0}
-            className="absolute inset-y-1 rounded-xl shadow-md z-0"
-            style={{
-              width: "calc(50% - 4px)",
-              left: (g === "remote_inspect" ? k?.payment_method || "Cash" : I) === "Cash" ? "4px" : "calc(50%)",
-              ...getBubbleBadgeStyle(cartColorConfig, 'payment')
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 30
-            }}
-          />
-          <button
-            onClick={t => {
-              t.stopPropagation(), ge("Cash"), re($);
-            }}
-            style={{
-              color: I === "Cash" 
-                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
-                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
-            }}
-            className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5", I === "Cash" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}
-          >
-            <Comp_oa size={13} className={c(I === "Cash" ? "opacity-100" : "opacity-40")} />
-            <span className="text-[9px] font-black uppercase tracking-wider">Tiền mặt</span>
-          </button>
-          <button
-            onClick={t => {
-              t.stopPropagation(), ge("Debt"), re(0);
-            }}
-            style={{
-              color: I === "Debt" 
-                ? (getBubbleBadgeStyle(cartColorConfig, "payment").color || "#ffffff") 
-                : (getBubbleComputedStyle(cartColorConfig, "payment").color || undefined)
-            }}
-            className={c("flex-1 h-full rounded-lg flex flex-col items-center justify-center transition-colors duration-200 relative z-10 gap-0.5", I === "Debt" ? "" : "text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400")}
-          >
-            <Comp_ua size={13} className={c(I === "Debt" ? "opacity-100" : "opacity-40")} />
-            <span className="text-[9px] font-black uppercase tracking-wider">Ghi nợ</span>
-          </button>
-        </x.div>
-      )}
-    </P>
-    <x.div
-      key="total-amount-bubble"
-      id="total-amount-bubble"
-      data-bubble="total"
-      layout
-      initial={{ opacity: 0, scale: 0.92, y: 12 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.92, y: 12 }}
-      transition={{
-        layout: { type: "spring", stiffness: 350, damping: 28 },
-        type: "spring",
-        stiffness: 400,
-        damping: 28
-      }}
-      onMouseDown={yr}
-      onMouseUp={aa}
-      onMouseLeave={aa}
-      onTouchStart={yr}
-      onTouchEnd={aa}
-      style={getBubbleComputedStyle(cartColorConfig, 'total')}
-      className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-shadow transition-border duration-300 hover:scale-[1.02] active:scale-[0.99]"
-    >
-      <Va className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none" />
-      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="flex items-center gap-1.5 mb-0.5 z-10 relative">
-        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: (cartColorConfig?.bubbleBorderColor && cartColorConfig.bubbleBorderColor !== 'default') ? cartColorConfig.bubbleBorderColor : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#10b981' }} />
-        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>Tổng cộng thanh toán</span>
-      </x.div>
-      <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28 } }} className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>
-        {z(g === "remote_inspect" ? k?.total_amount || (k?.cart || []).reduce((t, a) => t + (a.price || a.sale_price || 0) * (a.quantity || 1), 0) : $)}
-        <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={getBubbleComputedStyle(cartColorConfig, "total").color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}>đ</span>
-      </x.div>
-      <P>
-        {Ha && (y.some(t => t.product_id !== null) || m.product && m.product.id !== null) && (
-          <x.div
-            layout
-            initial={{ opacity: 0, height: 0, scale: 0.9 }}
-            animate={{ opacity: 1, height: "auto", scale: 1 }}
-            exit={{ opacity: 0, height: 0, scale: 0.9 }}
-            transition={{
-              layout: { type: "spring", stiffness: 350, damping: 28 },
-              type: "spring",
-              stiffness: 380,
-              damping: 26
-            }}
-            className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative overflow-hidden"
-          >
-            <Kn size={12} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-[10px] font-black uppercase tracking-tight">Lợi nhuận: {z(vs)}đ</span>
-          </x.div>
-        )}
-      </P>
-    </x.div>
-  </x.div>
-  <P>
-    {canScrollDown && (
-      <x.button
-        type="button"
-        initial={{ opacity: 0, y: 16, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 16, scale: 0.9 }}
-        transition={{ type: "spring", stiffness: 450, damping: 28 }}
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={handleScrollDownCart}
-        className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#fbf9f4]/95 dark:bg-[#1a1e17]/95 backdrop-blur-xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-colors select-none group pointer-events-auto"
-        title="Bấm để cuộn xuống xem các sản phẩm tiếp theo"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-        </span>
-        <span>Còn sản phẩm bên dưới</span>
-        <ChevronDown size={13} strokeWidth={3} className="animate-bounce group-hover:translate-y-0.5 transition-transform text-[#8b6f47] dark:text-[#d4a574]" />
-      </x.button>
-    )}
-  </P>
-</>}</P></div></div>{Ze === "bottom" && (
+    cashGiven={V}
+    onChangeCashGiven={Ye}
+    cashGivenInputRef={xr}
+    totalAmount={$}
+    isProfitRevealed={Ha}
+    cart={y}
+    currentProduct={m}
+    onMouseDownProfit={yr}
+    onMouseUpProfit={aa}
+    orderProfit={vs}
+    canScrollDown={canScrollDown}
+    onScrollDownCart={handleScrollDownCart}
+    cartScrollContainerRef={cartScrollContainerRef}
+  />
+)}</P></div></div>{Ze === "bottom" && (
               <POSSummaryPanel
               mode={Ze}
               isSidebarExpanded={ka}
@@ -5937,7 +5418,7 @@ function POSPage({
               onDeleteOrder={(order) => {
                 Sn(order);
               }}
-            /><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><Fn><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
+            /><P>{historyPartner && <PartnerHistoryModal isOpen={!!historyPartner} partner={historyPartner} onClose={() => setHistoryPartner(null)} />}</P><POSHistoryPanel context="POS" defaultType="Sale" partner={p} isOpen={isHistoryPanelOpen} onClose={() => setIsHistoryPanelOpen(!1)} onAddToCart={t => {
               const a = (T || []).find(r => r.id === t.id) || t,
                 hasCustomPrice = Boolean(p && p.id && R && R[a.id] !== void 0),
                 r = t.last_price !== void 0 ? t.last_price : hasCustomPrice ? R[a.id] : Te === "Wholesale" && a.bulk_price || a.sale_price || 0;
@@ -5960,7 +5441,7 @@ function POSPage({
               });
             }} onDeleteOrder={t => {
               Sn(t);
-            }} /></Fn>
+            }} />
             <ActionContextMenu
               isOpen={!!itemContextMenu}
               type={itemContextMenu?.type || 'product'}

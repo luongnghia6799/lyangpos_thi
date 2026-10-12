@@ -9,8 +9,9 @@ import {
 import { cn } from '../../lib/utils';
 import Portal from '../widgets/Portal';
 import BubbleCustomizerTab, { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS } from './BubbleCustomizerTab';
+import BadgeCustomizerTab, { getBadgeComputedStyle, BADGE_PRESETS } from './BadgeCustomizerTab';
 
-export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS };
+export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS, getBadgeComputedStyle, BADGE_PRESETS };
 
 /**
  * Safely compresses and scales down user uploaded watermark images on client-side
@@ -282,7 +283,27 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     textShadowColor: 'default',
     textShadowBlur: 6,
     // Layout & Viewport customization
-    constrainCartAboveBubbles: true
+    constrainCartAboveBubbles: true,
+    // Badge & Nhãn Dòng customization
+    badgeCustomMode: 'all',
+    badgeBorderWidth: '2',
+    badgeEnableBorder: true,
+    badgeEnableShadow: false,
+    badgeBg: 'default',
+    badgeBorderColor: 'default',
+    badgeTextColor: 'default',
+    badgeStockBg: 'default',
+    badgeStockBorder: 'default',
+    badgeStockText: 'default',
+    badgePurchaseBg: 'default',
+    badgePurchaseBorder: 'default',
+    badgePurchaseText: 'default',
+    badgeLowPriceBg: 'default',
+    badgeLowPriceBorder: 'default',
+    badgeLowPriceText: 'default',
+    badgeLossBg: 'default',
+    badgeLossBorder: 'default',
+    badgeLossText: 'default'
 };
 
 export const getCartTextShadowStyle = (config, baseColor = null) => {
@@ -773,7 +794,7 @@ export default function CartColorCustomizerModal({
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.94, y: 15 }}
                             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                            className="relative w-full max-w-3xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
+                            className="relative w-full max-w-4xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
                         >
                 {/* Header with Navigation Tabs */}
                 <div className="px-6 pt-5 pb-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
@@ -809,59 +830,74 @@ export default function CartColorCustomizerModal({
                     </div>
 
                     {/* Segmented Control / Tabs */}
-                    <div className="flex items-center p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10 overflow-x-auto custom-scrollbar">
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('colors')}
-                            className={cn(
-                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
-                                activeTab === 'colors'
-                                    ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <Palette size={14} strokeWidth={2.5} className="shrink-0" />
-                            <span>1. Màu Giỏ Hàng</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('displays')}
-                            className={cn(
-                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
-                                activeTab === 'displays'
-                                    ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
-                            <span>2. Hiển Thị & Mờ Kính</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('mascot')}
-                            className={cn(
-                                "flex-1 min-w-[110px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
-                                activeTab === 'mascot'
-                                    ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <ImageIcon size={14} strokeWidth={2.5} className="shrink-0" />
-                            <span>3. Mascot Chìm</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setActiveTab('bubbles')}
-                            className={cn(
-                                "flex-1 min-w-[130px] py-2 px-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
-                                activeTab === 'bubbles'
-                                    ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            )}
-                        >
-                            <Sparkles size={14} strokeWidth={2.5} className="text-amber-500 shrink-0" />
-                            <span>4. Bubble & Nút Bấm</span>
-                        </button>
+                    <div className="overflow-x-auto custom-scrollbar pb-0.5">
+                        <div className="grid grid-cols-5 min-w-[620px] p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('colors')}
+                                className={cn(
+                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                    activeTab === 'colors'
+                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
+                            >
+                                <Palette size={14} strokeWidth={2.5} className="shrink-0" />
+                                <span className="truncate">1. Màu Giỏ Hàng</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('displays')}
+                                className={cn(
+                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                    activeTab === 'displays'
+                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
+                            >
+                                <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
+                                <span className="truncate">2. Mờ Kính & Viền</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('mascot')}
+                                className={cn(
+                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                    activeTab === 'mascot'
+                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
+                            >
+                                <ImageIcon size={14} strokeWidth={2.5} className="shrink-0" />
+                                <span className="truncate">3. Mascot Chìm</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('bubbles')}
+                                className={cn(
+                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                    activeTab === 'bubbles'
+                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
+                            >
+                                <Sparkles size={14} strokeWidth={2.5} className="text-amber-500 shrink-0" />
+                                <span className="truncate">4. Bubbles & Nút</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('badges')}
+                                className={cn(
+                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                    activeTab === 'badges'
+                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
+                                )}
+                            >
+                                <Bookmark size={14} strokeWidth={2.5} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span className="truncate">5. Badges & Nhãn</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2957,6 +2993,14 @@ export default function CartColorCustomizerModal({
                     {/* TAB 4: BUBBLES & BUTTONS CUSTOMIZATION */}
                     {activeTab === 'bubbles' && (
                         <BubbleCustomizerTab 
+                            config={currentConfig} 
+                            onChangeConfig={onChangeConfig} 
+                        />
+                    )}
+
+                    {/* TAB 5: BADGES & ROW TAGS CUSTOMIZATION */}
+                    {activeTab === 'badges' && (
+                        <BadgeCustomizerTab 
                             config={currentConfig} 
                             onChangeConfig={onChangeConfig} 
                         />

@@ -7,10 +7,20 @@ const REPO_NAME = process.env.GH_REPO_NAME || 'lyangpos_thi';
 
 
 function getGitHubToken() {
+  // 1. Uu tien GitHub CLI (gh auth token) vi thuong da duoc dang nhap voi day du quyen repo
+  try {
+    const ghCmd = fs.existsSync('C:\\Program Files\\GitHub CLI\\gh.exe') ? '"C:\\Program Files\\GitHub CLI\\gh.exe"' : 'gh';
+    const ghToken = execSync(`${ghCmd} auth token`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    if (ghToken) return ghToken;
+  } catch (e) {
+    // ignore
+  }
+
+  // 2. Bien moi truong he thong
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
 
-  // Thu doc tu .env hoac .env.local
+  // 3. Thu doc tu .env hoac .env.local
   const envFiles = ['.env', '.env.local', '../.env'];
   for (const envFile of envFiles) {
     const envPath = path.join(process.cwd(), envFile);
@@ -32,16 +42,7 @@ function getGitHubToken() {
     }
   }
 
-  // Thu lay tu GitHub CLI (gh auth token)
-  try {
-    const ghCmd = fs.existsSync('C:\\Program Files\\GitHub CLI\\gh.exe') ? '"C:\\Program Files\\GitHub CLI\\gh.exe"' : 'gh';
-    const ghToken = execSync(`${ghCmd} auth token`, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
-    if (ghToken) return ghToken;
-  } catch (e) {
-    // ignore
-  }
-
-  // Thu lay tu git credential fill
+  // 4. Thu lay tu git credential fill
   try {
     const gitCmd = fs.existsSync('C:\\Program Files\\Git\\cmd\\git.exe') ? '"C:\\Program Files\\Git\\cmd\\git.exe"' : 'git';
     const cred = execSync(`${gitCmd} credential fill`, {
@@ -149,6 +150,11 @@ async function uploadRelease() {
     if (!createRes.ok) {
       const errText = await createRes.text();
       console.error('[LOI] Tao Release that bai:', errText);
+      if (createRes.status === 404) {
+        console.error('\n>>> NGUYEN NHAN PHO BIEN VOI REPO PRIVATE:');
+        console.error('  - Khi Repo la Private, bat ky Token nao thieu quyen "repo" deu se bi GitHub tra ve loi 404 Not Found de giu bi mat.');
+        console.error('  - Khac phuc: Hay chay `gh auth login` hoac tao Personal Access Token moi co tick chon scope "repo".');
+      }
       return;
     }
     release = await createRes.json();

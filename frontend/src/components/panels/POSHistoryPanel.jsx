@@ -322,8 +322,9 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
     };
 
     return (
-        <Portal>
-            <AnimatePresence>
+        <>
+            <Portal zIndex={99999}>
+                <AnimatePresence>
                 {isOpen && (
                     <div className="fixed inset-0 z-[99999] flex justify-end font-sans">
                         <m.div
@@ -823,6 +824,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                 </div>
             )}
         </AnimatePresence>
+        </Portal>
         <OrderEditPopup
             isOpen={Boolean(editingOrder)}
             order={editingOrder}
@@ -864,7 +866,7 @@ export default function POSHistoryPanel({ partner, isOpen, onClose, onAddToCart,
                 />
             )}
         </AnimatePresence>
-    </Portal>
+        </>
     );
 }
 

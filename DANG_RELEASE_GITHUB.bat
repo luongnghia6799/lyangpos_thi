@@ -5,7 +5,7 @@ cls
 
 echo =====================================================================
 echo    * DANG TAI BAN CAI DAT NSIS LEN GITHUB RELEASE *
-echo    * Repository: luongnghia6799/LyangPOS
+echo    * Repository: luongnghia6799/lyangpos_thi
 echo =====================================================================
 echo.
 

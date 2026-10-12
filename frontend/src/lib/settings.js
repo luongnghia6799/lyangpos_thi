@@ -150,6 +150,8 @@ export const DEFAULT_SETTINGS = {
     invoice_show_cash_given: 'true',
     ui_enable_smart_sorting: 'false',
     app_font_family: 'Be Vietnam Pro', // Global UI font
+    ui_loading_style: 'ring', // 'ring', 'minimal', 'compact', 'vibrant'
+    pos_order_switch_animation: 'ring', // 'ring', 'minimal', 'slide', 'pulse', 'none'
     pos_default_landing_page: 'dashboard', // 'dashboard', 'pos'
     pos_typing_sound_enabled: 'true',
     pos_sound_theme_success: 'chime', // 'chime', 'cash_register', 'digital_pos', 'mario', 'subtle_wood'

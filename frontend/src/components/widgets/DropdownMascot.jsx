@@ -201,11 +201,6 @@ const DropdownMascot = ({ title = "Bé Lyang - Trợ lý bán hàng thông minh"
                 loading="eager"
                 decoding="sync"
             />
-            {!isEditing && (
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-zinc-950/90 dark:bg-black/90 text-amber-300 dark:text-emerald-300 text-[9.5px] font-black px-2 py-0.5 rounded-full whitespace-nowrap opacity-0 group-hover/mascot-drop:opacity-100 transition-opacity pointer-events-none shadow-md border border-white/10 backdrop-blur-md">
-                    Bé Lyang chào bạn! 🌾
-                </span>
-            )}
 
             {/* Tooltip chỉnh sửa gắn trực tiếp với Mascot, di chuyển theo mascot mượt mà, không gián đoạn Portal */}
             {isEditing && (

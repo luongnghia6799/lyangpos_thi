@@ -6,3 +6,7 @@ export { default as PackingRepeatMenuPopover } from './PackingRepeatMenuPopover'
 export { default as QuickRowDeletePrompt } from './QuickRowDeletePrompt';
 export { default as HeldOrdersDrawer } from './HeldOrdersDrawer';
 export { default as RemoteTerminalInspectPopover } from './RemoteTerminalInspectPopover';
+export { default as OrderSwitchOverlay } from './OrderSwitchOverlay';
+export { default as POSFloatingBubbles } from './POSFloatingBubbles';
+export { default as POSPartnerDropdown } from './POSPartnerDropdown';
+export { default as POSProductDropdown } from './POSProductDropdown';

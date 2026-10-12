@@ -153,13 +153,6 @@ export default function ButtonMascotPromptModal({
 
     setButtonMascot(buttonInfo.signature, mascotConfig);
     onClose();
-
-    // Kích hoạt chế độ chỉnh sửa ngay để người dùng thấy và có thể kéo dời nếu muốn
-    if (onActivateEditMode) {
-      setTimeout(() => {
-        onActivateEditMode(buttonInfo.signature);
-      }, 100);
-    }
   };
 
   // Xử lý gỡ Mascot

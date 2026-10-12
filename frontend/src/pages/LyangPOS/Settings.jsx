@@ -6,8 +6,11 @@ import {
     Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3
+    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3,
+    Loader2, Zap, Eye, RotateCw, RotateCcw, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import LoadingOverlay from '../../components/layout/LoadingOverlay';
+import OrderSwitchOverlay from '../../components/pos/OrderSwitchOverlay';
 import { cn } from '../../lib/utils';
 import { useIconContext } from '../../context/IconContext';
 import { getLucideIconComponent } from '../../lib/iconConfig';
@@ -21,21 +24,7 @@ import { applyGlobalAppFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { queryClient } from '../../lib/queryClient';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
-import preset1Signature from '../../assets/wallpapers/preset_1_signature.jpg';
-import preset2Latte from '../../assets/wallpapers/preset_2_latte.jpg';
-import presetFarmIllustration from '../../assets/wallpapers/preset_farm_illustration.jpg';
-import presetMarketIllustration from '../../assets/wallpapers/preset_market_illustration.jpg';
-import presetMascotFarm from '../../assets/wallpapers/preset_mascot_farm.jpg';
-import presetMascotLatte from '../../assets/wallpapers/preset_mascot_latte.jpg';
 
-const WALLPAPER_PRESETS = [
-    { id: 1, name: "Signature Lyang", path: preset1Signature, desc: "Tối giản ấm cúng" },
-    { id: 2, name: "Cafe Latte", path: preset2Latte, desc: "Cà phê & Trà" },
-    { id: 3, name: "Nông Trại Xanh (Vector)", path: presetFarmIllustration, desc: "Đồi xanh & Xe táo" },
-    { id: 4, name: "Tiệm Trái Cây (Story)", path: presetMarketIllustration, desc: "Gian hàng nông sản" },
-    { id: 5, name: "Bé Mascot Nông Trại", path: presetMascotFarm, desc: "Đồi chè & Táo đỏ" },
-    { id: 6, name: "Bé Mascot Đồng Quê", path: presetMascotLatte, desc: "Bình yên & Dễ đọc chữ" }
-];
 
 export default function Settings() {
     const { customIcons, editMode, toggleEditMode, resetIcons, updateIcon } = useIconContext();
@@ -54,8 +43,9 @@ export default function Settings() {
         gemini_api_key_2: '',
         gemini_api_key_3: '',
         brands_directory: '',
+        ui_loading_style: localStorage.getItem('ui_loading_style') || DEFAULT_SETTINGS.ui_loading_style || 'ring',
+        pos_order_switch_animation: localStorage.getItem('pos_order_switch_animation') || DEFAULT_SETTINGS.pos_order_switch_animation || 'ring',
         ui_show_doraemon: localStorage.getItem('ui_show_doraemon') || DEFAULT_SETTINGS.ui_show_doraemon,
-        ui_show_dashboard_mascot: localStorage.getItem('ui_show_dashboard_mascot') || 'false',
         ui_custom_cursor_enabled: localStorage.getItem('pos_cursor_disabled') !== 'true' ? 'true' : 'false',
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,
@@ -67,6 +57,8 @@ export default function Settings() {
         ram_cleanup_auto_enabled: 'false',
         ram_cleanup_interval_minutes: '10',
     });
+    const [previewLoading, setPreviewLoading] = useState(null); // { style, message }
+    const [previewOrderSwitch, setPreviewOrderSwitch] = useState(null); // { style, title }
     const [showAppFontModal, setShowAppFontModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -348,7 +340,7 @@ export default function Settings() {
                     // 1. Xóa toàn bộ React Query cache & LocalStorage state cũ để nạp mới 100%
                     queryClient.clear();
                     try {
-                        const keysToKeep = ['server_ip', 'user', 'theme', 'app_font_family', 'ui_show_doraemon', 'ui_show_dashboard_mascot', 'pos_cursor_disabled', 'pos_cursor_color', 'pos_default_landing_page', 'pos_typing_sound_enabled'];
+                        const keysToKeep = ['server_ip', 'user', 'theme', 'app_font_family', 'ui_show_doraemon', 'pos_cursor_disabled', 'pos_cursor_color', 'pos_default_landing_page', 'pos_typing_sound_enabled', 'ui_loading_style', 'pos_order_switch_animation'];
                         Object.keys(localStorage).forEach(k => {
                             if (!keysToKeep.includes(k) && !k.startsWith('tauri')) {
                                 localStorage.removeItem(k);
@@ -411,6 +403,20 @@ export default function Settings() {
                     applyGlobalAppFont(combined.app_font_family);
                 }
 
+                const localLoadingStyle = localStorage.getItem('ui_loading_style');
+                if (localLoadingStyle !== null) {
+                    combined.ui_loading_style = localLoadingStyle;
+                } else if (combined.ui_loading_style) {
+                    localStorage.setItem('ui_loading_style', combined.ui_loading_style);
+                }
+
+                const localOrderSwitchAnim = localStorage.getItem('pos_order_switch_animation');
+                if (localOrderSwitchAnim !== null) {
+                    combined.pos_order_switch_animation = localOrderSwitchAnim;
+                } else if (combined.pos_order_switch_animation) {
+                    localStorage.setItem('pos_order_switch_animation', combined.pos_order_switch_animation);
+                }
+
                 setSettings(prev => ({
                     ...prev,
                     ...combined
@@ -425,6 +431,97 @@ export default function Settings() {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
+    const handleLoadingStyleSelect = async (styleKey) => {
+        updateSetting('ui_loading_style', styleKey);
+        localStorage.setItem('ui_loading_style', styleKey);
+        window.dispatchEvent(new CustomEvent('ui_loading_style_changed', { detail: styleKey }));
+        window.dispatchEvent(new Event('storage'));
+        try {
+            const syncChan = new BroadcastChannel('pos_data_sync');
+            syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'ui_loading_style', value: styleKey });
+            syncChan.close();
+        } catch (e) {}
+        try {
+            await axios.post('/api/settings', { ui_loading_style: styleKey });
+        } catch (e) {}
+        setToast({
+            message: `Đã chọn kiểu màn hình tải: ${
+                styleKey === 'ring'
+                    ? 'Vòng Xoay Vụ Mùa (Agri Ring)'
+                    : styleKey === 'minimal' 
+                        ? 'Thẻ Tối Giản (Minimal Card)' 
+                        : styleKey === 'compact' 
+                            ? 'Thanh Nổi Mini' 
+                            : 'Sinh Động & Hoạt Họa'
+            }`,
+            type: 'success'
+        });
+    };
+
+    const handlePreviewLoading = (styleKey) => {
+        const sampleMsg = styleKey === 'ring'
+            ? 'Đang đồng bộ dữ liệu...'
+            : styleKey === 'minimal'
+                ? 'Đang kiểm tra hệ thống (Tối giản siêu nhẹ)...'
+                : styleKey === 'compact'
+                    ? 'Đang đồng bộ nhanh dữ liệu...'
+                    : 'Đang khởi động hệ thống...';
+        setPreviewLoading({
+            style: styleKey,
+            message: sampleMsg
+        });
+    };
+
+    useEffect(() => {
+        if (!previewLoading) return;
+        const timer = setTimeout(() => {
+            setPreviewLoading(null);
+        }, 2800);
+        return () => clearTimeout(timer);
+    }, [previewLoading]);
+
+    const handleOrderSwitchAnimSelect = async (styleKey) => {
+        updateSetting('pos_order_switch_animation', styleKey);
+        localStorage.setItem('pos_order_switch_animation', styleKey);
+        window.dispatchEvent(new CustomEvent('pos_order_switch_anim_changed', { detail: styleKey }));
+        window.dispatchEvent(new Event('storage'));
+        try {
+            const syncChan = new BroadcastChannel('pos_data_sync');
+            syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_order_switch_animation', value: styleKey });
+            syncChan.close();
+        } catch (e) {}
+        try {
+            await axios.post('/api/settings', { pos_order_switch_animation: styleKey });
+        } catch (e) {}
+        setToast({
+            message: `Đã chọn hoạt ảnh chuyển đơn: ${
+                styleKey === 'ring' ? 'Vòng Xoay Vụ Mùa' :
+                styleKey === 'minimal' ? 'Thanh Nổi Mini' :
+                styleKey === 'slide' ? 'Trượt Thẻ Đơn' :
+                styleKey === 'pulse' ? 'Hào Quang Nhịp Thở' : 'Tắt Hoạt Ảnh'
+            }`,
+            type: 'success'
+        });
+    };
+
+    const handlePreviewOrderSwitch = (styleKey) => {
+        setPreviewOrderSwitch({
+            style: styleKey,
+            title: styleKey === 'ring' ? 'Vòng Xoay Vụ Mùa' :
+                   styleKey === 'minimal' ? 'Thanh Nổi Mini' :
+                   styleKey === 'slide' ? 'Trượt Thẻ Đơn' :
+                   styleKey === 'pulse' ? 'Hào Quang Nhịp Thở' : 'Tắt Hoạt Ảnh'
+        });
+    };
+
+    useEffect(() => {
+        if (!previewOrderSwitch) return;
+        const timer = setTimeout(() => {
+            setPreviewOrderSwitch(null);
+        }, 2400);
+        return () => clearTimeout(timer);
+    }, [previewOrderSwitch]);
+
     const handleSave = async () => {
         setLoading(true);
         setMessage('');
@@ -433,6 +530,14 @@ export default function Settings() {
                 localStorage.setItem('app_font_family', settings.app_font_family);
                 applyGlobalAppFont(settings.app_font_family);
                 window.dispatchEvent(new CustomEvent('app_font_changed', { detail: { font: settings.app_font_family } }));
+            }
+            if (settings.ui_loading_style) {
+                localStorage.setItem('ui_loading_style', settings.ui_loading_style);
+                window.dispatchEvent(new CustomEvent('ui_loading_style_changed', { detail: settings.ui_loading_style }));
+            }
+            if (settings.pos_order_switch_animation) {
+                localStorage.setItem('pos_order_switch_animation', settings.pos_order_switch_animation);
+                window.dispatchEvent(new CustomEvent('pos_order_switch_anim_changed', { detail: settings.pos_order_switch_animation }));
             }
             await axios.post('/api/settings', settings);
             setToast({ message: 'Đã lưu cấu hình thành công!', type: 'success' });
@@ -485,8 +590,8 @@ export default function Settings() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start relative z-10 flex-1 overflow-hidden">
                 
                 {/* Left Side Tab Navigation List */}
-                <div className="lg:col-span-1 flex flex-col gap-1.5 bg-transparent dark:bg-slate-900/60 backdrop-blur-xl p-2.5 rounded-[1.5rem] border border-emerald-900/5 dark:border-emerald-500/10 shadow-md shadow-black/5">
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-emerald-800/40 dark:text-emerald-400/40 px-3.5 py-1.5 border-b border-emerald-900/5 dark:border-emerald-500/10 mb-1">DANH MỤC CẤU HÌNH</p>
+                <div className="lg:col-span-1 flex flex-col gap-1.5 bg-[#fbf8f2]/90 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-[1.5rem] border border-[#8b6f47]/20 dark:border-white/10 shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8b6f47]/70 dark:text-emerald-400/60 px-3.5 py-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 mb-1">DANH MỤC CẤU HÌNH</p>
                     {TABS.map((tab) => {
                         const Icon = tab.icon;
                         const isSelected = activeTab === tab.id;
@@ -495,28 +600,19 @@ export default function Settings() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "relative flex items-center gap-4 p-3.5 rounded-2xl text-left transition-all duration-300 group overflow-hidden",
+                                    "relative flex items-center gap-4 p-3.5 rounded-2xl text-left transition-colors duration-150 group overflow-hidden cursor-pointer",
                                     isSelected 
-                                        ? "" 
-                                        : "hover:bg-emerald-500/5 dark:hover:bg-emerald-500/10"
+                                        ? "bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#2d5016]/25 dark:border-emerald-500/30 shadow-xs" 
+                                        : "border border-transparent hover:bg-[#2d5016]/5 dark:hover:bg-emerald-500/10"
                                 )}
                             >
                                 {isSelected && (
-                                    <>
-                                        <m.div
-                                            layoutId="active-settings-tab-bg"
-                                            className="absolute inset-0 bg-[#2d5016]/10 dark:bg-emerald-500/10 rounded-2xl z-0 border border-[#2d5016]/20 dark:border-emerald-500/20"
-                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                        />
-                                        <m.div
-                                            layoutId="active-settings-tab-indicator"
-                                            className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-8 bg-[#2d5016] dark:bg-emerald-400 rounded-r-md z-10"
-                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                        />
-                                    </>
+                                    <span
+                                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-7 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full z-10 transition-all duration-150"
+                                    />
                                 )}
                                 <div className={cn(
-                                    "p-2.5 rounded-xl z-10 transition-colors duration-300 flex items-center justify-center shrink-0 shadow-sm",
+                                    "p-2.5 rounded-xl z-10 transition-colors duration-150 flex items-center justify-center shrink-0 shadow-sm",
                                     isSelected 
                                         ? "bg-[#2d5016] dark:bg-emerald-500 text-white" 
                                         : "bg-[#2d5016]/5 dark:bg-emerald-900/30 text-[#2d5016]/70 dark:text-emerald-400 group-hover:bg-[#2d5016]/10"
@@ -524,8 +620,8 @@ export default function Settings() {
                                     <Icon size={18} />
                                 </div>
                                 <div className="z-10 min-w-0">
-                                    <p className={cn("text-xs font-black uppercase tracking-wider leading-none mb-1.5 transition-colors", isSelected ? "text-[#2d5016] dark:text-emerald-400" : "text-[#2d5016]/80 dark:text-emerald-100/60 group-hover:text-[#2d5016]")}>{tab.label}</p>
-                                    <p className={cn("text-[9px] font-bold truncate uppercase tracking-widest leading-none transition-colors", isSelected ? "text-[#2d5016]/60 dark:text-emerald-400/60" : "text-[#2d5016]/40 dark:text-emerald-100/40")}>{tab.desc}</p>
+                                    <p className={cn("text-xs font-black uppercase tracking-wider leading-none mb-1.5 transition-colors duration-150", isSelected ? "text-[#2d5016] dark:text-emerald-400" : "text-[#2d5016]/80 dark:text-emerald-100/60 group-hover:text-[#2d5016]")}>{tab.label}</p>
+                                    <p className={cn("text-[9px] font-bold truncate uppercase tracking-widest leading-none transition-colors duration-150", isSelected ? "text-[#2d5016]/60 dark:text-emerald-400/60" : "text-[#2d5016]/40 dark:text-emerald-100/40")}>{tab.desc}</p>
                                 </div>
                             </button>
                         );
@@ -1187,7 +1283,6 @@ export default function Settings() {
                                             {[
                                                 { id: 'sidebar', label: 'Menu Sidebar', icon: Layers, desc: 'Ẩn/hiện các trang' },
                                                 { id: 'icons', label: 'Tùy biến Icon', icon: Edit3, desc: 'Đổi icon toàn app' },
-                                                { id: 'wallpaper', label: 'Hình Nền App', icon: Sparkles, desc: '11 Presets & Tùy chỉnh' },
                                                 { id: 'general', label: 'Mascot & Hệ thống', icon: Monitor, desc: 'Con trỏ, Mascot, Kế toán' },
                                                 { id: 'categories', label: 'Ngành hàng', icon: Leaf, desc: 'Danh mục Categories' },
                                             ].map(sub => {
@@ -1330,89 +1425,6 @@ export default function Settings() {
                                         </div>
                                     )}
 
-                                    {/* SUBTAB: WALLPAPER MANAGER */}
-                                    {uiSubTab === 'wallpaper' && (
-                                        <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-                                            <div className="p-6 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/5 dark:border-slate-700 space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <h3 className="text-sm font-black uppercase tracking-wide text-gray-800 dark:text-emerald-300 flex items-center gap-2">
-                                                            <Sparkles size={16} className="text-amber-500" />
-                                                            Bộ sưu tập 11 Hình Nền LyangPOS Chính Thức
-                                                        </h3>
-                                                        <p className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest mt-0.5">
-                                                            Thiết kế độc quyền, tối ưu hoàn hảo cho cả Light & Dark Mode
-                                                        </p>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            localStorage.removeItem("pos_cart_wallpaper");
-                                                            window.dispatchEvent(new Event("app_wallpaper_changed"));
-                                                            setToast({ message: "Đã xóa hình nền, dùng giao diện mặc định", type: "info" });
-                                                        }}
-                                                        className="px-3 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-[9px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                                                    >
-                                                        <Trash2 size={13} />
-                                                        Gỡ hình nền
-                                                    </button>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                                                    {WALLPAPER_PRESETS.map((preset) => (
-                                                        <button
-                                                            key={preset.id}
-                                                            type="button"
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const response = await fetch(preset.path);
-                                                                    const blob = await response.blob();
-                                                                    const reader = new FileReader();
-                                                                    reader.onloadend = () => {
-                                                                        const base64 = reader.result;
-                                                                        const config = {
-                                                                            image: base64,
-                                                                            size: 'cover',
-                                                                            position: 'center',
-                                                                            opacity: 90,
-                                                                            blur: 0,
-                                                                            glassBlur: 8,
-                                                                            glassOpacity: 15
-                                                                        };
-                                                                        localStorage.setItem("pos_cart_wallpaper", JSON.stringify(config));
-                                                                        window.dispatchEvent(new Event("app_wallpaper_changed"));
-                                                                        setToast({ message: `Đã áp dụng hình nền: ${preset.name}`, type: "success" });
-                                                                    };
-                                                                    reader.readAsDataURL(blob);
-                                                                } catch (err) {
-                                                                    console.error('Error setting preset wallpaper:', err);
-                                                                    setToast({ message: "Lỗi khi áp dụng hình nền", type: "error" });
-                                                                }
-                                                            }}
-                                                            className="group/preset relative flex flex-col p-2 rounded-2xl border border-emerald-900/10 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 hover:border-emerald-500 transition-all cursor-pointer shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-98 text-left"
-                                                        >
-                                                            <div className="w-full h-24 rounded-xl overflow-hidden border border-black/5 dark:border-white/5 relative mb-2">
-                                                                <img 
-                                                                    src={preset.path} 
-                                                                    alt={preset.name} 
-                                                                    className="w-full h-full object-cover group-hover/preset:scale-105 transition-transform duration-300"
-                                                                />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover/preset:opacity-100 transition-opacity flex items-end p-2">
-                                                                    <span className="text-[9px] font-black text-white uppercase tracking-wider">Áp dụng ngay ✓</span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="font-black text-xs text-gray-800 dark:text-emerald-100 truncate">
-                                                                {preset.name}
-                                                            </div>
-                                                            <div className="text-[9px] font-bold text-gray-400 dark:text-slate-400 truncate">
-                                                                {preset.desc}
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* SUBTAB 2: GENERAL UI & MASCOTS */}
                                     {uiSubTab === 'general' && (
@@ -1551,35 +1563,6 @@ export default function Settings() {
                                                             className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer"
                                                         >
                                                             Tùy chỉnh Mascot
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
-                                                        <div className="flex items-center gap-3 min-w-0">
-                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
-                                                                <Sparkles size={18} />
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Mascot chào mừng</div>
-                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Nhân vật chào mừng trên Bảng tin</div>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                const newVal = settings.ui_show_dashboard_mascot === 'true' ? 'false' : 'true';
-                                                                updateSetting('ui_show_dashboard_mascot', newVal);
-                                                                localStorage.setItem('ui_show_dashboard_mascot', newVal);
-                                                                window.dispatchEvent(new Event('storage'));
-                                                            }}
-                                                            className={cn(
-                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
-                                                                settings.ui_show_dashboard_mascot === 'true' ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
-                                                                settings.ui_show_dashboard_mascot === 'true' ? "translate-x-[18px]" : "translate-x-0"
-                                                            )} />
                                                         </button>
                                                     </div>
 
@@ -1767,6 +1750,319 @@ export default function Settings() {
                                                     />
                                                 </div>
                                             </div>
+
+                                            {/* Loading Screen Style Selector Card */}
+                                        <div className="p-5 bg-emerald-50/20 dark:bg-slate-800/40 rounded-2xl border border-emerald-900/10 dark:border-slate-700/80 space-y-4 text-left shadow-xs">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-900/10 dark:border-slate-700/60">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-emerald-100/60 dark:bg-slate-900 rounded-xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0 shadow-inner">
+                                                        <Loader2 size={20} className="text-[#2d5016] dark:text-emerald-400" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">
+                                                                Kiểu Màn hình Tải (Loading Screen)
+                                                            </h4>
+                                                            <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 rounded-full tracking-wider uppercase">
+                                                                Tùy chọn UI/UX
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                                            Chọn phong cách màn hình chờ khi khởi động hoặc tải dữ liệu lớn
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                                                    <span>Đang chọn:</span>
+                                                    <span className="font-black text-[#2d5016] dark:text-emerald-400 uppercase bg-emerald-100/70 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-900/10 dark:border-emerald-500/20">
+                                                        {settings.ui_loading_style === 'ring'
+                                                            ? 'Vòng Xoay Vụ Mùa'
+                                                            : settings.ui_loading_style === 'minimal' 
+                                                                ? 'Thẻ Tối Giản' 
+                                                                : settings.ui_loading_style === 'compact' 
+                                                                    ? 'Thanh nổi Mini' 
+                                                                    : 'Sinh động & Hoạt họa'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Style Selector Cards */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+                                                {[
+                                                    {
+                                                        id: 'ring',
+                                                        title: 'Vòng Xoay Vụ Mùa',
+                                                        tag: 'Thiết kế mới • Siêu nhẹ',
+                                                        tagColor: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                                                        desc: 'Vòng xoay kép nét đứt, icon squircle sắc nét, phối chữ LYANG POS hai màu & capsule trạng thái bo tròn. Đúng chuẩn thiết kế mẫu.',
+                                                        icon: RotateCw,
+                                                        features: ['Vòng xoay nét đứt kép', 'Thanh capsule bo tròn', 'Nhẹ mượt không tốn GPU']
+                                                    },
+                                                    {
+                                                        id: 'minimal',
+                                                        title: 'Thẻ Tối Giản',
+                                                        tag: 'Khuyên dùng • 60 FPS',
+                                                        tagColor: 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+                                                        desc: 'Thiết kế card trung tâm tinh gọn, vòng xoay SVG mượt mà, không dùng hiệu ứng mờ (blur). Giảm tối đa tải CPU/GPU, chuyển cảnh tức thì.',
+                                                        icon: Zap,
+                                                        features: ['Không giật lag máy yếu', 'Tiết kiệm CPU/RAM', 'Chuyển cảnh tức thì']
+                                                    },
+                                                    {
+                                                        id: 'compact',
+                                                        title: 'Thanh nổi Mini',
+                                                        tag: 'Siêu gọn nhẹ',
+                                                        tagColor: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                                                        desc: 'Thanh thông báo trạng thái nổi mini dạng viên thuốc (floating pill). Nhỏ gọn, không che khuất màn hình làm việc.',
+                                                        icon: Layout,
+                                                        features: ['Không che màn hình', 'Dạng thanh pill nổi', 'Tối giản tuyệt đối']
+                                                    },
+                                                    {
+                                                        id: 'vibrant',
+                                                        title: 'Sinh động (Hoạt họa)',
+                                                        tag: 'Đầy đủ hiệu ứng',
+                                                        tagColor: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                                                        desc: 'Mascot xoay 3D, vòng xoay quỹ đạo hạt phát sáng và nền mesh gradient chuyển động. Phù hợp máy tính để bàn cấu hình cao.',
+                                                        icon: Sparkles,
+                                                        features: ['Hiệu ứng hạt vũ trụ', 'Mascot 3D chuyển động', 'Nền Gradient đa tầng']
+                                                    }
+                                                ].map((item) => {
+                                                    const isSelected = (settings.ui_loading_style || 'ring') === item.id;
+                                                    const ItemIcon = item.icon;
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={() => handleLoadingStyleSelect(item.id)}
+                                                            className={cn(
+                                                                "relative p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group",
+                                                                isSelected
+                                                                    ? "bg-white dark:bg-slate-900/90 border-[#2d5016] dark:border-emerald-500 shadow-md ring-2 ring-[#2d5016]/20 dark:ring-emerald-500/20"
+                                                                    : "bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-emerald-600/40 hover:bg-white dark:hover:bg-slate-900"
+                                                            )}
+                                                        >
+                                                            <div>
+                                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={cn(
+                                                                            "w-7 h-7 rounded-lg flex items-center justify-center transition-colors",
+                                                                            isSelected 
+                                                                                ? "bg-[#2d5016] text-white dark:bg-emerald-600" 
+                                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:text-emerald-600"
+                                                                        )}>
+                                                                            <ItemIcon size={14} />
+                                                                        </div>
+                                                                        <span className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-tight">
+                                                                            {item.title}
+                                                                        </span>
+                                                                    </div>
+                                                                    {isSelected ? (
+                                                                        <div className="w-5 h-5 rounded-full bg-[#2d5016] dark:bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                                                                            <CheckCircle size={12} />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-700" />
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="mb-2">
+                                                                    <span className={cn("text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border", item.tagColor)}>
+                                                                        {item.tag}
+                                                                    </span>
+                                                                </div>
+
+                                                                <p className="text-[10px] text-gray-600 dark:text-slate-400 leading-relaxed min-h-[42px]">
+                                                                    {item.desc}
+                                                                </p>
+
+                                                                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1">
+                                                                    {item.features.map((feat, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-1.5 text-[9px] font-bold text-gray-500 dark:text-slate-400">
+                                                                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                                                                            <span>{feat}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePreviewLoading(item.id);
+                                                                    }}
+                                                                    className="w-full py-1.5 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-[#2d5016] dark:text-emerald-300 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 border border-emerald-900/10 dark:border-emerald-500/20 cursor-pointer"
+                                                                >
+                                                                    <Eye size={12} />
+                                                                    <span>Xem thử hiệu ứng</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* SECTION 2: HOẠT ẢNH QUAY LẠI ĐƠN TRƯỚC (POS ORDER SWITCH ANIMATION) */}
+                                        <div className="space-y-4 pt-6 border-t border-slate-200/80 dark:border-white/10">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-emerald-100/60 dark:bg-slate-900 rounded-xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0 shadow-inner">
+                                                        <RotateCcw size={20} className="text-[#2d5016] dark:text-emerald-400" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">
+                                                                Hoạt Ảnh Quay Lại Đơn Trước (POS)
+                                                            </h4>
+                                                            <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 rounded-full tracking-wider uppercase">
+                                                                Chuyển đơn POS
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                                                            Hiệu ứng hiển thị khi bấm "Đơn trước" hoặc duyệt lại lịch sử hóa đơn tại màn hình thu ngân
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                                                    <span>Đang chọn:</span>
+                                                    <span className="font-black text-[#2d5016] dark:text-emerald-400 uppercase bg-emerald-100/70 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-900/10 dark:border-emerald-500/20">
+                                                        {settings.pos_order_switch_animation === 'ring'
+                                                            ? 'Vòng Xoay Vụ Mùa'
+                                                            : settings.pos_order_switch_animation === 'minimal' 
+                                                                ? 'Thanh Nổi Mini' 
+                                                                : settings.pos_order_switch_animation === 'slide' 
+                                                                    ? 'Trượt Thẻ Đơn' 
+                                                                    : settings.pos_order_switch_animation === 'pulse' 
+                                                                        ? 'Hào Quang Nhịp Thở' 
+                                                                        : 'Tắt Hoạt Ảnh'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Style Selector Cards */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+                                                {[
+                                                    {
+                                                        id: 'ring',
+                                                        title: 'Vòng Xoay Vụ Mùa',
+                                                        tag: 'Mặc định • Chuẩn mẫu',
+                                                        tagColor: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                                                        desc: 'Vòng xoay kép nét đứt xanh lục & hạt mầm, logo LyangPOS ở tâm, kèm thanh capsule "Đang đồng bộ dữ liệu...". Đúng thiết kế người dùng yêu cầu.',
+                                                        icon: RotateCw,
+                                                        features: ['Vòng đứt kép xanh ngọc', 'Logo LyangPOS ở tâm', 'Capsule bo tròn đẹp mắt']
+                                                    },
+                                                    {
+                                                        id: 'minimal',
+                                                        title: 'Thanh Nổi Mini',
+                                                        tag: 'Không che màn hình',
+                                                        tagColor: 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+                                                        desc: 'Viên thuốc bo tròn nổi nhẹ góc trên giỏ hàng, spinner mini êm dịu, không che khuất danh sách sản phẩm hay làm gián đoạn tầm nhìn thu ngân.',
+                                                        icon: Layout,
+                                                        features: ['Dạng floating capsule', 'Không che màn hình giỏ', 'Siêu nhẹ & tinh gọn']
+                                                    },
+                                                    {
+                                                        id: 'slide',
+                                                        title: 'Trượt Thẻ Đơn',
+                                                        tag: 'Mượt mà • 60 FPS',
+                                                        tagColor: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+                                                        desc: 'Banner gradient ngọc lục bảo trượt ngang nhịp nhàng cùng biểu tượng mũi tên lùi đơn, tạo cảm giác chuyển lật trang tự nhiên, trực quan.',
+                                                        icon: ChevronLeft,
+                                                        features: ['Trượt slide ngang mượt', 'Hiển thị chiều chuyển đơn', 'Banner bo tròn sang trọng']
+                                                    },
+                                                    {
+                                                        id: 'pulse',
+                                                        title: 'Hào Quang Nhịp Thở',
+                                                        tag: 'Phát sáng viền',
+                                                        tagColor: 'bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+                                                        desc: 'Viền phát sáng nhịp thở nhẹ nhàng quanh khung giỏ hàng kèm vòng tròn neon tinh gọn, cực kỳ thanh lịch và êm dịu cho mắt khi làm việc ca tối.',
+                                                        icon: Sparkles,
+                                                        features: ['Viền phát sáng nhịp thở', 'Neon ping hiệu ứng nhẹ', 'Không làm chói mắt']
+                                                    },
+                                                    {
+                                                        id: 'none',
+                                                        title: 'Tắt Hoạt Ảnh',
+                                                        tag: '0 Delay • Tức thì',
+                                                        tagColor: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+                                                        desc: 'Không hiển thị màn hình chờ hay hoạt ảnh nào. Dữ liệu nạp tức thì vào bảng ngay khi nhấp, tối ưu cho máy cấu hình yếu hoặc thu ngân cần tốc độ cao.',
+                                                        icon: Zap,
+                                                        features: ['Không có độ trễ hiệu ứng', 'Tối ưu máy cấu hình thấp', 'Nạp dữ liệu tức thì']
+                                                    }
+                                                ].map((item) => {
+                                                    const isSelected = (settings.pos_order_switch_animation || 'ring') === item.id;
+                                                    const ItemIcon = item.icon;
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            onClick={() => handleOrderSwitchAnimSelect(item.id)}
+                                                            className={cn(
+                                                                "relative p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between group",
+                                                                isSelected
+                                                                    ? "bg-white dark:bg-slate-900/90 border-[#2d5016] dark:border-emerald-500 shadow-md ring-2 ring-[#2d5016]/20 dark:ring-emerald-500/20"
+                                                                    : "bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-emerald-600/40 hover:bg-white dark:hover:bg-slate-900"
+                                                            )}
+                                                        >
+                                                            <div>
+                                                                <div className="flex items-center justify-between gap-1.5 mb-2">
+                                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                                        <div className={cn(
+                                                                            "w-6 h-6 rounded-lg flex items-center justify-center transition-colors shrink-0",
+                                                                            isSelected 
+                                                                                ? "bg-[#2d5016] text-white dark:bg-emerald-600" 
+                                                                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 group-hover:text-emerald-600"
+                                                                        )}>
+                                                                            <ItemIcon size={13} />
+                                                                        </div>
+                                                                        <span className="text-[11px] font-black text-gray-800 dark:text-slate-100 uppercase tracking-tight truncate">
+                                                                            {item.title}
+                                                                        </span>
+                                                                    </div>
+                                                                    {isSelected ? (
+                                                                        <div className="w-4 h-4 rounded-full bg-[#2d5016] dark:bg-emerald-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                                                                            <CheckCircle size={10} />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700 shrink-0" />
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="mb-2">
+                                                                    <span className={cn("text-[7.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border", item.tagColor)}>
+                                                                        {item.tag}
+                                                                    </span>
+                                                                </div>
+
+                                                                <p className="text-[9.5px] text-gray-600 dark:text-slate-400 leading-relaxed min-h-[44px]">
+                                                                    {item.desc}
+                                                                </p>
+
+                                                                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1">
+                                                                    {item.features.map((feat, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-1 text-[8.5px] font-bold text-gray-500 dark:text-slate-400">
+                                                                            <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
+                                                                            <span className="truncate">{feat}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handlePreviewOrderSwitch(item.id);
+                                                                    }}
+                                                                    className="w-full py-1.5 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-[#2d5016] dark:text-emerald-300 font-black text-[9.5px] uppercase tracking-wider flex items-center justify-center gap-1 transition-all active:scale-95 border border-emerald-900/10 dark:border-emerald-500/20 cursor-pointer"
+                                                                >
+                                                                    <Eye size={11} />
+                                                                    <span>Xem thử</span>
+                                                                </button>
+                              </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                         </div>
                                     )}
 
@@ -2001,6 +2297,57 @@ export default function Settings() {
                         setToast({ message: `Đã áp dụng font ${selectedFont} cho toàn bộ app!`, type: 'success' });
                     }}
                 />
+            )}
+
+            {/* Live Preview Loading Overlay */}
+            <LoadingOverlay
+                isVisible={!!previewLoading}
+                style={previewLoading?.style}
+                message={previewLoading?.message}
+                onDismiss={() => setPreviewLoading(null)}
+            />
+
+            {/* Live Preview Order Switch Overlay */}
+            {previewOrderSwitch && (
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-[fadeIn_0.15s_ease-out]"
+                    onClick={() => setPreviewOrderSwitch(null)}
+                >
+                    <div 
+                        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-emerald-500/40 overflow-hidden shadow-2xl p-5 flex flex-col gap-3"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2">
+                                <RotateCcw size={16} className="text-[#2d5016] dark:text-emerald-400" />
+                                <span className="text-xs font-black uppercase text-[#2d5016] dark:text-emerald-400">
+                                    Xem thử hoạt ảnh: {previewOrderSwitch.title}
+                                </span>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setPreviewOrderSwitch(null)}
+                                className="text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-2 py-1 rounded-lg cursor-pointer"
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                        <div className="relative h-56 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-center">
+                            <OrderSwitchOverlay 
+                                isVisible={true} 
+                                style={previewOrderSwitch.style} 
+                                direction="prev" 
+                                message="Đang đồng bộ dữ liệu..." 
+                                isAbsolute={true}
+                            />
+                        </div>
+                        <p className="text-[10px] text-center text-slate-400 italic">
+                            {previewOrderSwitch.style === 'none' 
+                                ? 'Chế độ tắt: Dữ liệu nạp tức thì mà không hiển thị khung chờ' 
+                                : 'Hiệu ứng hiển thị trong giỏ hàng POS khi bấm "Đơn trước"'}
+                        </p>
+                    </div>
+                </div>
             )}
             </div>
         </div>

@@ -9,6 +9,7 @@ import {
   getButtonComputedStyle, 
   getBubbleBadgeStyle 
 } from '@/components/modals/CartColorCustomizerModal';
+import Portal from '@/components/widgets/Portal';
 
 /**
  * PurchaseFloatingBubbles - High-performance isolated component for floating summary bubbles in Purchase page
@@ -101,7 +102,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
   const isCash = paymentMethod === 'Cash';
 
   return (
-    <>
+    <Portal zIndex={800}>
       {/* 1. Floating Supplier Bubble (Bottom-Left) */}
       <m.div
         key="partner-bubble"
@@ -118,7 +119,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
           stiffness: 350,
           damping: 22
         }}
-        className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
+        className="fixed bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
       >
         <m.div 
           layout 
@@ -398,7 +399,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
           stiffness: 350,
           damping: 22
         }}
-        className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
+        className="fixed bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
       >
         {/* Cash Bubble (Tiền trả NCC) */}
         <AnimatePresence>
@@ -595,7 +596,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={onScrollDownCart}
-            className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fbf9f4] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/50 dark:border-[#d4a574]/50 shadow-[0_8px_20px_-2px_rgba(139,111,71,0.22)] dark:shadow-[0_10px_22px_-2px_rgba(0,0,0,0.6)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-colors select-none group pointer-events-auto"
+            className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fbf9f4] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/50 dark:border-[#d4a574]/50 shadow-[0_8px_20px_-2px_rgba(139,111,71,0.22)] dark:shadow-[0_10px_22px_-2px_rgba(0,0,0,0.6)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-colors select-none group pointer-events-auto"
             title="Bấm để cuộn xuống xem các sản phẩm tiếp theo"
           >
             <span className="relative flex h-2 w-2">
@@ -606,7 +607,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
           </m.button>
         )}
       </AnimatePresence>
-    </>
+    </Portal>
   );
 });
 

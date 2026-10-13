@@ -121,76 +121,78 @@ const DraggableDecorationItem = memo(({
   const canInteract = isEditing && !isPreview;
 
   // Background decorations (isBackground = true):
-  // Idle: z-45 (nằm TRÊN nền mặt kính giỏ hàng để RÕ NÉT 100%, không bị glass blur, nhưng nằm DƯỚI các nút bubble z-110 như "Khách bán lẻ", "Tổng tiền", "Note")
-  // Selected: z-120 (tạm nổi lên trên nút bấm khi đang chọn/kéo thả để nhìn rõ viền và nút xóa)
+  // Idle: z-400 (nằm TRÊN mặt nền/kính giỏ hàng để RÕ NÉT 100%, không bị glass blur, nhưng nằm DƯỚI các nút bubble z-800 như "Khách bán lẻ", "Tổng tiền", "Note")
+  // Selected: z-950 (tạm nổi lên trên nút bấm khi đang chọn/kéo thả để nhìn rõ viền và nút xóa)
   // Foreground decorations (isBackground = false):
-  // Idle: z-150 (nổi hẳn lên trên tất cả các nút và bảng)
-  // Selected: z-160
+  // Idle: z-900 (nổi hẳn lên trên tất cả các nút và bảng)
+  // Selected: z-950
   const itemZIndex = isBackground 
-    ? (isSelected ? 120 : 45) 
-    : (isSelected ? 160 : 150);
+    ? (isSelected ? 950 : 400) 
+    : (isSelected ? 950 : 900);
 
   return (
-    <div
-      ref={containerRef}
-      data-decoration-item="true"
-      onMouseDown={handleMouseDown}
-      style={{
-        position: 'fixed',
-        left: `${item.x}px`,
-        top: `${item.y}px`,
-        width: `${width}px`,
-        height: `${height}px`,
-        transform: `translate3d(0, 0, 0) rotate(${rotate}deg)`,
-        willChange: canInteract ? 'transform, left, top' : 'auto',
-        contain: 'layout style',
-        opacity: opacity,
-        zIndex: itemZIndex,
-        pointerEvents: canInteract ? 'auto' : 'none',
-        userSelect: 'none'
-      }}
-      className={cn(
-        "select-none",
-        canInteract && "cursor-grab active:cursor-grabbing",
-        isDragging && "cursor-grabbing shadow-2xl",
-        canInteract && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
-        canInteract && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
-      )}
-    >
-      {/* Content Rendering: SVG Template or Custom Image */}
-      {item.customImgUrl ? (
-        <img
-          src={item.customImgUrl}
-          alt="Decoration"
-          className="w-full h-full object-contain pointer-events-none select-none drop-shadow-sm"
-          draggable={false}
-        />
-      ) : template?.svg ? (
-        <div
-          dangerouslySetInnerHTML={{ __html: template.svg }}
-          className="w-full h-full pointer-events-none select-none drop-shadow-sm flex items-center justify-center"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-[#7D8B6E]/20 rounded-2xl">
-          <Leaf className="text-[#7D8B6E]" size={32} />
-        </div>
-      )}
+    <Portal zIndex={itemZIndex}>
+      <div
+        ref={containerRef}
+        data-decoration-item="true"
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'fixed',
+          left: `${item.x}px`,
+          top: `${item.y}px`,
+          width: `${width}px`,
+          height: `${height}px`,
+          transform: `translate3d(0, 0, 0) rotate(${rotate}deg)`,
+          willChange: canInteract ? 'transform, left, top' : 'auto',
+          contain: 'layout style',
+          opacity: opacity,
+          zIndex: itemZIndex,
+          pointerEvents: canInteract ? 'auto' : 'none',
+          userSelect: 'none'
+        }}
+        className={cn(
+          "select-none",
+          canInteract && "cursor-grab active:cursor-grabbing",
+          isDragging && "cursor-grabbing shadow-2xl",
+          canInteract && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
+          canInteract && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
+        )}
+      >
+        {/* Content Rendering: SVG Template or Custom Image */}
+        {item.customImgUrl ? (
+          <img
+            src={item.customImgUrl}
+            alt="Decoration"
+            className="w-full h-full object-contain pointer-events-none select-none drop-shadow-sm"
+            draggable={false}
+          />
+        ) : template?.svg ? (
+          <div
+            dangerouslySetInnerHTML={{ __html: template.svg }}
+            className="w-full h-full pointer-events-none select-none drop-shadow-sm flex items-center justify-center"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-[#7D8B6E]/20 rounded-2xl">
+            <Leaf className="text-[#7D8B6E]" size={32} />
+          </div>
+        )}
 
-      {/* Editing Badges & Quick Action handles */}
-      {canInteract && isSelected && (
-        <div className="absolute -top-3 -right-3 flex items-center gap-1 z-50 pointer-events-auto">
-          <button
-            type="button"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => onDelete(item.id)}
-            className="w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
-            title="Xóa vật phẩm này"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      )}
-    </div>
+        {/* Editing Badges & Quick Action handles */}
+        {canInteract && isSelected && (
+          <div className="absolute -top-3 -right-3 flex items-center gap-1 z-50 pointer-events-auto">
+            <button
+              type="button"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => onDelete(item.id)}
+              className="w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+              title="Xóa vật phẩm này"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      </div>
+    </Portal>
   );
 }, areDecorationItemPropsEqual);
 

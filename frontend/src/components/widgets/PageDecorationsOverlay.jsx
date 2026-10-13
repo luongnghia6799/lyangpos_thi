@@ -2,12 +2,11 @@ import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
-  Sparkles, Plus, Trash2, Check, RotateCw, Move, 
+  Sparkles, Trash2, Check, RotateCw, Move, 
   Maximize2, Layers, Eye, EyeOff, Upload, X, SlidersHorizontal, Leaf,
   ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2, Wand2, Undo2, Crop
 } from 'lucide-react';
 import { 
-  DECORATION_TEMPLATES, 
   getStoredDecorations, 
   saveStoredDecorations,
   removeImageBackground
@@ -37,7 +36,6 @@ const DraggableDecorationItem = memo(({
   onDelete
 }) => {
   const containerRef = useRef(null);
-  const template = DECORATION_TEMPLATES.find(t => t.id === item.templateId);
 
   const [isDragging, setIsDragging] = useState(false);
   const isDraggingRef = useRef(false);
@@ -67,8 +65,8 @@ const DraggableDecorationItem = memo(({
     const startMouseY = e.clientY;
     const startPosX = pendingPosRef.current.x;
     const startPosY = pendingPosRef.current.y;
-    const itemW = item.width || template?.defaultWidth || 150;
-    const itemH = item.height || template?.defaultHeight || 150;
+    const itemW = item.width || 150;
+    const itemH = item.height || 150;
 
     let curX = startPosX;
     let curY = startPosY;
@@ -113,8 +111,8 @@ const DraggableDecorationItem = memo(({
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  const width = item.width || template?.defaultWidth || 150;
-  const height = item.height || template?.defaultHeight || 150;
+  const width = item.width || 150;
+  const height = item.height || 150;
   const rotate = item.rotate || 0;
   const opacity = (item.opacity ?? 100) / 100;
   const isBackground = item.isBackground ?? false;
@@ -157,7 +155,7 @@ const DraggableDecorationItem = memo(({
         canInteract && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
       )}
     >
-      {/* Content Rendering: SVG Template or Custom Image */}
+      {/* Content Rendering: Custom Image */}
       {item.customImgUrl ? (
         <img
           src={item.customImgUrl}
@@ -165,16 +163,7 @@ const DraggableDecorationItem = memo(({
           className="w-full h-full object-contain pointer-events-none select-none drop-shadow-sm"
           draggable={false}
         />
-      ) : template?.svg ? (
-        <div
-          dangerouslySetInnerHTML={{ __html: template.svg }}
-          className="w-full h-full pointer-events-none select-none drop-shadow-sm flex items-center justify-center"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-[#7D8B6E]/20 rounded-2xl">
-          <Leaf className="text-[#7D8B6E]" size={32} />
-        </div>
-      )}
+      ) : null}
 
       {/* Editing Badges & Quick Action handles */}
       {canInteract && isSelected && (
@@ -201,7 +190,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   const [decorations, setDecorations] = useState(() => getStoredDecorations(pageKey));
   const [isEditing, setIsEditing] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [showPalette, setShowPalette] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [dockPosition, setDockPosition] = useState('bottom'); // 'bottom' | 'top'
   const [isPreview, setIsPreview] = useState(false);
@@ -315,28 +303,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     });
     setSelectedId(curr => (curr === id ? null : curr));
   }, [pageKey]);
-
-  const handleAddTemplate = (template) => {
-    const defaultX = Math.round(window.innerWidth / 2 - template.defaultWidth / 2);
-    const defaultY = Math.round(window.innerHeight / 2 - template.defaultHeight / 2);
-
-    const newItem = {
-      id: `dec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      templateId: template.id,
-      x: defaultX,
-      y: defaultY,
-      width: template.defaultWidth,
-      height: template.defaultHeight,
-      rotate: 0,
-      opacity: 100,
-      isBackground: false
-    };
-
-    const next = [...decorations, newItem];
-    updateDecorations(next);
-    setSelectedId(newItem.id);
-    setShowPalette(false);
-  };
 
   const [autoRemoveBg, setAutoRemoveBg] = useState(false);
 
@@ -736,22 +702,13 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
 
                     <div className="w-px h-5 bg-[#7D8B6E]/20 dark:bg-white/10" />
 
-                    {/* Add Plant Button (Icon only) */}
-                    <button
-                      type="button"
-                      onClick={() => setShowPalette(true)}
-                      title="Thêm cây kiểng & họa tiết trang trí"
-                      className="w-8 h-8 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-transform cursor-pointer"
-                    >
-                      <Plus size={16} />
-                    </button>
-
-                    {/* Upload Custom Image Button (Icon only) */}
+                    {/* Upload Custom Image Button */}
                     <label
-                      title="Tải ảnh từ máy tính (hoặc bấm Ctrl+V để dán trực tiếp)"
-                      className="w-8 h-8 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-[#DE8C5A] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-2xs"
+                      title="Tải ảnh sticker từ máy tính (hoặc bấm Ctrl+V để dán trực tiếp)"
+                      className="h-8 px-3 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-xs text-xs font-bold select-none"
                     >
                       <Upload size={14} />
+                      <span>Thêm ảnh</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -845,72 +802,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
         </AnimatePresence>
       </Portal>
 
-      {/* 3. Plant & Decor Selection Drawer / Modal */}
-      {showPalette && (
-        <Portal>
-          <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
-            <div className="bg-[#FAF7F2] dark:bg-[#1E231B] border border-[#E0D7C5] dark:border-[#384334] rounded-[28px] w-full max-w-xl p-6 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-[#E6DDCC] dark:border-[#333E2F]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#7D8B6E]/20 text-[#556945] dark:text-[#B2C5A1] flex items-center justify-center">
-                    <Leaf size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-serif font-bold text-[#3B3224] dark:text-[#EDE8DF]">
-                      Chọn Cây Kiểng & Họa Tiết Trang Trí
-                    </h3>
-                    <p className="text-[11px] text-[#7A6E5D] dark:text-[#A79D8E]">
-                      Bấm vào mẫu bạn thích để thêm vào màn hình, sau đó kéo thả vị trí tùy ý
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPalette(false)}
-                  className="w-8 h-8 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex items-center justify-center text-gray-500 cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Grid of Templates */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 max-h-[380px] overflow-y-auto no-scrollbar p-1">
-                {DECORATION_TEMPLATES.map((tmpl) => (
-                  <button
-                    key={tmpl.id}
-                    type="button"
-                    onClick={() => handleAddTemplate(tmpl)}
-                    className="p-3 bg-white dark:bg-[#252C21] hover:bg-[#F2ECE0] dark:hover:bg-[#2F372B] border border-[#E6DECE] dark:border-[#3D4939] rounded-2xl flex flex-col items-center gap-2 text-center group hover:scale-102 hover:border-[#7D8B6E] transition-all cursor-pointer shadow-xs"
-                  >
-                    <div className="w-24 h-24 flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
-                      <div
-                        dangerouslySetInnerHTML={{ __html: tmpl.svg }}
-                        className="w-full h-full pointer-events-none"
-                      />
-                    </div>
-                    <span className="text-xs font-serif font-bold text-[#3B3224] dark:text-[#EDE8DF] line-clamp-1">
-                      {tmpl.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="pt-2 border-t border-[#E6DDCC] dark:border-[#333E2F] flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowPalette(false)}
-                  className="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-black/5 cursor-pointer"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
-
-      {/* 4. Custom Confirm Modal for Clearing Decorations */}
+      {/* 3. Custom Confirm Modal for Clearing Decorations */}
       <ConfirmModal
         isOpen={showClearConfirm}
         type="danger"

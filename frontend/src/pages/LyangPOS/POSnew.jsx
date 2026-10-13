@@ -5262,6 +5262,7 @@ function POSPage({
               value={mn}
               onChange={Wa}
               onSubmit={Vi}
+              cartColorConfig={cartColorConfig}
               onClose={() => {
                 gr(!1);
                 Wa("");

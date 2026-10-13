@@ -425,11 +425,11 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     exit={{ opacity: 0, y: dockPosition === 'top' ? -10 : 10, scale: 0.96 }}
                     transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                     style={{ willChange: 'transform, opacity' }}
-                    className="pointer-events-auto bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-2xl border border-[#7D8B6E]/30 dark:border-[#3D4C38]/70 rounded-2xl p-2.5 px-3.5 shadow-xl flex items-center gap-3.5 text-xs text-[#3B3224] dark:text-[#E8E2D8]"
+                    className="pointer-events-auto bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-2xl border border-[#7D8B6E]/30 dark:border-[#3D4C38]/70 rounded-full py-1.5 px-3 shadow-xl flex items-center gap-2.5 text-xs text-[#3B3224] dark:text-[#E8E2D8]"
                   >
                     {/* Size Scale Slider */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-[#7A6E5D] dark:text-[#A79D8E] uppercase tracking-wider">Cỡ:</span>
+                    <div className="flex items-center gap-1.5" title="Kích thước sticker">
+                      <Maximize2 size={13} className="text-[#7D8B6E]" />
                       <input
                         type="range"
                         min="50"
@@ -443,7 +443,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                             height: Math.round(newW * ratio)
                           });
                         }}
-                        className="w-20 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                        className="w-16 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
                       />
                       <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.width}p</span>
                     </div>
@@ -451,7 +451,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
 
                     {/* Rotate Slider */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5" title="Góc xoay">
                       <RotateCw size={12} className="text-[#7D8B6E]" />
                       <input
                         type="range"
@@ -459,25 +459,25 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                         max="180"
                         value={selectedItem.rotate || 0}
                         onChange={(e) => handleUpdateItem(selectedItem.id, { rotate: parseInt(e.target.value, 10) })}
-                        className="w-18 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                        className="w-14 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
                       />
-                      <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.rotate || 0}°</span>
+                      <span className="font-mono text-[10px] w-6 font-bold">{selectedItem.rotate || 0}°</span>
                     </div>
 
                     <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
 
                     {/* Opacity Slider */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-[#7A6E5D] dark:text-[#A79D8E] uppercase">Mờ:</span>
+                    <div className="flex items-center gap-1.5" title="Độ mờ / trong suốt">
+                      <SlidersHorizontal size={12} className="text-[#7D8B6E]" />
                       <input
                         type="range"
                         min="15"
                         max="100"
                         value={selectedItem.opacity ?? 100}
                         onChange={(e) => handleUpdateItem(selectedItem.id, { opacity: parseInt(e.target.value, 10) })}
-                        className="w-18 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                        className="w-14 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
                       />
-                      <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.opacity ?? 100}%</span>
+                      <span className="font-mono text-[10px] w-6 font-bold">{selectedItem.opacity ?? 100}%</span>
                     </div>
 
                     <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
@@ -487,61 +487,54 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                       type="button"
                       onClick={() => handleUpdateItem(selectedItem.id, { isBackground: !selectedItem.isBackground })}
                       className={cn(
-                        "px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95",
+                        "w-7 h-7 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center cursor-pointer active:scale-95",
                         selectedItem.isBackground
                           ? "bg-[#7D8B6E]/20 text-[#556945] dark:text-[#A3B891] border border-[#7D8B6E]/40"
                           : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
                       )}
-                      title="Chìm dưới nền bảng tính hay nổi lên trên"
+                      title={selectedItem.isBackground ? "Đang chìm dưới nền (Click để nổi lên)" : "Đang nổi lên trên (Click để chìm dưới nền)"}
                     >
-                      <Layers size={11} />
-                      <span>{selectedItem.isBackground ? "Dưới nền" : "Nổi lên"}</span>
+                      <Layers size={13} />
                     </button>
 
                     {/* Duplicate item button */}
                     <button
                       type="button"
                       onClick={() => handleDuplicateItem(selectedItem.id)}
-                      className="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
-                      title="Nhân đôi (Copy) vật phẩm này"
+                      className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+                      title="Nhân đôi (Sao chép)"
                     >
-                      <Copy size={11} />
-                      <span>Nhân đôi</span>
+                      <Copy size={13} />
                     </button>
 
                     {/* Smart Background Removal Button for custom images */}
                     {selectedItem.customImgUrl && (
-                      <>
-                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
-                        {selectedItem.isBgRemoved ? (
-                          <button
-                            type="button"
-                            onClick={() => handleRestoreOriginalBg(selectedItem.id)}
-                            className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 border border-amber-500/30"
-                            title="Khôi phục lại nền gốc ban đầu của ảnh"
-                          >
-                            <Undo2 size={11} />
-                            <span>Nền gốc</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveBg(selectedItem.id)}
-                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs"
-                            title="Tự động xóa nền trắng hoặc màu đơn sắc"
-                          >
-                            <Wand2 size={11} />
-                            <span>Tách nền ✨</span>
-                          </button>
-                        )}
-                      </>
+                      selectedItem.isBgRemoved ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRestoreOriginalBg(selectedItem.id)}
+                          className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-all flex items-center justify-center cursor-pointer active:scale-95 border border-amber-500/30"
+                          title="Khôi phục lại nền gốc ban đầu"
+                        >
+                          <Undo2 size={13} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBg(selectedItem.id)}
+                          className="w-7 h-7 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white transition-all flex items-center justify-center cursor-pointer active:scale-95 shadow-xs"
+                          title="Tách bỏ nền trắng / màu đơn sắc"
+                        >
+                          <Wand2 size={13} />
+                        </button>
+                      )
                     )}
 
                     {/* Delete item button */}
                     <button
                       type="button"
                       onClick={() => handleDeleteItem(selectedItem.id)}
-                      className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors flex items-center justify-center cursor-pointer"
                       title="Xóa vật phẩm này"
                     >
                       <Trash2 size={13} />
@@ -561,20 +554,14 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                     style={{ willChange: 'transform, opacity' }}
                     onClick={() => setIsMinimized(false)}
-                    className="pointer-events-auto group px-4 py-2 rounded-full bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 hover:border-[#7D8B6E] shadow-[0_12px_36px_rgba(0,0,0,0.18)] hover:shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                    className="pointer-events-auto group px-3 py-1.5 rounded-full bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 hover:border-[#7D8B6E] shadow-[0_8px_24px_rgba(0,0,0,0.12)] hover:shadow-xl flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                     title="Bấm để mở rộng thanh công cụ trang trí"
                   >
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7D8B6E] opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7D8B6E]" />
-                    </span>
                     <Leaf size={14} className="text-[#7D8B6E] group-hover:rotate-12 transition-transform" />
-                    <span className="text-xs font-serif font-bold text-[#3B3224] dark:text-[#EAE5DC]">
-                      Trang trí ({decorations.length})
+                    <span className="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1]">
+                      {decorations.length}
                     </span>
-                    <span className="text-[10px] bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                      {dockPosition === 'top' ? 'Mở thanh ⇣' : 'Mở thanh ⇡'}
-                    </span>
+                    <ChevronUp size={13} className={cn("text-gray-400 transition-transform", dockPosition === 'top' && "rotate-180")} />
                   </m.div>
                 ) : (
                   <m.div
@@ -585,97 +572,95 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                     style={{ willChange: 'transform, opacity' }}
                     className={cn(
-                      "pointer-events-auto bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 dark:border-[#3E4F38]/80 rounded-full px-3.5 py-1.5 shadow-[0_16px_40px_rgba(28,25,23,0.18),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-2 sm:gap-2.5 transition-opacity duration-150",
+                      "pointer-events-auto bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 dark:border-[#3E4F38]/80 rounded-full px-2 py-1 shadow-[0_12px_36px_rgba(28,25,23,0.16),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-1.5 transition-opacity duration-150",
                       isPreview && "opacity-60 hover:opacity-100"
                     )}
                   >
-                    {/* Header info */}
-                    <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B3224] dark:text-[#EAE5DC] pl-1.5">
+                    {/* Header: Leaf Icon + Item Counter Badge */}
+                    <div className="flex items-center gap-1 pl-1.5 pr-0.5" title={`Đang có ${decorations.length} vật phẩm trang trí`}>
                       <Leaf size={15} className="text-[#7D8B6E] animate-pulse" />
-                      <span className="hidden md:inline font-bold">Trang Trí Tự Do</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1]">
+                      <span className="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1] min-w-[18px] text-center">
                         {decorations.length}
                       </span>
                     </div>
 
-                    <div className="w-px h-5 bg-[#7D8B6E]/25 dark:bg-white/10" />
+                    <div className="w-px h-5 bg-[#7D8B6E]/20 dark:bg-white/10" />
 
-                    {/* Add Plant Button */}
+                    {/* Add Plant Button (Icon only) */}
                     <button
                       type="button"
                       onClick={() => setShowPalette(true)}
-                      className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer"
+                      title="Thêm cây kiểng & họa tiết trang trí"
+                      className="w-8 h-8 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     >
-                      <Plus size={14} />
-                      <span>Thêm cây kiểng 🪴</span>
+                      <Plus size={16} />
                     </button>
 
-                    {/* Upload Custom Image Button */}
-                    <div className="flex items-center gap-1">
-                      <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer shadow-2xs">
-                        <Upload size={13} className="text-[#DE8C5A]" />
-                        <span>Thêm ảnh máy</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleUploadImage}
-                          className="hidden"
-                        />
-                      </label>
+                    {/* Upload Custom Image Button (Icon only) */}
+                    <label
+                      title="Tải ảnh sticker từ máy tính"
+                      className="w-8 h-8 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-[#DE8C5A] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-2xs"
+                    >
+                      <Upload size={14} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadImage}
+                        className="hidden"
+                      />
+                    </label>
 
-                      {/* Auto Remove Background Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => setAutoRemoveBg(prev => !prev)}
-                        className={cn(
-                          "px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-transform active:scale-95 border",
-                          autoRemoveBg
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                            : "bg-white/80 dark:bg-[#252E22] text-[#6E6352] dark:text-[#A79D8E] border-gray-200 dark:border-gray-700 hover:bg-gray-50"
-                        )}
-                        title={autoRemoveBg ? "Đang BẬT tự tách nền khi tải ảnh. Bấm để tắt." : "Bấm để BẬT tự động tách nền trắng/đơn sắc khi tải ảnh lên"}
-                      >
-                        <Wand2 size={12} className={autoRemoveBg ? "text-white" : "text-emerald-600"} />
-                        <span className="text-[11px] font-semibold">{autoRemoveBg ? "Tự tách nền: BẬT" : "Tách nền"}</span>
-                      </button>
-                    </div>
+                    {/* Auto Remove Background Toggle (Icon only) */}
+                    <button
+                      type="button"
+                      onClick={() => setAutoRemoveBg(prev => !prev)}
+                      title={autoRemoveBg ? "Tự động tách nền khi tải ảnh: ĐANG BẬT (Bấm để tắt)" : "Tự động tách nền khi tải ảnh: ĐANG TẮT (Bấm để bật)"}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-95 border cursor-pointer",
+                        autoRemoveBg
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                          : "bg-white/80 dark:bg-[#252E22] text-[#6E6352] dark:text-[#A79D8E] border-gray-200 dark:border-gray-700 hover:bg-gray-50"
+                      )}
+                    >
+                      <Wand2 size={14} className={autoRemoveBg ? "text-white" : "text-emerald-600"} />
+                    </button>
 
-                    {/* Preview Toggle Button */}
+                    {/* Preview Toggle Button (Icon only) */}
                     <button
                       type="button"
                       onClick={() => setIsPreview(prev => !prev)}
+                      title={isPreview ? "Đang xem trước (Bấm để hiện lại viền)" : "Xem trước bố cục không viền"}
                       className={cn(
-                        "p-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-transform cursor-pointer active:scale-95",
+                        "w-8 h-8 rounded-full flex items-center justify-center transition-transform cursor-pointer active:scale-95",
                         isPreview
                           ? "bg-[#7D8B6E] text-white shadow-xs"
                           : "text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10"
                       )}
-                      title={isPreview ? "Đang bật xem trước (Bấm để hiện lại viền chọn)" : "Xem trước bố cục không viền (Ẩn viền)"}
                     >
                       {isPreview ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
 
-                    {/* Change Position (Top/Bottom) Toggle */}
+                    {/* Change Position (Top/Bottom) Toggle (Icon only) */}
                     <button
                       type="button"
                       onClick={() => setDockPosition(prev => prev === 'bottom' ? 'top' : 'bottom')}
-                      className="p-1.5 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                      title={dockPosition === 'bottom' ? "Chuyển thanh lên trên cùng" : "Chuyển thanh xuống dưới cùng"}
+                      title={dockPosition === 'bottom' ? "Chuyển thanh lên trên" : "Chuyển thanh xuống dưới"}
+                      className="w-8 h-8 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <ArrowUpDown size={15} />
                     </button>
 
-                    {/* Minimize / Collapse Bar */}
+                    {/* Minimize / Collapse Bar (Icon only) */}
                     <button
                       type="button"
                       onClick={() => setIsMinimized(true)}
-                      className="p-1.5 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                       title="Thu nhỏ thanh điều khiển"
+                      className="w-8 h-8 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
                     >
                       <Minimize2 size={14} />
                     </button>
 
-                    {/* Clear All Decorations */}
+                    {/* Clear All Decorations (Icon only) */}
                     {decorations.length > 0 && (
                       <button
                         type="button"
@@ -685,16 +670,16 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                             setSelectedId(null);
                           }
                         }}
-                        className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        title="Xóa tất cả trang trí trên trang"
+                        title="Xóa tất cả trang trí"
+                        className="w-8 h-8 rounded-full text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors cursor-pointer"
                       >
                         <Trash2 size={15} />
                       </button>
                     )}
 
-                    <div className="w-px h-5 bg-[#7D8B6E]/25 dark:bg-white/10" />
+                    <div className="w-px h-5 bg-[#7D8B6E]/20 dark:bg-white/10" />
 
-                    {/* Finish / Save Button */}
+                    {/* Finish / Save Button (Icon only) */}
                     <button
                       type="button"
                       onClick={() => {
@@ -702,10 +687,10 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                         setSelectedId(null);
                         setIsPreview(false);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#DE8C5A] to-[#CF7E4C] hover:from-[#D4814E] hover:to-[#BE6E3D] text-white text-xs font-bold flex items-center gap-1 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer"
+                      title="Hoàn tất và lưu trang trí (Alt+D)"
+                      className="w-8 h-8 rounded-full bg-gradient-to-r from-[#DE8C5A] to-[#CF7E4C] hover:from-[#D4814E] hover:to-[#BE6E3D] text-white flex items-center justify-center shadow-xs hover:scale-105 active:scale-95 transition-transform cursor-pointer"
                     >
-                      <Check size={14} />
-                      <span>Hoàn tất</span>
+                      <Check size={16} strokeWidth={2.5} />
                     </button>
                   </m.div>
                 )}

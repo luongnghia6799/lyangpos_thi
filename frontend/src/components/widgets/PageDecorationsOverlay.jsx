@@ -4,12 +4,13 @@ import { m, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Plus, Trash2, Check, RotateCw, Move, 
   Maximize2, Layers, Eye, EyeOff, Upload, X, SlidersHorizontal, Leaf,
-  ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2
+  ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2, Wand2, Undo2
 } from 'lucide-react';
 import { 
   DECORATION_TEMPLATES, 
   getStoredDecorations, 
-  saveStoredDecorations 
+  saveStoredDecorations,
+  removeImageBackground
 } from '../../lib/decorations';
 import { cn } from '../../lib/utils';
 import Portal from './Portal';
@@ -241,6 +242,35 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     setShowPalette(false);
   };
 
+  const [autoRemoveBg, setAutoRemoveBg] = useState(false);
+
+  const handleRemoveBg = async (id) => {
+    const item = decorations.find(d => d.id === id);
+    if (!item || !item.customImgUrl) return;
+
+    const sourceUrl = item.originalImgUrl || item.customImgUrl;
+    try {
+      const cutUrl = await removeImageBackground(sourceUrl, 32);
+      handleUpdateItem(id, {
+        customImgUrl: cutUrl,
+        originalImgUrl: sourceUrl,
+        isBgRemoved: true
+      });
+    } catch (e) {
+      console.error('Lỗi khi tách nền:', e);
+    }
+  };
+
+  const handleRestoreOriginalBg = (id) => {
+    const item = decorations.find(d => d.id === id);
+    if (!item || !item.originalImgUrl) return;
+
+    handleUpdateItem(id, {
+      customImgUrl: item.originalImgUrl,
+      isBgRemoved: false
+    });
+  };
+
   const handleUploadImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -254,7 +284,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         // Tối đa 280px để sticker vừa vặn, siêu nhẹ cho RAM và localStorage
         const maxDim = 280;
         let w = img.width;
@@ -286,9 +316,24 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           compressedBase64 = canvas.toDataURL('image/png');
         }
 
+        let finalImgUrl = compressedBase64;
+        let isBgRemoved = false;
+
+        // Nếu bật tự động tách nền ngay khi upload
+        if (autoRemoveBg) {
+          try {
+            finalImgUrl = await removeImageBackground(compressedBase64, 32);
+            isBgRemoved = true;
+          } catch (err) {
+            console.error("Lỗi khi tách nền tự động", err);
+          }
+        }
+
         const newItem = {
           id: `dec_${Date.now()}`,
-          customImgUrl: compressedBase64,
+          customImgUrl: finalImgUrl,
+          originalImgUrl: compressedBase64,
+          isBgRemoved: isBgRemoved,
           x: Math.round(window.innerWidth / 2 - w / 2),
           y: Math.round(window.innerHeight / 2 - h / 2),
           width: w,
@@ -445,6 +490,34 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                       <span>Nhân đôi</span>
                     </button>
 
+                    {/* Smart Background Removal Button for custom images */}
+                    {selectedItem.customImgUrl && (
+                      <>
+                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+                        {selectedItem.isBgRemoved ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreOriginalBg(selectedItem.id)}
+                            className="px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 border border-amber-500/30"
+                            title="Khôi phục lại nền gốc ban đầu của ảnh"
+                          >
+                            <Undo2 size={11} />
+                            <span>Nền gốc</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBg(selectedItem.id)}
+                            className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-xs"
+                            title="Tự động xóa nền trắng hoặc màu đơn sắc"
+                          >
+                            <Wand2 size={11} />
+                            <span>Tách nền ✨</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+
                     {/* Delete item button */}
                     <button
                       type="button"
@@ -517,16 +590,34 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     </button>
 
                     {/* Upload Custom Image Button */}
-                    <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer shadow-2xs">
-                      <Upload size={13} className="text-[#DE8C5A]" />
-                      <span>Thêm ảnh máy</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUploadImage}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="flex items-center gap-1">
+                      <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer shadow-2xs">
+                        <Upload size={13} className="text-[#DE8C5A]" />
+                        <span>Thêm ảnh máy</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadImage}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {/* Auto Remove Background Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setAutoRemoveBg(prev => !prev)}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 border",
+                          autoRemoveBg
+                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                            : "bg-white/80 dark:bg-[#252E22] text-[#6E6352] dark:text-[#A79D8E] border-gray-200 dark:border-gray-700 hover:bg-gray-50"
+                        )}
+                        title={autoRemoveBg ? "Đang BẬT tự tách nền khi tải ảnh. Bấm để tắt." : "Bấm để BẬT tự động tách nền trắng/đơn sắc khi tải ảnh lên"}
+                      >
+                        <Wand2 size={12} className={autoRemoveBg ? "text-white" : "text-emerald-600"} />
+                        <span className="text-[11px] font-semibold">{autoRemoveBg ? "Tự tách nền: BẬT" : "Tách nền"}</span>
+                      </button>
+                    </div>
 
                     {/* Preview Toggle Button */}
                     <button

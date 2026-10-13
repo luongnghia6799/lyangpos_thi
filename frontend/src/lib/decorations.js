@@ -225,3 +225,122 @@ export function saveStoredDecorations(pageKey = 'pos', list = []) {
     console.error('Failed to save page decorations', e);
   }
 }
+
+/**
+ * Thuật toán tách nền (xóa phông) thông minh bằng HTML5 Canvas:
+ * - Tự động quét màu viền và 4 góc biên ảnh (nền trắng, xám, hoặc đơn sắc)
+ * - Dùng BFS Flood-fill từ 4 cạnh ngoài viền đi vào, bảo vệ các chi tiết màu trắng bên trong vật thể (mắt, răng, áo...)
+ * - Tạo đường viền mềm mại (anti-aliasing) giúp sticker không bị răng cưa
+ */
+export function removeImageBackground(dataUrl, tolerance = 32) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const w = img.width;
+      const h = img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(dataUrl);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      // Lấy màu nền đại diện từ góc trên cùng bên trái
+      const bgR = data[0];
+      const bgG = data[1];
+      const bgB = data[2];
+
+      const visited = new Uint8Array(w * h);
+      const queue = [];
+
+      // Đưa toàn bộ các điểm ảnh ở 4 đường viền bao quanh ảnh vào hàng đợi
+      for (let x = 0; x < w; x++) {
+        queue.push(x, 0);
+        queue.push(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        queue.push(0, y);
+        queue.push(w - 1, y);
+      }
+
+      const colorDistance = (r1, g1, b1, r2, g2, b2) => {
+        return Math.sqrt(
+          (r1 - r2) * (r1 - r2) +
+          (g1 - g2) * (g1 - g2) +
+          (b1 - b2) * (b1 - b2)
+        );
+      };
+
+      let head = 0;
+      while (head < queue.length) {
+        const x = queue[head++];
+        const y = queue[head++];
+        const idx = y * w + x;
+
+        if (visited[idx]) continue;
+        visited[idx] = 1;
+
+        const pIdx = idx * 4;
+        const r = data[pIdx];
+        const g = data[pIdx + 1];
+        const b = data[pIdx + 2];
+        const a = data[pIdx + 3];
+
+        // Nếu điểm ảnh đã trong suốt từ trước thì bỏ qua
+        if (a === 0) continue;
+
+        const dist = colorDistance(r, g, b, bgR, bgG, bgB);
+        // Nhận diện nếu màu tiệm cận nền biên, hoặc tiệm cận màu trắng/xám sáng của phông nền
+        const isNearWhiteBg = (r > 235 && g > 235 && b > 235 && (bgR > 210 && bgG > 210 && bgB > 210));
+
+        if (dist <= tolerance || isNearWhiteBg) {
+          data[pIdx + 3] = 0; // Làm trong suốt hoàn toàn
+
+          // Lan truyền sang 4 lân cận
+          if (x > 0 && !visited[idx - 1]) queue.push(x - 1, y);
+          if (x < w - 1 && !visited[idx + 1]) queue.push(x + 1, y);
+          if (y > 0 && !visited[idx - w]) queue.push(x, y - 1);
+          if (y < h - 1 && !visited[idx + w]) queue.push(x, y + 1);
+        }
+      }
+
+      // Làm mềm viền (Soft Edge / Feathering) để ảnh không bị răng cưa
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const idx = y * w + x;
+          const pIdx = idx * 4;
+          if (data[pIdx + 3] > 0) {
+            // Kiểm tra xem có giáp với điểm trong suốt không
+            const hasTransparentNeighbor = 
+              data[(idx - 1) * 4 + 3] === 0 ||
+              data[(idx + 1) * 4 + 3] === 0 ||
+              data[(idx - w) * 4 + 3] === 0 ||
+              data[(idx + w) * 4 + 3] === 0;
+
+            if (hasTransparentNeighbor) {
+              const dist = colorDistance(data[pIdx], data[pIdx + 1], data[pIdx + 2], bgR, bgG, bgB);
+              if (dist <= tolerance * 1.35) {
+                data[pIdx + 3] = Math.round(data[pIdx + 3] * 0.45); // Khử viền mờ
+              }
+            }
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      let outUrl = canvas.toDataURL('image/webp', 0.85);
+      if (!outUrl.startsWith('data:image/webp')) {
+        outUrl = canvas.toDataURL('image/png');
+      }
+      resolve(outUrl);
+    };
+    img.src = dataUrl;
+  });
+}

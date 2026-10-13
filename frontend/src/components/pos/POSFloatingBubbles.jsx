@@ -12,7 +12,6 @@ import {
   getButtonComputedStyle, 
   getBubbleBadgeStyle 
 } from '@/components/modals/CartColorCustomizerModal';
-import Portal from '@/components/widgets/Portal';
 
 /**
  * POSFloatingBubbles - High-performance isolated component for floating summary bubbles
@@ -128,7 +127,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
   const isCash = currentPayMethod === "Cash";
 
   return (
-    <Portal zIndex={800}>
+    <>
       {/* 1. Floating Partner Bubble (Bottom-Left) */}
       <m.div
         key="partner-bubble"
@@ -145,7 +144,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
           stiffness: 350,
           damping: 22
         }}
-        className="fixed bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
+        className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
       >
         <m.div 
           layout 
@@ -182,7 +181,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
               }
             }}
             style={partnerStyle}
-            className="flex items-start group/partner-bubble cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
+            className="flex items-start group/partner-bubble cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
           >
             <Sprout 
               className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none select-none" 
@@ -493,7 +492,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
         transition={{ type: "spring", stiffness: 420, damping: 28, mass: 0.8 }}
-        className="fixed bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
+        className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
       >
         <AnimatePresence mode="popLayout">
           {isCash && (
@@ -514,7 +513,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                 opacity: { duration: 0.18 }
               }}
               style={cashStyle}
-              className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] backdrop-blur-xl hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
+              className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
             >
               <RefreshCcw 
                 className="absolute -right-3 -bottom-3 w-24 h-24 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/cash-calculator:scale-110 group-hover/cash-calculator:-rotate-6 pointer-events-none select-none" 
@@ -732,7 +731,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
             whileHover={{ scale: 1.06, y: -2 }}
             whileTap={{ scale: 0.94 }}
             onClick={onScrollDownCart}
-            className="fixed bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fbf9f4] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/50 dark:border-[#d4a574]/50 shadow-[0_8px_20px_-2px_rgba(139,111,71,0.22)] dark:shadow-[0_10px_22px_-2px_rgba(0,0,0,0.6)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-[border-color,background-color,color] duration-150 select-none group pointer-events-auto"
+            className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-[115] cursor-pointer flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#fbf9f4] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/50 dark:border-[#d4a574]/50 shadow-[0_8px_20px_-2px_rgba(139,111,71,0.22)] dark:shadow-[0_10px_22px_-2px_rgba(0,0,0,0.6)] text-[#2d5016] dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider hover:border-[#2d5016] dark:hover:border-emerald-400 transition-[border-color,background-color,color] duration-150 select-none group pointer-events-auto"
             title="Bấm để cuộn xuống xem các sản phẩm tiếp theo"
           >
             <span className="relative flex h-2 w-2">
@@ -744,7 +743,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
           </m.button>
         )}
       </AnimatePresence>
-    </Portal>
+    </>
   );
 });
 

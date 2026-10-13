@@ -75,7 +75,9 @@ const DraggableDecorationItem = memo(({
         top: `${item.y}px`,
         width: `${width}px`,
         height: `${height}px`,
-        transform: `rotate(${rotate}deg)`,
+        transform: `translate3d(0, 0, 0) rotate(${rotate}deg)`,
+        willChange: isEditing ? 'transform, left, top' : 'auto',
+        contain: 'layout style',
         opacity: opacity,
         zIndex: isEditing ? 99990 : (isBackground ? 1 : 20),
         pointerEvents: isEditing ? 'auto' : 'none',
@@ -227,21 +229,50 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Giới hạn file ban đầu tối đa 15MB
+    if (file.size > 15 * 1024 * 1024) {
+      alert("File ảnh quá lớn (trên 15MB). Vui lòng chọn ảnh nhẹ hơn.");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        const maxWidth = 240;
+        // Tối đa 280px để sticker vừa vặn, siêu nhẹ cho RAM và localStorage
+        const maxDim = 280;
         let w = img.width;
         let h = img.height;
-        if (w > maxWidth) {
-          h = Math.round((h * maxWidth) / w);
-          w = maxWidth;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+
+        // Dùng Canvas HTML5 nén kích thước & tối ưu dung lượng
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, w, h);
+        }
+
+        // Xuất WebP chất lượng 82% (giữ nền trong suốt, dung lượng chỉ còn ~15KB - 30KB)
+        let compressedBase64 = canvas.toDataURL('image/webp', 0.82);
+        if (!compressedBase64.startsWith('data:image/webp')) {
+          compressedBase64 = canvas.toDataURL('image/png');
         }
 
         const newItem = {
           id: `dec_${Date.now()}`,
-          customImgUrl: event.target.result,
+          customImgUrl: compressedBase64,
           x: Math.round(window.innerWidth / 2 - w / 2),
           y: Math.round(window.innerHeight / 2 - h / 2),
           width: w,
@@ -259,6 +290,8 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+    // Reset input để có thể chọn lại cùng 1 file
+    e.target.value = '';
   };
 
   const selectedItem = decorations.find(d => d.id === selectedId);

@@ -265,12 +265,13 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     const item = decorations.find(d => d.id === id);
     if (!item || !item.customImgUrl) return;
 
-    const sourceUrl = item.originalImgUrl || item.customImgUrl;
+    // Lấy ảnh hiện tại để tách nền (kể cả ảnh sau khi crop)
+    const sourceUrl = item.customImgUrl || item.originalImgUrl;
     try {
-      const cutUrl = await removeImageBackground(sourceUrl, 32);
+      const cutUrl = await removeImageBackground(sourceUrl, 36);
       handleUpdateItem(id, {
         customImgUrl: cutUrl,
-        originalImgUrl: sourceUrl,
+        originalImgUrl: item.originalImgUrl || sourceUrl,
         isBgRemoved: true
       });
     } catch (e) {
@@ -849,14 +850,14 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       {cropTargetItem && (
         <ImageCropModal
           isOpen={!!cropTargetItem}
-          imageUrl={cropTargetItem.originalImgUrl || cropTargetItem.customImgUrl}
+          imageUrl={cropTargetItem.customImgUrl || cropTargetItem.originalImgUrl}
           onCropComplete={(croppedUrl, newW, newH) => {
             handleUpdateItem(cropTargetItem.id, {
               customImgUrl: croppedUrl,
               originalImgUrl: croppedUrl,
               width: newW,
               height: newH,
-              isBgRemoved: false
+              isBgRemoved: cropTargetItem.isBgRemoved ?? false
             });
             setCropTargetItem(null);
           }}

@@ -15,6 +15,15 @@ import {
 import { cn } from '../../lib/utils';
 import Portal from './Portal';
 
+function areDecorationItemPropsEqual(prev, next) {
+  return (
+    prev.item === next.item &&
+    prev.isEditing === next.isEditing &&
+    prev.isPreview === next.isPreview &&
+    prev.isSelected === next.isSelected
+  );
+}
+
 // Single Drag-and-Drop Decoration Item
 const DraggableDecorationItem = memo(({
   item,
@@ -129,7 +138,7 @@ const DraggableDecorationItem = memo(({
       )}
     </div>
   );
-});
+}, areDecorationItemPropsEqual);
 
 export default function PageDecorationsOverlay({ forcedPageKey }) {
   const location = useLocation();
@@ -217,8 +226,8 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       saveStoredDecorations(pageKey, next);
       return next;
     });
-    if (selectedId === id) setSelectedId(null);
-  }, [pageKey, selectedId]);
+    setSelectedId(curr => (curr === id ? null : curr));
+  }, [pageKey]);
 
   const handleAddTemplate = (template) => {
     const defaultX = Math.round(window.innerWidth / 2 - template.defaultWidth / 2);
@@ -356,18 +365,21 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   };
 
   const handleDuplicateItem = useCallback((id) => {
-    const target = decorations.find(d => d.id === id);
-    if (!target) return;
-    const newItem = {
-      ...target,
-      id: `dec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      x: Math.min(window.innerWidth - (target.width || 120), (target.x || 100) + 24),
-      y: Math.min(window.innerHeight - (target.height || 120), (target.y || 100) + 24),
-    };
-    const next = [...decorations, newItem];
-    updateDecorations(next);
-    setSelectedId(newItem.id);
-  }, [decorations, updateDecorations]);
+    setDecorations(prev => {
+      const target = prev.find(d => d.id === id);
+      if (!target) return prev;
+      const newItem = {
+        ...target,
+        id: `dec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        x: Math.min(window.innerWidth - (target.width || 120), (target.x || 100) + 24),
+        y: Math.min(window.innerHeight - (target.height || 120), (target.y || 100) + 24),
+      };
+      const next = [...prev, newItem];
+      saveStoredDecorations(pageKey, next);
+      setSelectedId(newItem.id);
+      return next;
+    });
+  }, [pageKey]);
 
   const selectedItem = decorations.find(d => d.id === selectedId);
 
@@ -388,12 +400,18 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       ))}
 
       {/* 2. Editing Control Dock Bar */}
-      <AnimatePresence>
-        {isEditing && (
-          <Portal>
-            <div
+      <Portal>
+        <AnimatePresence>
+          {isEditing && (
+            <m.div
+              key="decorations-main-floating-dock"
+              initial={{ opacity: 0, y: dockPosition === 'top' ? -35 : 35, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: dockPosition === 'top' ? -35 : 35, scale: 0.94 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{ willChange: 'transform, opacity' }}
               className={cn(
-                "fixed left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-2.5 select-none pointer-events-none transition-all duration-300",
+                "fixed left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-2.5 select-none pointer-events-none",
                 dockPosition === 'top' ? "top-5" : "bottom-6"
               )}
             >
@@ -402,11 +420,12 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                 {selectedItem && !isPreview && !isMinimized && (
                   <m.div
                     key="selected-tools"
-                    initial={{ opacity: 0, y: dockPosition === 'top' ? -15 : 15, scale: 0.95 }}
+                    initial={{ opacity: 0, y: dockPosition === 'top' ? -10 : 10, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: dockPosition === 'top' ? -15 : 15, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                    className="pointer-events-auto bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-2xl border border-[#7D8B6E]/30 dark:border-[#3D4C38]/70 rounded-2xl p-2.5 px-3.5 shadow-2xl flex items-center gap-3.5 text-xs text-[#3B3224] dark:text-[#E8E2D8]"
+                    exit={{ opacity: 0, y: dockPosition === 'top' ? -10 : 10, scale: 0.96 }}
+                    transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ willChange: 'transform, opacity' }}
+                    className="pointer-events-auto bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-2xl border border-[#7D8B6E]/30 dark:border-[#3D4C38]/70 rounded-2xl p-2.5 px-3.5 shadow-xl flex items-center gap-3.5 text-xs text-[#3B3224] dark:text-[#E8E2D8]"
                   >
                     {/* Size Scale Slider */}
                     <div className="flex items-center gap-1.5">
@@ -536,12 +555,13 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                 {isMinimized ? (
                   <m.div
                     key="minimized-dock"
-                    initial={{ y: dockPosition === 'top' ? -25 : 25, opacity: 0, scale: 0.88, filter: 'blur(8px)' }}
-                    animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                    exit={{ y: dockPosition === 'top' ? -20 : 20, opacity: 0, scale: 0.88, filter: 'blur(8px)' }}
-                    transition={{ type: "spring", stiffness: 480, damping: 28 }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ willChange: 'transform, opacity' }}
                     onClick={() => setIsMinimized(false)}
-                    className="pointer-events-auto group px-4 py-2 rounded-full bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 hover:border-[#7D8B6E] shadow-[0_12px_36px_rgba(0,0,0,0.18)] hover:shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                    className="pointer-events-auto group px-4 py-2 rounded-full bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 hover:border-[#7D8B6E] shadow-[0_12px_36px_rgba(0,0,0,0.18)] hover:shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                     title="Bấm để mở rộng thanh công cụ trang trí"
                   >
                     <span className="relative flex h-2 w-2">
@@ -559,12 +579,13 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                 ) : (
                   <m.div
                     key="expanded-dock"
-                    initial={{ y: dockPosition === 'top' ? -35 : 35, opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
-                    animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
-                    exit={{ y: dockPosition === 'top' ? -25 : 25, opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
-                    transition={{ type: "spring", stiffness: 420, damping: 26 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ willChange: 'transform, opacity' }}
                     className={cn(
-                      "pointer-events-auto bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 dark:border-[#3E4F38]/80 rounded-full px-3.5 py-1.5 shadow-[0_16px_40px_rgba(28,25,23,0.18),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-2 sm:gap-2.5 transition-all duration-200",
+                      "pointer-events-auto bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 dark:border-[#3E4F38]/80 rounded-full px-3.5 py-1.5 shadow-[0_16px_40px_rgba(28,25,23,0.18),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-2 sm:gap-2.5 transition-opacity duration-150",
                       isPreview && "opacity-60 hover:opacity-100"
                     )}
                   >
@@ -583,7 +604,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     <button
                       type="button"
                       onClick={() => setShowPalette(true)}
-                      className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer"
                     >
                       <Plus size={14} />
                       <span>Thêm cây kiểng 🪴</span>
@@ -591,7 +612,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
 
                     {/* Upload Custom Image Button */}
                     <div className="flex items-center gap-1">
-                      <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer shadow-2xs">
+                      <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer shadow-2xs">
                         <Upload size={13} className="text-[#DE8C5A]" />
                         <span>Thêm ảnh máy</span>
                         <input
@@ -607,7 +628,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                         type="button"
                         onClick={() => setAutoRemoveBg(prev => !prev)}
                         className={cn(
-                          "px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 border",
+                          "px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition-transform active:scale-95 border",
                           autoRemoveBg
                             ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                             : "bg-white/80 dark:bg-[#252E22] text-[#6E6352] dark:text-[#A79D8E] border-gray-200 dark:border-gray-700 hover:bg-gray-50"
@@ -624,7 +645,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                       type="button"
                       onClick={() => setIsPreview(prev => !prev)}
                       className={cn(
-                        "p-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all cursor-pointer active:scale-95",
+                        "p-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-transform cursor-pointer active:scale-95",
                         isPreview
                           ? "bg-[#7D8B6E] text-white shadow-xs"
                           : "text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10"
@@ -681,7 +702,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                         setSelectedId(null);
                         setIsPreview(false);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#DE8C5A] to-[#CF7E4C] hover:from-[#D4814E] hover:to-[#BE6E3D] text-white text-xs font-bold flex items-center gap-1 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-all cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#DE8C5A] to-[#CF7E4C] hover:from-[#D4814E] hover:to-[#BE6E3D] text-white text-xs font-bold flex items-center gap-1 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-transform cursor-pointer"
                     >
                       <Check size={14} />
                       <span>Hoàn tất</span>
@@ -689,10 +710,10 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                   </m.div>
                 )}
               </AnimatePresence>
-            </div>
-          </Portal>
-        )}
-      </AnimatePresence>
+            </m.div>
+          )}
+        </AnimatePresence>
+      </Portal>
 
       {/* 3. Plant & Decor Selection Drawer / Modal */}
       {showPalette && (

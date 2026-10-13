@@ -4,7 +4,7 @@ import { m, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Plus, Trash2, Check, RotateCw, Move, 
   Maximize2, Layers, Eye, EyeOff, Upload, X, SlidersHorizontal, Leaf,
-  ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2, Wand2, Undo2
+  ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2, Wand2, Undo2, Crop
 } from 'lucide-react';
 import { 
   DECORATION_TEMPLATES, 
@@ -15,6 +15,7 @@ import {
 import { cn } from '../../lib/utils';
 import Portal from './Portal';
 import ConfirmModal from '../modals/ConfirmModal';
+import ImageCropModal from '../modals/ImageCropModal';
 
 function areDecorationItemPropsEqual(prev, next) {
   return (
@@ -153,6 +154,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   const [dockPosition, setDockPosition] = useState('bottom'); // 'bottom' | 'top'
   const [isPreview, setIsPreview] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [cropTargetItem, setCropTargetItem] = useState(null);
 
   // Sync when page route changes
   useEffect(() => {
@@ -581,6 +583,18 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                       )
                     )}
 
+                    {/* Crop image button for custom images */}
+                    {selectedItem.customImgUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCropTargetItem(selectedItem)}
+                        className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+                        title="Cắt ảnh (Crop)"
+                      >
+                        <Crop size={13} />
+                      </button>
+                    )}
+
                     {/* Delete item button */}
                     <button
                       type="button"
@@ -826,6 +840,25 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
         }}
         onCancel={() => setShowClearConfirm(false)}
       />
+
+      {/* 5. Image Crop Modal */}
+      {cropTargetItem && (
+        <ImageCropModal
+          isOpen={!!cropTargetItem}
+          imageUrl={cropTargetItem.originalImgUrl || cropTargetItem.customImgUrl}
+          onCropComplete={(croppedUrl, newW, newH) => {
+            handleUpdateItem(cropTargetItem.id, {
+              customImgUrl: croppedUrl,
+              originalImgUrl: croppedUrl,
+              width: newW,
+              height: newH,
+              isBgRemoved: false
+            });
+            setCropTargetItem(null);
+          }}
+          onClose={() => setCropTargetItem(null)}
+        />
+      )}
     </>
   );
 }

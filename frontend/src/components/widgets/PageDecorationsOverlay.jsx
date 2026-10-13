@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Plus, Trash2, Check, RotateCw, Move, 
-  Maximize2, Layers, Eye, EyeOff, Upload, X, SlidersHorizontal, Leaf
+  Maximize2, Layers, Eye, EyeOff, Upload, X, SlidersHorizontal, Leaf,
+  ChevronDown, ChevronUp, Copy, ArrowUpDown, Minimize2
 } from 'lucide-react';
 import { 
   DECORATION_TEMPLATES, 
@@ -17,6 +18,7 @@ import Portal from './Portal';
 const DraggableDecorationItem = memo(({
   item,
   isEditing,
+  isPreview,
   isSelected,
   onSelect,
   onUpdate,
@@ -29,7 +31,7 @@ const DraggableDecorationItem = memo(({
   const dragStartRef = useRef({ x: 0, y: 0, posX: item.x, posY: item.y });
 
   const handleMouseDown = (e) => {
-    if (!isEditing) return;
+    if (!isEditing || isPreview) return;
     e.stopPropagation();
     onSelect(item.id);
     setIsDragging(true);
@@ -64,6 +66,7 @@ const DraggableDecorationItem = memo(({
   const rotate = item.rotate || 0;
   const opacity = (item.opacity ?? 100) / 100;
   const isBackground = item.isBackground ?? false;
+  const canInteract = isEditing && !isPreview;
 
   return (
     <div
@@ -76,18 +79,18 @@ const DraggableDecorationItem = memo(({
         width: `${width}px`,
         height: `${height}px`,
         transform: `translate3d(0, 0, 0) rotate(${rotate}deg)`,
-        willChange: isEditing ? 'transform, left, top' : 'auto',
+        willChange: canInteract ? 'transform, left, top' : 'auto',
         contain: 'layout style',
         opacity: opacity,
-        zIndex: isEditing ? 99990 : (isBackground ? 1 : 20),
-        pointerEvents: isEditing ? 'auto' : 'none',
+        zIndex: canInteract ? 99990 : (isBackground ? 1 : 20),
+        pointerEvents: canInteract ? 'auto' : 'none',
         userSelect: 'none'
       }}
       className={cn(
         "transition-[box-shadow,border-color] duration-150 select-none",
-        isEditing && "cursor-grab active:cursor-grabbing",
-        isEditing && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
-        isEditing && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
+        canInteract && "cursor-grab active:cursor-grabbing",
+        canInteract && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
+        canInteract && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
       )}
     >
       {/* Content Rendering: SVG Template or Custom Image */}
@@ -110,7 +113,7 @@ const DraggableDecorationItem = memo(({
       )}
 
       {/* Editing Badges & Quick Action handles */}
-      {isEditing && isSelected && (
+      {canInteract && isSelected && (
         <div className="absolute -top-3 -right-3 flex items-center gap-1 z-50 pointer-events-auto">
           <button
             type="button"
@@ -135,11 +138,15 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [showPalette, setShowPalette] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [dockPosition, setDockPosition] = useState('bottom'); // 'bottom' | 'top'
+  const [isPreview, setIsPreview] = useState(false);
 
   // Sync when page route changes
   useEffect(() => {
     setDecorations(getStoredDecorations(pageKey));
     setSelectedId(null);
+    setIsPreview(false);
   }, [pageKey]);
 
   // Save changes
@@ -153,12 +160,21 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     const handleKeyDown = (e) => {
       if (e.altKey && (e.key === 'd' || e.key === 'D')) {
         e.preventDefault();
-        setIsEditing(prev => !prev);
+        setIsEditing(prev => {
+          const next = !prev;
+          if (next) {
+            setIsMinimized(false);
+            setIsPreview(false);
+          }
+          return next;
+        });
       }
     };
     const handleToggleEvent = (e) => {
       if (e.detail?.action === 'open') {
         setIsEditing(true);
+        setIsMinimized(false);
+        setIsPreview(false);
         if (e.detail?.openPalette) setShowPalette(true);
       } else {
         setIsEditing(prev => !prev);
@@ -294,6 +310,20 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     e.target.value = '';
   };
 
+  const handleDuplicateItem = useCallback((id) => {
+    const target = decorations.find(d => d.id === id);
+    if (!target) return;
+    const newItem = {
+      ...target,
+      id: `dec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      x: Math.min(window.innerWidth - (target.width || 120), (target.x || 100) + 24),
+      y: Math.min(window.innerHeight - (target.height || 120), (target.y || 100) + 24),
+    };
+    const next = [...decorations, newItem];
+    updateDecorations(next);
+    setSelectedId(newItem.id);
+  }, [decorations, updateDecorations]);
+
   const selectedItem = decorations.find(d => d.id === selectedId);
 
   return (
@@ -304,6 +334,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           key={item.id}
           item={item}
           isEditing={isEditing}
+          isPreview={isPreview}
           isSelected={selectedId === item.id}
           onSelect={setSelectedId}
           onUpdate={handleUpdateItem}
@@ -312,153 +343,265 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       ))}
 
       {/* 2. Editing Control Dock Bar */}
-      {isEditing && (
-        <Portal>
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-3">
-            {/* Context Toolset for Currently Selected Decoration */}
-            {selectedItem && (
-              <m.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-xl border border-[#7D8B6E]/30 dark:border-[#3D4C38] rounded-2xl p-3 shadow-2xl flex items-center gap-4 text-xs select-none"
-              >
-                {/* Size Scale Slider */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cỡ:</span>
-                  <input
-                    type="range"
-                    min="60"
-                    max="450"
-                    value={selectedItem.width || 150}
-                    onChange={(e) => {
-                      const newW = parseInt(e.target.value, 10);
-                      const ratio = (selectedItem.height || 150) / (selectedItem.width || 150);
-                      handleUpdateItem(selectedItem.id, {
-                        width: newW,
-                        height: Math.round(newW * ratio)
-                      });
-                    }}
-                    className="w-24 accent-[#7D8B6E] cursor-pointer"
-                  />
-                  <span className="font-mono text-[10px] w-8">{selectedItem.width}px</span>
-                </div>
-
-                <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
-
-                {/* Rotate Slider */}
-                <div className="flex items-center gap-2">
-                  <RotateCw size={13} className="text-[#7D8B6E]" />
-                  <input
-                    type="range"
-                    min="-180"
-                    max="180"
-                    value={selectedItem.rotate || 0}
-                    onChange={(e) => handleUpdateItem(selectedItem.id, { rotate: parseInt(e.target.value, 10) })}
-                    className="w-20 accent-[#7D8B6E] cursor-pointer"
-                  />
-                  <span className="font-mono text-[10px] w-8">{selectedItem.rotate || 0}°</span>
-                </div>
-
-                <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
-
-                {/* Opacity Slider */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Độ mờ:</span>
-                  <input
-                    type="range"
-                    min="15"
-                    max="100"
-                    value={selectedItem.opacity ?? 100}
-                    onChange={(e) => handleUpdateItem(selectedItem.id, { opacity: parseInt(e.target.value, 10) })}
-                    className="w-20 accent-[#7D8B6E] cursor-pointer"
-                  />
-                  <span className="font-mono text-[10px] w-7">{selectedItem.opacity ?? 100}%</span>
-                </div>
-
-                <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
-
-                {/* Layer toggle: Background or Foreground */}
-                <button
-                  type="button"
-                  onClick={() => handleUpdateItem(selectedItem.id, { isBackground: !selectedItem.isBackground })}
-                  className={cn(
-                    "px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer",
-                    selectedItem.isBackground
-                      ? "bg-[#7D8B6E]/20 text-[#556945] border border-[#7D8B6E]/40"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
-                  )}
-                  title="Chìm dưới nền giỏ hàng hay nổi lên trên"
-                >
-                  <Layers size={12} />
-                  <span>{selectedItem.isBackground ? "Dưới nền" : "Nổi lên"}</span>
-                </button>
-              </m.div>
-            )}
-
-            {/* Main Floating Toolstrip */}
-            <div className="bg-[#FAF7F2]/95 dark:bg-[#1E231B]/95 backdrop-blur-xl border-2 border-[#7D8B6E] rounded-full px-4 py-2 shadow-2xl flex items-center gap-3">
-              <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B3224] dark:text-[#EAE5DC] pl-1">
-                <Leaf size={16} className="text-[#7D8B6E]" />
-                <span className="hidden sm:inline">Chế độ Trang Trí Tự Do (Alt+D)</span>
-              </div>
-
-              <div className="w-px h-5 bg-[#7D8B6E]/30" />
-
-              {/* Add Plant Button */}
-              <button
-                type="button"
-                onClick={() => setShowPalette(true)}
-                className="px-3 py-1.5 rounded-full bg-[#7D8B6E] hover:bg-[#6C7B5D] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Thêm cây kiểng 🪴</span>
-              </button>
-
-              {/* Upload Custom Image Button */}
-              <label className="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 hover:bg-gray-50 border border-[#7D8B6E]/30 text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 transition-all cursor-pointer">
-                <Upload size={13} className="text-[#DE8C5A]" />
-                <span>Thêm ảnh máy</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleUploadImage}
-                  className="hidden"
-                />
-              </label>
-
-              {/* Clear All Decorations */}
-              {decorations.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa toàn bộ cây trang trí trên trang này không?')) {
-                      updateDecorations([]);
-                      setSelectedId(null);
-                    }
-                  }}
-                  className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                  title="Xóa tất cả trang trí"
-                >
-                  <Trash2 size={16} />
-                </button>
+      <AnimatePresence>
+        {isEditing && (
+          <Portal>
+            <div
+              className={cn(
+                "fixed left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-2.5 select-none pointer-events-none transition-all duration-300",
+                dockPosition === 'top' ? "top-5" : "bottom-6"
               )}
+            >
+              {/* Context Toolset for Currently Selected Decoration */}
+              <AnimatePresence>
+                {selectedItem && !isPreview && !isMinimized && (
+                  <m.div
+                    key="selected-tools"
+                    initial={{ opacity: 0, y: dockPosition === 'top' ? -15 : 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: dockPosition === 'top' ? -15 : 15, scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                    className="pointer-events-auto bg-white/95 dark:bg-[#1E231B]/95 backdrop-blur-2xl border border-[#7D8B6E]/30 dark:border-[#3D4C38]/70 rounded-2xl p-2.5 px-3.5 shadow-2xl flex items-center gap-3.5 text-xs text-[#3B3224] dark:text-[#E8E2D8]"
+                  >
+                    {/* Size Scale Slider */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-[#7A6E5D] dark:text-[#A79D8E] uppercase tracking-wider">Cỡ:</span>
+                      <input
+                        type="range"
+                        min="50"
+                        max="480"
+                        value={selectedItem.width || 150}
+                        onChange={(e) => {
+                          const newW = parseInt(e.target.value, 10);
+                          const ratio = (selectedItem.height || 150) / (selectedItem.width || 150);
+                          handleUpdateItem(selectedItem.id, {
+                            width: newW,
+                            height: Math.round(newW * ratio)
+                          });
+                        }}
+                        className="w-20 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                      />
+                      <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.width}p</span>
+                    </div>
 
-              {/* Finish / Save Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditing(false);
-                  setSelectedId(null);
-                }}
-                className="px-3.5 py-1.5 rounded-full bg-[#DE8C5A] hover:bg-[#CF7E4C] text-white text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer"
-              >
-                <Check size={14} />
-                <span>Hoàn tất</span>
-              </button>
+                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+
+                    {/* Rotate Slider */}
+                    <div className="flex items-center gap-1.5">
+                      <RotateCw size={12} className="text-[#7D8B6E]" />
+                      <input
+                        type="range"
+                        min="-180"
+                        max="180"
+                        value={selectedItem.rotate || 0}
+                        onChange={(e) => handleUpdateItem(selectedItem.id, { rotate: parseInt(e.target.value, 10) })}
+                        className="w-18 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                      />
+                      <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.rotate || 0}°</span>
+                    </div>
+
+                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+
+                    {/* Opacity Slider */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-[#7A6E5D] dark:text-[#A79D8E] uppercase">Mờ:</span>
+                      <input
+                        type="range"
+                        min="15"
+                        max="100"
+                        value={selectedItem.opacity ?? 100}
+                        onChange={(e) => handleUpdateItem(selectedItem.id, { opacity: parseInt(e.target.value, 10) })}
+                        className="w-18 accent-[#7D8B6E] cursor-pointer h-1.5 rounded-lg bg-gray-200 dark:bg-gray-700"
+                      />
+                      <span className="font-mono text-[10px] w-7 font-bold">{selectedItem.opacity ?? 100}%</span>
+                    </div>
+
+                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+
+                    {/* Layer toggle: Background or Foreground */}
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateItem(selectedItem.id, { isBackground: !selectedItem.isBackground })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95",
+                        selectedItem.isBackground
+                          ? "bg-[#7D8B6E]/20 text-[#556945] dark:text-[#A3B891] border border-[#7D8B6E]/40"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+                      )}
+                      title="Chìm dưới nền bảng tính hay nổi lên trên"
+                    >
+                      <Layers size={11} />
+                      <span>{selectedItem.isBackground ? "Dưới nền" : "Nổi lên"}</span>
+                    </button>
+
+                    {/* Duplicate item button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicateItem(selectedItem.id)}
+                      className="px-2.5 py-1 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                      title="Nhân đôi (Copy) vật phẩm này"
+                    >
+                      <Copy size={11} />
+                      <span>Nhân đôi</span>
+                    </button>
+
+                    {/* Delete item button */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(selectedItem.id)}
+                      className="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      title="Xóa vật phẩm này"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </m.div>
+                )}
+              </AnimatePresence>
+
+              {/* Main Floating Toolstrip / Island */}
+              <AnimatePresence mode="wait">
+                {isMinimized ? (
+                  <m.div
+                    key="minimized-dock"
+                    initial={{ y: dockPosition === 'top' ? -25 : 25, opacity: 0, scale: 0.88, filter: 'blur(8px)' }}
+                    animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ y: dockPosition === 'top' ? -20 : 20, opacity: 0, scale: 0.88, filter: 'blur(8px)' }}
+                    transition={{ type: "spring", stiffness: 480, damping: 28 }}
+                    onClick={() => setIsMinimized(false)}
+                    className="pointer-events-auto group px-4 py-2 rounded-full bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 hover:border-[#7D8B6E] shadow-[0_12px_36px_rgba(0,0,0,0.18)] hover:shadow-2xl flex items-center gap-2.5 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                    title="Bấm để mở rộng thanh công cụ trang trí"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7D8B6E] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7D8B6E]" />
+                    </span>
+                    <Leaf size={14} className="text-[#7D8B6E] group-hover:rotate-12 transition-transform" />
+                    <span className="text-xs font-serif font-bold text-[#3B3224] dark:text-[#EAE5DC]">
+                      Trang trí ({decorations.length})
+                    </span>
+                    <span className="text-[10px] bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1] font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                      {dockPosition === 'top' ? 'Mở thanh ⇣' : 'Mở thanh ⇡'}
+                    </span>
+                  </m.div>
+                ) : (
+                  <m.div
+                    key="expanded-dock"
+                    initial={{ y: dockPosition === 'top' ? -35 : 35, opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
+                    animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ y: dockPosition === 'top' ? -25 : 25, opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
+                    transition={{ type: "spring", stiffness: 420, damping: 26 }}
+                    className={cn(
+                      "pointer-events-auto bg-[#FAF7F2]/95 dark:bg-[#1A2017]/95 backdrop-blur-2xl border border-[#7D8B6E]/40 dark:border-[#3E4F38]/80 rounded-full px-3.5 py-1.5 shadow-[0_16px_40px_rgba(28,25,23,0.18),0_2px_8px_rgba(0,0,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.7)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-2 sm:gap-2.5 transition-all duration-200",
+                      isPreview && "opacity-60 hover:opacity-100"
+                    )}
+                  >
+                    {/* Header info */}
+                    <div className="flex items-center gap-2 text-xs font-serif font-bold text-[#3B3224] dark:text-[#EAE5DC] pl-1.5">
+                      <Leaf size={15} className="text-[#7D8B6E] animate-pulse" />
+                      <span className="hidden md:inline font-bold">Trang Trí Tự Do</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B2C5A1]">
+                        {decorations.length}
+                      </span>
+                    </div>
+
+                    <div className="w-px h-5 bg-[#7D8B6E]/25 dark:bg-white/10" />
+
+                    {/* Add Plant Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPalette(true)}
+                      className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#7D8B6E] to-[#667756] hover:from-[#6E7D5F] hover:to-[#5B6B4C] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Thêm cây kiểng 🪴</span>
+                    </button>
+
+                    {/* Upload Custom Image Button */}
+                    <label className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-xs font-bold text-[#4B3F30] dark:text-[#E8E2D8] flex items-center gap-1.5 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer shadow-2xs">
+                      <Upload size={13} className="text-[#DE8C5A]" />
+                      <span>Thêm ảnh máy</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadImage}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Preview Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsPreview(prev => !prev)}
+                      className={cn(
+                        "p-1.5 rounded-full text-xs font-medium flex items-center gap-1 transition-all cursor-pointer active:scale-95",
+                        isPreview
+                          ? "bg-[#7D8B6E] text-white shadow-xs"
+                          : "text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10"
+                      )}
+                      title={isPreview ? "Đang bật xem trước (Bấm để hiện lại viền chọn)" : "Xem trước bố cục không viền (Ẩn viền)"}
+                    >
+                      {isPreview ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+
+                    {/* Change Position (Top/Bottom) Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setDockPosition(prev => prev === 'bottom' ? 'top' : 'bottom')}
+                      className="p-1.5 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      title={dockPosition === 'bottom' ? "Chuyển thanh lên trên cùng" : "Chuyển thanh xuống dưới cùng"}
+                    >
+                      <ArrowUpDown size={15} />
+                    </button>
+
+                    {/* Minimize / Collapse Bar */}
+                    <button
+                      type="button"
+                      onClick={() => setIsMinimized(true)}
+                      className="p-1.5 rounded-full text-[#6E6352] dark:text-[#A79D8E] hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                      title="Thu nhỏ thanh điều khiển"
+                    >
+                      <Minimize2 size={14} />
+                    </button>
+
+                    {/* Clear All Decorations */}
+                    {decorations.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('Bạn có chắc muốn xóa toàn bộ cây trang trí trên trang này không?')) {
+                            updateDecorations([]);
+                            setSelectedId(null);
+                          }
+                        }}
+                        className="p-1.5 rounded-full text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title="Xóa tất cả trang trí trên trang"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+
+                    <div className="w-px h-5 bg-[#7D8B6E]/25 dark:bg-white/10" />
+
+                    {/* Finish / Save Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setSelectedId(null);
+                        setIsPreview(false);
+                      }}
+                      className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#DE8C5A] to-[#CF7E4C] hover:from-[#D4814E] hover:to-[#BE6E3D] text-white text-xs font-bold flex items-center gap-1 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Check size={14} />
+                      <span>Hoàn tất</span>
+                    </button>
+                  </m.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-        </Portal>
-      )}
+          </Portal>
+        )}
+      </AnimatePresence>
 
       {/* 3. Plant & Decor Selection Drawer / Modal */}
       {showPalette && (

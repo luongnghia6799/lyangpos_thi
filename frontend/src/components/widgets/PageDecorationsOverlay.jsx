@@ -80,6 +80,10 @@ const DraggableDecorationItem = memo(({
   const isBackground = item.isBackground ?? false;
   const canInteract = isEditing && !isPreview;
 
+  const itemZIndex = isBackground 
+    ? (isSelected ? 35 : 20) 
+    : (isSelected ? 220 : 200);
+
   return (
     <div
       ref={containerRef}
@@ -94,7 +98,7 @@ const DraggableDecorationItem = memo(({
         willChange: canInteract ? 'transform, left, top' : 'auto',
         contain: 'layout style',
         opacity: opacity,
-        zIndex: canInteract ? 99990 : (isBackground ? 1 : 20),
+        zIndex: itemZIndex,
         pointerEvents: canInteract ? 'auto' : 'none',
         userSelect: 'none'
       }}

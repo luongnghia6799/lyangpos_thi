@@ -68,7 +68,6 @@ import { checkIsAdmin } from '../../lib/auth';
 import { createPortal } from 'react-dom';
 import ContextMenu from '../widgets/ContextMenu';
 import ButtonMascotOverlay from '../widgets/ButtonMascotOverlay';
-import PageDecorationsOverlay from '../widgets/PageDecorationsOverlay';
 import { getLiteTheme } from '../../lib/liteTheme';
 import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
@@ -2110,7 +2109,6 @@ export default function Layout({ children }) {
         >
             <ContextMenu />
             <ButtonMascotOverlay />
-            <PageDecorationsOverlay />
 
             {isLiteMode && !['/pos', '/poslite', '/purchase'].includes(location.pathname) && (
                 <div ref={liteMenuContainerRef} className="fixed inset-0 pointer-events-none z-[9999] no-print">
@@ -2621,7 +2619,7 @@ export default function Layout({ children }) {
 
             <m.main
                 id="main-content"
-                className="flex-1 min-w-0 h-full overflow-hidden flex flex-col relative z-0 print:overflow-visible print:static selection:bg-primary/10"
+                className="flex-1 min-w-0 h-full overflow-hidden flex flex-col relative print:overflow-visible print:static selection:bg-primary/10"
             >
                 <div className="flex-1 overflow-auto relative">
                     {children}

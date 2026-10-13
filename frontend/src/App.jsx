@@ -354,25 +354,25 @@ const LiteKeepAlive = () => {
   return (
     <>
       <div style={{ display: location.pathname === '/' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <DashboardLite />
+        <PageWrapper><DashboardLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/pos' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <POSLite />
+        <PageWrapper><POSLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/purchase' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <PurchaseLite />
+        <PageWrapper><PurchaseLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/history' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <HistoryLite />
+        <PageWrapper><HistoryLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/summary' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <SummaryLite />
+        <PageWrapper><SummaryLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/ledger' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <LedgerLite />
+        <PageWrapper><LedgerLite /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/settings' ? 'block' : 'none', height: '100%', width: '100%' }}>
-        <SettingsLite />
+        <PageWrapper><SettingsLite /></PageWrapper>
       </div>
     </>
   );

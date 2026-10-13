@@ -1,4 +1,5 @@
 import { m } from 'framer-motion';
+import PageDecorationsOverlay from '../widgets/PageDecorationsOverlay';
 
 const PageWrapper = ({ children }) => {
     return (
@@ -21,6 +22,7 @@ const PageWrapper = ({ children }) => {
                 className="absolute inset-0 bg-primary/5 pointer-events-none z-[99]"
             />
             {children}
+            <PageDecorationsOverlay />
         </m.div>
     );
 };

@@ -1857,6 +1857,16 @@ html.wallpaper-light .main-content-bg label:not(.bg-card *, [class*="bg-"] *, bu
   will-change: transform, opacity;
 }
 
+/* Screen decoration editing mode: allow clicking through content & bubbles to decorations */
+body.decorations-editing-active #pos-root-container,
+body.decorations-editing-active .main-content-bg,
+body.decorations-editing-active [data-bubble],
+body.decorations-editing-active #partner-bubble,
+body.decorations-editing-active #cash-calculator-bubble {
+  pointer-events: none !important;
+}
+
+
 
 
 

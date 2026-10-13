@@ -120,15 +120,15 @@ const DraggableDecorationItem = memo(({
   const isBackground = item.isBackground ?? false;
   const canInteract = isEditing && !isPreview;
 
-  // Background decorations:
-  // Idle: z-1 (strictly UNDER page content, tables, bubbles, and buttons at z-10)
-  // Selected: z-15 (pops above table for easy editing and bounding handles)
-  // Foreground decorations:
-  // Idle: z-40 (above page content)
-  // Selected: z-60
+  // Background decorations (isBackground = true):
+  // Idle: z-45 (nằm TRÊN nền mặt kính giỏ hàng để RÕ NÉT 100%, không bị glass blur, nhưng nằm DƯỚI các nút bubble z-110 như "Khách bán lẻ", "Tổng tiền", "Note")
+  // Selected: z-120 (tạm nổi lên trên nút bấm khi đang chọn/kéo thả để nhìn rõ viền và nút xóa)
+  // Foreground decorations (isBackground = false):
+  // Idle: z-150 (nổi hẳn lên trên tất cả các nút và bảng)
+  // Selected: z-160
   const itemZIndex = isBackground 
-    ? (isSelected ? 15 : 1) 
-    : (isSelected ? 60 : 40);
+    ? (isSelected ? 120 : 45) 
+    : (isSelected ? 160 : 150);
 
   return (
     <div

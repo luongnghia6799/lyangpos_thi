@@ -14,6 +14,7 @@ import {
 } from '../../lib/decorations';
 import { cn } from '../../lib/utils';
 import Portal from './Portal';
+import ConfirmModal from '../modals/ConfirmModal';
 
 function areDecorationItemPropsEqual(prev, next) {
   return (
@@ -151,6 +152,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [dockPosition, setDockPosition] = useState('bottom'); // 'bottom' | 'top'
   const [isPreview, setIsPreview] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Sync when page route changes
   useEffect(() => {
@@ -713,12 +715,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
                     {decorations.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm('Bạn có chắc muốn xóa toàn bộ cây trang trí trên trang này không?')) {
-                            updateDecorations([]);
-                            setSelectedId(null);
-                          }
-                        }}
+                        onClick={() => setShowClearConfirm(true)}
                         title="Xóa tất cả trang trí"
                         className="w-8 h-8 rounded-full text-rose-500 hover:bg-rose-500/10 flex items-center justify-center transition-colors cursor-pointer"
                       >
@@ -813,6 +810,22 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           </div>
         </Portal>
       )}
+
+      {/* 4. Custom Confirm Modal for Clearing Decorations */}
+      <ConfirmModal
+        isOpen={showClearConfirm}
+        type="danger"
+        title="Xóa toàn bộ trang trí?"
+        message={`Bạn có chắc muốn xóa tất cả ${decorations.length} cây kiểng và sticker trang trí trên trang này không? Thao tác này không thể hoàn tác.`}
+        confirmText="Xóa tất cả"
+        cancelText="Giữ lại"
+        onConfirm={() => {
+          updateDecorations([]);
+          setSelectedId(null);
+          setShowClearConfirm(false);
+        }}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </>
   );
 }

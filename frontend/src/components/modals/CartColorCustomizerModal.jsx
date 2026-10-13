@@ -93,21 +93,6 @@ export const CART_COLOR_PRESETS = [
         previewAccent: '#2d5016'
     },
     {
-        id: 'zen_botanical',
-        name: 'Zen Botanical (Xanh Xô Thơm)',
-        desc: 'Mộc mạc, tĩnh lặng, ấm áp & thiên nhiên',
-        headerBg: '#7D8B6E',
-        headerText: '#FAF7F2',
-        borderColor: '#7D8B6E',
-        borderWidth: '1',
-        accentColor: '#7D8B6E',
-        productTextColor: '#2E2820',
-        cartValuesColor: '#DE8C5A',
-        previewHeaderBg: '#7D8B6E',
-        previewBorder: '#7D8B6E',
-        previewAccent: '#DE8C5A'
-    },
-    {
         id: 'emerald',
         name: 'Xanh Ngọc Emerald',
         desc: 'Sang trọng, sáng sủa, thanh lịch',

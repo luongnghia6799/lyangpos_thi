@@ -1647,6 +1647,28 @@ export default function Settings() {
 
                                                     <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
                                                         <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#7D8B6E] dark:text-[#AFC1A0] shrink-0">
+                                                                <Leaf size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none flex items-center gap-2">
+                                                                    <span>Trang trí Tự Do (Decorations)</span>
+                                                                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[#7D8B6E] text-white">Alt + D</span>
+                                                                </div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Kéo thả chậu cây, cành lá tự do lên màn hình POS / Dashboard</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => window.dispatchEvent(new CustomEvent('toggle_page_decorations_mode', { detail: { action: 'open', openPalette: true } }))}
+                                                            className="px-3 py-1.5 rounded-xl bg-[#7D8B6E] hover:bg-[#6C7B5D] text-white text-[11px] font-bold shadow-sm transition-all cursor-pointer"
+                                                        >
+                                                            Mở kho Decor 🪴
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
                                                             <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
                                                                 <CalculatorIcon size={18} />
                                                             </div>

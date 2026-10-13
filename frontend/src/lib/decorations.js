@@ -214,16 +214,36 @@ export function getStoredDecorations(pageKey = 'pos') {
   return [];
 }
 
-export function saveStoredDecorations(pageKey = 'pos', list = []) {
-  try {
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${pageKey}`, JSON.stringify(list));
-    // Broadcast across windows / tabs
-    const chan = new BroadcastChannel('pos_data_sync');
-    chan.postMessage({ type: 'DECORATIONS_UPDATED', pageKey, list });
-    chan.close();
-  } catch (e) {
-    console.error('Failed to save page decorations', e);
+let saveTimerMap = new Map();
+
+export function saveStoredDecorations(pageKey = 'pos', list = [], debounceMs = 150) {
+  if (debounceMs <= 0) {
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${pageKey}`, JSON.stringify(list));
+      const chan = new BroadcastChannel('pos_data_sync');
+      chan.postMessage({ type: 'DECORATIONS_UPDATED', pageKey, list });
+      chan.close();
+    } catch (e) {
+      console.error('Failed to save page decorations', e);
+    }
+    return;
   }
+
+  if (saveTimerMap.has(pageKey)) {
+    clearTimeout(saveTimerMap.get(pageKey));
+  }
+
+  saveTimerMap.set(pageKey, setTimeout(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${pageKey}`, JSON.stringify(list));
+      const chan = new BroadcastChannel('pos_data_sync');
+      chan.postMessage({ type: 'DECORATIONS_UPDATED', pageKey, list });
+      chan.close();
+    } catch (e) {
+      console.error('Failed to save page decorations', e);
+    }
+    saveTimerMap.delete(pageKey);
+  }, debounceMs));
 }
 
 /**

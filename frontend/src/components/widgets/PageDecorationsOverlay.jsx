@@ -40,36 +40,76 @@ const DraggableDecorationItem = memo(({
   const template = DECORATION_TEMPLATES.find(t => t.id === item.templateId);
 
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0, posX: item.x, posY: item.y });
+  const isDraggingRef = useRef(false);
+  const pendingPosRef = useRef({ x: item.x, y: item.y });
+  const rafRef = useRef(null);
+
+  // Sync position from props when changed outside of dragging
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      pendingPosRef.current = { x: item.x, y: item.y };
+      if (containerRef.current) {
+        containerRef.current.style.left = `${item.x}px`;
+        containerRef.current.style.top = `${item.y}px`;
+      }
+    }
+  }, [item.x, item.y]);
 
   const handleMouseDown = (e) => {
     if (!isEditing || isPreview) return;
+    if (e.target.closest('button')) return;
     e.stopPropagation();
     onSelect(item.id);
     setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      posX: item.x,
-      posY: item.y
-    };
+    isDraggingRef.current = true;
+
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const startPosX = pendingPosRef.current.x;
+    const startPosY = pendingPosRef.current.y;
+    const itemW = item.width || template?.defaultWidth || 150;
+    const itemH = item.height || template?.defaultHeight || 150;
+
+    let curX = startPosX;
+    let curY = startPosY;
 
     const handleMouseMove = (moveEvent) => {
-      const deltaX = moveEvent.clientX - dragStartRef.current.x;
-      const deltaY = moveEvent.clientY - dragStartRef.current.y;
-      onUpdate(item.id, {
-        x: Math.max(0, Math.min(window.innerWidth - (item.width || 120), dragStartRef.current.posX + deltaX)),
-        y: Math.max(0, Math.min(window.innerHeight - (item.height || 120), dragStartRef.current.posY + deltaY))
-      });
+      if (!isDraggingRef.current) return;
+      const deltaX = moveEvent.clientX - startMouseX;
+      const deltaY = moveEvent.clientY - startMouseY;
+
+      curX = Math.max(0, Math.min(window.innerWidth - itemW, startPosX + deltaX));
+      curY = Math.max(0, Math.min(window.innerHeight - itemH, startPosY + deltaY));
+      pendingPosRef.current = { x: curX, y: curY };
+
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(() => {
+          if (containerRef.current) {
+            containerRef.current.style.left = `${curX}px`;
+            containerRef.current.style.top = `${curY}px`;
+          }
+          rafRef.current = null;
+        });
+      }
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+      isDraggingRef.current = false;
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+
+      // Commit new position to state and storage only once upon release
+      if (curX !== startPosX || curY !== startPosY) {
+        onUpdate(item.id, { x: curX, y: curY });
+      }
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mouseup', handleMouseUp);
   };
 
@@ -80,13 +120,20 @@ const DraggableDecorationItem = memo(({
   const isBackground = item.isBackground ?? false;
   const canInteract = isEditing && !isPreview;
 
+  // Background decorations:
+  // Idle: z-1 (strictly UNDER page content, tables, bubbles, and buttons at z-10)
+  // Selected: z-15 (pops above table for easy editing and bounding handles)
+  // Foreground decorations:
+  // Idle: z-40 (above page content)
+  // Selected: z-60
   const itemZIndex = isBackground 
-    ? (isSelected ? 35 : 20) 
-    : (isSelected ? 220 : 200);
+    ? (isSelected ? 15 : 1) 
+    : (isSelected ? 60 : 40);
 
   return (
     <div
       ref={containerRef}
+      data-decoration-item="true"
       onMouseDown={handleMouseDown}
       style={{
         position: 'fixed',
@@ -103,8 +150,9 @@ const DraggableDecorationItem = memo(({
         userSelect: 'none'
       }}
       className={cn(
-        "transition-[box-shadow,border-color] duration-150 select-none",
+        "select-none",
         canInteract && "cursor-grab active:cursor-grabbing",
+        isDragging && "cursor-grabbing shadow-2xl",
         canInteract && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
         canInteract && !isSelected && "hover:ring-1 hover:ring-[#7D8B6E]/50 rounded-2xl"
       )}
@@ -219,6 +267,37 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       if (chan) chan.close();
     };
   }, [pageKey]);
+
+  // Toggle editing body class to allow clicking through table to background decorations
+  useEffect(() => {
+    if (isEditing && !isPreview) {
+      document.body.classList.add('decorations-editing-active');
+    } else {
+      document.body.classList.remove('decorations-editing-active');
+    }
+    return () => {
+      document.body.classList.remove('decorations-editing-active');
+    };
+  }, [isEditing, isPreview]);
+
+  // Click outside decorations and dock to deselect
+  useEffect(() => {
+    if (!isEditing || isPreview) return;
+    const handleGlobalClick = (e) => {
+      if (
+        e.target.closest('[data-decoration-item="true"]') ||
+        e.target.closest('[data-decoration-dock="true"]') ||
+        e.target.closest('[data-modal-portal="true"]') ||
+        e.target.closest('.portal-root')
+      ) {
+        return;
+      }
+      setSelectedId(null);
+    };
+
+    window.addEventListener('mousedown', handleGlobalClick);
+    return () => window.removeEventListener('mousedown', handleGlobalClick);
+  }, [isEditing, isPreview]);
 
   const handleUpdateItem = useCallback((id, updates) => {
     setDecorations(prev => {
@@ -463,6 +542,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           {isEditing && (
             <m.div
               key="decorations-main-floating-dock"
+              data-decoration-dock="true"
               initial={{ opacity: 0, y: dockPosition === 'top' ? -35 : 35, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: dockPosition === 'top' ? -35 : 35, scale: 0.94 }}

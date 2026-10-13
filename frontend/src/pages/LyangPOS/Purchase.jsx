@@ -1842,7 +1842,7 @@ export default function Purchase() {
           reducedMotion={gpuDisabled ? "always" : "no-preference"} 
           transition={gpuDisabled ? { type: "just" } : undefined}
         >
-            <div className={cn("flex flex-col h-screen main-content-bg font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
+            <div className={cn("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
             <div className="flex-1 flex flex-col overflow-hidden no-print">
                 {/* Top Bar: Search & Supplier */}
                 <div className="p-3.5 px-5 flex gap-5 items-center print:hidden transition-colors relative z-[2500] bg-transparent">

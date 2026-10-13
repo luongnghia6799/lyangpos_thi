@@ -215,7 +215,16 @@ export default function ImageCropModal({
       ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
     }
 
-    let outUrl = canvas.toDataURL('image/png');
+    let outUrl = '';
+    try {
+      const webpUrl = canvas.toDataURL('image/webp', 0.85);
+      if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+        outUrl = webpUrl;
+      }
+    } catch {}
+    if (!outUrl) {
+      outUrl = canvas.toDataURL('image/png');
+    }
 
     onCropComplete(outUrl, Math.round(targetW), Math.round(targetH));
     onClose();

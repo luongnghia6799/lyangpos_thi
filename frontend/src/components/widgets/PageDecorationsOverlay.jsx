@@ -280,8 +280,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     });
   };
 
-  const handleUploadImage = (e) => {
-    const file = e.target.files?.[0];
+  const processAndAddImageFile = useCallback((file, customPos) => {
     if (!file) return;
 
     // Giới hạn file ban đầu tối đa 15MB
@@ -328,7 +327,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
         let finalImgUrl = compressedBase64;
         let isBgRemoved = false;
 
-        // Nếu bật tự động tách nền ngay khi upload
+        // Nếu bật tự động tách nền ngay khi dán/upload
         if (autoRemoveBg) {
           try {
             finalImgUrl = await removeImageBackground(compressedBase64, 32);
@@ -338,13 +337,20 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           }
         }
 
+        const posX = customPos?.x 
+          ? Math.max(20, Math.min(window.innerWidth - w - 20, customPos.x - w / 2))
+          : Math.round(window.innerWidth / 2 - w / 2);
+        const posY = customPos?.y 
+          ? Math.max(20, Math.min(window.innerHeight - h - 20, customPos.y - h / 2))
+          : Math.round(window.innerHeight / 2 - h / 2);
+
         const newItem = {
           id: `dec_${Date.now()}`,
           customImgUrl: finalImgUrl,
           originalImgUrl: compressedBase64,
           isBgRemoved: isBgRemoved,
-          x: Math.round(window.innerWidth / 2 - w / 2),
-          y: Math.round(window.innerHeight / 2 - h / 2),
+          x: Math.round(posX),
+          y: Math.round(posY),
           width: w,
           height: h,
           rotate: 0,
@@ -352,17 +358,60 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           isBackground: false
         };
 
-        const next = [...decorations, newItem];
-        updateDecorations(next);
+        setDecorations(prev => {
+          const next = [...prev, newItem];
+          saveStoredDecorations(pageKey, next);
+          return next;
+        });
         setSelectedId(newItem.id);
         setShowPalette(false);
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
+  }, [autoRemoveBg, pageKey]);
+
+  const handleUploadImage = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processAndAddImageFile(file);
+    }
     // Reset input để có thể chọn lại cùng 1 file
     e.target.value = '';
   };
+
+  // Lắng nghe phím tắt Ctrl + V để dán ảnh từ clipboard trực tiếp thành sticker
+  useEffect(() => {
+    let lastMousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const handleMouseMove = (e) => {
+      lastMousePos = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            setIsEditing(true);
+            setIsMinimized(false);
+            processAndAddImageFile(file, lastMousePos);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [processAndAddImageFile]);
 
   const handleDuplicateItem = useCallback((id) => {
     setDecorations(prev => {
@@ -598,7 +647,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
 
                     {/* Upload Custom Image Button (Icon only) */}
                     <label
-                      title="Tải ảnh sticker từ máy tính"
+                      title="Tải ảnh từ máy tính (hoặc bấm Ctrl+V để dán trực tiếp)"
                       className="w-8 h-8 rounded-full bg-white/90 dark:bg-[#252E22] hover:bg-white border border-[#DE8C5A]/40 hover:border-[#DE8C5A] text-[#DE8C5A] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer shadow-2xs"
                     >
                       <Upload size={14} />

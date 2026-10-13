@@ -174,9 +174,29 @@ export const getUomPriority = (uom) => {
     return UOM_PRIORITY[clean] || 0;
 };
 
+export const isComboItem = (item) => {
+    if (!item) return false;
+    return Boolean(
+        item.is_combo || 
+        item.product?.is_combo || 
+        (Array.isArray(item.combo_items) && item.combo_items.length > 0) ||
+        (Array.isArray(item.product?.combo_items) && item.product.combo_items.length > 0) ||
+        item.type === 'combo' ||
+        item.product_type === 'combo'
+    );
+};
+
 export const smartSortItems = (items) => {
     if (!items || !Array.isArray(items)) return items;
     return [...items].sort((a, b) => {
+        // 1. Combo products ALWAYS placed at the top of the list
+        const isComboA = isComboItem(a);
+        const isComboB = isComboItem(b);
+        if (isComboA !== isComboB) {
+            return isComboA ? -1 : 1;
+        }
+
+        // 2. Unit priority (Thùng, Bao, Can, Chai, Hộp, etc.)
         const uomA = a.unit || a.product_unit;
         const uomB = b.unit || b.product_unit;
         const priorityA = getUomPriority(uomA);
@@ -184,6 +204,8 @@ export const smartSortItems = (items) => {
         if (priorityA !== priorityB) {
             return priorityB - priorityA; // Descending
         }
+
+        // 3. Alphabetical by product name
         return (a.product_name || a.name || '').localeCompare(b.product_name || b.name || '', 'vi');
     });
 };

@@ -392,6 +392,30 @@ mod tests {
         assert_eq!(b1_restored, 10.0);
         assert_eq!(b2_restored, 20.0);
     }
+
+    #[test]
+    fn test_gec_token() {
+        use backend_rust::routes::tts::generate_sec_ms_gec_v2;
+        let token = generate_sec_ms_gec_v2(Some(1728864000.0));
+        println!("Rust GEC token: {}", token);
+        assert_eq!(token, "A1F13973E42609DD-B3D8656D342FB40BECF2A32DC95ACCB803A93369DCD39FB764FC1B1807781C1A");
+    }
+
+    #[tokio::test]
+    async fn test_tts_synthesis() {
+        use backend_rust::routes::tts::fetch_edge_tts_rust;
+
+        let edge_bytes = fetch_edge_tts_rust("Có nhắc nhở đến hạn", "vi-VN-HoaiMyNeural", "+0%", "+0Hz").await;
+        match edge_bytes {
+            Ok(bytes) => {
+                println!("Edge TTS success! Audio bytes: {}", bytes.len());
+                assert!(bytes.len() > 1000);
+            }
+            Err(e) => {
+                panic!("Edge TTS error: {:?}", e);
+            }
+        }
+    }
 }
 
 

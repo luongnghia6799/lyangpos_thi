@@ -7,9 +7,6 @@ import {
     Leaf,
     Sun,
     Calendar,
-    CheckCircle2,
-    Circle,
-    Star,
     ChevronLeft,
     ChevronRight,
     TrendingUp,
@@ -20,309 +17,686 @@ import {
     Wallet,
     AlertCircle,
     Clock,
-    RefreshCw,
     Sparkles,
     ArrowRight,
-    MapPin,
     SlidersHorizontal,
     Sprout,
-    Check
+    Check,
+    Truck,
+    BarChart3,
+    ShieldAlert,
+    Phone,
+    ArrowUpRight,
+    Sparkle
 } from 'lucide-react';
 import { formatCurrency, formatNumber, cn } from '../../lib/utils';
 
-// Botanical Landscape SVG Banner
+// -------------------------------------------------------------
+// 1. SCENIC BOTANICAL LANDSCAPE BANNER
+// -------------------------------------------------------------
 const ZenLandscapeBanner = memo(({ weather, currentTime, shopName, onToggleZen }) => {
+    const navigate = useNavigate();
+
+    // Time-based greeting & vibe
+    const currentHour = currentTime.getHours();
+    const timeGreeting = useMemo(() => {
+        if (currentHour >= 5 && currentHour < 11) {
+            return {
+                title: 'Bình minh an lành & Vụ mùa bội thu',
+                subtitle: 'Khởi đầu ngày mới với tâm thế thong dong, năng suất và tươi mới',
+                sunColor: '#E28743',
+                sunGlow: '#F5A26B',
+                mood: 'morning'
+            };
+        } else if (currentHour >= 11 && currentHour < 14) {
+            return {
+                title: 'Trưa hanh thông & Vững vàng tiến bước',
+                subtitle: 'Giữ năng lượng tích cực cho những chuyến hàng tấp nập buổi chiều',
+                sunColor: '#E6A15C',
+                sunGlow: '#F8BE7C',
+                mood: 'noon'
+            };
+        } else if (currentHour >= 14 && currentHour < 18) {
+            return {
+                title: 'Chiều êm ả & Năng suất trọn vẹn',
+                subtitle: 'Không gian làm việc thanh bình, hoàn thành chỉ tiêu vụ mùa hôm nay',
+                sunColor: '#DE8C5A',
+                sunGlow: '#EF9F70',
+                mood: 'afternoon'
+            };
+        } else {
+            return {
+                title: 'Hoàng hôn thư thái & Tổng kết an nhiên',
+                subtitle: 'Một ngày làm việc chăm chỉ khép lại trong bình yên và trọn vẹn',
+                sunColor: '#C86D43',
+                sunGlow: '#E5895E',
+                mood: 'evening'
+            };
+        }
+    }, [currentHour]);
+
+    // Lunar Date calculation
+    const lunarInfo = useMemo(() => {
+        try {
+            const l = Lunar.fromDate(currentTime);
+            return `Âm lịch: Ngày ${l.getDay()} tháng ${l.getMonth()} (${l.getYearInGanZhi()} ${l.getYearShengXiao()})`;
+        } catch {
+            return '';
+        }
+    }, [currentTime]);
+
     return (
-        <div className="relative w-full rounded-2xl sm:rounded-[24px] overflow-hidden bg-gradient-to-b from-[#F7F2E7] via-[#EDE4D2] to-[#E5DAC6] dark:from-[#242A21] dark:via-[#1D221A] dark:to-[#161B14] border border-[#E4DAC7] dark:border-[#333C2F] shadow-[0_8px_30px_rgb(125,139,110,0.08)]">
-            {/* Scenic Vector Landscape matching user photo */}
-            <div className="relative h-44 sm:h-52 md:h-60 w-full overflow-hidden select-none">
+        <div className="relative w-full rounded-2xl sm:rounded-[28px] overflow-hidden bg-gradient-to-b from-[#F9F5EC] via-[#EFE6D5] to-[#E5DAC6] dark:from-[#21271E] dark:via-[#191F16] dark:to-[#131711] border border-[#E4DAC7]/80 dark:border-[#333C2F] shadow-[0_12px_40px_rgba(125,139,110,0.1)] transition-all">
+            {/* Scenic Vector Landscape Art */}
+            <div className="relative h-56 sm:h-64 md:h-72 w-full overflow-hidden select-none">
                 <svg
-                    viewBox="0 0 1440 360"
+                    viewBox="0 0 1440 380"
                     preserveAspectRatio="xMidYMid slice"
                     className="absolute inset-0 w-full h-full pointer-events-none"
                 >
                     <defs>
-                        {/* Sun Gradient */}
-                        <radialGradient id="zenSunGlow" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor="#E59868" stopOpacity="1" />
-                            <stop offset="60%" stopColor="#DE8C5A" stopOpacity="0.9" />
-                            <stop offset="100%" stopColor="#D47B45" stopOpacity="0" />
+                        {/* Sun Radial Glow */}
+                        <radialGradient id="zenSunGlowMaster" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor={timeGreeting.sunColor} stopOpacity="1" />
+                            <stop offset="55%" stopColor={timeGreeting.sunGlow} stopOpacity="0.85" />
+                            <stop offset="100%" stopColor={timeGreeting.sunColor} stopOpacity="0" />
                         </radialGradient>
 
                         {/* Mountain Layers Gradients */}
                         <linearGradient id="zenDistantMtn" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#C9D6BC" stopOpacity="0.75" />
-                            <stop offset="100%" stopColor="#B3C2A3" stopOpacity="0.9" />
+                            <stop offset="0%" stopColor="#CCD9C0" stopOpacity="0.8" />
+                            <stop offset="100%" stopColor="#B6C5A7" stopOpacity="0.95" />
                         </linearGradient>
                         <linearGradient id="zenMidMtn" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#9FB38F" stopOpacity="0.9" />
-                            <stop offset="100%" stopColor="#879C75" stopOpacity="0.95" />
+                            <stop offset="0%" stopColor="#A2B792" stopOpacity="0.9" />
+                            <stop offset="100%" stopColor="#8A9F78" stopOpacity="0.98" />
                         </linearGradient>
                         <linearGradient id="zenFrontMtn" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#788E67" stopOpacity="0.95" />
-                            <stop offset="100%" stopColor="#5D734C" stopOpacity="1" />
+                            <stop offset="0%" stopColor="#768C65" stopOpacity="0.98" />
+                            <stop offset="100%" stopColor="#586E48" stopOpacity="1" />
                         </linearGradient>
                         <linearGradient id="zenForegroundHill" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#6C835A" />
-                            <stop offset="100%" stopColor="#516740" />
+                            <stop offset="0%" stopColor="#667D55" />
+                            <stop offset="100%" stopColor="#4A603A" />
                         </linearGradient>
 
                         {/* Plant leaves gradient */}
                         <linearGradient id="zenLeafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#4D6543" />
-                            <stop offset="100%" stopColor="#3B5033" />
+                            <stop offset="0%" stopColor="#496240" />
+                            <stop offset="100%" stopColor="#32452B" />
+                        </linearGradient>
+
+                        {/* Soft cloud gradient */}
+                        <linearGradient id="zenCloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.65" />
+                            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.15" />
                         </linearGradient>
                     </defs>
 
                     {/* Sky Background Tint */}
-                    <rect width="1440" height="360" fill="#FAF6EE" className="dark:fill-[#20261D]" />
+                    <rect width="1440" height="380" fill="#FAF6EE" className="dark:fill-[#1C2219]" />
 
-                    {/* Terracotta Morning Sun */}
-                    <circle cx="1020" cy="115" r="44" fill="#DE8C5A" className="opacity-95" />
-                    <circle cx="1020" cy="115" r="58" fill="url(#zenSunGlow)" className="opacity-40 animate-pulse" />
+                    {/* Terracotta / Golden Sun with Breathing Aura */}
+                    <circle cx="1060" cy="118" r="48" fill={timeGreeting.sunColor} className="opacity-95" />
+                    <circle cx="1060" cy="118" r="70" fill="url(#zenSunGlowMaster)" className="opacity-40 animate-pulse" />
 
-                    {/* Soft Watercolor Clouds */}
+                    {/* Soft Organic Watercolor Clouds */}
                     <path
-                        d="M580,85 Q620,70 670,85 Q710,75 750,88 Q765,100 740,105 Q650,110 580,95 Z"
-                        fill="#FFFFFF"
-                        opacity="0.55"
+                        d="M520,80 Q570,62 630,78 Q680,68 730,82 Q750,96 720,105 Q620,110 530,95 Z"
+                        fill="url(#zenCloudGrad)"
                     />
                     <path
-                        d="M250,105 Q290,95 340,105 Q370,98 400,108 Q390,120 330,120 Q260,118 250,105 Z"
-                        fill="#FFFFFF"
-                        opacity="0.4"
+                        d="M220,100 Q265,88 320,100 Q360,92 400,104 Q390,118 320,118 Q235,116 220,100 Z"
+                        fill="url(#zenCloudGrad)"
+                        opacity="0.8"
                     />
 
-                    {/* Distant Mountain Ridge */}
+                    {/* Distant Misty Mountain Ridge */}
                     <path
-                        d="M0,230 Q240,150 480,195 T960,165 T1440,190 L1440,360 L0,360 Z"
+                        d="M0,225 Q240,145 480,190 T960,158 T1440,185 L1440,380 L0,380 Z"
                         fill="url(#zenDistantMtn)"
-                        className="dark:opacity-40"
+                        className="dark:opacity-35"
                     />
 
                     {/* Mid Mountain Ridge */}
                     <path
-                        d="M0,255 Q290,180 620,225 T1150,190 T1440,245 L1440,360 L0,360 Z"
+                        d="M0,250 Q290,175 620,220 T1150,185 T1440,240 L1440,380 L0,380 Z"
                         fill="url(#zenMidMtn)"
-                        className="dark:opacity-60"
+                        className="dark:opacity-55"
                     />
 
                     {/* Foreground Rolling Hills */}
                     <path
-                        d="M0,285 Q370,220 750,270 T1440,240 L1440,360 L0,360 Z"
+                        d="M0,285 Q370,218 750,268 T1440,238 L1440,380 L0,380 Z"
                         fill="url(#zenFrontMtn)"
                     />
                     <path
-                        d="M0,320 Q500,265 1050,315 T1440,295 L1440,360 L0,360 Z"
+                        d="M0,325 Q500,265 1050,318 T1440,298 L1440,380 L0,380 Z"
                         fill="url(#zenForegroundHill)"
                     />
 
-                    {/* Botanical Plant Stem & Leaves on Right side (matching image) */}
-                    <g transform="translate(1220, 65) scale(1.18)">
+                    {/* Botanical Plant Stem & Leaves on Right side */}
+                    <g transform="translate(1230, 68) scale(1.22)">
                         {/* Main Stem */}
-                        <path d="M45,240 Q40,160 52,90 Q58,40 60,10" stroke="#3D5235" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+                        <path d="M45,240 Q40,158 52,88 Q58,38 60,8" stroke="#374B2F" strokeWidth="4.5" strokeLinecap="round" fill="none" />
                         
-                        {/* Leaf pairs */}
-                        {/* Top leaf */}
-                        <path d="M60,10 Q66,-10 60,-22 Q54,-10 60,10" fill="url(#zenLeafGrad)" />
+                        {/* Top Leaf */}
+                        <path d="M60,8 Q66,-12 60,-24 Q54,-12 60,8" fill="url(#zenLeafGrad)" />
                         
                         {/* Left Leaves */}
-                        <path d="M57,45 C30,35 15,48 5,65 C20,70 45,62 56,52" fill="url(#zenLeafGrad)" />
-                        <path d="M52,95 C25,82 10,100 -5,120 C12,126 38,115 50,102" fill="url(#zenLeafGrad)" />
-                        <path d="M48,150 C18,138 5,160 -12,185 C8,190 35,175 46,158" fill="url(#zenLeafGrad)" />
+                        <path d="M57,44 C30,34 15,48 5,64 C20,70 45,62 56,52" fill="url(#zenLeafGrad)" />
+                        <path d="M52,94 C25,80 10,98 -5,118 C12,126 38,114 50,102" fill="url(#zenLeafGrad)" />
+                        <path d="M48,148 C18,136 5,158 -12,184 C8,190 35,174 46,158" fill="url(#zenLeafGrad)" />
                         
                         {/* Right Leaves */}
-                        <path d="M59,30 C85,20 100,32 110,48 C95,54 72,48 60,36" fill="url(#zenLeafGrad)" />
-                        <path d="M55,75 C85,62 105,78 118,98 C100,104 75,95 56,82" fill="url(#zenLeafGrad)" />
-                        <path d="M51,125 C82,112 104,130 116,152 C98,158 72,146 51,133" fill="url(#zenLeafGrad)" />
-                        <path d="M47,180 C80,168 98,190 108,212 C90,218 66,204 46,188" fill="url(#zenLeafGrad)" />
+                        <path d="M59,28 C85,18 100,30 110,46 C95,54 72,48 60,36" fill="url(#zenLeafGrad)" />
+                        <path d="M55,74 C85,60 105,76 118,96 C100,104 75,94 56,82" fill="url(#zenLeafGrad)" />
+                        <path d="M51,124 C82,110 104,128 116,150 C98,158 72,144 51,132" fill="url(#zenLeafGrad)" />
+                        <path d="M47,178 C80,166 98,188 108,210 C90,218 66,202 46,186" fill="url(#zenLeafGrad)" />
                     </g>
                 </svg>
 
                 {/* Overlay Greeting & Status */}
                 <div className="absolute inset-0 p-5 sm:p-7 md:p-8 flex flex-col justify-between z-10">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 dark:bg-black/40 backdrop-blur-md border border-[#7D8B6E]/30 text-[#4D603E] dark:text-[#C5D4B6] text-[10px] font-black uppercase tracking-widest shadow-xs">
-                                <Leaf size={12} className="text-[#6D835A]" />
-                                <span>Zen Botanical POS</span>
-                                <span className="opacity-40">•</span>
-                                <span>{shopName || 'Lyang Nghĩa'}</span>
+                    {/* Top Row: Shop Pill & Action Controls */}
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-md border border-[#7D8B6E]/35 text-[#425435] dark:text-[#C5D4B6] text-[10.5px] font-black uppercase tracking-wider shadow-xs">
+                                <Leaf size={13} className="text-[#6D835A]" />
+                                <span>Zen Botanical</span>
+                                <span className="opacity-30">•</span>
+                                <span className="font-bold">{shopName || 'Lyang POS'}</span>
                             </div>
-                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#2E2820] dark:text-[#F3EFE6] tracking-tight">
-                                Bình yên & Năng suất
-                            </h1>
-                            <p className="text-xs sm:text-sm font-medium text-[#64594A] dark:text-[#B4ABA0] max-w-md line-clamp-1">
-                                Không gian làm việc thanh bình, đồng hành cùng vụ mùa bội thu
-                            </p>
-                        </div>
 
-                        {/* Right Top Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
                             {/* Weather pill */}
-                            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white/75 dark:bg-black/50 backdrop-blur-md border border-[#E0D5C1] dark:border-[#384233] text-[#4E4436] dark:text-[#D5CCC0] text-xs font-semibold shadow-xs">
-                                <Sun size={15} className="text-[#DE8C5A]" />
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 dark:bg-black/40 backdrop-blur-md border border-[#E0D5C1] dark:border-[#384233] text-[#4E4436] dark:text-[#D5CCC0] text-[11px] font-semibold shadow-2xs">
+                                <Sun size={13} className="text-[#DE8C5A]" />
                                 <span>{weather?.temp ?? 28}°C</span>
                                 <span className="text-[10px] opacity-60">({weather?.city || 'Vụ mùa'})</span>
                             </div>
+                        </div>
 
-                            {/* Theme toggle back to classic button */}
+                        {/* Switch back button */}
+                        <button
+                            type="button"
+                            onClick={onToggleZen}
+                            title="Chuyển về giao diện gốc"
+                            className="w-8 h-8 rounded-full bg-white/85 hover:bg-white dark:bg-black/60 dark:hover:bg-black/80 backdrop-blur-md border border-[#7D8B6E]/40 text-[#4D603E] dark:text-[#C8D6B9] shadow-2xs hover:scale-110 active:scale-90 transition-all flex items-center justify-center cursor-pointer shrink-0"
+                        >
+                            <SlidersHorizontal size={14} />
+                        </button>
+                    </div>
+
+                    {/* Middle: Poetry Title & Subtitle */}
+                    <div className="space-y-1.5 max-w-xl pr-12 sm:pr-0">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-[#2A241C] dark:text-[#F6F2EB] tracking-tight leading-tight">
+                            {timeGreeting.title}
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-[#5F5445] dark:text-[#B7AEA2] line-clamp-2">
+                            {timeGreeting.subtitle}
+                        </p>
+                    </div>
+
+                    {/* Bottom Strip: Solar + Lunar Date & Quick Shortcuts */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 text-xs text-[#52483B] dark:text-[#C2BAAE]">
+                        <div className="flex flex-wrap items-center gap-2 font-medium">
+                            <Clock size={13} className="text-[#6D835A] shrink-0" />
+                            <span className="font-semibold">{currentTime.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
+                            {lunarInfo && (
+                                <>
+                                    <span className="opacity-40">•</span>
+                                    <span className="text-[#6D835A] dark:text-[#A7BA95] font-bold">
+                                        {lunarInfo}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Quick Action Navigation Pills */}
+                        <div className="flex items-center gap-2 shrink-0">
                             <button
                                 type="button"
-                                onClick={onToggleZen}
-                                title="Chuyển đổi giao diện"
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/85 hover:bg-white dark:bg-black/60 dark:hover:bg-black/80 backdrop-blur-md border border-[#7D8B6E]/40 text-[#4D603E] dark:text-[#C8D6B9] font-bold text-xs shadow-sm hover:scale-102 active:scale-98 transition-all cursor-pointer"
+                                onClick={() => navigate('/pos')}
+                                className="px-3 py-1.5 rounded-full bg-[#7D8B6E] hover:bg-[#68765A] text-white text-[11px] font-bold shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                             >
-                                <SlidersHorizontal size={13} />
-                                <span className="hidden md:inline">Giao diện gốc</span>
+                                <ShoppingCart size={13} />
+                                <span>Bán hàng POS</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/purchase')}
+                                className="px-3 py-1.5 rounded-full bg-white/75 hover:bg-white dark:bg-black/45 dark:hover:bg-black/65 border border-[#7D8B6E]/30 text-[#4D603E] dark:text-[#C8D6B9] text-[11px] font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            >
+                                <Truck size={13} />
+                                <span>Nhập hàng</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/debt')}
+                                className="px-3 py-1.5 rounded-full bg-white/75 hover:bg-white dark:bg-black/45 dark:hover:bg-black/65 border border-[#7D8B6E]/30 text-[#4D603E] dark:text-[#C8D6B9] text-[11px] font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            >
+                                <Wallet size={13} />
+                                <span>Sổ nợ</span>
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+});
 
-                    {/* Bottom strip inside banner */}
-                    <div className="flex items-center justify-between text-xs text-[#52483B] dark:text-[#C2BAAE]">
-                        <div className="flex items-center gap-2 font-medium">
-                            <Clock size={13} className="text-[#6D835A]" />
-                            <span>{currentTime.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
-                            <span className="opacity-40">•</span>
-                            <span className="text-[#6D835A] dark:text-[#A7BA95] font-bold">
-                                Âm lịch: {Lunar.fromDate(currentTime).getDay()}/{Lunar.fromDate(currentTime).getMonth()}
-                            </span>
+// -------------------------------------------------------------
+// 2. EXECUTIVE BENTO KPI METRICS CARDS
+// -------------------------------------------------------------
+const ZenBentoMetricsGrid = memo(({ stats, filters, navigate }) => {
+    // Profit margin percentage
+    const profitMargin = useMemo(() => {
+        const rev = stats?.revenue || 0;
+        const prof = stats?.profit || 0;
+        if (rev <= 0) return 0;
+        return Math.round((prof / rev) * 100);
+    }, [stats?.revenue, stats?.profit]);
+
+    // Cash ratio
+    const cashRatio = useMemo(() => {
+        const rev = stats?.revenue || 0;
+        const cash = stats?.cash_revenue || 0;
+        if (rev <= 0) return 100;
+        return Math.min(100, Math.round((cash / rev) * 100));
+    }, [stats?.revenue, stats?.cash_revenue]);
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            {/* Card 1: Doanh Thu Hôm Nay */}
+            <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-2xl bg-[#7D8B6E]/15 text-[#516641] dark:text-[#B3C6A2] flex items-center justify-center font-bold">
+                                <Sprout size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-wider text-[#8A7E6C] dark:text-[#A79D8E]">
+                                    Doanh Thu Ngày
+                                </h3>
+                                <p className="text-[10px] text-[#A69B8A] dark:text-[#887F72]">
+                                    {filters.day}/{filters.month}/{filters.year}
+                                </p>
+                            </div>
+                        </div>
+
+                        {stats?.revenue_trend !== undefined && stats?.revenue_trend !== 0 && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-[10.5px] font-bold px-2 py-0.5 rounded-full border",
+                                stats.revenue_trend > 0
+                                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                    : "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20"
+                            )}>
+                                {stats.revenue_trend > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                                <span>{Math.abs(stats.revenue_trend)}%</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div>
+                        <div className="text-2xl sm:text-[26px] font-serif font-bold text-[#2A231B] dark:text-[#F3EEE5] tracking-tight">
+                            {formatCurrency(stats?.revenue || 0)}
                         </div>
                     </div>
                 </div>
+
+                {/* Progress bar: Cash vs Debt ratio */}
+                <div className="pt-4 border-t border-[#EFE8DA] dark:border-[#2C3628] space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-medium text-[#736756] dark:text-[#ABA092]">
+                        <span>Tiền mặt: <strong className="text-[#383023] dark:text-[#E8E2D5]">{formatCurrency(stats?.cash_revenue || 0)}</strong></span>
+                        <span>{cashRatio}%</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-[#EFE8DA] dark:bg-[#2C3628] overflow-hidden flex">
+                        <div 
+                            className="h-full bg-[#7D8B6E] rounded-full transition-all duration-500" 
+                            style={{ width: `${cashRatio}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Card 2: Lợi Nhuận Thuần */}
+            <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-2xl bg-[#DE8C5A]/15 text-[#C8733E] flex items-center justify-center font-bold">
+                                <Sparkles size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-wider text-[#8A7E6C] dark:text-[#A79D8E]">
+                                    Lợi Nhuận Ước Tính
+                                </h3>
+                                <p className="text-[10px] text-[#A69B8A] dark:text-[#887F72]">
+                                    Hiệu suất bán lẻ
+                                </p>
+                            </div>
+                        </div>
+
+                        {profitMargin > 0 && (
+                            <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#7D8B6E]/15 text-[#526842] dark:text-[#A6B995] border border-[#7D8B6E]/20">
+                                Biên {profitMargin}%
+                            </span>
+                        )}
+                    </div>
+
+                    <div>
+                        <div className="text-2xl sm:text-[26px] font-serif font-bold text-[#4D653E] dark:text-[#B2C5A2] tracking-tight">
+                            {formatCurrency(stats?.profit || 0)}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#EFE8DA] dark:border-[#2C3628] flex items-center justify-between text-[11px]">
+                    <span className="text-[#736756] dark:text-[#ABA092]">Đánh giá hiệu suất:</span>
+                    <span className="font-bold text-[#526842] dark:text-[#A6B995]">
+                        {stats?.profit > 0 ? '🌿 Vụ mùa hiệu quả' : 'Đang cập nhật'}
+                    </span>
+                </div>
+            </div>
+
+            {/* Card 3: Công Nợ Khách Hàng */}
+            <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-2xl bg-[#C8733E]/15 text-[#C8733E] flex items-center justify-center font-bold">
+                                <Wallet size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-wider text-[#8A7E6C] dark:text-[#A79D8E]">
+                                    Công Nợ Khách Hàng
+                                </h3>
+                                <p className="text-[10px] text-[#A69B8A] dark:text-[#887F72]">
+                                    Khoản phải thu
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate('/debt')}
+                            className="p-1 rounded-lg text-[#C8733E] hover:bg-[#C8733E]/10 transition-colors cursor-pointer"
+                            title="Mở sổ công nợ"
+                        >
+                            <ArrowUpRight size={15} />
+                        </button>
+                    </div>
+
+                    <div>
+                        <div className="text-2xl sm:text-[26px] font-serif font-bold text-[#C8733E] tracking-tight">
+                            {formatCurrency(stats?.customer_debt || 0)}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#EFE8DA] dark:border-[#2C3628] flex items-center justify-between text-[11px]">
+                    <span className="text-[#736756] dark:text-[#ABA092]">Nợ NCC:</span>
+                    <span className="font-bold text-[#554A3B] dark:text-[#D5CCC0]">
+                        {formatCurrency(stats?.supplier_debt || 0)}
+                    </span>
+                </div>
+            </div>
+
+            {/* Card 4: Sức Khỏe Kho Vận */}
+            <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-2xl bg-[#7D8B6E]/15 text-[#516641] dark:text-[#B3C6A2] flex items-center justify-center font-bold">
+                                <Package size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-wider text-[#8A7E6C] dark:text-[#A79D8E]">
+                                    Sức Khỏe Kho Vận
+                                </h3>
+                                <p className="text-[10px] text-[#A69B8A] dark:text-[#887F72]">
+                                    Tồn kho & Hạn dùng
+                                </p>
+                            </div>
+                        </div>
+
+                        <span className={cn(
+                            "text-[10.5px] font-bold px-2 py-0.5 rounded-full border",
+                            (stats?.low_stock || 0) > 0 || (stats?.expiry?.near || 0) > 0
+                                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                        )}>
+                            {(stats?.low_stock || 0) > 0 ? `${stats.low_stock} cần nhập` : 'Kho ổn định'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                        <div className="text-2xl sm:text-[26px] font-serif font-bold text-[#2A231B] dark:text-[#F3EEE5] tracking-tight">
+                            {stats?.low_stock || 0}
+                        </div>
+                        <span className="text-xs text-[#8A7E6C] dark:text-[#A79D8E] font-medium">sản phẩm tồn thấp</span>
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#EFE8DA] dark:border-[#2C3628] flex items-center justify-between text-[11px]">
+                    <span className="text-[#736756] dark:text-[#ABA092]">Sắp hết hạn:</span>
+                    <span className="font-bold text-[#DE8C5A]">
+                        {stats?.expiry?.near || 0} món
+                    </span>
+                </div>
             </div>
         </div>
     );
 });
 
-// Potted Plant Illustration Widget (matching bottom right of user image)
-const ZenPottedPlantCard = memo(({ stats, navigate }) => {
+// -------------------------------------------------------------
+// 3. INTERACTIVE ZEN BOTANICAL ANALYTICS CHART
+// -------------------------------------------------------------
+const ZenAnalyticsChart = memo(({ stats }) => {
+    const [chartMode, setChartMode] = useState('both'); // 'revenue' | 'profit' | 'both'
+
+    const totalRevenue = useMemo(() => {
+        return (stats?.chart?.data || []).reduce((acc, val) => acc + (val || 0), 0);
+    }, [stats?.chart?.data]);
+
+    const totalProfit = useMemo(() => {
+        return (stats?.chart?.profit_data || []).reduce((acc, val) => acc + (val || 0), 0);
+    }, [stats?.chart?.profit_data]);
+
+    const maxDay = useMemo(() => {
+        const arr = stats?.chart?.data || [];
+        if (arr.length === 0) return 0;
+        return Math.max(...arr);
+    }, [stats?.chart?.data]);
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(255, 253, 249, 0.96)',
+                titleColor: '#2B241C',
+                bodyColor: '#4A4032',
+                borderColor: '#E2D8C6',
+                borderWidth: 1.5,
+                padding: 12,
+                cornerRadius: 14,
+                boxPadding: 4,
+                usePointStyle: true,
+                callbacks: {
+                    label: (context) => {
+                        const name = context.dataset.label || '';
+                        return ` ${name}: ${formatCurrency(context.raw)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { 
+                    color: 'rgba(125, 139, 110, 0.08)', 
+                    drawBorder: false 
+                },
+                ticks: {
+                    color: '#8E8270',
+                    font: { size: 10, family: 'Inter, sans-serif' },
+                    callback: (val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : formatNumber(val)
+                }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { 
+                    color: '#8E8270', 
+                    font: { size: 10, family: 'Inter, sans-serif' } 
+                }
+            }
+        }
+    };
+
+    const datasets = [];
+    if (chartMode === 'revenue' || chartMode === 'both') {
+        datasets.push({
+            type: 'bar',
+            label: 'Doanh thu',
+            data: stats?.chart?.data || [],
+            backgroundColor: '#7D8B6E',
+            hoverBackgroundColor: '#68775A',
+            borderRadius: 10,
+            barThickness: 22,
+            order: 2
+        });
+    }
+    if (chartMode === 'profit' || chartMode === 'both') {
+        datasets.push({
+            type: 'line',
+            label: 'Lợi nhuận',
+            data: stats?.chart?.profit_data || [],
+            borderColor: '#DE8C5A',
+            backgroundColor: 'rgba(222, 140, 90, 0.12)',
+            borderWidth: 3,
+            pointBackgroundColor: '#DE8C5A',
+            pointBorderColor: '#FFFDF9',
+            pointBorderWidth: 2,
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            tension: 0.38,
+            fill: true,
+            order: 1
+        });
+    }
+
+    const chartData = {
+        labels: stats?.chart?.labels || [],
+        datasets
+    };
+
     return (
-        <div className="bg-[#FFFDF9] dark:bg-[#1E231B] rounded-[24px] border border-[#E8E1D2] dark:border-[#313B2E] p-5 shadow-[0_4px_20px_rgb(125,139,110,0.05)] flex flex-col justify-between relative overflow-hidden group hover:border-[#7D8B6E]/60 transition-all">
-            {/* Soft decorative background leaf pattern */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#7D8B6E]/5 rounded-full blur-2xl pointer-events-none" />
-
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#7D8B6E] inline-block animate-pulse" />
-                    <span className="text-xs font-serif font-bold text-[#3A3328] dark:text-[#EDE8DF] tracking-wide">
-                        Vụ Mùa Sinh Trưởng
-                    </span>
+        <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-2xl sm:rounded-[26px] border border-[#E9E2D4] dark:border-[#2F392B] p-5 sm:p-6 shadow-[0_4px_24px_rgba(125,139,110,0.04)] space-y-4 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-2xl bg-[#7D8B6E]/15 text-[#516641] dark:text-[#B3C6A2] flex items-center justify-center font-bold">
+                        <BarChart3 size={18} />
+                    </div>
+                    <div>
+                        <h3 className="text-base sm:text-lg font-serif font-bold text-[#30281F] dark:text-[#EFE9DF]">
+                            Nhịp Điệu Kinh Doanh 7 Ngày
+                        </h3>
+                        <p className="text-[11px] text-[#7A6E5E] dark:text-[#A89F92]">
+                            Chu kỳ biến chuyển doanh thu và dòng lợi nhuận mộc mạc
+                        </p>
+                    </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#AFC1A0]">
-                    Đang mở cửa
-                </span>
-            </div>
 
-            {/* Botanical Plant in Terracotta Pot Vector Graphic */}
-            <div className="my-2 flex items-center justify-center">
-                <div className="relative w-44 h-44 flex items-center justify-center">
-                    <svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-sm select-none">
-                        <defs>
-                            <linearGradient id="zenPotGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#DE8C5A" />
-                                <stop offset="70%" stopColor="#C8733E" />
-                                <stop offset="100%" stopColor="#AD5C2A" />
-                            </linearGradient>
-                            <linearGradient id="zenPlantLeaf" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#6C855B" />
-                                <stop offset="100%" stopColor="#465D37" />
-                            </linearGradient>
-                            <linearGradient id="zenPlantLeafLight" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#87A175" />
-                                <stop offset="100%" stopColor="#5B764B" />
-                            </linearGradient>
-                        </defs>
-
-                        {/* Wooden Table Shelf Surface */}
-                        <rect x="15" y="180" width="170" height="8" rx="4" fill="#D8C7B0" opacity="0.6" />
-                        <ellipse cx="100" cy="180" rx="35" ry="5" fill="#000000" opacity="0.08" />
-
-                        {/* Terracotta Plant Pot */}
-                        {/* Pot Rim */}
-                        <rect x="74" y="132" width="52" height="10" rx="4" fill="url(#zenPotGrad)" />
-                        {/* Pot Body */}
-                        <path d="M78,140 L84,178 Q100,183 116,178 L122,140 Z" fill="url(#zenPotGrad)" />
-                        {/* Pot Highlight */}
-                        <path d="M82,143 Q86,174 88,175" stroke="#F1B18A" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.6" />
-
-                        {/* Plant Stems */}
-                        <path d="M100,135 Q100,95 100,60" stroke="#3D5030" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-                        <path d="M98,125 Q80,105 65,85" stroke="#3D5030" strokeWidth="3" strokeLinecap="round" fill="none" />
-                        <path d="M102,125 Q120,105 135,85" stroke="#3D5030" strokeWidth="3" strokeLinecap="round" fill="none" />
-                        <path d="M97,130 Q70,120 50,110" stroke="#3D5030" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                        <path d="M103,130 Q130,120 150,110" stroke="#3D5030" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-
-                        {/* Leaves */}
-                        {/* Center tall leaf */}
-                        <path d="M100,45 C90,20 110,20 100,45 Z" fill="none" />
-                        <path d="M100,40 C85,60 85,90 100,105 C115,90 115,60 100,40 Z" fill="url(#zenPlantLeafLight)" />
-                        
-                        {/* Left upper leaf */}
-                        <path d="M62,70 C50,90 60,115 80,120 C85,100 80,80 62,70 Z" fill="url(#zenPlantLeaf)" />
-                        
-                        {/* Right upper leaf */}
-                        <path d="M138,70 C150,90 140,115 120,120 C115,100 120,80 138,70 Z" fill="url(#zenPlantLeafLight)" />
-
-                        {/* Left bottom leaf */}
-                        <path d="M45,95 C35,115 48,135 70,135 C72,118 62,102 45,95 Z" fill="url(#zenPlantLeaf)" />
-
-                        {/* Right bottom leaf */}
-                        <path d="M155,95 C165,115 152,135 130,135 C128,118 138,102 155,95 Z" fill="url(#zenPlantLeaf)" />
-
-                        {/* Leaf Veins */}
-                        <path d="M100,48 L100,100" stroke="#2B3A22" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
-                        <path d="M65,75 Q75,98 80,118" stroke="#2B3A22" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
-                        <path d="M135,75 Q125,98 120,118" stroke="#2B3A22" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
-                    </svg>
+                {/* Filter mode toggles */}
+                <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#EFE8DC]/80 dark:bg-[#252C22] border border-[#E2D8C6] dark:border-[#333C2F] text-xs font-bold self-start sm:self-auto">
+                    <button
+                        type="button"
+                        onClick={() => setChartMode('both')}
+                        className={cn(
+                            "px-3 py-1 rounded-xl transition-all cursor-pointer",
+                            chartMode === 'both'
+                                ? "bg-[#7D8B6E] text-white shadow-xs"
+                                : "text-[#6C604F] dark:text-[#AAA092] hover:text-[#2E281F]"
+                        )}
+                    >
+                        Cả hai
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setChartMode('revenue')}
+                        className={cn(
+                            "px-3 py-1 rounded-xl transition-all cursor-pointer",
+                            chartMode === 'revenue'
+                                ? "bg-[#7D8B6E] text-white shadow-xs"
+                                : "text-[#6C604F] dark:text-[#AAA092] hover:text-[#2E281F]"
+                        )}
+                    >
+                        Doanh thu
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setChartMode('profit')}
+                        className={cn(
+                            "px-3 py-1 rounded-xl transition-all cursor-pointer",
+                            chartMode === 'profit'
+                                ? "bg-[#DE8C5A] text-white shadow-xs"
+                                : "text-[#6C604F] dark:text-[#AAA092] hover:text-[#2E281F]"
+                        )}
+                    >
+                        Lợi nhuận
+                    </button>
                 </div>
             </div>
 
-            {/* Quick Farm / Store Status */}
-            <div className="pt-2 border-t border-[#EDE6D7] dark:border-[#313B2E] space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#6B6152] dark:text-[#ABA295] font-medium">Cảnh báo hết hàng:</span>
-                    <span className="font-bold text-[#DE8C5A]">
-                        {stats?.low_stock || 0} sản phẩm
-                    </span>
+            {/* Quick summary stat pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
+                    <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Tổng chu kỳ</span>
+                    <span className="font-bold text-[#32291F] dark:text-[#EDE6DB] text-sm">{formatCurrency(totalRevenue)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#6B6152] dark:text-[#ABA295] font-medium">Sắp hết hạn:</span>
-                    <span className="font-bold text-[#DE8C5A]">
-                        {stats?.expiry?.near || 0} sản phẩm
-                    </span>
+                <div className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
+                    <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Lợi nhuận chu kỳ</span>
+                    <span className="font-bold text-[#4D653E] dark:text-[#B2C5A2] text-sm">{formatCurrency(totalProfit)}</span>
                 </div>
+                <div className="col-span-2 sm:col-span-1 px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
+                    <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Ngày cao điểm</span>
+                    <span className="font-bold text-[#C8733E] text-sm">{formatCurrency(maxDay)}</span>
+                </div>
+            </div>
 
-                <button
-                    type="button"
-                    onClick={() => navigate('/pos')}
-                    className="w-full mt-2 py-2.5 px-3 rounded-xl bg-[#7D8B6E] hover:bg-[#6D7B5E] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-                >
-                    <ShoppingCart size={14} />
-                    <span>Mở Bán Hàng POS</span>
-                </button>
+            {/* Chart Area */}
+            <div className="h-60 sm:h-72 w-full pt-2">
+                {stats?.chart?.data?.length > 0 ? (
+                    <Bar data={chartData} options={chartOptions} />
+                ) : (
+                    <div className="h-full flex items-center justify-center text-xs text-[#8C8070]">
+                        Chưa có dữ liệu thống kê cho khoảng thời gian này
+                    </div>
+                )}
             </div>
         </div>
     );
 });
 
-// Mini Dot Calendar Widget (matching bottom left of user image)
+// -------------------------------------------------------------
+// 4. MINI DOT CALENDAR WIDGET
+// -------------------------------------------------------------
 const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
     const today = new Date();
     const currentYear = parseInt(filters.year || today.getFullYear(), 10);
     const currentMonth = parseInt(filters.month || (today.getMonth() + 1), 10);
-    const currentDay = parseInt(filters.day || today.getDate(), 10);
 
     const [viewMonth, setViewMonth] = useState(currentMonth);
     const [viewYear, setViewYear] = useState(currentYear);
 
-    // Days in current view month
     const daysInMonth = useMemo(() => {
         return new Date(viewYear, viewMonth, 0).getDate();
     }, [viewYear, viewMonth]);
 
-    // Start weekday of the month (0 = Sun, 1 = Mon...)
     const firstDayWeekday = useMemo(() => {
         return new Date(viewYear, viewMonth - 1, 1).getDay();
     }, [viewYear, viewMonth]);
@@ -356,38 +730,38 @@ const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
     const isTodayView = viewYear === today.getFullYear() && viewMonth === (today.getMonth() + 1);
 
     return (
-        <div className="bg-[#FFFDF9] dark:bg-[#1E231B] rounded-[24px] border border-[#E8E1D2] dark:border-[#313B2E] p-5 shadow-[0_4px_20px_rgb(125,139,110,0.05)] flex flex-col justify-between">
-            {/* Header matching user image: < [Pill] > */}
+        <div className="bg-[#FFFDF9] dark:bg-[#1E231B] rounded-[24px] border border-[#E8E1D2] dark:border-[#313B2E] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] flex flex-col justify-between">
+            {/* Header: < [Month / Year] > */}
             <div className="flex items-center justify-between pb-3 border-b border-[#EFE8DA] dark:border-[#313B2E]">
                 <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="p-1 rounded-lg text-[#7D8B6E] hover:bg-[#7D8B6E]/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-[#7D8B6E] hover:bg-[#7D8B6E]/15 transition-colors cursor-pointer"
                     title="Tháng trước"
                 >
                     <ChevronLeft size={16} />
                 </button>
 
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-1.5 rounded-full bg-[#7D8B6E] opacity-80" />
-                    <span className="text-xs font-serif font-bold text-[#3E362A] dark:text-[#EDE8DF]">
+                    <div className="w-6 h-1 rounded-full bg-[#7D8B6E] opacity-75" />
+                    <span className="text-xs font-serif font-bold text-[#352D21] dark:text-[#EDE8DF]">
                         Tháng {viewMonth} / {viewYear}
                     </span>
-                    <div className="w-8 h-1.5 rounded-full bg-[#7D8B6E] opacity-80" />
+                    <div className="w-6 h-1 rounded-full bg-[#7D8B6E] opacity-75" />
                 </div>
 
                 <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="p-1 rounded-lg text-[#7D8B6E] hover:bg-[#7D8B6E]/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-lg text-[#7D8B6E] hover:bg-[#7D8B6E]/15 transition-colors cursor-pointer"
                     title="Tháng sau"
                 >
                     <ChevronRight size={16} />
                 </button>
             </div>
 
-            {/* Weekday labels */}
-            <div className="grid grid-cols-7 gap-1 text-center py-2 text-[10px] font-bold text-[#968B7A] dark:text-[#888E81] uppercase">
+            {/* Weekdays */}
+            <div className="grid grid-cols-7 gap-1 text-center py-2 text-[10px] font-bold text-[#988D7D] dark:text-[#888E81] uppercase tracking-wider">
                 <span>CN</span>
                 <span>T2</span>
                 <span>T3</span>
@@ -397,14 +771,12 @@ const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
                 <span>T7</span>
             </div>
 
-            {/* Dot Grid of Days (as shown in user's image) */}
-            <div className="grid grid-cols-7 gap-2 place-items-center py-2">
-                {/* Empty slots before first day */}
+            {/* Day Dots */}
+            <div className="grid grid-cols-7 gap-1.5 place-items-center py-2">
                 {Array.from({ length: firstDayWeekday }).map((_, i) => (
-                    <div key={`empty-${i}`} className="w-6 h-6" />
+                    <div key={`empty-${i}`} className="w-7 h-7" />
                 ))}
 
-                {/* Day Dots */}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                     const dayNum = i + 1;
                     const isSelected = 
@@ -423,8 +795,8 @@ const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
                                 isSelected
                                     ? "bg-[#7D8B6E] text-white shadow-sm shadow-[#7D8B6E]/40 scale-105"
                                     : isRealToday
-                                        ? "border border-[#7D8B6E] text-[#5A6D4B] dark:text-[#C5D5B7] hover:bg-[#7D8B6E]/15"
-                                        : "text-[#6B6152] dark:text-[#A7A094] hover:bg-[#EFE8DC] dark:hover:bg-[#2C3428]"
+                                        ? "border border-[#7D8B6E] text-[#556945] dark:text-[#C5D5B7] hover:bg-[#7D8B6E]/15"
+                                        : "text-[#675C4C] dark:text-[#A7A094] hover:bg-[#EFE8DC] dark:hover:bg-[#2C3428]"
                             )}
                             title={`Ngày ${dayNum}/${viewMonth}/${viewYear}`}
                         >
@@ -437,10 +809,10 @@ const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
                 })}
             </div>
 
-            {/* Quick Filter: Hôm nay */}
-            <div className="pt-3 border-t border-[#EFE8DA] dark:border-[#313B2E] flex items-center justify-between">
-                <span className="text-[11px] text-[#7A6F5F] dark:text-[#A0988C]">
-                    Đang xem: <strong className="text-[#3E362A] dark:text-[#E8E2D5]">{filters.day}/{filters.month}/{filters.year}</strong>
+            {/* Footer */}
+            <div className="pt-3 border-t border-[#EFE8DA] dark:border-[#313B2E] flex items-center justify-between text-xs">
+                <span className="text-[11px] text-[#786D5D] dark:text-[#A0988C]">
+                    Ngày chọn: <strong className="text-[#322A1E] dark:text-[#E8E2D5]">{filters.day}/{filters.month}/{filters.year}</strong>
                 </span>
                 <button
                     type="button"
@@ -453,16 +825,110 @@ const ZenDotCalendarCard = memo(({ filters, setFilters }) => {
                         setViewMonth(today.getMonth() + 1);
                         setViewYear(today.getFullYear());
                     }}
-                    className="text-[10px] font-bold text-[#7D8B6E] hover:underline uppercase tracking-wider cursor-pointer"
+                    className="text-[10.5px] font-bold text-[#7D8B6E] hover:underline uppercase tracking-wider cursor-pointer"
                 >
-                    Về hôm nay
+                    Hôm nay
                 </button>
             </div>
         </div>
     );
 });
 
-// Main Zen Botanical Dashboard Container
+// -------------------------------------------------------------
+// 5. TOP DEBTORS & ACTIVE CUSTOMERS WIDGET (PRACTICAL & STYLISH)
+// -------------------------------------------------------------
+const ZenTopDebtorsCard = memo(({ stats, navigate }) => {
+    const list = stats?.customer_debt_list || [];
+
+    return (
+        <div className="bg-[#FFFDF9] dark:bg-[#1E231B] rounded-[24px] border border-[#E8E1D2] dark:border-[#313B2E] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] flex flex-col justify-between">
+            <div className="space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-[#EFE8DA] dark:border-[#313B2E]">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#DE8C5A] inline-block" />
+                        <h3 className="text-xs font-serif font-bold text-[#352D21] dark:text-[#EDE8DF] tracking-wide">
+                            Khách Hàng Cần Thu Công Nợ
+                        </h3>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/debt')}
+                        className="text-[10.5px] font-bold text-[#7D8B6E] hover:underline uppercase tracking-wider cursor-pointer"
+                    >
+                        Tất cả ({list.length}) →
+                    </button>
+                </div>
+
+                {/* Customer List */}
+                {list.length > 0 ? (
+                    <div className="space-y-2.5 max-h-[210px] overflow-y-auto pr-1">
+                        {list.slice(0, 4).map((c, idx) => (
+                            <div
+                                key={c.id || idx}
+                                onClick={() => navigate('/debt')}
+                                className="p-2.5 rounded-2xl bg-[#FBF8F2] dark:bg-[#252C22] border border-[#ECE3D4] dark:border-[#333E2F] flex items-center justify-between gap-3 hover:border-[#7D8B6E] transition-all cursor-pointer group"
+                            >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-7 h-7 rounded-full bg-[#7D8B6E]/15 text-[#556945] dark:text-[#B5C7A5] font-bold text-xs flex items-center justify-center shrink-0">
+                                        {c.name ? c.name.charAt(0).toUpperCase() : 'K'}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="text-xs font-bold text-[#31291E] dark:text-[#EFE8DE] truncate group-hover:text-[#7D8B6E] transition-colors">
+                                            {c.name || 'Khách nợ'}
+                                        </div>
+                                        {c.phone && (
+                                            <div className="text-[10px] text-[#8A7E6C] dark:text-[#A09689] flex items-center gap-1">
+                                                <Phone size={9} />
+                                                <span>{c.phone}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                    <div className="text-xs font-bold text-[#C8733E]">
+                                        {formatCurrency(c.debt_balance || 0)}
+                                    </div>
+                                    <span className="text-[9px] font-bold text-slate-400">cần thu</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-[#7D8B6E]/15 text-[#556945] flex items-center justify-center">
+                            <Sparkle size={20} />
+                        </div>
+                        <div className="text-xs font-serif font-bold text-[#352D21] dark:text-[#EDE8DF]">
+                            Dư Nợ Cân Bằng Hoàn Hảo
+                        </div>
+                        <p className="text-[11px] text-[#867A6B] dark:text-[#A79E91] max-w-xs">
+                            Hiện không có khoản công nợ tồn đọng nào cần lưu ý. Chúc cửa hàng tiếp tục kinh doanh hanh thông!
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Quick Actions Footer */}
+            <div className="pt-3 border-t border-[#EFE8DA] dark:border-[#313B2E] flex items-center justify-between text-xs">
+                <span className="text-[11px] text-[#7A6F5F] dark:text-[#A0988C]">
+                    Tổng nợ: <strong className="text-[#C8733E]">{formatCurrency(stats?.customer_debt || 0)}</strong>
+                </span>
+                <button
+                    type="button"
+                    onClick={() => navigate('/debt')}
+                    className="px-3 py-1.5 rounded-xl bg-[#7D8B6E]/15 text-[#516641] dark:text-[#B3C6A2] font-bold text-[10.5px] hover:bg-[#7D8B6E] hover:text-white transition-all cursor-pointer"
+                >
+                    Thu nợ nhanh
+                </button>
+            </div>
+        </div>
+    );
+});
+
+// -------------------------------------------------------------
+// 6. MAIN ZEN BOTANICAL DASHBOARD COMPONENT
+// -------------------------------------------------------------
 export default function ZenBotanicalDashboard({
     stats,
     filters,
@@ -474,59 +940,9 @@ export default function ZenBotanicalDashboard({
     const navigate = useNavigate();
     const [currentTime] = useState(new Date());
 
-    // Prepare chart data matching Earthy Zen palette
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(255, 253, 249, 0.95)',
-                titleColor: '#332C22',
-                bodyColor: '#54493B',
-                borderColor: '#E2D8C6',
-                borderWidth: 1,
-                padding: 10,
-                cornerRadius: 12,
-                callbacks: {
-                    label: (context) => ` Doanh thu: ${formatCurrency(context.raw)}`
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(125, 139, 110, 0.08)', drawBorder: false },
-                ticks: {
-                    color: '#8E8270',
-                    font: { size: 10 },
-                    callback: (val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : formatNumber(val)
-                }
-            },
-            x: {
-                grid: { display: false },
-                ticks: { color: '#8E8270', font: { size: 10 } }
-            }
-        }
-    };
-
-    const chartData = {
-        labels: stats?.chart?.labels || [],
-        datasets: [
-            {
-                label: 'Doanh thu',
-                data: stats?.chart?.data || [],
-                backgroundColor: '#7D8B6E',
-                hoverBackgroundColor: '#68775A',
-                borderRadius: 8,
-                barPercentage: 0.6
-            }
-        ]
-    };
-
     return (
-        <div className="space-y-4 pb-8 w-full animate-[fadeIn_0.3s_ease-out]">
-            {/* 1. TOP SCENIC LANDSCAPE BANNER */}
+        <div className="space-y-5 pb-10 w-full animate-[fadeIn_0.35s_ease-out]">
+            {/* 1. SCENIC TOP PANORAMA BANNER */}
             <ZenLandscapeBanner
                 weather={weather}
                 currentTime={currentTime}
@@ -534,153 +950,28 @@ export default function ZenBotanicalDashboard({
                 onToggleZen={onToggleZen}
             />
 
-            {/* 2. "TODAY" (HÔM NAY) SECTION (MATCHING USER REFERENCE DESIGN) */}
-            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-2xl sm:rounded-[24px] border border-[#E9E2D4] dark:border-[#2F392B] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-4 w-full">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#332C22] dark:text-[#EDE7DD] tracking-tight">
-                            Today
-                        </h2>
-                        <p className="text-xs text-[#7B6F5F] dark:text-[#A79F92] font-medium mt-0.5">
-                            Tổng hợp hoạt động kinh doanh hôm nay ({filters.day}/{filters.month}/{filters.year})
-                        </p>
-                    </div>
+            {/* 2. EXECUTIVE BENTO KPI METRICS */}
+            <ZenBentoMetricsGrid
+                stats={stats}
+                filters={filters}
+                navigate={navigate}
+            />
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#7D8B6E] bg-[#7D8B6E]/15 px-3 py-1 rounded-full">
-                            Tự động đồng bộ
-                        </span>
-                    </div>
-                </div>
+            {/* 3. INTERACTIVE ANALYTICS CHART */}
+            <ZenAnalyticsChart
+                stats={stats}
+            />
 
-                {/* Pill Cards (Matching exact rows in image) */}
-                <div className="space-y-3">
-                    {/* Row 1: Doanh thu & Chỉ tiêu (with Golden Star ⭐) */}
-                    <div className="p-4 sm:p-4.5 bg-[#FFFDF9] dark:bg-[#20261C] rounded-[20px] border border-[#ECE4D5] dark:border-[#333E2F] flex items-center justify-between gap-4 shadow-xs hover:border-[#7D8B6E]/60 transition-all group">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-7 h-7 rounded-full border-2 border-[#7D8B6E] flex items-center justify-center shrink-0 text-[#7D8B6E]">
-                                <Circle size={12} className="stroke-[2.5]" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[11px] font-black uppercase tracking-wider text-[#857968] dark:text-[#A39989]">
-                                    Tổng Doanh Thu Trong Ngày
-                                </div>
-                                <div className="text-lg sm:text-xl font-bold text-[#2E281F] dark:text-[#F2EDE4] truncate">
-                                    {formatCurrency(stats?.revenue || 0)}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="hidden sm:inline-block text-xs font-medium text-[#7A6F5F] dark:text-[#B0A79A]">
-                                Tiền mặt: <strong className="text-[#3A3226] dark:text-[#E8E2D5]">{formatCurrency(stats?.cash_revenue || 0)}</strong>
-                            </span>
-                            <div className="w-8 h-8 rounded-full bg-[#DF8C5A]/15 text-[#DE8C5A] flex items-center justify-center shrink-0">
-                                <Star size={17} className="fill-[#DE8C5A] stroke-[#DE8C5A]" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Row 2: Lợi nhuận gộp & Đã xử lý (with Checked Circle ✓) */}
-                    <div className="p-4 sm:p-4.5 bg-[#FFFDF9] dark:bg-[#20261C] rounded-[20px] border border-[#ECE4D5] dark:border-[#333E2F] flex items-center justify-between gap-4 shadow-xs hover:border-[#7D8B6E]/60 transition-all group">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-7 h-7 rounded-full bg-[#7D8B6E] text-white flex items-center justify-center shrink-0 shadow-xs shadow-[#7D8B6E]/30">
-                                <Check size={14} className="stroke-[3]" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[11px] font-black uppercase tracking-wider text-[#857968] dark:text-[#A39989]">
-                                    Lợi Nhuận Ước Tính
-                                </div>
-                                <div className="text-lg sm:text-xl font-bold text-[#4D653E] dark:text-[#B2C5A2] truncate">
-                                    {formatCurrency(stats?.profit || 0)}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-[#7D8B6E]/15 text-[#526842] dark:text-[#A6B995]">
-                                Hoạt động hiệu quả
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Row 3: Công nợ khách hàng cần thu (Unfilled Circle) */}
-                    <div className="p-4 sm:p-4.5 bg-[#FFFDF9] dark:bg-[#20261C] rounded-[20px] border border-[#ECE4D5] dark:border-[#333E2F] flex items-center justify-between gap-4 shadow-xs hover:border-[#7D8B6E]/60 transition-all group">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-7 h-7 rounded-full border-2 border-[#D4C7B2] dark:border-[#4B5646] flex items-center justify-center shrink-0 text-[#8F8372]">
-                                <Circle size={10} className="stroke-[2.5]" />
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-[11px] font-black uppercase tracking-wider text-[#857968] dark:text-[#A39989]">
-                                    Công Nợ Khách Hàng Hiện Tại
-                                </div>
-                                <div className="text-lg sm:text-xl font-bold text-[#C8733E] truncate">
-                                    {formatCurrency(stats?.customer_debt || 0)}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/debt')}
-                                className="px-3 py-1.5 rounded-xl border border-[#D8CCB7] hover:border-[#7D8B6E] text-xs font-bold text-[#554A3B] dark:text-[#C8BFA] hover:text-[#7D8B6E] transition-all cursor-pointer"
-                            >
-                                Sổ nợ →
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. BOTTOM WIDGETS ROW (CALENDAR + PLANT WIDGET - EXACT COMPOSITION OF USER IMAGE) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                    {/* Left: Dot Calendar Widget */}
-                    <ZenDotCalendarCard
-                        filters={filters}
-                        setFilters={setFilters}
-                    />
-
-                    {/* Right: Botanical Plant Pot Widget */}
-                    <ZenPottedPlantCard
-                        stats={stats}
-                        navigate={navigate}
-                    />
-                </div>
-            </div>
-
-            {/* 4. EXTENDED ANALYTICS: REVENUE CHART IN SAGE & TERRACOTTA PALETTE */}
-            <div className="bg-[#FAF7F2] dark:bg-[#1A1F18] rounded-2xl sm:rounded-[24px] border border-[#E9E2D4] dark:border-[#2F392B] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgb(125,139,110,0.04)] space-y-4 w-full">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-[#7D8B6E]/15 text-[#556945] dark:text-[#AFC1A0] flex items-center justify-center">
-                            <TrendingUp size={16} />
-                        </div>
-                        <div>
-                            <h3 className="text-base font-serif font-bold text-[#332C22] dark:text-[#EDE7DD]">
-                                Diễn Biến Doanh Thu 7 Ngày Qua
-                            </h3>
-                            <p className="text-[11px] text-[#7B6F5F] dark:text-[#A79F92]">
-                                Nhịp điệu kinh doanh mộc mạc theo từng ngày
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs">
-                        <span className="flex items-center gap-1.5 font-bold text-[#526842] dark:text-[#A6B995]">
-                            <span className="w-3 h-3 rounded-full bg-[#7D8B6E]" /> Doanh thu
-                        </span>
-                    </div>
-                </div>
-
-                <div className="h-56 sm:h-64 w-full pt-2">
-                    {stats?.chart?.data?.length > 0 ? (
-                        <Bar data={chartData} options={chartOptions} />
-                    ) : (
-                        <div className="h-full flex items-center justify-center text-xs text-[#8C8070]">
-                            Chưa có dữ liệu thống kê cho khoảng thời gian này
-                        </div>
-                    )}
-                </div>
+            {/* 4. LOWER BALANCED SECTION: CALENDAR + TOP DEBTORS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+                <ZenDotCalendarCard
+                    filters={filters}
+                    setFilters={setFilters}
+                />
+                <ZenTopDebtorsCard
+                    stats={stats}
+                    navigate={navigate}
+                />
             </div>
         </div>
     );

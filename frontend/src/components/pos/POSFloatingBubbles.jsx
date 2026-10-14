@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, memo } from 'react';
+import React, { useRef, useEffect, memo, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
   Sprout, Phone, Package, MapPin, Wallet, Truck, 
@@ -17,7 +17,7 @@ import {
  * POSFloatingBubbles - High-performance isolated component for floating summary bubbles
  * Separated from main POSPage to prevent full-page layout recalculations during order switches and partner updates.
  */
-const POSFloatingBubbles = memo(function POSFloatingBubbles({
+function POSFloatingBubbles({
   partner,
   livePartner,
   debtBeforeOrder = 0,
@@ -43,6 +43,9 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
 
   paymentMethod = 'Cash',
   onSelectPaymentMethod,
+  amountPaid = 0,
+  onChangeAmountPaid,
+  amountPaidInputRef,
   cashGiven = 0,
   onChangeCashGiven,
   cashGivenInputRef,
@@ -61,6 +64,9 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
 }) {
   const partnerBubbleRef = useRef(null);
   const totalBubbleRef = useRef(null);
+  const internalAmountPaidRef = useRef(null);
+  const activeAmountPaidRef = amountPaidInputRef || internalAmountPaidRef;
+  const lastAppliedHRef = useRef(-1);
 
   // High-performance ResizeObserver & target calculation isolated to this component
   useEffect(() => {
@@ -71,7 +77,6 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
     }
 
     let rafId = null;
-    let lastAppliedH = -1;
 
     const measureAndApply = () => {
       if (!cartScrollContainerRef?.current) return;
@@ -84,8 +89,8 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
       const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
 
       // Only update if height changed by at least 2px to prevent sub-pixel animation fighting
-      if (Math.abs(lastAppliedH - targetH) >= 2) {
-        lastAppliedH = targetH;
+      if (Math.abs(lastAppliedHRef.current - targetH) >= 2) {
+        lastAppliedHRef.current = targetH;
         cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', `${targetH}px`);
       }
     };
@@ -112,12 +117,12 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
       ro.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  }, [cartColorConfig?.constrainCartAboveBubbles, partner?.id, isRemoteInspect, livePartner?.id, paymentMethod]);
+  }, [cartColorConfig?.constrainCartAboveBubbles, partner?.id, isRemoteInspect]);
 
-  const partnerStyle = getBubbleComputedStyle(cartColorConfig, 'partner');
-  const cashStyle = getBubbleComputedStyle(cartColorConfig, 'cash');
-  const totalStyle = getBubbleComputedStyle(cartColorConfig, 'total');
-  const paymentStyle = getBubbleComputedStyle(cartColorConfig, 'payment');
+  const partnerStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'partner'), [cartColorConfig]);
+  const cashStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'cash'), [cartColorConfig]);
+  const totalStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'total'), [cartColorConfig]);
+  const paymentStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'payment'), [cartColorConfig]);
 
   const effectiveTotal = isRemoteInspect 
     ? remoteState?.total_amount || (remoteState?.cart || []).reduce((acc, it) => acc + (Number(it.price || it.sale_price) || 0) * (Number(it.quantity) || 1), 0)
@@ -135,22 +140,18 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
         data-bubble="partner"
         ref={partnerBubbleRef}
         layout
-        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
         transition={{
-          layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 },
+          layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.9 },
           type: "spring",
-          stiffness: 350,
-          damping: 22
+          stiffness: 380,
+          damping: 28
         }}
         className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
       >
-        <m.div 
-          layout 
-          transition={{ layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 } }} 
-          className="flex items-center gap-2.5 pointer-events-auto"
-        >
+        <div className="flex items-center gap-2.5 pointer-events-auto">
           <m.div
             key="partner-card-bubble"
             id="partner-card-bubble"
@@ -164,9 +165,9 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
             transition={{
               layout: {
                 type: "spring",
-                stiffness: 300,
-                damping: 18,
-                mass: 0.85
+                stiffness: 380,
+                damping: 28,
+                mass: 0.9
               },
               scale: { type: "spring", stiffness: 420, damping: 22 },
               y: { type: "spring", stiffness: 420, damping: 22 },
@@ -187,12 +188,10 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
               className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none select-none" 
               style={partnerStyle?.color ? { color: partnerStyle.color, opacity: 0.1 } : undefined} 
             />
-            <m.div 
-              layout 
-              transition={{ layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 } }}
+            <div 
               className={cn(
                 "flex flex-col relative z-10",
-                partner || isRemoteInspect 
+                (partner || isRemoteInspect) 
                   ? "min-w-[220px] max-w-[380px] sm:max-w-[420px]" 
                   : "min-w-[140px] max-w-[260px]"
               )}
@@ -212,7 +211,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                   partner && (
                     <m.span 
                       layout="position"
-                      transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 25 }}
                       className={cn(
                         "px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", 
                         !partnerStyle?.color && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30"
@@ -229,7 +228,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                 )}
                 <m.div 
                   layout="position"
-                  transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
                   className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" 
                   style={partnerStyle?.color ? { color: partnerStyle.color } : undefined}
                   title={isRemoteInspect ? remoteState?.partner_name || "Khách bán lẻ" : partner ? partner.name : "Khách bán lẻ"}
@@ -239,31 +238,28 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
               </div>
 
               {/* Partner Expanded Details */}
-              <AnimatePresence initial={false}>
-                {livePartner && (
-                  <m.div
-                    key="partner-details-wrapper"
-                    layout
-                    initial={{ opacity: 0, height: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, height: "auto", scale: 1 }}
-                    exit={{ opacity: 0, height: 0, scale: 0.96 }}
-                    transition={{
-                      height: {
-                        type: "spring",
-                        stiffness: 280,
-                        damping: 18,
-                        mass: 0.8
-                      },
-                      scale: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      },
-                      opacity: { duration: 0.2, ease: "easeOut" }
-                    }}
-                    className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
-                    style={partnerStyle?.color ? { borderColor: `${partnerStyle.color}40` } : undefined}
-                  >
+              {livePartner && (
+                <m.div
+                  key="partner-details-wrapper"
+                  initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, height: "auto", scale: 1 }}
+                  transition={{
+                    height: {
+                      type: "spring",
+                      stiffness: 360,
+                      damping: 26,
+                      mass: 0.9
+                    },
+                    scale: {
+                      type: "spring",
+                      stiffness: 360,
+                      damping: 26
+                    },
+                    opacity: { duration: 0.2, ease: "easeOut" }
+                  }}
+                  className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
+                  style={partnerStyle?.color ? { borderColor: `${partnerStyle.color}40` } : undefined}
+                >
                     {(livePartner.phone || livePartner.cccd) && (
                       <div 
                         className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" 
@@ -388,12 +384,11 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                     )}
                   </m.div>
                 )}
-              </AnimatePresence>
-            </m.div>
+            </div>
           </m.div>
 
           {/* Note Bubble Button */}
-          <m.div layout="position" transition={{ type: "spring", stiffness: 320, damping: 20 }} className="relative group/note-container pointer-events-auto">
+          <m.div layout="position" transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.9 }} className="relative group/note-container pointer-events-auto">
             <m.div
               id="note-bubble"
               data-bubble="note"
@@ -436,7 +431,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
           </m.div>
 
           {/* Shipping Bubble Button */}
-          <m.div layout="position" transition={{ type: "spring", stiffness: 320, damping: 20 }} className="relative group/ship-container pointer-events-auto">
+          <m.div layout="position" transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.9 }} className="relative group/ship-container pointer-events-auto">
             <m.div
               id="ship-bubble"
               data-bubble="ship"
@@ -478,7 +473,7 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
               onSave={onSaveShipping}
             />
           </m.div>
-        </m.div>
+        </div>
       </m.div>
 
       {/* 2. Floating Total & Payment Bubbles (Bottom-Right) */}
@@ -488,14 +483,14 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
         data-bubble="total-container"
         ref={totalBubbleRef}
         layout="position"
-        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
         transition={{ type: "spring", stiffness: 420, damping: 28, mass: 0.8 }}
         className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
       >
-        <AnimatePresence mode="popLayout">
-          {isCash && (
+        <AnimatePresence mode="popLayout" initial={false}>
+          {isCash ? (
             <m.div
               key="cash-bubble"
               id="cash-bubble"
@@ -513,6 +508,10 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                 opacity: { duration: 0.18 }
               }}
               style={cashStyle}
+              onClick={() => {
+                cashGivenInputRef?.current?.focus();
+                cashGivenInputRef?.current?.select();
+              }}
               className="pointer-events-auto flex items-start group/cash-calculator cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[200px]"
             >
               <RefreshCcw 
@@ -572,11 +571,123 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
                 </div>
               </div>
             </m.div>
+          ) : (
+            <m.div
+              key="debt-bubble"
+              id="debt-bubble"
+              data-bubble="debt"
+              layout
+              initial={{ opacity: 0, scale: 0.92, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.92, x: 20, transition: { duration: 0.18, ease: "easeInOut" } }}
+              whileHover={{ scale: 1.015, y: -1 }}
+              whileTap={{ scale: 0.985 }}
+              transition={{
+                layout: { type: "spring", stiffness: 420, damping: 30 },
+                scale: { type: "spring", stiffness: 480, damping: 25 },
+                y: { type: "spring", stiffness: 480, damping: 25 },
+                opacity: { duration: 0.18 }
+              }}
+              style={cashStyle}
+              onClick={() => {
+                activeAmountPaidRef.current?.focus();
+                activeAmountPaidRef.current?.select();
+              }}
+              className="pointer-events-auto flex items-start group/debt-calculator cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden min-w-[220px]"
+            >
+              <History 
+                className="absolute -right-3 -bottom-3 w-24 h-24 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/debt-calculator:scale-110 group-hover/debt-calculator:-rotate-6 pointer-events-none select-none" 
+                style={cashStyle?.color ? { color: cashStyle.color, opacity: 0.1 } : undefined} 
+              />
+              <div className="flex flex-col relative z-10 w-full">
+                <div className="flex items-center justify-between gap-2 mb-0.5 leading-normal py-0.5">
+                  <span 
+                    className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] whitespace-nowrap" 
+                    style={cashStyle?.color ? { color: cashStyle.color } : undefined}
+                  >
+                    Thanh toán (F1)
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {debtBeforeOrder > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChangeAmountPaid?.(effectiveTotal);
+                        }}
+                        className="px-2 py-0.5 bg-[#8b6f47]/20 hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-[#d4a574]/20 dark:hover:bg-[#d4a574] dark:text-[#d4a574] dark:hover:text-slate-900 text-[8px] font-black rounded-full border border-[#8b6f47]/40 dark:border-[#d4a574]/40 shadow-xs hover:scale-105 active:scale-95 transition-all uppercase cursor-pointer whitespace-nowrap"
+                        title="Thanh toán tiền đơn hiện tại"
+                      >
+                        Đơn này
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChangeAmountPaid?.(effectiveTotal + (debtBeforeOrder > 0 ? debtBeforeOrder : 0));
+                      }}
+                      className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[8px] font-black rounded-full border border-emerald-400/40 shadow-xs hover:scale-105 active:scale-95 transition-all uppercase cursor-pointer whitespace-nowrap"
+                      title="Thanh toán toàn bộ đơn hàng và nợ cũ"
+                    >
+                      Trả hết
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center min-w-[70px] group/input-wrapper h-full">
+                    <span className="invisible whitespace-pre font-black text-xl px-1 pointer-events-none tabular-nums select-none">
+                      {formatNumber(amountPaid) || "0"}
+                    </span>
+                    <input 
+                      id="debt-amount-paid-compact" 
+                      ref={activeAmountPaidRef} 
+                      type="text" 
+                      style={cashStyle?.color ? { color: cashStyle.color } : undefined} 
+                      className="absolute inset-0 w-full h-full bg-transparent border-b-2 border-[#8b6f47]/30 focus:border-[#2d5016] dark:focus:border-emerald-400 outline-none font-black text-xl text-[#2d5016] dark:text-emerald-400 p-0 tabular-nums transition-all z-10" 
+                      value={formatNumber(amountPaid)} 
+                      autoComplete="off" 
+                      onChange={e => onChangeAmountPaid?.(parseFloat(e.target.value.replace(/,/g, "")) || 0)} 
+                      onFocus={e => e.target.select()} 
+                    />
+                  </div>
+                  <AnimatePresence>
+                    {(debtAfterOrder !== undefined && debtAfterOrder !== null) && (
+                      <m.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
+                        animate={{ opacity: 1, scale: 1, width: "auto", x: 0 }}
+                        exit={{ opacity: 0, scale: 0.85, width: 0, x: 10 }}
+                        transition={{
+                          width: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+                          opacity: { duration: 0.18 },
+                          scale: { duration: 0.18 }
+                        }}
+                        className="flex flex-col items-end min-w-[85px] border-l border-[#8b6f47]/20 dark:border-[#d4a574]/20 pl-3 py-0.5 overflow-hidden"
+                      >
+                        <span 
+                          className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase leading-none mb-0.5 whitespace-nowrap" 
+                          style={cashStyle?.color ? { color: cashStyle.color } : undefined}
+                        >
+                          Nợ sau đơn
+                        </span>
+                        <span className={cn(
+                          "text-xl font-black tabular-nums transition-colors",
+                          debtAfterOrder > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+                        )}>
+                          {formatNumber(debtAfterOrder)}
+                        </span>
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </m.div>
           )}
         </AnimatePresence>
 
         {/* Payment Toggle Pill (Cash vs Debt) */}
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="popLayout" initial={false}>
           {(partner || isRemoteInspect) && (
             <m.div
               key="payment-toggle-bubble"
@@ -745,6 +856,33 @@ const POSFloatingBubbles = memo(function POSFloatingBubbles({
       </AnimatePresence>
     </>
   );
-});
+}
 
-export default POSFloatingBubbles;
+const arePropsEqual = (prev, next) => {
+  return (
+    prev.partner?.id === next.partner?.id &&
+    prev.partner?.name === next.partner?.name &&
+    prev.partner?.debt_balance === next.partner?.debt_balance &&
+    prev.livePartner?.id === next.livePartner?.id &&
+    prev.debtBeforeOrder === next.debtBeforeOrder &&
+    prev.debtAfterOrder === next.debtAfterOrder &&
+    prev.isRemoteInspect === next.isRemoteInspect &&
+    prev.cartColorConfig === next.cartColorConfig &&
+    prev.orderNote === next.orderNote &&
+    prev.isNoteOpen === next.isNoteOpen &&
+    prev.shippingStatus === next.shippingStatus &&
+    prev.shippingAddress === next.shippingAddress &&
+    prev.shippingPhone === next.shippingPhone &&
+    prev.paymentMethod === next.paymentMethod &&
+    prev.amountPaid === next.amountPaid &&
+    prev.cashGiven === next.cashGiven &&
+    prev.totalAmount === next.totalAmount &&
+    prev.isProfitRevealed === next.isProfitRevealed &&
+    prev.orderProfit === next.orderProfit &&
+    prev.canScrollDown === next.canScrollDown &&
+    prev.cart === next.cart &&
+    prev.currentProduct === next.currentProduct
+  );
+};
+
+export default memo(POSFloatingBubbles, arePropsEqual);

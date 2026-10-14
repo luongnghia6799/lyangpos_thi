@@ -1156,11 +1156,10 @@ export default function Dashboard() {
                                 <button
                                     type="button"
                                     onClick={toggleZenTheme}
-                                    className="px-2.5 py-1 rounded-full border border-[#7D8B6E]/40 bg-[#7D8B6E]/15 text-[#4D603E] dark:text-[#C5D5B8] hover:bg-[#7D8B6E] hover:text-white transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-bold shadow-2xs"
+                                    className="w-8 h-8 rounded-full border border-[#7D8B6E]/40 bg-[#7D8B6E]/15 text-[#4D603E] dark:text-[#C5D5B8] hover:bg-[#7D8B6E] hover:text-white hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs group/zen-btn"
                                     title="Chuyển sang giao diện Zen Botanical"
                                 >
-                                    <Leaf size={12} className="text-[#6D835A]" />
-                                    <span>Zen Botanical</span>
+                                    <Leaf size={14} className="text-[#6D835A] group-hover/zen-btn:text-white transition-colors" />
                                 </button>
 
                                 {/* Appearance Customizer Button */}

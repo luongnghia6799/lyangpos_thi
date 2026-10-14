@@ -87,6 +87,7 @@ export function getButtonLabel(btn) {
   if (btn.dataset?.bubble) {
     if (btn.dataset.bubble === 'partner') return 'Đối tác / Khách hàng';
     if (btn.dataset.bubble === 'cash') return 'Khách đưa (F1)';
+    if (btn.dataset.bubble === 'debt') return 'Thanh toán công nợ (F1)';
     if (btn.dataset.bubble === 'total') return 'Tổng cộng thanh toán';
     if (btn.dataset.bubble === 'note') return 'Ghi chú hóa đơn';
     if (btn.dataset.bubble === 'ship') return 'Giao hàng tận nơi';
@@ -95,6 +96,7 @@ export function getButtonLabel(btn) {
 
   if (btn.id === 'partner-card-bubble') return 'Đối tác / Khách hàng';
   if (btn.id === 'cash-bubble') return 'Khách đưa (F1)';
+  if (btn.id === 'debt-bubble') return 'Thanh toán công nợ (F1)';
   if (btn.id === 'total-amount-bubble' || btn.id === 'total-bubble') return 'Tổng cộng thanh toán';
 
   const aria = btn.getAttribute('aria-label');

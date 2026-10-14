@@ -148,7 +148,7 @@ const DraggableDecorationItem = memo(({
         userSelect: 'none'
       }}
       className={cn(
-        "select-none",
+        "no-print print:hidden select-none",
         canInteract && "cursor-grab active:cursor-grabbing",
         isDragging && "cursor-grabbing shadow-2xl",
         canInteract && isSelected && "ring-2 ring-[#7D8B6E] ring-offset-2 rounded-2xl shadow-xl",
@@ -229,7 +229,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
         setIsEditing(true);
         setIsMinimized(false);
         setIsPreview(false);
-        if (e.detail?.openPalette) setShowPalette(true);
       } else {
         setIsEditing(prev => !prev);
       }
@@ -418,7 +417,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           return next;
         });
         setSelectedId(newItem.id);
-        setShowPalette(false);
       };
       img.src = event.target.result;
     };
@@ -434,14 +432,21 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
     e.target.value = '';
   };
 
-  // Lắng nghe phím tắt Ctrl + V để dán ảnh từ clipboard trực tiếp thành sticker
+  // Lắng nghe phím tắt Ctrl + V để dán ảnh từ clipboard trực tiếp thành sticker (chỉ khi đang bật chế độ trang trí)
   useEffect(() => {
+    if (!isEditing) return;
+
     let lastMousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const handleMouseMove = (e) => {
       lastMousePos = { x: e.clientX, y: e.clientY };
     };
 
     const handlePaste = (e) => {
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -450,7 +455,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           const file = items[i].getAsFile();
           if (file) {
             e.preventDefault();
-            setIsEditing(true);
             setIsMinimized(false);
             processAndAddImageFile(file, lastMousePos);
             break;
@@ -465,7 +469,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [processAndAddImageFile]);
+  }, [isEditing, processAndAddImageFile]);
 
   const handleDuplicateItem = useCallback((id) => {
     setDecorations(prev => {
@@ -487,7 +491,7 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
   const selectedItem = decorations.find(d => d.id === selectedId);
 
   return (
-    <>
+    <div className="no-print print:hidden pointer-events-none contents" data-decorations-layer="true">
       {/* 1. All Rendered Decoration Items on Page */}
       {decorations.map((item) => (
         <DraggableDecorationItem
@@ -836,6 +840,6 @@ export default function PageDecorationsOverlay({ forcedPageKey }) {
           onClose={() => setCropTargetItem(null)}
         />
       )}
-    </>
+    </div>
   );
 }

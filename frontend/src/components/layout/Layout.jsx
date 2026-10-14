@@ -427,8 +427,66 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
     );
 });
 
+const CollapsedTooltip = memo(({ label, active, liteTheme, anchorRef, isCollapsed, disabled = false }) => {
+    const isLite = !!liteTheme;
+    const [coords, setCoords] = useState(null);
+
+    useEffect(() => {
+        if (!isCollapsed || disabled) {
+            setCoords(null);
+            return;
+        }
+        const el = anchorRef?.current;
+        if (!el) return;
+
+        const handleMouseEnter = () => {
+            const rect = el.getBoundingClientRect();
+            setCoords({
+                top: Math.round(rect.top + (rect.height / 2) - 14),
+                left: Math.round(rect.right + 8)
+            });
+        };
+        const handleMouseLeave = () => setCoords(null);
+
+        el.addEventListener('mouseenter', handleMouseEnter);
+        el.addEventListener('mouseleave', handleMouseLeave);
+        return () => {
+            el.removeEventListener('mouseenter', handleMouseEnter);
+            el.removeEventListener('mouseleave', handleMouseLeave);
+        };
+    }, [isCollapsed, disabled, anchorRef]);
+
+    if (!isCollapsed || disabled || !coords) return null;
+
+    return (
+        <Portal>
+            <div
+                style={{
+                    position: 'fixed',
+                    top: `${coords.top}px`,
+                    left: `${coords.left}px`,
+                    zIndex: 99999,
+                    ...(isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {})
+                }}
+                className={cn(
+                    "px-3.5 py-1.5 text-[11px] font-black rounded-2xl pointer-events-none whitespace-nowrap shadow-xl border uppercase tracking-[0.14em] backdrop-blur-xl flex items-center gap-1.5 animate-in fade-in duration-150 select-none",
+                    isLite 
+                        ? "" 
+                        : "bg-[#fbf9f4]/95 dark:bg-[#1c1916]/95 text-[#2d5016] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-white/15 shadow-[#8b6f47]/10 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5"
+                )}
+            >
+                {active && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0" />
+                )}
+                <span>{label}</span>
+            </div>
+        </Portal>
+    );
+});
+
 const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTheme, isFlyout = false, customSidebarStyle }) => {
     const isLite = !!liteTheme;
+    const itemRef = useRef(null);
     const cartColorConfig = useCartColorConfig();
     const hasCustomAccent = !isLite && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
     const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
@@ -440,11 +498,13 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     } : {};
 
     const content = (
-        <div className={cn("relative", active ? "z-[99999]" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
+        <div className={cn("relative", active ? "z-20" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
             <Link
+                ref={itemRef}
                 to={path}
                 onClick={onClick}
                 style={linkStyle}
+                title={isCollapsed ? label : undefined}
                 className={cn(
                     "group relative flex items-center transition-colors duration-200",
                     isCollapsed 
@@ -524,22 +584,15 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     </div>
                 )}
 
-                {/* Tooltip for Simple Collapsed NavItem */}
+                {/* Tooltip for Simple Collapsed NavItem via Portal */}
                 {isCollapsed && (
-                    <div 
-                        style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
-                        className={cn(
-                            "fixed left-[76px] px-3.5 py-1.5 text-[11px] font-black rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-150 z-[9999] whitespace-nowrap shadow-xl border uppercase tracking-[0.14em] backdrop-blur-xl flex items-center gap-1.5",
-                            isLite 
-                                ? "" 
-                                : "bg-[#fbf9f4]/95 dark:bg-[#1c1916]/95 text-[#2d5016] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-white/15 shadow-[#8b6f47]/10 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5"
-                        )}
-                    >
-                        {active && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0" />
-                        )}
-                        <span>{label}</span>
-                    </div>
+                    <CollapsedTooltip
+                        isCollapsed={isCollapsed}
+                        anchorRef={itemRef}
+                        label={label}
+                        active={active}
+                        liteTheme={liteTheme}
+                    />
                 )}
             </Link>
         </div>
@@ -597,6 +650,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     const [flyoutPos, setFlyoutPos] = useState({ top: 100, left: 85 });
     const groupRef = useRef(null);
     const flyoutRef = useRef(null);
+    const headerBtnRef = useRef(null);
     const isAnyChildActive = item.children.some(child => isActive(child.path));
 
     useEffect(() => {
@@ -653,11 +707,13 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     return (
         <div
             ref={groupRef}
-            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-[99999]" : "z-10")}
+            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-20" : "z-10")}
         >
             <button
+                ref={headerBtnRef}
                 type="button"
                 onClick={handleHeaderClick}
+                title={isCollapsed && !isFlyoutOpen ? item.label : undefined}
                 style={hasCustomAccent && (isAnyChildActive || isFlyoutOpen) ? {
                     background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
                     borderColor: `${accentCol}80`
@@ -709,22 +765,16 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                     </>
                 )}
 
-                {/* Tooltip for Collapsed NavGroup (only when flyout is closed) */}
+                {/* Tooltip for Collapsed NavGroup via Portal */}
                 {isCollapsed && !isFlyoutOpen && (
-                    <div 
-                        style={isLite ? { backgroundColor: liteTheme.surface, color: liteTheme.text, borderColor: liteTheme.border } : {}}
-                        className={cn(
-                            "fixed left-[76px] px-3.5 py-1.5 text-[11px] font-black rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-150 z-[9999] whitespace-nowrap shadow-xl border uppercase tracking-[0.14em] backdrop-blur-xl flex items-center gap-1.5",
-                            isLite 
-                                ? "" 
-                                : "bg-[#fbf9f4]/95 dark:bg-[#1c1916]/95 text-[#2d5016] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-white/15 shadow-[#8b6f47]/10 dark:shadow-black/60 ring-1 ring-black/5 dark:ring-white/5"
-                        )}
-                    >
-                        {isAnyChildActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0" />
-                        )}
-                        <span>{item.label}</span>
-                    </div>
+                    <CollapsedTooltip
+                        isCollapsed={isCollapsed}
+                        disabled={isFlyoutOpen}
+                        anchorRef={headerBtnRef}
+                        label={item.label}
+                        active={isAnyChildActive}
+                        liteTheme={liteTheme}
+                    />
                 )}
             </button>
 
@@ -2286,7 +2336,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className={cn("flex-1 min-h-0 no-scrollbar pt-8 pb-3 space-y-1", isSidebarCollapsed ? "overflow-visible" : "overflow-y-auto")}>
+            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pt-8 pb-3 space-y-1 relative z-10">
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup
@@ -2313,7 +2363,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Bottom Actions Cluster */}
-            <div className={cn("w-full mb-3 shrink-0 flex justify-center", isSidebarCollapsed ? "px-0" : "px-3")}>
+            <div className={cn("w-full mb-3 shrink-0 flex justify-center relative z-20", isSidebarCollapsed ? "px-0" : "px-3")}>
                 <m.div 
                     layout
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}

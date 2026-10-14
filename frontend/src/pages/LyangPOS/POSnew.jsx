@@ -2200,6 +2200,7 @@ function POSPage({
     },
     Wt = (t = !1) => {
       H([]), t || (F(null), Ge("")), ae(""), Ue(!1), re(0), Ye(0), $e(""), or({});
+      t || _(prev => prev.map(tab => tab.id === g ? { ...tab, cart: [], selectedPartner: null, note: "", amountPaid: 0, cashGiven: 0 } : tab));
       He({
         product: null,
         quantity: 0,
@@ -2608,10 +2609,6 @@ function POSPage({
   i.useEffect(() => {
     if (!C) return;
     const handlePaste = (e) => {
-      const target = e.target;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-        if (target.type === 'text' || target.type === 'password') return;
-      }
       const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
       if (!items) return;
       const imageFiles = [];
@@ -2630,7 +2627,7 @@ function POSPage({
         }));
         Promise.all(r).then(s => {
           we(n => [...n, ...s]);
-          G({ message: `Đã dán ${imageFiles.length} ảnh từ Clipboard!`, type: "success" });
+          G({ message: `Đã dán ${imageFiles.length} ảnh vào Quét Đơn AI!`, type: "success" });
         });
       }
     };
@@ -2751,8 +2748,9 @@ function POSPage({
       if (s === (J.kb_cash || "F1").toUpperCase()) {
         a.preventDefault(), a.stopPropagation();
         const o = document.getElementById("cash-given-compact"),
+          d = document.getElementById("debt-amount-paid-compact"),
           u = document.getElementById("cash-given-sidebar"),
-          h = o && o.offsetParent !== null ? o : u;
+          h = (o && o.offsetParent !== null) ? o : (d && d.offsetParent !== null) ? d : u;
         h ? (h.focus(), h.select()) : (xr.current?.focus(), xr.current?.select());
       }
       if (s === (J.kb_partner || "F3").toUpperCase()) {
@@ -3905,18 +3903,6 @@ function POSPage({
                         )}
                       </div>
 
-                      <button onClick={() => {
-                        Ct(!1);
-                        window.dispatchEvent(new CustomEvent('toggle_page_decorations_mode', { detail: { action: 'open', openPalette: true } }));
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-[#7D8B6E]/15 hover:text-[#556945] dark:hover:text-[#C5D5B8] rounded-2xl transition-all group/menu-item w-full text-left">
-                        <div className="w-8 h-8 rounded-xl bg-[#7D8B6E]/15 text-[#556945] dark:text-[#C5D5B8] flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">
-                          <ri size={16} strokeWidth={2.5} />
-                        </div>
-                        <div className="flex flex-col text-left">
-                          <span className="uppercase tracking-tight text-[11px] font-black">Trang trí tự do (Alt + D)</span>
-                          <span className="text-[9px] font-bold text-slate-400 lowercase">gắn chậu cây, cành lá tùy ý</span>
-                        </div>
-                      </button>
 
                       <button onClick={() => {
                         Ct(!1), fs(!0);
@@ -4894,7 +4880,7 @@ function POSPage({
                           }} transition={{
                             duration: 0.85,
                             ease: "easeInOut"
-                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P>{Ze === "sidebar" && !ka && (
+                          }} /></svg><div className="relative flex items-center justify-center mb-0.5"><x.div initial={{ scale: 0.5, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 22 }} className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"><Os size={30} strokeWidth={3.5} /></x.div></div><div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">ĐÃ LƯU ĐƠN HÀNG THÀNH CÔNG!</div><div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0"><span>ĐƠN #{ea.id}</span><span className="opacity-40">•</span><span>{ea.count} MÓN</span>{ea.partnerName && ea.partnerName !== "Khách lẻ" && <><span className="opacity-40">•</span><span className="truncate max-w-[140px]">{ea.partnerName}</span></>}</div></x.div></x.div>}</P><P initial={false}>{Ze === "sidebar" && !ka && (
   <POSFloatingBubbles
     partner={p}
     livePartner={Pe}
@@ -4927,6 +4913,8 @@ function POSPage({
       if (method === "Cash") re($);
       else re(0);
     }}
+    amountPaid={oe}
+    onChangeAmountPaid={re}
     cashGiven={V}
     onChangeCashGiven={Ye}
     cashGivenInputRef={xr}

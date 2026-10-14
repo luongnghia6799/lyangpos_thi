@@ -25,7 +25,9 @@ const PageWrapper = ({ children }) => {
             <div className="relative z-10 w-full h-full flex-1 flex flex-col min-h-0 pointer-events-auto [body.decorations-editing-active_&]:pointer-events-none">
                 {children}
             </div>
-            <PageDecorationsOverlay />
+            <div className="no-print print:hidden">
+                <PageDecorationsOverlay />
+            </div>
         </m.div>
     );
 };

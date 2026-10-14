@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, memo } from 'react';
+import React, { useRef, useEffect, memo, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
   Truck, Phone, FileText, MapPin, Wallet, Coins, CreditCard, ChevronDown 
@@ -15,7 +15,7 @@ import {
  * Separated from main Purchase page to prevent full-page layout recalculations during supplier changes and payment updates.
  * Provides bouncy, fluid spring animations matching POSFloatingBubbles.
  */
-const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
+function PurchaseFloatingBubbles({
   selectedPartner = null,
   oldDebt = 0,
   remainingDebt = 0,
@@ -41,6 +41,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
 }) {
   const partnerBubbleRef = useRef(null);
   const totalBubbleRef = useRef(null);
+  const lastAppliedHRef = useRef(-1);
 
   // High-performance ResizeObserver & target calculation isolated to this component
   useEffect(() => {
@@ -51,7 +52,6 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
     }
 
     let rafId = null;
-    let lastAppliedH = -1;
 
     const measureAndApply = () => {
       if (!cartScrollContainerRef?.current) return;
@@ -64,8 +64,8 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
       const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
 
       // Only update if height changed by at least 2px to prevent sub-pixel animation fighting
-      if (Math.abs(lastAppliedH - targetH) >= 2) {
-        lastAppliedH = targetH;
+      if (Math.abs(lastAppliedHRef.current - targetH) >= 2) {
+        lastAppliedHRef.current = targetH;
         cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', `${targetH}px`);
       }
     };
@@ -92,12 +92,12 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
       ro.disconnect();
       window.removeEventListener('resize', scheduleMeasure);
     };
-  }, [cartColorConfig?.constrainCartAboveBubbles, selectedPartner?.id, paymentMethod]);
+  }, [cartColorConfig?.constrainCartAboveBubbles, selectedPartner?.id]);
 
-  const partnerStyle = getBubbleComputedStyle(cartColorConfig, 'partner');
-  const cashStyle = getBubbleComputedStyle(cartColorConfig, 'cash');
-  const totalStyle = getBubbleComputedStyle(cartColorConfig, 'total');
-  const paymentStyle = getBubbleComputedStyle(cartColorConfig, 'payment');
+  const partnerStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'partner'), [cartColorConfig]);
+  const cashStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'cash'), [cartColorConfig]);
+  const totalStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'total'), [cartColorConfig]);
+  const paymentStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'payment'), [cartColorConfig]);
   const isCash = paymentMethod === 'Cash';
 
   return (
@@ -109,22 +109,18 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
         data-bubble="supplier"
         ref={partnerBubbleRef}
         layout
-        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
         transition={{
-          layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 },
+          layout: { type: "spring", stiffness: 380, damping: 28, mass: 0.9 },
           type: "spring",
-          stiffness: 350,
-          damping: 22
+          stiffness: 380,
+          damping: 28
         }}
         className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
       >
-        <m.div 
-          layout 
-          transition={{ layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 } }} 
-          className="flex items-center gap-2.5 pointer-events-auto"
-        >
+        <div className="flex items-center gap-2.5 pointer-events-auto">
           <m.div
             key="supplier-card-bubble"
             id="supplier-card-bubble"
@@ -138,9 +134,9 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
             transition={{
               layout: {
                 type: "spring",
-                stiffness: 300,
-                damping: 18,
-                mass: 0.85
+                stiffness: 380,
+                damping: 28,
+                mass: 0.9
               },
               scale: { type: "spring", stiffness: 420, damping: 22 },
               y: { type: "spring", stiffness: 420, damping: 22 },
@@ -162,10 +158,8 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
               style={partnerStyle?.color ? { color: partnerStyle.color, opacity: 0.1 } : undefined} 
             />
             
-            {/* Dynamic width container with bouncy spring layout transition */}
-            <m.div 
-              layout 
-              transition={{ layout: { type: "spring", stiffness: 300, damping: 18, mass: 0.85 } }}
+            {/* Dynamic width container */}
+            <div 
               className={cn(
                 "flex flex-col relative z-10",
                 selectedPartner 
@@ -183,7 +177,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
                 {selectedPartner && (
                   <m.span 
                     layout="position"
-                    transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
                     className={cn(
                       "px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-wider shrink-0 border transition-all", 
                       !partnerStyle?.color && "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/30 dark:border-[#d4a574]/30"
@@ -199,7 +193,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
                 )}
                 <m.div 
                   layout="position"
-                  transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
                   className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase leading-normal py-0.5 tracking-tight truncate" 
                   style={partnerStyle?.color ? { color: partnerStyle.color } : undefined}
                   title={selectedPartner ? selectedPartner.name : "Nhà cung cấp lẻ"}
@@ -209,31 +203,28 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
               </div>
 
               {/* Supplier Expanded Details */}
-              <AnimatePresence initial={false}>
-                {selectedPartner && (
-                  <m.div
-                    key={selectedPartner?.id ? `supplier-${selectedPartner.id}` : "supplier-details"}
-                    layout
-                    initial={{ opacity: 0, height: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, height: "auto", scale: 1 }}
-                    exit={{ opacity: 0, height: 0, scale: 0.96 }}
-                    transition={{
-                      height: {
-                        type: "spring",
-                        stiffness: 280,
-                        damping: 18,
-                        mass: 0.8
-                      },
-                      scale: {
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 20
-                      },
-                      opacity: { duration: 0.2, ease: "easeOut" }
-                    }}
-                    className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
-                    style={partnerStyle?.color ? { borderColor: `${partnerStyle.color}40` } : undefined}
-                  >
+              {selectedPartner && (
+                <m.div
+                  key={selectedPartner?.id ? `supplier-${selectedPartner.id}` : "supplier-details"}
+                  initial={{ opacity: 0, height: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, height: "auto", scale: 1 }}
+                  transition={{
+                    height: {
+                      type: "spring",
+                      stiffness: 360,
+                      damping: 26,
+                      mass: 0.9
+                    },
+                    scale: {
+                      type: "spring",
+                      stiffness: 360,
+                      damping: 26
+                    },
+                    opacity: { duration: 0.2, ease: "easeOut" }
+                  }}
+                  className="flex flex-col gap-1 w-full border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 pl-2.5 ml-0.5 overflow-hidden"
+                  style={partnerStyle?.color ? { borderColor: `${partnerStyle.color}40` } : undefined}
+                >
                     {(selectedPartner.phone || selectedPartner.tax_code || selectedPartner.cccd) && (
                       <div 
                         className="flex items-center gap-3 text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-normal py-0.5" 
@@ -339,12 +330,11 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
                     )}
                   </m.div>
                 )}
-              </AnimatePresence>
-            </m.div>
+            </div>
           </m.div>
 
           {/* Mini Action Note Button */}
-          <m.div layout="position" transition={{ type: "spring", stiffness: 320, damping: 20 }} className="relative group/note-container pointer-events-auto">
+          <m.div layout="position" transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.9 }} className="relative group/note-container pointer-events-auto">
             <m.div 
               id="purchase-note-bubble"
               data-bubble="note"
@@ -379,7 +369,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
               </AnimatePresence>
             </m.div>
           </m.div>
-        </m.div>
+        </div>
       </m.div>
 
       {/* 2. Floating Total & Payment Bubble - Bottom Right */}
@@ -389,7 +379,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
         data-bubble="total-container"
         ref={totalBubbleRef}
         layout
-        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
         transition={{
@@ -401,7 +391,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
         className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
       >
         {/* Cash Bubble (Tiền trả NCC) */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {isCash && (
             <m.div
               key="purchase-cash-bubble"
@@ -458,7 +448,7 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
         </AnimatePresence>
 
         {/* Payment Method Toggle Pill */}
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="popLayout" initial={false}>
           {selectedPartner && (
             <m.div
               key="purchase-payment-toggle-bubble"
@@ -608,6 +598,23 @@ const PurchaseFloatingBubbles = memo(function PurchaseFloatingBubbles({
       </AnimatePresence>
     </>
   );
-});
+}
 
-export default PurchaseFloatingBubbles;
+const arePropsEqual = (prev, next) => {
+  return (
+    prev.selectedPartner?.id === next.selectedPartner?.id &&
+    prev.selectedPartner?.name === next.selectedPartner?.name &&
+    prev.selectedPartner?.debt_balance === next.selectedPartner?.debt_balance &&
+    prev.oldDebt === next.oldDebt &&
+    prev.remainingDebt === next.remainingDebt &&
+    prev.cartColorConfig === next.cartColorConfig &&
+    prev.note === next.note &&
+    prev.isNoteOpen === next.isNoteOpen &&
+    prev.paymentMethod === next.paymentMethod &&
+    prev.amountPaid === next.amountPaid &&
+    prev.totalAmount === next.totalAmount &&
+    prev.canScrollDown === next.canScrollDown
+  );
+};
+
+export default memo(PurchaseFloatingBubbles, arePropsEqual);

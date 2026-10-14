@@ -1227,6 +1227,24 @@ export const precacheAmounts = (totalAmount, partnerName = "") => {
   }
 };
 
+export const fallbackBrowserSpeech = (text) => {
+  try {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      utterance.rate = 1.0;
+      const voices = window.speechSynthesis.getVoices() || [];
+      const viVoice = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-').includes('vi'));
+      if (viVoice) utterance.voice = viVoice;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.warn("Browser SpeechSynthesis fallback failed:", e);
+  }
+};
+
+
 let lastSpokenText = "";
 let lastSpokenTime = 0;
 

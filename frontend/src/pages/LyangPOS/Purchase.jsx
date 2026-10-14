@@ -4099,7 +4099,7 @@ export default function Purchase() {
                                 </AnimatePresence>
 
                                 {/* Floating Bubbles - Only visible when sidebar is collapsed and in sidebar mode */}
-                                <AnimatePresence>
+                                <AnimatePresence initial={false}>
                                 {!isSidebarExpanded && summaryLayoutMode === 'sidebar' && (
                                     <PurchaseFloatingBubbles
                                         selectedPartner={selectedPartner}

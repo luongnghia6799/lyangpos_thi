@@ -7,8 +7,9 @@ import {
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
     Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3,
-    Loader2, Zap, Eye, RotateCw, RotateCcw, ChevronLeft, ChevronRight
+    Loader2, Zap, Eye, RotateCw, RotateCcw, ChevronLeft, ChevronRight, Archive
 } from 'lucide-react';
+import YearEndArchiveModal from '../../components/modals/YearEndArchiveModal';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import OrderSwitchOverlay from '../../components/pos/OrderSwitchOverlay';
 import { cn } from '../../lib/utils';
@@ -69,6 +70,7 @@ export default function Settings() {
     const [cleaningRam, setCleaningRam] = useState(false);
     const [repairing, setRepairing] = useState(false);
     const [isReseting, setIsReseting] = useState(false);
+    const [showArchiveModal, setShowArchiveModal] = useState(false);
     const [toast, setToast] = useState(null);
     const [confirm, setConfirm] = useState(null); // { title, message, onConfirm, type }
     const [passwordPrompt, setPasswordPrompt] = useState(null);
@@ -1139,8 +1141,27 @@ export default function Settings() {
                                                         <RefreshCcw size={14} /> TẢI FILE ĐỂ KHÔI PHỤC
                                                     </button>
                                                 </div>
+
+                                                {/* Chốt Sổ Năm & Lưu Trữ Dữ Liệu Cũ */}
+                                                <div className="p-4 bg-gradient-to-br from-emerald-500/10 via-[#2d5016]/5 to-[#4a7c59]/10 dark:bg-emerald-950/20 rounded-2xl border border-emerald-500/25 dark:border-emerald-800/40 shadow-inner">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <Archive size={14} className="text-[#2d5016] dark:text-emerald-400" />
+                                                        <h4 className="text-[10px] font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-wider">Chốt sổ năm tài chính & Kết chuyển số dư</h4>
+                                                    </div>
+                                                    <p className="text-[9px] font-bold text-gray-500 dark:text-slate-400 mt-1 leading-normal uppercase">
+                                                        Đóng gói lưu trữ an toàn dữ liệu năm cũ, tự động kết chuyển công nợ, tồn kho và số dư quỹ tiền mặt sang năm mới.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowArchiveModal(true)}
+                                                        className="w-full mt-3.5 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-700 to-[#2d5016] hover:from-emerald-800 hover:to-[#203c0e] text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] shadow-sm transition-all active:scale-95 border border-white/10"
+                                                    >
+                                                        <Archive size={14} /> CHỐT SỔ NĂM & LÀM MỚI DATABASE
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
+
 
                                         {/* Performance Optimization Actions */}
                                         <div className="bg-emerald-50/10 dark:bg-slate-900/30 p-5 rounded-3xl border border-emerald-900/5 dark:border-slate-800 space-y-4 shadow-sm">
@@ -2450,6 +2471,17 @@ export default function Settings() {
                     </div>
                 </div>
             )}
+            {/* Year-End Archive Modal */}
+            <YearEndArchiveModal
+                isOpen={showArchiveModal}
+                onClose={() => setShowArchiveModal(false)}
+                onSuccess={(data) => {
+                    setToast({
+                        message: data?.message || "Đã chốt sổ và lưu trữ năm thành công!",
+                        type: "success"
+                    });
+                }}
+            />
             </div>
         </div>
     );

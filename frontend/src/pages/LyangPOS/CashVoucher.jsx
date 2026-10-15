@@ -13,6 +13,7 @@ import Portal from '../../components/widgets/Portal';
 import { usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
 import PartnerEditModal from '../../components/modals/PartnerEditModal';
+import ReconcileFundModal from '../../components/modals/ReconcileFundModal';
 
 export default function CashVoucher() {
     const { data: partnersData } = usePartnerData();
@@ -57,6 +58,7 @@ export default function CashVoucher() {
     const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
     const [fundPage, setFundPage] = useState(1);
     const [fundItemsPerPage] = useState(15);
+    const [showReconcileModal, setShowReconcileModal] = useState(false);
 
     useEffect(() => {
         setFundPage(1);
@@ -402,25 +404,37 @@ export default function CashVoucher() {
                         </div>
                     </div>
 
-                    <div className="flex bg-transparent p-1 rounded-2xl border border-border shadow-none">
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => setActiveMainTab('fund')}
-                            className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'fund' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                            type="button"
+                            onClick={() => setShowReconcileModal(true)}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm transition-all active:scale-95 border border-white/10 shrink-0"
+                            title="Khai báo số dư quỹ đầu kỳ hoặc đếm lại tiền thực tế trong két"
                         >
-                            TẠO PHIẾU
+                            <Sparkles size={13} className="text-amber-100" />
+                            KHAI BÁO / KIỂM KÊ QUỸ
                         </button>
-                        <button
-                            onClick={() => setActiveMainTab('cash_ledger')}
-                            className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'cash_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
-                        >
-                            SỔ TIỀN MẶT
-                        </button>
-                        <button
-                            onClick={() => setActiveMainTab('bank_ledger')}
-                            className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'bank_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
-                        >
-                            SỔ NGÂN HÀNG
-                        </button>
+
+                        <div className="flex bg-transparent p-1 rounded-2xl border border-border shadow-none">
+                            <button
+                                onClick={() => setActiveMainTab('fund')}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'fund' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                            >
+                                TẠO PHIẾU
+                            </button>
+                            <button
+                                onClick={() => setActiveMainTab('cash_ledger')}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'cash_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                            >
+                                SỔ TIỀN MẶT
+                            </button>
+                            <button
+                                onClick={() => setActiveMainTab('bank_ledger')}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'bank_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                            >
+                                SỔ NGÂN HÀNG
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1123,6 +1137,15 @@ export default function CashVoucher() {
                                                         <p className="text-sm font-black text-rose-300">-{formatNumber(vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0))} đ</p>
                                                     </div>
                                                 </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowReconcileModal(true)}
+                                                    className="w-full mt-1 py-2 px-3 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 backdrop-blur-sm transition-all border border-white/20 active:scale-95 shadow-sm"
+                                                >
+                                                    <Sparkles size={13} className="text-amber-300" />
+                                                    Đếm lại tiền / Khai báo số dư quỹ
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -1310,6 +1333,11 @@ export default function CashVoucher() {
                                                                 {v.source === 'auto' && (
                                                                     <span className="text-[7px] text-blue-500 font-bold uppercase tracking-wider mt-0.5">
                                                                         Tự động {v.order_display_id ? `(Đơn #${v.order_display_id})` : ''}
+                                                                    </span>
+                                                                )}
+                                                                {v.source === 'opening_balance' && (
+                                                                    <span className="inline-flex items-center gap-1 text-[8px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider mt-0.5">
+                                                                        <Sparkles size={9} /> ĐẦU KỲ / KIỂM KÊ
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -1644,6 +1672,22 @@ export default function CashVoucher() {
                     </div>
                 </div>
             )}
+            {/* Modal Reconcile Fund */}
+            <ReconcileFundModal
+                isOpen={showReconcileModal}
+                onClose={() => setShowReconcileModal(false)}
+                currentBookBalance={
+                    vouchers.filter(v => v.type === 'Receipt').reduce((sum, v) => sum + v.amount, 0) -
+                    vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0)
+                }
+                onSuccess={(data) => {
+                    fetchVouchers(activeMainTab === 'cash_ledger' ? 'all' : 'manual');
+                    setToast({
+                        message: data?.message || "Đã cập nhật số dư quỹ thành công!",
+                        type: "success"
+                    });
+                }}
+            />
         </div>
     );
 }

@@ -5,6 +5,7 @@ use axum::{
     Json,
 };
 use chrono::Datelike;
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::{Row, SqlitePool};
 use std::collections::HashMap;
@@ -167,6 +168,13 @@ pub async fn get_vouchers(
     Ok(Json(response_list))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ReconcileFundDto {
+    pub actual_balance: f64,
+    pub date: Option<String>,
+    pub note: Option<String>,
+}
+
 pub async fn create_voucher(
     State(pool): State<SqlitePool>,
     Json(payload): Json<CreateVoucherDto>,
@@ -178,9 +186,20 @@ pub async fn create_voucher(
     let v_type = payload.r#type.unwrap_or_else(|| "Payment".to_string());
     let source = payload.source.unwrap_or_else(|| "manual".to_string());
 
+    let date_str = payload.date.as_deref().unwrap_or("");
+    let formatted_date = if !date_str.is_empty() {
+        if date_str.len() <= 10 {
+            format!("{} 12:00:00", date_str)
+        } else {
+            date_str.replace('T', " ")
+        }
+    } else {
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+    };
+
     let res = sqlx::query(
         "INSERT INTO cash_voucher (partner_id, amount, note, type, source, order_id, date) \
-         VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+7 hours'))"
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(payload.partner_id)
     .bind(payload.amount)
@@ -188,6 +207,7 @@ pub async fn create_voucher(
     .bind(&v_type)
     .bind(&source)
     .bind(payload.order_id)
+    .bind(&formatted_date)
     .execute(&pool)
     .await?;
 
@@ -206,6 +226,69 @@ pub async fn create_voucher(
         })),
     ))
 }
+
+pub async fn reconcile_fund(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<ReconcileFundDto>,
+) -> Result<impl IntoResponse, AppError> {
+    let current_balance: f64 = sqlx::query_scalar(
+        "SELECT CAST(COALESCE(SUM(CASE WHEN type = 'Receipt' THEN amount ELSE -amount END), 0) AS REAL) FROM cash_voucher"
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    let diff = payload.actual_balance - current_balance;
+    let date_str = payload.date.as_deref().unwrap_or("");
+    let formatted_date = if !date_str.is_empty() {
+        if date_str.len() <= 10 {
+            format!("{} 12:00:00", date_str)
+        } else {
+            date_str.replace('T', " ")
+        }
+    } else {
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+    };
+
+    if diff.abs() < 0.001 {
+        return Ok(Json(json!({
+            "status": "success",
+            "message": "Số dư thực tế đã khớp hoàn toàn với sổ quỹ (không chênh lệch)",
+            "current_balance": current_balance,
+            "actual_balance": payload.actual_balance,
+            "difference": 0.0
+        })));
+    }
+
+    let (v_type, amount, default_note) = if diff > 0.0 {
+        ("Receipt", diff, "Khai báo / Kiểm kê quỹ - Điều chỉnh tăng số dư tiền mặt (Thừa quỹ)")
+    } else {
+        ("Payment", -diff, "Khai báo / Kiểm kê quỹ - Điều chỉnh giảm số dư tiền mặt (Thiếu quỹ)")
+    };
+
+    let final_note = payload.note.filter(|n| !n.trim().is_empty()).unwrap_or_else(|| default_note.to_string());
+
+    let res = sqlx::query(
+        "INSERT INTO cash_voucher (partner_id, amount, note, type, source, date) \
+         VALUES (NULL, ?, ?, ?, 'opening_balance', ?)"
+    )
+    .bind(amount)
+    .bind(&final_note)
+    .bind(v_type)
+    .bind(&formatted_date)
+    .execute(&pool)
+    .await?;
+
+    Ok(Json(json!({
+        "status": "success",
+        "voucher_id": res.last_insert_rowid(),
+        "message": format!("Đã điều chỉnh quỹ thành công về mức thực tế {} đ", payload.actual_balance),
+        "previous_balance": current_balance,
+        "actual_balance": payload.actual_balance,
+        "difference": diff,
+        "type": v_type
+    })))
+}
+
 
 pub async fn update_voucher(
     State(pool): State<SqlitePool>,

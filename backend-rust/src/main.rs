@@ -119,6 +119,10 @@ async fn main() -> anyhow::Result<()> {
             post(routes::backup::restore_backup).layer(DefaultBodyLimit::max(500 * 1024 * 1024)),
         )
         .route("/api/reset-database", post(routes::backup::reset_database))
+        // Fiscal Year Archive & Data Rollover
+        .route("/api/archive-preview", get(routes::archive::preview_archive))
+        .route("/api/archive-year", post(routes::archive::execute_archive))
+        .route("/api/archives", get(routes::archive::list_archives))
         // LAN Multi-device & Remote Scans
         .route("/api/active-devices", get(routes::lan::get_active_devices))
         .route("/api/ip", get(routes::lan::get_ip_info))
@@ -291,6 +295,10 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/custom-prices/bulk", post(routes::partner::save_custom_prices_bulk))
         .route("/api/custom-prices/cleanup", post(routes::partner::cleanup_custom_prices))
         // Cash Voucher endpoints & Alias
+        .route(
+            "/api/vouchers/reconcile",
+            post(routes::voucher::reconcile_fund),
+        )
         .route(
             "/api/vouchers",
             get(routes::voucher::get_vouchers).post(routes::voucher::create_voucher),

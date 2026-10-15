@@ -20,5 +20,6 @@ pub mod system;
 pub mod tts;
 pub mod voucher;
 pub mod ws;
+pub mod archive;
 
 

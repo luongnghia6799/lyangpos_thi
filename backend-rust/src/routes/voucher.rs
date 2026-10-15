@@ -289,6 +289,31 @@ pub async fn reconcile_fund(
     })))
 }
 
+pub async fn get_fund_summary(
+    State(pool): State<SqlitePool>,
+) -> Result<impl IntoResponse, AppError> {
+    let row = sqlx::query(
+        "SELECT \
+            CAST(COALESCE(SUM(CASE WHEN type = 'Receipt' THEN amount ELSE 0 END), 0) AS REAL) as total_receipts, \
+            CAST(COALESCE(SUM(CASE WHEN type = 'Payment' THEN amount ELSE 0 END), 0) AS REAL) as total_payments, \
+            CAST(COALESCE(SUM(CASE WHEN type = 'Receipt' THEN amount ELSE -amount END), 0) AS REAL) as net_cash \
+         FROM cash_voucher"
+    )
+    .fetch_one(&pool)
+    .await?;
+
+    let net_cash: f64 = row.get("net_cash");
+    let total_receipts: f64 = row.get("total_receipts");
+    let total_payments: f64 = row.get("total_payments");
+
+    Ok(Json(json!({
+        "net_cash": net_cash,
+        "total_receipts": total_receipts,
+        "total_payments": total_payments
+    })))
+}
+
+
 
 pub async fn update_voucher(
     State(pool): State<SqlitePool>,

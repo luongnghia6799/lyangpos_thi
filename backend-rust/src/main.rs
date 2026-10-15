@@ -300,6 +300,10 @@ async fn main() -> anyhow::Result<()> {
             post(routes::voucher::reconcile_fund),
         )
         .route(
+            "/api/vouchers/balance",
+            get(routes::voucher::get_fund_summary),
+        )
+        .route(
             "/api/vouchers",
             get(routes::voucher::get_vouchers).post(routes::voucher::create_voucher),
         )

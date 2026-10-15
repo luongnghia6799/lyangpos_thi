@@ -59,6 +59,18 @@ export default function CashVoucher() {
     const [fundPage, setFundPage] = useState(1);
     const [fundItemsPerPage] = useState(15);
     const [showReconcileModal, setShowReconcileModal] = useState(false);
+    const [allTimeCashBalance, setAllTimeCashBalance] = useState(0);
+
+    const fetchFundBalance = async () => {
+        try {
+            const res = await axios.get('/api/vouchers/balance');
+            if (res.data && res.data.net_cash !== undefined) {
+                setAllTimeCashBalance(res.data.net_cash);
+            }
+        } catch (e) {
+            console.error('Fetch fund balance error:', e);
+        }
+    };
 
     useEffect(() => {
         setFundPage(1);
@@ -76,6 +88,7 @@ export default function CashVoucher() {
     useEffect(() => {
         fetchSettings();
         fetchBankAccounts();
+        fetchFundBalance();
 
         // Data Sync Channel
         const syncChannel = new BroadcastChannel('pos_data_sync');
@@ -97,8 +110,9 @@ export default function CashVoucher() {
     };
 
     useEffect(() => {
+        fetchFundBalance();
         if (activeMainTab === 'fund') {
-            fetchVouchers('manual');
+            fetchVouchers('all');
             fetchBankTransactions();
         } else if (activeMainTab === 'cash_ledger') {
             fetchVouchers('all');
@@ -281,6 +295,7 @@ export default function CashVoucher() {
             });
 
             setToast({ message: `Đã lưu phiếu ${isRec ? 'thu' : 'chi'} thành công!`, type: "success" });
+            fetchFundBalance();
         } catch (err) {
             setToast({ message: "Lỗi khi tạo phiếu", type: "error" });
         } finally {
@@ -311,6 +326,7 @@ export default function CashVoucher() {
                 try {
                     await axios.delete(`/api/vouchers/${id}`);
                     fetchVouchers('all');
+                    fetchFundBalance();
                     await queryClient.invalidateQueries({ queryKey: ['partners'] });
                     broadcastUpdate();
                     setToast({ message: "Đã xóa phiếu thành công", type: "success" });
@@ -625,12 +641,9 @@ export default function CashVoucher() {
                                         </div>
                                         <div className="relative z-10 space-y-5">
                                             <div>
-                                                <div className="text-[10px] font-black opacity-75 uppercase tracking-[0.25em] mb-1.5">Tồn Quỹ Tiền Mặt Sau Giao Dịch</div>
+                                                <div className="text-[10px] font-black opacity-75 uppercase tracking-[0.25em] mb-1.5">Tồn Quỹ Thực Tế Trong Két</div>
                                                 <div className="text-3xl md:text-4xl font-black tracking-tighter font-mono">
-                                                    {formatNumber(
-                                                        vouchers.filter(v => v.type === 'Receipt').reduce((sum, v) => sum + v.amount, 0) -
-                                                        vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0)
-                                                    )} đ
+                                                    {formatNumber(allTimeCashBalance)} đ
                                                 </div>
                                             </div>
                                             <div className="pt-5 border-t border-white/20 space-y-2.5">
@@ -1119,21 +1132,18 @@ export default function CashVoucher() {
                                             </div>
                                             <div className="relative z-10 space-y-3">
                                                 <div>
-                                                    <div className="text-[10px] font-black opacity-75 uppercase tracking-[0.25em] mb-1">Tồn Quỹ Tiền Mặt</div>
+                                                    <div className="text-[10px] font-black opacity-75 uppercase tracking-[0.25em] mb-1">Tồn Quỹ Thực Tế Trong Két</div>
                                                     <div className="text-2xl md:text-3xl font-black tracking-tighter font-mono">
-                                                        {formatNumber(
-                                                            vouchers.filter(v => v.type === 'Receipt').reduce((sum, v) => sum + v.amount, 0) -
-                                                            vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0)
-                                                        )} đ
+                                                        {formatNumber(allTimeCashBalance)} đ
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/20 text-xs">
                                                     <div>
-                                                        <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mb-0.5">Tổng Thu Kỳ Lọc</p>
+                                                        <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mb-0.5">Thu Trong Kỳ Lọc</p>
                                                         <p className="text-sm font-black text-emerald-300">+{formatNumber(vouchers.filter(v => v.type === 'Receipt').reduce((sum, v) => sum + v.amount, 0))} đ</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mb-0.5">Tổng Chi Kỳ Lọc</p>
+                                                        <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mb-0.5">Chi Trong Kỳ Lọc</p>
                                                         <p className="text-sm font-black text-rose-300">-{formatNumber(vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0))} đ</p>
                                                     </div>
                                                 </div>
@@ -1676,12 +1686,10 @@ export default function CashVoucher() {
             <ReconcileFundModal
                 isOpen={showReconcileModal}
                 onClose={() => setShowReconcileModal(false)}
-                currentBookBalance={
-                    vouchers.filter(v => v.type === 'Receipt').reduce((sum, v) => sum + v.amount, 0) -
-                    vouchers.filter(v => v.type === 'Payment').reduce((sum, v) => sum + v.amount, 0)
-                }
+                currentBookBalance={allTimeCashBalance}
                 onSuccess={(data) => {
-                    fetchVouchers(activeMainTab === 'cash_ledger' ? 'all' : 'manual');
+                    fetchVouchers('all');
+                    fetchFundBalance();
                     setToast({
                         message: data?.message || "Đã cập nhật số dư quỹ thành công!",
                         type: "success"

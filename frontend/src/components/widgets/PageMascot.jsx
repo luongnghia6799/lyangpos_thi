@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { MASCOT_LIST, MASCOT_QUOTES, DEFAULT_MASCOT_CONFIG, playPopSound } from '../../lib/mascots';
 
 const DIRECTIONS = [
@@ -37,7 +37,7 @@ const CLOCKWISE = [
 ];
 
 const SECTOR = (Math.PI * 2) / CLOCKWISE.length;
-const HYSTERESIS = 0.16;
+const HYSTERESIS = 0.08;
 const DEAD_ZONE = 70;
 
 const PAYOFFS = ['heart', 'sparkle', 'delighted', 'wink', 'surprised'];
@@ -100,8 +100,13 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
   const boopsRef = useRef({ count: 0, at: 0 });
   const dragStartRef = useRef({ x: 0, y: 0, startPosX: 0, startPosY: 0, moved: false });
   const quoteTimerRef = useRef(null);
+  const blinkTimerRef = useRef(null);
+  const rafRef = useRef(null);
+  const lastPointerRef = useRef((typeof window !== 'undefined' && window.__lyangLastPointer) ? { ...window.__lyangLastPointer } : { x: -999, y: -999 });
   const sectorRef = useRef(-1);
   const isReactingRef = useRef(false);
+  const updateHeadRef = useRef(null);
+  const currentBgPosRef = useRef('50% 50%');
   const posRef = useRef(pos);
   posRef.current = pos;
 
@@ -178,76 +183,119 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [config.size]);
 
-  // ULTRA LOW POWER (0% GPU) THROTTLED POINTER TRACKING
+  // BUTTERY-SMOOTH rAF POINTER TRACKING & 2.5D HEAD MICRO-TILT
+  const updateHead = useCallback(() => {
+    rafRef.current = null;
+    if (isReactingRef.current || dragStartRef.current.moved || !spriteRef.current) return;
+
+    let px = lastPointerRef.current.x;
+    let py = lastPointerRef.current.y;
+    if (px < 0 || py < 0) {
+      if (typeof window !== 'undefined' && window.__lyangLastPointer) {
+        px = window.__lyangLastPointer.x;
+        py = window.__lyangLastPointer.y;
+        lastPointerRef.current = { x: px, y: py };
+      } else {
+        return;
+      }
+    }
+
+    const currentPos = posRef.current;
+    const size = config.size || 110;
+    const centerX = currentPos.x + size / 2;
+    const centerY = currentPos.y + size / 2;
+
+    const dx = px - centerX;
+    const dy = py - centerY;
+    const distSq = dx * dx + dy * dy;
+
+    // Smooth micro 2.5D perspective tilt towards mouse cursor
+    const maxDist = Math.max(window.innerWidth || 1200, window.innerHeight || 800);
+    const dist = Math.sqrt(distSq);
+    const factor = Math.min(1, dist / (maxDist * 0.35));
+    const tiltX = dist > 0 ? (dx / dist) * factor * 3.2 : 0;
+    const tiltY = dist > 0 ? (dy / dist) * factor * 3.2 : 0;
+    const tiltRotate = dist > 0 ? (dx / dist) * factor * 4.2 : 0;
+
+    spriteRef.current.style.transform = `translate3d(${tiltX.toFixed(2)}px, ${tiltY.toFixed(2)}px, 0px) rotate(${tiltRotate.toFixed(2)}deg)`;
+
+    // Deadzone check: looking directly at user when mouse is on mascot
+    const deadzoneRadius = Math.max(38, size * 0.35);
+    if (distSq < deadzoneRadius * deadzoneRadius) {
+      if (sectorRef.current !== -1) {
+        sectorRef.current = -1;
+        currentBgPosRef.current = '50% 50%';
+        spriteRef.current.style.backgroundPosition = '50% 50%';
+      }
+      return;
+    }
+
+    const angle = Math.atan2(dy, dx);
+    const currentSector = sectorRef.current;
+
+    // Hysteresis threshold to prevent jittering on sector boundaries
+    if (
+      currentSector !== -1 &&
+      Math.abs(wrapAngle(angle - currentSector * SECTOR)) < SECTOR / 2 + HYSTERESIS
+    ) {
+      if (spriteRef.current.style.backgroundPosition !== currentBgPosRef.current) {
+        spriteRef.current.style.backgroundPosition = currentBgPosRef.current;
+      }
+      return;
+    }
+
+    const newSector = (Math.round(angle / SECTOR) + CLOCKWISE.length) % CLOCKWISE.length;
+    sectorRef.current = newSector;
+    const dirName = CLOCKWISE[newSector];
+    const dirIdx = DIRECTIONS.indexOf(dirName);
+    if (dirIdx >= 0 && spriteRef.current) {
+      const pos = getCellPos(dirIdx);
+      currentBgPosRef.current = pos;
+      spriteRef.current.style.backgroundPosition = pos;
+    }
+  }, [config.size]);
+
+  useEffect(() => {
+    updateHeadRef.current = updateHead;
+  }, [updateHead]);
+
   useEffect(() => {
     if (!config.enabled) return;
 
-    let lastRun = 0;
-    let lastX = -999;
-    let lastY = -999;
-
     const handlePointerMove = (e) => {
-      if (isReactingRef.current || dragStartRef.current.moved || !spriteRef.current) return;
-
-      const now = performance.now();
-      // Ultra-efficient throttle: 65ms interval (~15fps) and 18px delta threshold
-      if (now - lastRun < 65) return;
-      if (Math.abs(e.clientX - lastX) < 18 && Math.abs(e.clientY - lastY) < 18) return;
-
-      lastRun = now;
-      lastX = e.clientX;
-      lastY = e.clientY;
-
-      const currentPos = posRef.current;
-      const size = config.size || 110;
-      const centerX = currentPos.x + size / 2;
-      const centerY = currentPos.y + size / 2;
-
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
-
-      // Fast rectangular deadzone check (avoids Math.hypot & trigonometry)
-      if (Math.abs(dx) < 55 && Math.abs(dy) < 55) {
-        if (sectorRef.current !== -1) {
-          sectorRef.current = -1;
-          spriteRef.current.style.backgroundPosition = '50% 50%';
-        }
-        return;
+      lastPointerRef.current.x = e.clientX;
+      lastPointerRef.current.y = e.clientY;
+      if (typeof window !== 'undefined') {
+        window.__lyangLastPointer = { x: e.clientX, y: e.clientY };
       }
 
-      const angle = Math.atan2(dy, dx);
-      const currentSector = sectorRef.current;
-
-      // Hysteresis threshold
-      if (
-        currentSector !== -1 &&
-        Math.abs(wrapAngle(angle - currentSector * SECTOR)) < SECTOR / 2 + HYSTERESIS
-      ) {
-        return;
-      }
-
-      const newSector = (Math.round(angle / SECTOR) + CLOCKWISE.length) % CLOCKWISE.length;
-      if (newSector !== sectorRef.current) {
-        sectorRef.current = newSector;
-        const dirName = CLOCKWISE[newSector];
-        const dirIdx = DIRECTIONS.indexOf(dirName);
-        if (dirIdx >= 0) {
-          spriteRef.current.style.backgroundPosition = getCellPos(dirIdx);
-        }
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(updateHead);
       }
     };
+
+    // If pointer position is already known in session, sync head angle immediately
+    if (typeof window !== 'undefined' && window.__lyangLastPointer) {
+      lastPointerRef.current = { ...window.__lyangLastPointer };
+      updateHead();
+    }
 
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [config.enabled, config.size]);
+  }, [config.enabled, updateHead]);
+
+
 
   // Clean up timers
   useEffect(() => {
     return () => {
       timersRef.current.forEach(window.clearTimeout);
       if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current);
+      if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
@@ -274,8 +322,8 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
         // Return to directions
         isReactingRef.current = false;
         spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
-        const dirIdx = sectorRef.current >= 0 ? DIRECTIONS.indexOf(CLOCKWISE[sectorRef.current]) : 4;
-        spriteRef.current.style.backgroundPosition = getCellPos(dirIdx >= 0 ? dirIdx : 4);
+        spriteRef.current.style.backgroundPosition = currentBgPosRef.current || '50% 50%';
+        updateHeadRef.current?.();
       } else {
         isReactingRef.current = true;
         spriteRef.current.style.backgroundImage = `url("${currentChar.reactions}")`;
@@ -394,6 +442,9 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
           if (onPosChange) onPosChange(latestPos, config.size || 110);
           return latestPos;
         });
+        setTimeout(() => {
+          updateHeadRef.current?.();
+        }, 50);
       }
     };
 
@@ -466,14 +517,15 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
           height: '100%',
           backgroundImage: `url("${currentChar.directions}")`,
           backgroundSize: '300% 300%',
-          backgroundPosition: '50% 50%',
+          backgroundPosition: currentBgPosRef.current || '50% 50%',
           backgroundRepeat: 'no-repeat',
           cursor: config.locked ? 'pointer' : isDragging ? 'grabbing' : 'grab',
           opacity: config.opacity ?? 1
         }}
+        className="pointer-events-auto select-none transition-transform duration-100 ease-out"
       />
     </div>
   );
 };
 
-export default PageMascot;
+export default memo(PageMascot);

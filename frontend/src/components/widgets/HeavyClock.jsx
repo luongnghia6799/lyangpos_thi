@@ -81,11 +81,167 @@ function translateJieQi(str) {
   return JIEQI_MAP[str] || str;
 }
 
-// Calendar Sidepanel Drawer Component (Zero-white warm theme)
-const CalendarModal = ({ isOpen, onClose, initialDate }) => {
+// Color and Theme Helper utilities for Calendar Sidepanel
+function hexToRgba(hex, alpha = 1) {
+  if (!hex || typeof hex !== 'string') return `rgba(45, 80, 22, ${alpha})`;
+  let clean = hex.replace('#', '');
+  if (clean.length === 3) clean = clean.split('').map(c => c + c).join('');
+  if (clean.length !== 6) return `rgba(45, 80, 22, ${alpha})`;
+  const num = parseInt(clean, 16);
+  return `rgba(${num >> 16}, ${(num >> 8) & 0xff}, ${num & 0xff}, ${alpha})`;
+}
+
+function adjustColor(hex, percent) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return hex;
+  let clean = hex.replace('#', '');
+  if (clean.length === 3) clean = clean.split('').map(c => c + c).join('');
+  if (clean.length !== 6) return hex;
+  const num = parseInt(clean, 16);
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00FF) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000FF) + Math.round(255 * (percent / 100));
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+function getCalendarTheme(config, isDark = false) {
+  const hasCustomAccent = Boolean(config?.accentColor && config.accentColor !== 'default');
+  const hasCustomBorder = Boolean(config?.borderColor && config.borderColor !== 'default');
+  const hasCustomHeader = Boolean(config?.headerBg && config.headerBg !== 'default');
+
+  // Base primary
+  let primary = hasCustomAccent ? config.accentColor : (isDark ? '#10b981' : '#2d5016');
+  let secondary = hasCustomBorder 
+    ? config.borderColor 
+    : (hasCustomAccent ? adjustColor(primary, 24) : (isDark ? '#d4a574' : '#8b6f47'));
+  let headerBg = hasCustomHeader ? config.headerBg : null;
+
+  const primaryDark = adjustColor(primary, -22);
+  const primaryLight = adjustColor(primary, 26);
+  const secondaryDark = adjustColor(secondary, -20);
+  const secondaryLight = adjustColor(secondary, 22);
+
+  // Surface background tints based on theme
+  let drawerBg = isDark ? '#071510' : '#f4efe6';
+  let headerSurface = isDark ? '#040e0a' : '#ebe3d5';
+  let cardBg = isDark 
+    ? 'linear-gradient(135deg, #0a1f16 0%, #071510 50%, #040e0a 100%)' 
+    : 'linear-gradient(135deg, #ebe4d6 0%, #e5dcce 50%, #dfd3c3 100%)';
+  let cellBg = isDark ? '#0c241b' : '#f5ede0';
+  let navBg = isDark ? '#040e0a' : '#ebe3d5';
+  let navBtnBg = isDark ? '#0f2e21' : '#dfd5c4';
+
+  if (hasCustomAccent) {
+    if (isDark) {
+      drawerBg = adjustColor(primary, -88);
+      headerSurface = adjustColor(primary, -92);
+      navBg = adjustColor(primary, -92);
+      navBtnBg = adjustColor(primary, -78);
+      cellBg = adjustColor(primary, -84);
+      cardBg = `linear-gradient(135deg, ${adjustColor(primary, -85)} 0%, ${adjustColor(primary, -90)} 50%, ${adjustColor(primary, -94)} 100%)`;
+    } else {
+      drawerBg = adjustColor(primary, 93);
+      headerSurface = adjustColor(primary, 86);
+      navBg = adjustColor(primary, 86);
+      navBtnBg = adjustColor(primary, 76);
+      cellBg = adjustColor(primary, 95);
+      cardBg = `linear-gradient(135deg, ${adjustColor(primary, 88)} 0%, ${adjustColor(primary, 84)} 50%, ${adjustColor(primary, 80)} 100%)`;
+    }
+  }
+
+  return {
+    primary,
+    primaryDark,
+    primaryLight,
+    secondary,
+    secondaryDark,
+    secondaryLight,
+    headerBg,
+    drawerBg,
+    headerSurface,
+    cardBg,
+    cellBg,
+    navBg,
+    navBtnBg,
+    hasCustomAccent
+  };
+}
+
+// Calendar Sidepanel Drawer Component (Theme-driven reactive)
+const CalendarModal = ({ isOpen, onClose, initialDate, cartColorConfig: propConfig }) => {
   const [viewDate, setViewDate] = useState(() => new Date(initialDate || new Date()));
   const [selectedDate, setSelectedDate] = useState(() => new Date(initialDate || new Date()));
   const [liveTime, setLiveTime] = useState(new Date());
+
+  const [cartColorConfig, setCartColorConfig] = useState(() => {
+    if (propConfig) return propConfig;
+    try {
+      return JSON.parse(localStorage.getItem('pos_cart_color_config') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+  });
+
+  // Sync propConfig
+  useEffect(() => {
+    if (propConfig) setCartColorConfig(propConfig);
+  }, [propConfig]);
+
+  // Synchronize color config across tabs and broadcast events
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (e.data?.type === 'CART_COLOR_CONFIG_UPDATED' || (e.data?.type === 'UI_SETTING_UPDATED' && e.data?.key === 'pos_cart_color_config')) {
+        try {
+          const parsed = typeof e.data.value === 'string' ? JSON.parse(e.data.value) : (e.data.config || e.data.value);
+          if (parsed) setCartColorConfig(parsed);
+        } catch {}
+      }
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'pos_cart_color_config') {
+        try {
+          setCartColorConfig(JSON.parse(e.newValue || '{}'));
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    let chan;
+    try {
+      chan = new BroadcastChannel('pos_data_sync');
+      chan.addEventListener('message', handleSync);
+    } catch {}
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (chan) chan.close();
+    };
+  }, []);
+
+  // Monitor Dark mode
+  useEffect(() => {
+    if (!isOpen) return;
+    const checkDark = () => {
+      const dark = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+      setIsDark(dark);
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('storage', checkDark);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('storage', checkDark);
+    };
+  }, [isOpen]);
+
+  const theme = useMemo(() => getCalendarTheme(cartColorConfig, isDark), [cartColorConfig, isDark]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -215,29 +371,66 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
             onClick={onClose}
           />
 
-          {/* Sidepanel Drawer with Zero-white Warm Theme */}
+          {/* Sidepanel Drawer with Dynamic Theme Adaptation */}
           <motion.div
             initial={{ x: "100%", opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 30, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative z-10 w-full max-w-[480px] sm:max-w-[510px] h-full bg-[#f4efe6] dark:bg-[#071510] border-l border-[#8b6f47]/30 dark:border-emerald-500/25 shadow-2xl flex flex-col justify-between text-slate-800 dark:text-slate-100 overflow-hidden"
+            style={{
+              backgroundColor: theme.drawerBg,
+              borderLeftColor: theme.hasCustomAccent ? hexToRgba(theme.primary, 0.35) : undefined
+            }}
+            className={cn(
+              "relative z-10 w-full max-w-[480px] sm:max-w-[510px] h-full border-l shadow-2xl flex flex-col justify-between overflow-hidden transition-colors duration-200",
+              !theme.hasCustomAccent && "bg-[#f4efe6] dark:bg-[#071510] border-[#8b6f47]/30 dark:border-emerald-500/25",
+              isDark ? "text-slate-100" : "text-slate-800"
+            )}
           >
             {/* Header Bar */}
-            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-[#8b6f47]/20 dark:border-white/10 shrink-0 bg-[#ebe3d5] dark:bg-[#040e0a]">
+            <div 
+              style={{
+                backgroundColor: theme.headerSurface,
+                borderBottomColor: hexToRgba(theme.primary, 0.2)
+              }}
+              className={cn(
+                "flex items-center justify-between px-4 sm:px-5 py-3 border-b shrink-0 transition-colors duration-200",
+                !theme.hasCustomAccent && "bg-[#ebe3d5] dark:bg-[#040e0a] border-[#8b6f47]/20 dark:border-white/10"
+              )}
+            >
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#8b6f47]/15 dark:bg-emerald-500/15 border border-[#8b6f47]/30 dark:border-emerald-500/30 text-[#8b6f47] dark:text-emerald-400 flex items-center justify-center shadow-inner shrink-0">
+                <div 
+                  style={{
+                    backgroundColor: hexToRgba(theme.primary, 0.14),
+                    borderColor: hexToRgba(theme.primary, 0.3),
+                    color: theme.primary
+                  }}
+                  className="w-9 h-9 rounded-xl border flex items-center justify-center shadow-inner shrink-0"
+                >
                   <CalendarIcon size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5">
+                  <h3 
+                    style={{ color: isDark && !theme.hasCustomAccent ? '#34d399' : theme.primary }}
+                    className="text-xs sm:text-sm font-black uppercase tracking-tight flex items-center gap-1.5"
+                  >
                     <span>Lịch Vạn Niên & Âm Lịch</span>
-                    <span className="text-[9px] font-extrabold px-2 py-0.2 rounded-full bg-[#8b6f47]/15 dark:bg-emerald-500/20 text-[#8b6f47] dark:text-emerald-300 normal-case tracking-normal">
+                    <span 
+                      style={{
+                        backgroundColor: hexToRgba(theme.primary, 0.14),
+                        color: isDark && !theme.hasCustomAccent ? '#6ee7b7' : theme.primary,
+                        borderColor: hexToRgba(theme.primary, 0.2)
+                      }}
+                      className="text-[9px] font-extrabold px-2 py-0.2 rounded-full border normal-case tracking-normal"
+                    >
                       Việt Nam
                     </span>
                   </h3>
-                  <p className="text-[10px] font-bold text-[#8b6f47]/80 dark:text-slate-400">
+                  <p 
+                    style={{ color: isDark ? 'rgba(255,255,255,0.6)' : hexToRgba(theme.secondary, 0.85) }}
+                    className="text-[10px] font-bold"
+                  >
                     Tra cứu Dương lịch, Âm lịch, Can Chi & Tiết khí
                   </p>
                 </div>
@@ -245,56 +438,111 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
 
               <div className="flex items-center gap-2">
                 {/* Live Clock Pill */}
-                <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#e3d7c5] dark:bg-[#0a1f16] border border-[#8b6f47]/20 dark:border-emerald-500/20 text-[#2d5016] dark:text-emerald-400 text-[11px] font-black tabular-nums shadow-xs">
-                  <Clock size={12} className="text-[#8b6f47] dark:text-emerald-400" />
+                <div 
+                  style={{
+                    backgroundColor: hexToRgba(theme.primary, 0.08),
+                    borderColor: hexToRgba(theme.primary, 0.22),
+                    color: isDark && !theme.hasCustomAccent ? '#34d399' : theme.primary
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-black tabular-nums shadow-xs"
+                >
+                  <Clock size={12} style={{ color: theme.primary }} />
                   <span>{liveTime.toLocaleTimeString('vi-VN')}</span>
                 </div>
 
                 <button
                   onClick={onClose}
-                  className="w-8 h-8 rounded-xl bg-[#e3d7c5] hover:bg-[#d8cbb7] dark:bg-white/5 dark:hover:bg-white/10 border border-[#8b6f47]/20 dark:border-white/10 flex items-center justify-center text-slate-600 hover:text-rose-500 transition-all cursor-pointer active:scale-95"
+                  style={{
+                    borderColor: hexToRgba(theme.primary, 0.2)
+                  }}
+                  className={cn(
+                    "w-8 h-8 rounded-xl border flex items-center justify-center transition-all cursor-pointer active:scale-95",
+                    isDark ? "bg-white/5 hover:bg-white/10 text-slate-300 hover:text-rose-400" : "bg-black/5 hover:bg-black/10 text-slate-600 hover:text-rose-600"
+                  )}
                 >
                   <X size={16} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
 
-            {/* Sidepanel Body (Auto-fitted, responsive on all laptop screens) */}
+            {/* Sidepanel Body */}
             <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between gap-2 overflow-y-auto custom-scrollbar min-h-0">
               {/* Unified Luxury Dual Hero Card */}
-              <div className="bg-gradient-to-br from-[#ebe4d6] via-[#e5dcce] to-[#dfd3c3] dark:from-[#0a1f16] dark:via-[#071510] dark:to-[#040e0a] border border-[#8b6f47]/25 dark:border-emerald-500/30 rounded-2xl p-3 shadow-xs relative overflow-hidden space-y-2 shrink-0">
+              <div 
+                style={{
+                  background: theme.cardBg,
+                  borderColor: hexToRgba(theme.primary, 0.24)
+                }}
+                className={cn(
+                  "border rounded-2xl p-3 shadow-xs relative overflow-hidden space-y-2 shrink-0 transition-all duration-200",
+                  !theme.hasCustomAccent && "border-[#8b6f47]/25 dark:border-emerald-500/30"
+                )}
+              >
                 {/* Watermark */}
-                <div className="absolute -right-3 -bottom-3 text-[#8b6f47]/8 dark:text-emerald-400/5 pointer-events-none">
+                <div 
+                  style={{ color: hexToRgba(theme.primary, 0.08) }}
+                  className="absolute -right-3 -bottom-3 pointer-events-none"
+                >
                   <Moon size={80} strokeWidth={1.5} />
                 </div>
 
                 {/* Top Section: Dual Date Highlights */}
                 <div className="relative z-10 grid grid-cols-2 gap-2.5 items-stretch">
                   {/* Left: Dương Lịch Box */}
-                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#f0e8db] dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 shadow-2xs">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2d5016] to-[#1c330e] dark:from-emerald-600 dark:to-teal-700 text-white flex flex-col items-center justify-center shadow-xs shrink-0 px-0.5">
+                  <div 
+                    style={{
+                      backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.45)',
+                      borderColor: hexToRgba(theme.primary, 0.18)
+                    }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl border shadow-2xs backdrop-blur-xs"
+                  >
+                    <div 
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                        boxShadow: `0 3px 10px ${hexToRgba(theme.primary, 0.35)}`
+                      }}
+                      className="w-12 h-12 rounded-xl text-white flex flex-col items-center justify-center shrink-0 px-0.5 border border-white/20"
+                    >
                       <span className="text-[6.5px] font-black uppercase tracking-tight opacity-90 leading-none">Tháng {selectedDetails.solarMonth}</span>
                       <span className="text-xl font-black leading-none mt-1">{selectedDetails.solarDay}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1 mb-0.5">
-                        <Sun size={11} className="text-amber-600 shrink-0" />
-                        <span className="text-[8.5px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
+                        <Sun size={11} className="text-amber-500 shrink-0" />
+                        <span 
+                          style={{ color: isDark ? '#fbbf24' : theme.secondary }}
+                          className="text-[8.5px] font-black uppercase tracking-wider"
+                        >
                           Dương Lịch
                         </span>
                       </div>
-                      <div className="text-xs font-black text-[#2d5016] dark:text-white capitalize leading-tight">
+                      <div 
+                        style={{ color: isDark ? '#ffffff' : theme.primary }}
+                        className="text-xs font-black capitalize leading-tight truncate"
+                      >
                         {selectedDetails.weekdayStr}
                       </div>
-                      <div className="text-[10px] font-bold text-[#8b6f47]/90 dark:text-slate-400 tabular-nums">
+                      <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums">
                         {selectedDetails.solarStr}
                       </div>
                     </div>
                   </div>
 
                   {/* Right: Âm Lịch Box */}
-                  <div className="flex items-center gap-2.5 p-2 rounded-xl bg-[#f0e8db] dark:bg-[#06140e] border border-[#8b6f47]/20 dark:border-white/10 shadow-2xs">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8b6f47] to-[#6e5433] dark:from-amber-600 dark:to-yellow-700 text-white flex flex-col items-center justify-center shadow-xs shrink-0 px-0.5">
+                  <div 
+                    style={{
+                      backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.45)',
+                      borderColor: hexToRgba(theme.secondary, 0.2)
+                    }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl border shadow-2xs backdrop-blur-xs"
+                  >
+                    <div 
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.secondary}, ${theme.secondaryDark})`,
+                        boxShadow: `0 3px 10px ${hexToRgba(theme.secondary, 0.35)}`
+                      }}
+                      className="w-12 h-12 rounded-xl text-white flex flex-col items-center justify-center shrink-0 px-0.5 border border-white/20"
+                    >
                       <span className="text-[6.5px] font-black uppercase tracking-tight opacity-90 leading-none">
                         {selectedDetails.isLeap ? 'Nhuận' : 'Âm Lịch'}
                       </span>
@@ -303,26 +551,39 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <div className="flex items-center gap-1">
-                          <Moon size={11} className="text-[#8b6f47] dark:text-amber-400 shrink-0" />
-                          <span className="text-[8.5px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-amber-400">
+                          <Moon size={11} style={{ color: theme.secondary }} className="shrink-0" />
+                          <span 
+                            style={{ color: isDark ? '#fcd34d' : theme.secondary }}
+                            className="text-[8.5px] font-black uppercase tracking-wider"
+                          >
                             Âm Lịch
                           </span>
                         </div>
                         {selectedDetails.lunarDay === 1 && (
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-rose-500/12 dark:bg-rose-500/20 border border-rose-500/30 text-rose-700 dark:text-rose-300 leading-none shadow-2xs">
+                          <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 leading-none shadow-2xs">
                             Mùng 1
                           </span>
                         )}
                         {selectedDetails.lunarDay === 15 && (
-                          <span className="text-[8px] font-black px-2 py-0.5 rounded-full bg-amber-500/12 dark:bg-amber-500/20 border border-amber-500/30 text-[#8b6f47] dark:text-amber-300 leading-none shadow-2xs">
+                          <span 
+                            style={{
+                              backgroundColor: hexToRgba(theme.secondary, 0.15),
+                              borderColor: hexToRgba(theme.secondary, 0.35),
+                              color: isDark ? '#fde047' : theme.secondary
+                            }}
+                            className="text-[8px] font-black px-2 py-0.5 rounded-full border leading-none shadow-2xs"
+                          >
                             Rằm
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] font-black text-[#8b6f47] dark:text-amber-300 truncate leading-tight">
+                      <div 
+                        style={{ color: isDark ? '#fde68a' : theme.secondaryDark }}
+                        className="text-[11px] font-black truncate leading-tight"
+                      >
                         Tháng {selectedDetails.lunarMonth} năm {selectedDetails.yearGanZhi}
                       </div>
-                      <div className="text-[9.5px] font-bold text-slate-600 dark:text-slate-400 truncate">
+                      <div className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 truncate">
                         {selectedDetails.shengXiao}
                       </div>
                     </div>
@@ -330,24 +591,46 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                 </div>
 
                 {/* Bottom Row: Can Chi & Tiết Khí Chips */}
-                <div className="relative z-10 pt-1.5 border-t border-[#8b6f47]/20 dark:border-white/10 flex flex-wrap items-center justify-between gap-1.5">
+                <div 
+                  style={{ borderTopColor: hexToRgba(theme.primary, 0.16) }}
+                  className="relative z-10 pt-1.5 border-t flex flex-wrap items-center justify-between gap-1.5"
+                >
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="px-2 py-0.5 rounded-lg bg-[#dfd4c3] dark:bg-[#040e0a] border border-[#8b6f47]/20 dark:border-white/5 text-[10px] font-bold text-slate-800 dark:text-slate-300">
+                    <span 
+                      style={{
+                        backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.55)',
+                        borderColor: hexToRgba(theme.primary, 0.16)
+                      }}
+                      className="px-2 py-0.5 rounded-lg border text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                    >
                       Ngày <b>{selectedDetails.dayGanZhi}</b>
                     </span>
-                    <span className="px-2 py-0.5 rounded-lg bg-[#dfd4c3] dark:bg-[#040e0a] border border-[#8b6f47]/20 dark:border-white/5 text-[10px] font-bold text-slate-800 dark:text-slate-300">
+                    <span 
+                      style={{
+                        backgroundColor: isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.55)',
+                        borderColor: hexToRgba(theme.primary, 0.16)
+                      }}
+                      className="px-2 py-0.5 rounded-lg border text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                    >
                       Tháng <b>{selectedDetails.monthGanZhi}</b>
                     </span>
                     {selectedDetails.jieQi && (
-                      <span className="px-2 py-0.5 rounded-lg bg-amber-600/10 border border-amber-600/20 text-[10px] font-bold text-[#8b6f47] dark:text-amber-300 flex items-center gap-1">
-                        <Sun size={10} className="text-amber-600" />
+                      <span 
+                        style={{
+                          backgroundColor: hexToRgba(theme.secondary, 0.14),
+                          borderColor: hexToRgba(theme.secondary, 0.28),
+                          color: isDark ? '#fde047' : theme.secondary
+                        }}
+                        className="px-2 py-0.5 rounded-lg border text-[10px] font-bold flex items-center gap-1"
+                      >
+                        <Sun size={10} className="text-amber-500" />
                         <span>Tiết: <b>{selectedDetails.jieQi}</b></span>
                       </span>
                     )}
                   </div>
 
                   {selectedDetails.holiday && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 dark:from-rose-800 dark:via-rose-700 dark:to-amber-700 text-white text-[10.5px] font-black tracking-tight shadow-xs border border-rose-300/40">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white text-[10.5px] font-black tracking-tight shadow-xs border border-rose-300/40">
                       <Sparkles size={11} className="text-amber-200 shrink-0" />
                       <span className="leading-none">{selectedDetails.holiday}</span>
                     </div>
@@ -356,28 +639,53 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
               </div>
 
               {/* Month Navigation & Controls */}
-              <div className="flex items-center justify-between bg-[#ebe3d5] dark:bg-[#040e0a] border border-[#8b6f47]/20 dark:border-emerald-500/20 rounded-xl p-1 shadow-2xs shrink-0">
+              <div 
+                style={{
+                  backgroundColor: theme.navBg,
+                  borderColor: hexToRgba(theme.primary, 0.2)
+                }}
+                className="flex items-center justify-between border rounded-xl p-1 shadow-2xs shrink-0"
+              >
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handlePrevYear}
                     title="Năm trước"
-                    className="w-7 h-7 rounded-lg bg-[#dfd5c4] hover:bg-[#d5c9b6] dark:bg-[#0f2e21] dark:hover:bg-[#143c2c] border border-[#8b6f47]/20 dark:border-emerald-500/30 flex items-center justify-center text-[#8b6f47] dark:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    style={{
+                      backgroundColor: theme.navBtnBg,
+                      borderColor: hexToRgba(theme.primary, 0.18),
+                      color: theme.primary
+                    }}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs hover:brightness-105"
                   >
                     <ChevronsLeft size={13} />
                   </button>
                   <button
                     onClick={handlePrevMonth}
                     title="Tháng trước"
-                    className="w-7 h-7 rounded-lg bg-[#dfd5c4] hover:bg-[#d5c9b6] dark:bg-[#0f2e21] dark:hover:bg-[#143c2c] border border-[#8b6f47]/20 dark:border-emerald-500/30 flex items-center justify-center text-[#8b6f47] dark:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    style={{
+                      backgroundColor: theme.navBtnBg,
+                      borderColor: hexToRgba(theme.primary, 0.18),
+                      color: theme.primary
+                    }}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs hover:brightness-105"
                   >
                     <ChevronLeft size={13} />
                   </button>
                 </div>
 
                 {/* Month & Year Title */}
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#dfd5c4] dark:bg-white/[0.04] border border-[#8b6f47]/20 dark:border-white/5">
-                  <CalendarIcon size={13} className="text-[#8b6f47] dark:text-emerald-400" />
-                  <span className="text-xs font-black uppercase text-[#2d5016] dark:text-emerald-400 tracking-wider">
+                <div 
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    borderColor: hexToRgba(theme.primary, 0.16)
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg border"
+                >
+                  <CalendarIcon size={13} style={{ color: theme.primary }} />
+                  <span 
+                    style={{ color: isDark && !theme.hasCustomAccent ? '#34d399' : theme.primary }}
+                    className="text-xs font-black uppercase tracking-wider"
+                  >
                     Tháng {viewMonth + 1} / {viewYear}
                   </span>
                 </div>
@@ -385,37 +693,66 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handleToday}
-                    className="px-2.5 py-1 rounded-lg bg-[#8b6f47] hover:bg-[#735b39] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-[11px] font-black transition-all cursor-pointer active:scale-95 shadow-xs"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                      boxShadow: `0 2px 8px ${hexToRgba(theme.primary, 0.3)}`
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-white text-[11px] font-black transition-all cursor-pointer active:scale-95 hover:brightness-110"
                   >
                     Hôm nay
                   </button>
                   <button
                     onClick={handleNextMonth}
                     title="Tháng sau"
-                    className="w-7 h-7 rounded-lg bg-[#dfd5c4] hover:bg-[#d5c9b6] dark:bg-[#0f2e21] dark:hover:bg-[#143c2c] border border-[#8b6f47]/20 dark:border-emerald-500/30 flex items-center justify-center text-[#8b6f47] dark:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    style={{
+                      backgroundColor: theme.navBtnBg,
+                      borderColor: hexToRgba(theme.primary, 0.18),
+                      color: theme.primary
+                    }}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs hover:brightness-105"
                   >
                     <ChevronRight size={13} />
                   </button>
                   <button
                     onClick={handleNextYear}
                     title="Năm sau"
-                    className="w-7 h-7 rounded-lg bg-[#dfd5c4] hover:bg-[#d5c9b6] dark:bg-[#0f2e21] dark:hover:bg-[#143c2c] border border-[#8b6f47]/20 dark:border-emerald-500/30 flex items-center justify-center text-[#8b6f47] dark:text-emerald-300 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    style={{
+                      backgroundColor: theme.navBtnBg,
+                      borderColor: hexToRgba(theme.primary, 0.18),
+                      color: theme.primary
+                    }}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs hover:brightness-105"
                   >
                     <ChevronsRight size={13} />
                   </button>
                 </div>
               </div>
 
-              {/* Luxury Calendar Grid Container (Fluid Responsive) */}
-              <div className="bg-gradient-to-b from-[#ebe4d6] via-[#e5dcce] to-[#dfd3c3] dark:from-[#0a1f16] dark:via-[#071610] dark:to-[#040e0a] border border-[#8b6f47]/25 dark:border-emerald-500/25 rounded-2xl p-2.5 shadow-sm space-y-1.5 flex-1 min-h-0 flex flex-col justify-between">
+              {/* Luxury Calendar Grid Container */}
+              <div 
+                style={{
+                  background: theme.cardBg,
+                  borderColor: hexToRgba(theme.primary, 0.22)
+                }}
+                className="border rounded-2xl p-2.5 shadow-sm space-y-1.5 flex-1 min-h-0 flex flex-col justify-between"
+              >
                 {/* Weekday Header Track */}
-                <div className="grid grid-cols-7 gap-1.5 p-1 bg-[#ded3c2] dark:bg-white/[0.03] border border-[#8b6f47]/15 dark:border-white/5 rounded-xl shrink-0">
+                <div 
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)',
+                    borderColor: hexToRgba(theme.primary, 0.12)
+                  }}
+                  className="grid grid-cols-7 gap-1.5 p-1 border rounded-xl shrink-0"
+                >
                   {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, idx) => (
                     <div 
                       key={day} 
+                      style={{
+                        color: idx >= 5 ? undefined : (isDark ? '#e2e8f0' : theme.primary)
+                      }}
                       className={cn(
                         "text-center py-0.5 text-[10px] sm:text-[10.5px] font-black uppercase tracking-wider",
-                        idx >= 5 ? "text-rose-700 dark:text-rose-400" : "text-[#8b6f47] dark:text-[#d4a574]"
+                        idx >= 5 && "text-rose-600 dark:text-rose-400"
                       )}
                     >
                       {day}
@@ -423,7 +760,7 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                   ))}
                 </div>
 
-                {/* Grid 42 Luxury Cells (Auto-distribute 6 rows height) */}
+                {/* Grid 42 Cells */}
                 <div className="grid grid-cols-7 grid-rows-6 gap-1 sm:gap-1.5 flex-1 min-h-0 items-stretch">
                   {calendarGrid.map((item, idx) => {
                     const isCurrent = item.isCurrentMonth;
@@ -432,28 +769,50 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                     const isMung1 = item.isMung1;
                     const isRam = item.isRam;
 
+                    let cellStyle = {};
+                    if (isSelected) {
+                      cellStyle = {
+                        background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                        borderColor: theme.primaryLight,
+                        boxShadow: `0 4px 14px ${hexToRgba(theme.primary, 0.4)}`
+                      };
+                    } else if (isToday) {
+                      cellStyle = {
+                        background: isDark ? hexToRgba(theme.primary, 0.18) : hexToRgba(theme.primary, 0.12),
+                        borderColor: theme.primary,
+                        color: isDark ? '#ffffff' : theme.primary
+                      };
+                    } else if (isCurrent) {
+                      cellStyle = {
+                        backgroundColor: theme.cellBg,
+                        borderColor: hexToRgba(theme.primary, 0.14)
+                      };
+                    } else {
+                      cellStyle = {
+                        backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                        borderColor: hexToRgba(theme.primary, 0.08)
+                      };
+                    }
+
                     return (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => setSelectedDate(item.date)}
+                        style={cellStyle}
                         className={cn(
                           "relative overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 rounded-xl transition-all duration-150 cursor-pointer select-none border text-left box-border group h-full",
-                          // 1. Current month normal days: warm coffee tone (zero white)
-                          isCurrent && !isSelected && !isToday && "bg-[#f5ede0] dark:bg-[#0c241b] border-[#8b6f47]/20 dark:border-emerald-500/20 text-slate-800 dark:text-slate-100 shadow-[0_1px_3px_rgba(139,111,71,0.05)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 hover:shadow-sm hover:border-[#8b6f47]/50 dark:hover:border-emerald-400/40 hover:bg-[#ebe0ce]",
-                          // 2. Non-current month days
-                          !isCurrent && !isSelected && "bg-[#ded3c2]/40 dark:bg-black/20 border-dashed border-[#8b6f47]/12 dark:border-white/5 text-slate-500/50 dark:text-slate-600 opacity-50 hover:opacity-85",
-                          // 3. Today (when not selected): Rich warm caramel background with glowing double ring
-                          isToday && !isSelected && "bg-gradient-to-b from-[#eadac4] to-[#decab1] dark:from-[#0e3525] dark:to-[#082017] ring-2 ring-[#8b6f47] dark:ring-emerald-400 border border-[#8b6f47]/40 text-[#8b6f47] dark:text-emerald-300 shadow-xs",
-                          // 4. Selected day
-                          isSelected && "bg-gradient-to-br from-[#8b6f47] via-[#785e3a] to-[#5d4629] dark:from-emerald-600 dark:via-emerald-700 dark:to-teal-800 text-white border-[#8b6f47] dark:border-emerald-400 shadow-md shadow-[#8b6f47]/30 dark:shadow-emerald-600/35 scale-[1.02] z-10"
+                          isCurrent && !isSelected && !isToday && "text-slate-800 dark:text-slate-100 hover:-translate-y-0.5 hover:shadow-sm",
+                          !isCurrent && !isSelected && "border-dashed text-slate-400/50 dark:text-slate-600 opacity-50 hover:opacity-85",
+                          isToday && !isSelected && "ring-2 shadow-xs",
+                          isSelected && "text-white scale-[1.02] z-10"
                         )}
                       >
                         {/* Top Row: Solar Day & Badges */}
                         <div className="w-full flex items-center justify-between leading-none">
                           <span className={cn(
                             "text-[11px] sm:text-xs font-black tabular-nums leading-none tracking-tight",
-                            isSelected ? "text-white drop-shadow-2xs" : item.isWeekend ? "text-rose-700 dark:text-rose-400" : isCurrent ? "text-slate-800 dark:text-slate-100" : "text-slate-500/60 dark:text-slate-600"
+                            isSelected ? "text-white drop-shadow-2xs" : item.isWeekend ? "text-rose-600 dark:text-rose-400" : isCurrent ? "text-slate-800 dark:text-slate-100" : "text-slate-400 dark:text-slate-600"
                           )}>
                             {item.dayNumber}
                           </span>
@@ -462,10 +821,10 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
                             {isToday && (
                               <span 
                                 title="Hôm nay"
-                                className={cn(
-                                  "w-1.5 h-1.5 rounded-full shrink-0 transition-transform",
-                                  isSelected ? "bg-amber-300 shadow-2xs scale-110" : "bg-[#8b6f47] dark:bg-emerald-400 shadow-2xs"
-                                )} 
+                                style={{
+                                  backgroundColor: isSelected ? '#fde047' : theme.primary
+                                }}
+                                className="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs" 
                               />
                             )}
                             {item.holiday && !isToday && (
@@ -476,17 +835,31 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
 
                         {/* Bottom Row: Lunar Day Badges */}
                         <div className="w-full flex items-center justify-end leading-none mt-0.5">
-                          <span className={cn(
-                            "tabular-nums tracking-tight px-1.5 py-0.2 rounded-md leading-none transition-all",
-                            // Selected
-                            isSelected && "text-amber-200 bg-black/25 text-[8.5px] font-black border border-white/10",
-                            // Mùng 1 & Rằm
-                            !isSelected && (isMung1 || isRam) && "text-rose-700 dark:text-rose-300 bg-rose-500/10 dark:bg-rose-500/20 border border-rose-500/25 text-[8.5px] font-black shadow-2xs",
-                            // Normal current month
-                            !isSelected && !isMung1 && !isRam && isCurrent && "text-[#8b6f47]/80 dark:text-emerald-400/80 bg-[#8b6f47]/[0.06] dark:bg-emerald-500/10 text-[9px] font-bold",
-                            // Normal non-current month
-                            !isSelected && !isMung1 && !isRam && !isCurrent && "text-slate-500/50 dark:text-slate-600 text-[8.5px] font-bold"
-                          )}>
+                          <span 
+                            style={
+                              isSelected ? {
+                                color: '#fef08a',
+                                backgroundColor: 'rgba(0,0,0,0.25)',
+                                borderColor: 'rgba(255,255,255,0.15)'
+                              } : (isMung1 || isRam) ? {
+                                color: '#e11d48',
+                                backgroundColor: 'rgba(244,63,94,0.14)',
+                                borderColor: 'rgba(244,63,94,0.3)'
+                              } : isCurrent ? {
+                                color: isDark ? hexToRgba(theme.primaryLight, 0.95) : theme.primary,
+                                backgroundColor: hexToRgba(theme.primary, 0.08)
+                              } : {
+                                color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+                              }
+                            }
+                            className={cn(
+                              "tabular-nums tracking-tight px-1.5 py-0.2 rounded-md leading-none transition-all",
+                              isSelected && "text-[8.5px] font-black border",
+                              !isSelected && (isMung1 || isRam) && "text-[8.5px] font-black border shadow-2xs",
+                              !isSelected && !isMung1 && !isRam && isCurrent && "text-[9px] font-bold",
+                              !isSelected && !isMung1 && !isRam && !isCurrent && "text-[8.5px] font-bold"
+                            )}
+                          >
                             {item.lunarDisplay}
                           </span>
                         </div>
@@ -498,10 +871,22 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
             </div>
 
             {/* Footer with Legend & Close Button */}
-            <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-t border-[#8b6f47]/20 dark:border-white/10 shrink-0 bg-[#ebe3d5] dark:bg-[#040e0a]">
+            <div 
+              style={{
+                backgroundColor: theme.headerSurface,
+                borderTopColor: hexToRgba(theme.primary, 0.2)
+              }}
+              className={cn(
+                "flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 border-t shrink-0 transition-colors duration-200",
+                !theme.hasCustomAccent && "bg-[#ebe3d5] dark:bg-[#040e0a] border-[#8b6f47]/20 dark:border-white/10"
+              )}
+            >
               <div className="flex items-center gap-3 text-[10.5px] font-bold text-slate-700 dark:text-slate-400 flex-wrap">
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-[#8b6f47]" />
+                  <span 
+                    style={{ backgroundColor: theme.primary }}
+                    className="w-2 h-2 rounded-full" 
+                  />
                   <span>Dưới: <b>Âm lịch</b></span>
                 </span>
                 <span className="flex items-center gap-1">
@@ -513,7 +898,11 @@ const CalendarModal = ({ isOpen, onClose, initialDate }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="py-2 px-5 bg-gradient-to-r from-[#8b6f47] to-[#6e5433] dark:from-emerald-600 dark:to-teal-600 hover:opacity-95 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-[#8b6f47]/20 dark:shadow-emerald-600/25 active:scale-98 cursor-pointer shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${theme.primary}, ${theme.primaryDark})`,
+                  boxShadow: `0 4px 14px ${hexToRgba(theme.primary, 0.3)}`
+                }}
+                className="py-2 px-5 hover:opacity-95 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all active:scale-98 cursor-pointer shrink-0"
               >
                 Đóng Lịch
               </button>
@@ -651,6 +1040,7 @@ const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' })
           isOpen={isCalendarOpen} 
           onClose={handleCloseCalendar} 
           initialDate={currentTime} 
+          cartColorConfig={cartColorConfig} 
         />
       </>
     );
@@ -690,6 +1080,7 @@ const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' })
           isOpen={isCalendarOpen} 
           onClose={handleCloseCalendar} 
           initialDate={currentTime} 
+          cartColorConfig={cartColorConfig} 
         />
       </>
     );
@@ -732,6 +1123,7 @@ const HeavyClock = ({ variant = 'posnew', gpuDisabled = false, className = '' })
           isOpen={isCalendarOpen} 
           onClose={handleCloseCalendar} 
           initialDate={currentTime} 
+          cartColorConfig={cartColorConfig} 
         />
       </>
     );

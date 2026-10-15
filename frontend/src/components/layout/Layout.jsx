@@ -73,6 +73,8 @@ import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
 import CartColorCustomizerModal from '../modals/CartColorCustomizerModal';
 import DynamicIcon from '../widgets/DynamicIcon';
+import { MASCOT_LIST, playPopSound } from '../../lib/mascots';
+import SidebarLogoCustomizerModal, { getDashboardAvatar } from '../modals/SidebarLogoCustomizerModal';
 
 const Portal = ({ children }) => {
     return createPortal(children, document.body);
@@ -423,6 +425,375 @@ const ActivePillMascot = memo(({ isCollapsed }) => {
                     </div>
                 </Portal>
             )}
+        </>
+    );
+});
+
+// Direction and animation helpers for interactive head-turning Sidebar Mascot
+const MASCOT_DIRECTIONS = [
+    'up-left', 'up', 'up-right',
+    'left', 'center', 'right',
+    'down-left', 'down', 'down-right'
+];
+
+const MASCOT_CLOCKWISE = [
+    'right', 'down-right', 'down', 'down-left',
+    'left', 'up-left', 'up', 'up-right'
+];
+
+const MASCOT_REACTIONS = [
+    'blink', 'heart', 'sparkle', 'surprised',
+    'wink', 'bashful', 'sleepy', 'dizzy', 'delighted'
+];
+
+const MASCOT_SECTOR = (Math.PI * 2) / MASCOT_CLOCKWISE.length;
+const MASCOT_HYSTERESIS = 0.08;
+
+function getMascotCellPos(index) {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    return `${col * 50}% ${row * 50}%`;
+}
+
+function wrapMascotAngle(angle) {
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+const SidebarMascotLogo = memo(({ onClick }) => {
+    const containerRef = useRef(null);
+    const spriteRef = useRef(null);
+    const sectorRef = useRef(-1);
+    const isReactingRef = useRef(false);
+    const timerRef = useRef(null);
+    const blinkTimerRef = useRef(null);
+    const boopsRef = useRef({ count: 0, at: 0 });
+    const rafRef = useRef(null);
+    const lastPointerRef = useRef((typeof window !== 'undefined' && window.__lyangLastPointer) ? { ...window.__lyangLastPointer } : { x: -999, y: -999 });
+    const centerRef = useRef({ x: 40, y: 40 });
+    const updateHeadRef = useRef(null);
+    const currentBgPosRef = useRef('50% 50%');
+
+    const [showCustomizer, setShowCustomizer] = useState(false);
+
+    // Logo Mode: 'mascot' or 'static'
+    const [logoType, setLogoType] = useState(() => localStorage.getItem('sidebar_logo_type') || 'mascot');
+    const [staticSource, setStaticSource] = useState(() => localStorage.getItem('sidebar_logo_static_source') || 'dashboard_avatar');
+    const [customImage, setCustomImage] = useState(() => localStorage.getItem('sidebar_logo_custom_image') || '');
+    const [dashboardAvatar, setDashboardAvatar] = useState(() => getDashboardAvatar());
+
+    const [charId, setCharId] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_mascot_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed.characterId || 'lyang';
+            }
+        } catch (e) {}
+        return 'lyang';
+    });
+
+    const currentChar = useMemo(() => {
+        return MASCOT_LIST.find((c) => c.id === charId) || MASCOT_LIST[0];
+    }, [charId]);
+
+    // Measure & cache center of mascot in viewport
+    const updateCenter = useCallback(() => {
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            centerRef.current = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+        }
+    }, []);
+
+    // Sync with external logo & avatar changes
+    useEffect(() => {
+        const handleSync = () => {
+            setLogoType(localStorage.getItem('sidebar_logo_type') || 'mascot');
+            setStaticSource(localStorage.getItem('sidebar_logo_static_source') || 'dashboard_avatar');
+            setCustomImage(localStorage.getItem('sidebar_logo_custom_image') || '');
+            setDashboardAvatar(getDashboardAvatar());
+            try {
+                const saved = localStorage.getItem('lyang_mascot_config');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.characterId && parsed.characterId !== charId) {
+                        setCharId(parsed.characterId);
+                    }
+                }
+            } catch (e) {}
+        };
+        window.addEventListener('sidebar_logo_updated', handleSync);
+        window.addEventListener('user_avatar_updated', handleSync);
+        window.addEventListener('lyang_mascot_config_updated', handleSync);
+        window.addEventListener('storage', handleSync);
+        return () => {
+            window.removeEventListener('sidebar_logo_updated', handleSync);
+            window.removeEventListener('user_avatar_updated', handleSync);
+            window.removeEventListener('lyang_mascot_config_updated', handleSync);
+            window.removeEventListener('storage', handleSync);
+        };
+    }, [charId]);
+
+    // Update sprite when character changes
+    useEffect(() => {
+        if (logoType === 'mascot' && spriteRef.current && currentChar?.directions && !isReactingRef.current) {
+            spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+        }
+    }, [currentChar, logoType]);
+
+    // Update center on mount, window resize and scroll
+    useEffect(() => {
+        updateCenter();
+        window.addEventListener('resize', updateCenter, { passive: true });
+        window.addEventListener('scroll', updateCenter, { passive: true });
+        return () => {
+            window.removeEventListener('resize', updateCenter);
+            window.removeEventListener('scroll', updateCenter);
+        };
+    }, [updateCenter]);
+
+    // Buttery-smooth rAF pointer tracking + 2.5D head micro-tilt (only active in mascot mode)
+    const updateHead = useCallback(() => {
+        rafRef.current = null;
+        if (isReactingRef.current || !spriteRef.current) return;
+
+        let px = lastPointerRef.current.x;
+        let py = lastPointerRef.current.y;
+        if (px < 0 || py < 0) {
+            if (typeof window !== 'undefined' && window.__lyangLastPointer) {
+                px = window.__lyangLastPointer.x;
+                py = window.__lyangLastPointer.y;
+                lastPointerRef.current = { x: px, y: py };
+            } else {
+                return;
+            }
+        }
+
+        const dx = px - centerRef.current.x;
+        const dy = py - centerRef.current.y;
+        const distSq = dx * dx + dy * dy;
+
+        // Smooth micro 2.5D perspective tilt towards mouse cursor
+        const maxDist = Math.max(window.innerWidth || 1200, window.innerHeight || 800);
+        const dist = Math.sqrt(distSq);
+        const factor = Math.min(1, dist / (maxDist * 0.35));
+        const tiltX = dist > 0 ? (dx / dist) * factor * 2.8 : 0;
+        const tiltY = dist > 0 ? (dy / dist) * factor * 2.8 : 0;
+        const tiltRotate = dist > 0 ? (dx / dist) * factor * 3.8 : 0;
+
+        spriteRef.current.style.transform = `scale(1.22) translate3d(${tiltX.toFixed(2)}px, ${tiltY.toFixed(2)}px, 0px) rotate(${tiltRotate.toFixed(2)}deg)`;
+
+        // Deadzone: when mouse is directly over or very close to mascot (< 32px), look directly forward (center)
+        if (distSq < 32 * 32) {
+            if (sectorRef.current !== -1) {
+                sectorRef.current = -1;
+                currentBgPosRef.current = '50% 50%';
+                spriteRef.current.style.backgroundPosition = '50% 50%';
+            }
+            return;
+        }
+
+        const angle = Math.atan2(dy, dx);
+        const currentSector = sectorRef.current;
+
+        // Hysteresis threshold to prevent jittering on sector boundaries
+        if (
+            currentSector !== -1 &&
+            Math.abs(wrapMascotAngle(angle - currentSector * MASCOT_SECTOR)) < MASCOT_SECTOR / 2 + MASCOT_HYSTERESIS
+        ) {
+            if (spriteRef.current.style.backgroundPosition !== currentBgPosRef.current) {
+                spriteRef.current.style.backgroundPosition = currentBgPosRef.current;
+            }
+            return;
+        }
+
+        const newSector = (Math.round(angle / MASCOT_SECTOR) + MASCOT_CLOCKWISE.length) % MASCOT_CLOCKWISE.length;
+        sectorRef.current = newSector;
+        const dirName = MASCOT_CLOCKWISE[newSector];
+        const dirIdx = MASCOT_DIRECTIONS.indexOf(dirName);
+        if (dirIdx >= 0 && spriteRef.current) {
+            const pos = getMascotCellPos(dirIdx);
+            currentBgPosRef.current = pos;
+            spriteRef.current.style.backgroundPosition = pos;
+        }
+    }, []);
+
+    useEffect(() => {
+        updateHeadRef.current = updateHead;
+    }, [updateHead]);
+
+    useEffect(() => {
+        if (logoType !== 'mascot') return;
+
+        const handlePointerMove = (e) => {
+            lastPointerRef.current.x = e.clientX;
+            lastPointerRef.current.y = e.clientY;
+            if (typeof window !== 'undefined') {
+                window.__lyangLastPointer = { x: e.clientX, y: e.clientY };
+            }
+
+            if (!rafRef.current) {
+                rafRef.current = requestAnimationFrame(updateHead);
+            }
+        };
+
+        // If pointer position already known in session, sync head angle immediately
+        if (typeof window !== 'undefined' && window.__lyangLastPointer) {
+            lastPointerRef.current = { ...window.__lyangLastPointer };
+            updateHead();
+        }
+
+        window.addEventListener('pointermove', handlePointerMove, { passive: true });
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, [logoType, updateHead]);
+
+
+
+    // Clean up timers
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearTimeout(timerRef.current);
+            if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current);
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, []);
+
+    const handleClick = (e) => {
+        // Trigger cute boop reaction with dizzy support (in mascot mode)
+        if (logoType === 'mascot' && currentChar?.reactions && spriteRef.current) {
+            isReactingRef.current = true;
+            const now = Date.now();
+            const boops = boopsRef.current;
+            boops.count = now - boops.at < 1600 ? boops.count + 1 : 1;
+            boops.at = now;
+
+            if (timerRef.current) clearTimeout(timerRef.current);
+
+            spriteRef.current.style.backgroundImage = `url("${currentChar.reactions}")`;
+
+            if (boops.count >= 4) {
+                // Dizzy state from rapid clicking!
+                boops.count = 0;
+                spriteRef.current.style.backgroundPosition = getMascotCellPos(7); // 7 = dizzy
+                timerRef.current = setTimeout(() => {
+                    isReactingRef.current = false;
+                    if (spriteRef.current && currentChar?.directions) {
+                        spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+                        spriteRef.current.style.backgroundPosition = currentBgPosRef.current || '50% 50%';
+                        updateHeadRef.current?.();
+                    }
+                }, 1100);
+            } else {
+                // Blink then payoff emotion (heart, sparkle, wink, delighted, surprised)
+                spriteRef.current.style.backgroundPosition = getMascotCellPos(0); // blink
+                timerRef.current = setTimeout(() => {
+                    if (!spriteRef.current) return;
+                    const payoffs = [1, 2, 4, 8, 3]; // heart, sparkle, wink, delighted, surprised
+                    const payoff = payoffs[(boops.count - 1) % payoffs.length];
+                    spriteRef.current.style.backgroundPosition = getMascotCellPos(payoff);
+
+                    timerRef.current = setTimeout(() => {
+                        isReactingRef.current = false;
+                        if (spriteRef.current && currentChar?.directions) {
+                            spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+                            spriteRef.current.style.backgroundPosition = currentBgPosRef.current || '50% 50%';
+                            updateHeadRef.current?.();
+                        }
+                    }, 480);
+                }, 120);
+            }
+        }
+
+        try {
+            const saved = localStorage.getItem('lyang_mascot_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.soundEnabled !== false) playPopSound();
+            } else {
+                playPopSound();
+            }
+        } catch (err) {}
+
+        if (onClick) onClick(e);
+    };
+
+    // Compute effective static image URL
+    const effectiveStaticImage = useMemo(() => {
+        if (staticSource === 'custom' && customImage) return customImage;
+        if (staticSource === 'default') return '/logo.png';
+        return dashboardAvatar || customImage || '/logo.png';
+    }, [staticSource, customImage, dashboardAvatar]);
+
+    return (
+        <>
+            <m.div
+                ref={containerRef}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                onMouseEnter={updateCenter}
+                onClick={handleClick}
+                onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowCustomizer(true);
+                }}
+                data-no-button-mascot="true"
+                className="w-14 h-14 aspect-square shrink-0 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs relative bg-black/[0.03] dark:bg-white/[0.05] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40 dark:hover:border-white/25 select-none group"
+                title={logoType === 'mascot'
+                    ? "Linh vật LyangPOS (Chuột trái: Menu | Chuột phải: Đổi Avatar / Mascot)"
+                    : "Logo LyangPOS (Chuột trái: Menu | Chuột phải: Đổi Avatar / Mascot)"
+                }
+            >
+                {/* Ambient subtle glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-amber-500/5 to-transparent rounded-2xl pointer-events-none group-hover:from-emerald-500/20 group-hover:via-amber-500/10 transition-colors" />
+
+                {logoType === 'mascot' ? (
+                    /* Mascot Head Sprite - Smooth 2.5D Parallax with crisp instant frame switching */
+                    <div
+                        ref={spriteRef}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundImage: `url("${currentChar?.directions || '/mascots/lyang-directions.webp'}")`,
+                            backgroundSize: '300% 300%',
+                            backgroundPosition: currentBgPosRef.current || '50% 50%',
+                            backgroundRepeat: 'no-repeat',
+                            transform: 'scale(1.22)',
+                            transformOrigin: 'center center'
+                        }}
+                        className="pointer-events-none select-none transition-transform duration-100 ease-out"
+                    />
+                ) : (
+                    /* Static Avatar Image */
+                    <div className="w-full h-full flex items-center justify-center p-1 relative z-10">
+                        <img
+                            src={effectiveStaticImage}
+                            alt="Sidebar Logo"
+                            className={cn(
+                                "w-full h-full rounded-xl transition-transform duration-200 group-hover:scale-105",
+                                effectiveStaticImage === '/logo.png' ? "object-contain p-1" : "object-cover"
+                            )}
+                            onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/logo.png';
+                            }}
+                        />
+                    </div>
+                )}
+            </m.div>
+
+            {/* Modal Customizer in Portal */}
+            <Portal>
+                <SidebarLogoCustomizerModal
+                    isOpen={showCustomizer}
+                    onClose={() => setShowCustomizer(false)}
+                />
+            </Portal>
         </>
     );
 });
@@ -2201,34 +2572,9 @@ export default function Layout({ children }) {
                      )}
                  >
 
-            {/* Active Tab Logo Icon Container */}
+            {/* Active Tab Mascot Logo Container */}
             <div className="h-16 flex items-center justify-center shrink-0 px-4 mb-2 relative">
-                <m.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="w-14 h-14 aspect-square shrink-0 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs"
-                >
-                    {getAvatarSrc(avatarUrl) ? (
-                        <img 
-                            src={getAvatarSrc(avatarUrl)} 
-                            alt="Logo" 
-                            draggable="false"
-                            className="w-full h-full aspect-square object-cover rounded-2xl select-none pointer-events-none" 
-                            onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = "/logo.png";
-                            }}
-                        />
-                    ) : (
-                        <img 
-                            src="/logo.png" 
-                            alt="Logo" 
-                            draggable="false"
-                            className="w-full h-full aspect-square object-contain select-none pointer-events-none" 
-                        />
-                    )}
-                </m.div>
+                <SidebarMascotLogo onClick={() => setShowUserMenu(!showUserMenu)} />
 
                 {/* User Dropdown positioning relative to top logo container */}
                 <AnimatePresence>

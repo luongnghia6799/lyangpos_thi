@@ -4346,13 +4346,6 @@ function POSPage({
                                           ia(m.product, r, m.price);
                                           return;
                                         }
-                                        if (a && wt.length === 0) {
-                                          G({
-                                            message: `Mã vạch ${a} không tồn tại`,
-                                            type: "error"
-                                          }), ae("");
-                                          return;
-                                        }
                                         if (Z && wt[De]) {
                                           const a = wt[De],
                                             r = m.quantity && m.quantity !== 0 ? m.quantity : 1,

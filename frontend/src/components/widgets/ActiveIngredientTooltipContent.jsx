@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import {
@@ -488,6 +488,14 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
     const targetRef = useRef(null);
     const closeTimeoutRef = useRef(null);
 
+    useEffect(() => {
+        const handlePrint = () => {
+            setIsOpen(false);
+        };
+        window.addEventListener('beforeprint', handlePrint);
+        return () => window.removeEventListener('beforeprint', handlePrint);
+    }, []);
+
     const updatePosition = () => {
         if (!targetRef.current) return;
         const rect = targetRef.current.getBoundingClientRect();
@@ -595,6 +603,9 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
                             exit="exit"
                             onMouseEnter={handleTooltipMouseEnter}
                             onMouseLeave={handleTooltipMouseLeave}
+                            role="tooltip"
+                            data-tooltip="active-ingredient"
+                            data-active-ingredient-tooltip="true"
                             style={{
                                 position: 'fixed',
                                 top: coords.placement === 'top' ? undefined : `${coords.top}px`,
@@ -602,7 +613,7 @@ export default function ActiveIngredientTooltip({ activeIngredient, children, cl
                                 left: `${coords.left}px`,
                                 zIndex: 999999
                             }}
-                            className="bg-[#faf8f3]/95 dark:bg-[#151c14]/95 backdrop-blur-xl border border-[#2d5016]/20 dark:border-emerald-500/25 rounded-2xl p-2.5 shadow-[0_12px_30px_-5px_rgba(45,80,22,0.2)] dark:shadow-[0_12px_30px_-5px_rgba(0,0,0,0.8)] pointer-events-auto"
+                            className="no-print print:hidden print-hidden bg-[#faf8f3]/95 dark:bg-[#151c14]/95 backdrop-blur-xl border border-[#2d5016]/20 dark:border-emerald-500/25 rounded-2xl p-2.5 shadow-[0_12px_30px_-5px_rgba(45,80,22,0.2)] dark:shadow-[0_12px_30px_-5px_rgba(0,0,0,0.8)] pointer-events-auto"
                         >
                             <ActiveIngredientTooltipBody activeIngredient={activeIngredient} />
                             {coords.placement === 'top' ? (

@@ -828,6 +828,32 @@ const PrintTemplate = forwardRef(({
                     .print-page-number {
                         display: none !important;
                     }
+                    /* Triệt để ẩn toàn bộ Tooltip, Popover và Portal gắn ở body ngoài bản in */
+                    [role="tooltip"],
+                    [role="tooltip"] *,
+                    [data-tooltip],
+                    [data-tooltip] *,
+                    [data-active-ingredient-tooltip],
+                    [data-active-ingredient-tooltip] *,
+                    .tooltip,
+                    .tooltip *,
+                    [class*="tooltip"],
+                    [class*="tooltip"] *,
+                    [class*="popover"],
+                    [class*="popover"] *,
+                    div[style*="z-index: 999999"],
+                    body > div:not(#root):not(.only-print):not(#print-template),
+                    body > div:not(#root):not(.only-print):not(#print-template) * {
+                        display: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                        height: 0 !important;
+                        width: 0 !important;
+                        overflow: hidden !important;
+                        position: absolute !important;
+                        top: -99999px !important;
+                        left: -99999px !important;
+                    }
                     body, html, .dark, .dark body, .dark #pos-root-container, .dark .pos-lite-container {
                         margin: 0 !important;
                         padding: 0 !important;

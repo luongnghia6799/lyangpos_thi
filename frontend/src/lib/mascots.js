@@ -1,7 +1,10 @@
 import mascotsData from './mascots_list.json';
 
 // Danh sach Mascot duoc chon cho LyangPOS
-export const MASCOT_LIST = mascotsData;
+export const MASCOT_LIST = mascotsData.map((m) => ({
+  ...m,
+  avatar: m.avatar || `/mascots/avatar-${m.id}.webp`
+}));
 
 export const MASCOT_CATEGORIES = [
   { id: 'all', label: 'Tất cả (' + MASCOT_LIST.length + ')' },

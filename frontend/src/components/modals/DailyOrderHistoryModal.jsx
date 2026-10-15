@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import {
-    History, Clock, Search, X, SquarePen, Trash2, Eye, User, FileText,
+    History, Clock, Search, X, SquarePen, Trash2, Eye, EyeOff, User, FileText,
     Calendar, RefreshCcw, ShoppingBag, Printer, Package,
     ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-    Maximize2, Minimize2
+    Maximize2, Minimize2, TrendingUp, Coins, Banknote, CreditCard, AlertCircle
 } from 'lucide-react';
 import Portal from '../widgets/Portal';
 import CustomDatePicker from '../forms/CustomDatePicker';
@@ -31,6 +31,21 @@ const ActionTooltip = ({ text, children, position = "top", className = "" }) => 
     </div>
 );
 
+// Helper to calculate total gross profit for an order based on sell price and cost price
+const calculateOrderProfit = (order) => {
+    if (!order || !order.details || !Array.isArray(order.details) || order.details.length === 0) return 0;
+    return order.details.reduce((sum, item) => {
+        const qty = Number(item.quantity) || 0;
+        const sellPrice = item.price !== undefined ? Number(item.price) : (Number(item.unit_price) || 0);
+        const costPrice = (item.cost_price !== undefined && item.cost_price !== null && item.cost_price !== '')
+            ? Number(item.cost_price)
+            : (Number(item.latest_cost_price) || 0);
+        const lineRevenue = item.total_price !== undefined && item.total_price !== null ? Number(item.total_price) : (sellPrice * qty);
+        const lineCost = costPrice * qty;
+        return sum + (lineRevenue - lineCost);
+    }, 0);
+};
+
 export default function DailyOrderHistoryModal({
     isOpen,
     onClose,
@@ -52,6 +67,7 @@ export default function DailyOrderHistoryModal({
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [selectedDetailOrder, setSelectedDetailOrder] = useState(null);
+    const [showDetailProfit, setShowDetailProfit] = useState(true);
 
     // Reset selectedDate to current local date and auto-focus/select search input whenever modal opens
     useEffect(() => {
@@ -175,12 +191,16 @@ export default function DailyOrderHistoryModal({
         const cashAmount = filteredOrders.filter(o => o.payment_method === 'Cash').reduce((sum, o) => sum + (o.total_amount || 0), 0);
         const debtAmount = filteredOrders.filter(o => o.payment_method === 'Debt').reduce((sum, o) => sum + ((o.total_amount || 0) - (o.amount_paid || 0)), 0);
         const transferAmount = filteredOrders.filter(o => o.payment_method === 'Transfer').reduce((sum, o) => sum + (o.total_amount || 0), 0);
+        const totalProfit = filteredOrders.reduce((sum, o) => sum + calculateOrderProfit(o), 0);
+        const profitMargin = totalAmount > 0 ? (totalProfit / totalAmount) * 100 : 0;
         return {
             count: filteredOrders.length,
             totalAmount,
             cashAmount,
             debtAmount,
-            transferAmount
+            transferAmount,
+            totalProfit,
+            profitMargin
         };
     }, [filteredOrders]);
 
@@ -305,39 +325,124 @@ export default function DailyOrderHistoryModal({
                                 </div>
                             </div>
 
-                    {/* Summary Stats Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-4 px-5 bg-transparent border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0">
-                        <div className="p-3 px-3.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-xs">
-                            <span className="text-[9px] font-black text-[#8b6f47]/80 dark:text-[#d4a574]/80 uppercase tracking-widest">
-                                {type === 'Purchase' ? "Tổng tiền nhập" : "Tổng doanh thu"}
-                            </span>
-                            <span className="text-base font-black text-slate-900 dark:text-slate-100 tabular-nums mt-1">
-                                {formatCurrency(stats.totalAmount)}
-                            </span>
-                        </div>
-                        <div className="p-3 px-3.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-xs">
-                            <span className="text-[9px] font-black text-[#8b6f47]/80 dark:text-[#d4a574]/80 uppercase tracking-widest">
-                                {type === 'Purchase' ? "Đã trả tiền mặt" : "Tiền mặt"}
-                            </span>
-                            <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums mt-1">
-                                {formatCurrency(stats.cashAmount)}
-                            </span>
-                        </div>
-                        <div className="p-3 px-3.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-xs">
-                            <span className="text-[9px] font-black text-rose-700/80 dark:text-rose-300/80 uppercase tracking-widest">
-                                {type === 'Purchase' ? "Nợ NCC phát sinh" : "Nợ phát sinh"}
-                            </span>
-                            <span className="text-base font-black text-rose-600 dark:text-rose-400 tabular-nums mt-1">
-                                {formatCurrency(stats.debtAmount)}
-                            </span>
-                        </div>
-                        <div className="p-3 px-3.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex flex-col justify-between shadow-xs">
-                            <span className="text-[9px] font-black text-blue-700/80 dark:text-blue-300/80 uppercase tracking-widest">
-                                Chuyển khoản
-                            </span>
-                            <span className="text-base font-black text-blue-600 dark:text-blue-400 tabular-nums mt-1">
-                                {formatCurrency(stats.transferAmount)}
-                            </span>
+                    {/* Executive Financial HUD Strip - Seamless & Card-Free */}
+                    <div className="p-3.5 px-5 bg-gradient-to-r from-[#8b6f47]/[0.05] via-emerald-500/[0.03] to-teal-500/[0.05] dark:from-white/[0.03] dark:via-emerald-500/[0.04] dark:to-teal-500/[0.04] border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0 relative overflow-hidden">
+                        {/* Ambient decorative glow */}
+                        <div className="absolute -top-10 -left-10 w-28 h-28 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-10 right-1/4 w-32 h-32 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+
+                        <div className="relative z-1 flex items-stretch divide-x divide-[#8b6f47]/15 dark:divide-white/10 overflow-x-auto no-scrollbar py-0.5">
+                            {/* Metric 1: Revenue / Total */}
+                            <div className="flex-1 min-w-[130px] sm:min-w-[150px] pr-4 first:pl-0 flex flex-col justify-between">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <div className="w-5 h-5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574]">
+                                        <Coins size={12} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-[#8b6f47]/80 dark:text-[#d4a574]/80 truncate">
+                                        {type === 'Purchase' ? "Tổng tiền nhập" : "Doanh thu"}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums tracking-tight">
+                                        {formatCurrency(stats.totalAmount)}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-500/80 dark:text-slate-400 mt-0.5">
+                                    {stats.count} đơn hàng
+                                </div>
+                            </div>
+
+                            {/* Metric 2: Profit (Only for Sale) */}
+                            {type === 'Sale' && (
+                                <div className="flex-1 min-w-[140px] sm:min-w-[160px] px-4 flex flex-col justify-between relative group">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <div className="w-5 h-5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+                                            <TrendingUp size={12} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
+                                            Lợi nhuận ước tính
+                                        </span>
+                                    </div>
+                                    <div className="flex items-baseline gap-1.5">
+                                        <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+                                            {formatCurrency(stats.totalProfit)}
+                                        </span>
+                                    </div>
+                                    <div className="mt-0.5">
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 tabular-nums">
+                                            Tỷ suất {stats.profitMargin.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Metric 3: Cash */}
+                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <div className="w-5 h-5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                                        <Banknote size={12} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-teal-700/80 dark:text-teal-300/80 truncate">
+                                        {type === 'Purchase' ? "Đã trả tiền mặt" : "Tiền mặt"}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-base sm:text-lg font-black text-teal-700 dark:text-teal-300 tabular-nums tracking-tight">
+                                        {formatCurrency(stats.cashAmount)}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
+                                    {stats.totalAmount > 0 ? Math.round((stats.cashAmount / stats.totalAmount) * 100) : 0}% tổng
+                                </div>
+                            </div>
+
+                            {/* Metric 4: Transfer */}
+                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <div className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                        <CreditCard size={12} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80 truncate">
+                                        Chuyển khoản
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight">
+                                        {formatCurrency(stats.transferAmount)}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
+                                    {stats.totalAmount > 0 ? Math.round((stats.transferAmount / stats.totalAmount) * 100) : 0}% tổng
+                                </div>
+                            </div>
+
+                            {/* Metric 5: Debt */}
+                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] pl-4 flex flex-col justify-between">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <div className="w-5 h-5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                                        <AlertCircle size={12} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-700/80 dark:text-rose-300/80 truncate">
+                                        {type === 'Purchase' ? "Nợ NCC phát sinh" : "Nợ phát sinh"}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline gap-1.5">
+                                    <span className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
+                                        {formatCurrency(stats.debtAmount)}
+                                    </span>
+                                </div>
+                                <div className="mt-0.5">
+                                    {stats.debtAmount > 0 ? (
+                                        <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 px-1.5 py-0.5 rounded border border-rose-500/25">
+                                            Chưa thu đủ
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                            0 đ đọng
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -502,6 +607,12 @@ export default function DailyOrderHistoryModal({
                                                 <span className="text-base font-black text-[#2d5016] dark:text-emerald-400 tabular-nums leading-tight">
                                                     {formatCurrency(order.total_amount)}
                                                 </span>
+                                                {type === 'Sale' && (
+                                                    <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center justify-end gap-1 mt-0.5">
+                                                        <span className="text-[8.5px] uppercase font-black tracking-wider text-emerald-700/70 dark:text-emerald-300/70">Lãi</span>
+                                                        <span>+{formatCurrency(calculateOrderProfit(order))}</span>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex items-center gap-1.5">
@@ -671,7 +782,7 @@ export default function DailyOrderHistoryModal({
                             initial={{ scale: 0.92, opacity: 0, y: 15 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.92, opacity: 0, y: 15 }}
-                            className="bg-[#fbf9f4] dark:bg-[#1a1c1e] w-full max-w-2xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 my-auto"
+                            className="bg-[#fbf9f4] dark:bg-[#1a1c1e] w-full max-w-3xl rounded-[2rem] border border-[#8b6f47]/30 dark:border-white/10 flex flex-col relative z-10 overflow-hidden shadow-2xl text-slate-900 dark:text-slate-100 my-auto"
                         >
                             {/* Modal Header */}
                             <div className="p-4 px-6 flex items-center justify-between border-b border-[#8b6f47]/15 dark:border-white/10 bg-transparent shrink-0">
@@ -812,72 +923,127 @@ export default function DailyOrderHistoryModal({
                                     </div>
                                 )}
 
-                                {/* Total Summary */}
-                                <div className="p-4 bg-black/[0.02] dark:bg-white/[0.03] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex items-center justify-between">
-                                    <span className="text-xs font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                        Tổng tiền thanh toán
-                                    </span>
-                                    <span className="text-xl font-black text-[#2d5016] dark:text-emerald-400 tabular-nums">
-                                        {formatCurrency(selectedDetailOrder.total_amount)}
-                                    </span>
+                                {/* Total Summary (Clean for customer screenshots) */}
+                                <div className="p-4 bg-black/[0.02] dark:bg-white/[0.03] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 flex items-center justify-between gap-3">
+                                    <div>
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] block">
+                                            {type === 'Purchase' ? 'Tổng tiền nhập hàng' : 'Tổng tiền thanh toán'}
+                                        </span>
+                                        <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tabular-nums">
+                                            {formatCurrency(selectedDetailOrder.total_amount)}
+                                        </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6f47]/70 dark:text-[#d4a574]/70 block">
+                                            Tổng số lượng
+                                        </span>
+                                        <div className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-300 mt-0.5">
+                                            <span>{(selectedDetailOrder.details || []).length} mặt hàng</span>
+                                            <span className="text-slate-400 dark:text-slate-500 font-bold ml-1.5">
+                                                ({(selectedDetailOrder.details || []).reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)} món)
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Modal Footer Actions */}
-                            <div className="p-4 px-6 border-t border-[#8b6f47]/15 dark:border-white/10 bg-transparent flex items-center justify-between gap-3 shrink-0">
+                            <div className="p-4 px-6 border-t border-[#8b6f47]/15 dark:border-white/10 bg-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                                 <div className="flex items-center gap-2">
                                     {onPrintOrder && (
-                                        <button
-                                            onClick={() => {
-                                                onPrintOrder(selectedDetailOrder, type === 'Purchase' ? 'Purchase' : 'Sale');
-                                            }}
-                                            className="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/25 font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <Printer size={15} />
-                                            <span>{type === 'Purchase' ? 'In phiếu nhập' : 'In hóa đơn'}</span>
-                                        </button>
+                                        <ActionTooltip text={type === 'Purchase' ? 'In phiếu nhập' : 'In hóa đơn'}>
+                                            <button
+                                                onClick={() => {
+                                                    onPrintOrder(selectedDetailOrder, type === 'Purchase' ? 'Purchase' : 'Sale');
+                                                }}
+                                                className="w-9 h-9 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/25 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                                            >
+                                                <Printer size={16} strokeWidth={2.2} />
+                                            </button>
+                                        </ActionTooltip>
                                     )}
 
                                     {onPrintOrder && type === 'Sale' && (
-                                        <button
-                                            onClick={() => {
-                                                onPrintOrder(selectedDetailOrder, 'Delivery');
-                                            }}
-                                            className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl border border-amber-500/25 font-black text-xs uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
-                                        >
-                                            <Package size={15} />
-                                            <span>In phiếu xuất</span>
-                                        </button>
+                                        <ActionTooltip text="In phiếu xuất">
+                                            <button
+                                                onClick={() => {
+                                                    onPrintOrder(selectedDetailOrder, 'Delivery');
+                                                }}
+                                                className="w-9 h-9 bg-amber-500/10 hover:bg-amber-600 text-amber-600 hover:text-white rounded-xl border border-amber-500/25 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                                            >
+                                                <Package size={16} strokeWidth={2.2} />
+                                            </button>
+                                        </ActionTooltip>
                                     )}
 
-                                    <button
-                                        onClick={() => {
-                                            const enrichedOrder = {
-                                                ...selectedDetailOrder,
-                                                partner: selectedDetailOrder.partner || (selectedDetailOrder.partner_id ? {
-                                                    id: selectedDetailOrder.partner_id,
-                                                    name: selectedDetailOrder.partner_name,
-                                                    phone: selectedDetailOrder.partner_phone,
-                                                    address: selectedDetailOrder.partner_address
-                                                } : null)
-                                            };
-                                            onEditOrder(enrichedOrder);
-                                            setSelectedDetailOrder(null);
-                                            onClose();
-                                        }}
-                                        className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-700/20 transition-all active:scale-95 flex items-center gap-1.5"
-                                    >
-                                        <SquarePen size={15} strokeWidth={2.5} />
-                                        <span>Nạp ra giỏ (Sửa)</span>
-                                    </button>
+                                    <ActionTooltip text="Nạp ra giỏ (Sửa đơn)">
+                                        <button
+                                            onClick={() => {
+                                                const enrichedOrder = {
+                                                    ...selectedDetailOrder,
+                                                    partner: selectedDetailOrder.partner || (selectedDetailOrder.partner_id ? {
+                                                        id: selectedDetailOrder.partner_id,
+                                                        name: selectedDetailOrder.partner_name,
+                                                        phone: selectedDetailOrder.partner_phone,
+                                                        address: selectedDetailOrder.partner_address
+                                                    } : null)
+                                                };
+                                                onEditOrder(enrichedOrder);
+                                                setSelectedDetailOrder(null);
+                                                onClose();
+                                            }}
+                                            className="w-9 h-9 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl shadow-sm shadow-emerald-700/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                                        >
+                                            <SquarePen size={16} strokeWidth={2.4} />
+                                        </button>
+                                    </ActionTooltip>
                                 </div>
 
-                                <button
-                                    onClick={() => setSelectedDetailOrder(null)}
-                                    className="px-4 py-2 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-[#8b6f47]/15 rounded-xl border border-[#8b6f47]/25 dark:border-white/10 font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-all active:scale-95"
-                                >
-                                    Đóng
-                                </button>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {type === 'Sale' && (() => {
+                                        const detailProfit = calculateOrderProfit(selectedDetailOrder);
+                                        const margin = selectedDetailOrder.total_amount > 0 ? (detailProfit / selectedDetailOrder.total_amount) * 100 : 0;
+                                        return (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDetailProfit(prev => !prev)}
+                                                className="h-9 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 transition-all flex items-center gap-2 cursor-pointer select-none active:scale-95 whitespace-nowrap"
+                                                title="Bấm để ẩn/hiện số tiền lợi nhuận"
+                                            >
+                                                <TrendingUp size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" strokeWidth={2.5} />
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
+                                                    Lãi:
+                                                </span>
+                                                {showDetailProfit ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                                                            +{formatCurrency(detailProfit)}
+                                                        </span>
+                                                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                                            {margin.toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-xs font-black text-slate-400 tracking-wider">
+                                                        ••••••••
+                                                    </span>
+                                                )}
+                                                {showDetailProfit ? (
+                                                    <Eye size={13} className="text-emerald-600/70 ml-0.5 shrink-0" />
+                                                ) : (
+                                                    <EyeOff size={13} className="text-slate-400 ml-0.5 shrink-0" />
+                                                )}
+                                            </button>
+                                        );
+                                    })()}
+
+                                    <button
+                                        onClick={() => setSelectedDetailOrder(null)}
+                                        className="h-9 px-4 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-[#8b6f47]/15 rounded-xl border border-[#8b6f47]/25 dark:border-white/10 font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-all active:scale-95 whitespace-nowrap"
+                                    >
+                                        Đóng
+                                    </button>
+                                </div>
                             </div>
                         </m.div>
                     </div>

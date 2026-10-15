@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useCallback } from 'react';
 import { KeepAlive } from 'react-activation';
 import { HashRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -761,6 +761,23 @@ function App() {
     };
   }, []);
 
+  const handleMascotOpenAi = useCallback(({ pos, size } = {}) => {
+    if (pos) setMascotPos(pos);
+    if (size) setMascotSize(size);
+    setShowAiConsultantModal(true);
+  }, []);
+
+  const handleMascotOpenSettings = useCallback(({ pos, size } = {}) => {
+    if (pos) setMascotPos(pos);
+    if (size) setMascotSize(size);
+    setShowMascotPopover((prev) => !prev);
+  }, []);
+
+  const handleMascotPosChange = useCallback((newPos, newSize) => {
+    setMascotPos(newPos);
+    if (newSize) setMascotSize(newSize);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LazyMotion features={domMax}>
@@ -772,20 +789,9 @@ function App() {
             <GlobalIconPickerContainer />
             <CustomCursor />
           <PageMascot
-            onOpenAiConsultant={({ pos, size } = {}) => {
-              if (pos) setMascotPos(pos);
-              if (size) setMascotSize(size);
-              setShowAiConsultantModal(true);
-            }}
-            onOpenSettings={({ pos, size }) => {
-              if (pos) setMascotPos(pos);
-              if (size) setMascotSize(size);
-              setShowMascotPopover((prev) => !prev);
-            }}
-            onPosChange={(newPos, newSize) => {
-              setMascotPos(newPos);
-              if (newSize) setMascotSize(newSize);
-            }}
+            onOpenAiConsultant={handleMascotOpenAi}
+            onOpenSettings={handleMascotOpenSettings}
+            onPosChange={handleMascotPosChange}
           />
           <MascotPopover
             isOpen={showMascotPopover}

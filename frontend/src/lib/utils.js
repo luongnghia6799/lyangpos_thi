@@ -11,18 +11,18 @@ export const removeAccents = (str) => {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 };
 
-export const formatCurrency = (value) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+export const formatCurrency = (value, maxDecimals = 1) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: maxDecimals }).format(value);
 }
 
-export const formatNumber = (value, maxDecimals = 3) => {
+export const formatNumber = (value, maxDecimals = 1) => {
     if (value === undefined || value === null || isNaN(value)) return "0";
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: maxDecimals }).format(value);
 }
 
-export const formatDebt = (debt) => {
+export const formatDebt = (debt, maxDecimals = 1) => {
     if (debt === undefined || debt === null || debt === 0) return "0";
-    return (debt > 0 ? "+" : "") + formatNumber(debt);
+    return (debt > 0 ? "+" : "") + formatNumber(debt, maxDecimals);
 }
 
 export const isNearExpiry = (dateStr, days = 60) => {

@@ -2923,133 +2923,157 @@ export default function Purchase() {
                                                                             {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
                                                                             <DropdownMascot title="Bé Lyang - Trợ lý nhập hàng thông minh" />
 
-                                                                            <div className="max-h-[480px] overflow-y-auto overscroll-contain custom-scrollbar p-0 rounded-2xl" ref={productDropdownRef}>
-                                                                                {filteredProducts.map((p, idx) => (
-                                                                                    <div
-                                                                                        key={p.id}
-                                                                                        onMouseMove={() => { if (activeIndex !== idx) setActiveIndex(idx); }}
-                                                                                        onClick={() => {
-                                                                                            const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
-                                                                                            setWorkingItem({
-                                                                                                product: p,
-                                                                                                quantity: currentQty,
-                                                                                                price: p.latest_cost_price || p.cost_price,
-                                                                                                secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                                name: p.name
-                                                                                            });
-                                                                                            setSearchTerm(p.name);
-                                                                                        }}
-                                                                                        onContextMenu={(e) => {
-                                                                                            e.preventDefault();
-                                                                                            e.stopPropagation();
-                                                                                            setItemContextMenu({
-                                                                                                type: 'product',
-                                                                                                data: p,
-                                                                                                position: { x: e.clientX, y: e.clientY }
-                                                                                            });
-                                                                                        }}
-                                                                                        className={cn(
-                                                                                            "dropdown-item flex justify-between items-center",
-                                                                                            idx === activeIndex && "active"
-                                                                                        )}
-                                                                                    >
-                                                                                        <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
-                                                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                                                <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                                    <MarqueeText
-                                                                                                        text={p.name}
-                                                                                                        isActive={idx === activeIndex}
-                                                                                                        className="font-black tracking-tight transition-all duration-300 leading-relaxed"
-                                                                                                        style={{
-                                                                                                            fontSize: idx === activeIndex ? "18px" : "16px",
-                                                                                                            paddingLeft: idx === activeIndex ? '12px' : '0px'
-                                                                                                        }}
-                                                                                                    />
-                                                                                                </div>
-                                                                                                {p.is_combo && (
-                                                                                                    <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                            <div className="rounded-2xl overflow-hidden w-full divide-y divide-[#8b6f47]/10 dark:divide-white/5">
+                                                                                {filteredProducts.length > 0 && (
+                                                                                    <div className="max-h-[440px] overflow-y-auto overscroll-contain custom-scrollbar p-0" ref={productDropdownRef}>
+                                                                                        {filteredProducts.map((p, idx) => (
+                                                                                            <div
+                                                                                                key={p.id}
+                                                                                                onMouseMove={() => { if (activeIndex !== idx) setActiveIndex(idx); }}
+                                                                                                onClick={() => {
+                                                                                                    const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
+                                                                                                    setWorkingItem({
+                                                                                                        product: p,
+                                                                                                        quantity: currentQty,
+                                                                                                        price: p.latest_cost_price || p.cost_price,
+                                                                                                        secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                        name: p.name
+                                                                                                    });
+                                                                                                    setSearchTerm(p.name);
+                                                                                                }}
+                                                                                                onContextMenu={(e) => {
+                                                                                                    e.preventDefault();
+                                                                                                    e.stopPropagation();
+                                                                                                    setItemContextMenu({
+                                                                                                        type: 'product',
+                                                                                                        data: p,
+                                                                                                        position: { x: e.clientX, y: e.clientY }
+                                                                                                    });
+                                                                                                }}
+                                                                                                className={cn(
+                                                                                                    "dropdown-item flex justify-between items-center",
+                                                                                                    idx === activeIndex && "active"
                                                                                                 )}
-                                                                                            </div>
-                                                                                            <div className="flex items-center gap-5">
-                                                                                                <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
-                                                                                                    {p.active_ingredient || ""}
-                                                                                                </span>
-                                                                                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                                                                                    {p.code && (
-                                                                                                        <span className={cn(
-                                                                                                            "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
-                                                                                                            idx === activeIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                                                                                            >
+                                                                                                <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                                                        <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                                            <MarqueeText
+                                                                                                                text={p.name}
+                                                                                                                isActive={idx === activeIndex}
+                                                                                                                className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+                                                                                                                style={{
+                                                                                                                    fontSize: idx === activeIndex ? "18px" : "16px",
+                                                                                                                    paddingLeft: idx === activeIndex ? '12px' : '0px'
+                                                                                                                }}
+                                                                                                            />
+                                                                                                        </div>
+                                                                                                        {p.is_combo && (
+                                                                                                            <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="flex items-center gap-5">
+                                                                                                        <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                            {p.active_ingredient || ""}
+                                                                                                        </span>
+                                                                                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                                                                            {p.code && (
+                                                                                                                <span className={cn(
+                                                                                                                    "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
+                                                                                                                    idx === activeIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                                )}>
+                                                                                                                    {p.code}
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                            <span className={cn(
+                                                                                                                "px-2.5 py-0.5 rounded-md transition-colors font-bold",
+                                                                                                                idx === activeIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
+                                                                                                            )}>
+                                                                                                                {normalizeUOM(p.unit)}
+                                                                                                            </span>
+                                                                                                            {p.multiplier > 1 && (
+                                                                                                                <span className={idx === activeIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
+                                                                                                                    / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+
+                                                                                                <div className="flex items-center gap-8 relative z-10">
+                                                                                                    <div
+                                                                                                        className={cn(
+                                                                                                            "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                            p.stock <= 0
+                                                                                                                ? "bg-rose-600 text-white"
+                                                                                                                : p.stock < 10
+                                                                                                                    ? "bg-amber-500 text-slate-950"
+                                                                                                                    : idx === activeIndex
+                                                                                                                        ? "bg-white/25 text-white"
+                                                                                                                        : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
+                                                                                                        )}
+                                                                                                        title="Tồn kho thực tế"
+                                                                                                    >
+                                                                                                        <div className="flex items-center gap-1.5 tabular-nums">
+                                                                                                            <Package size={14} strokeWidth={2.5} />
+                                                                                                            <span className="tabular-nums font-black">{p.stock}</span>
+                                                                                                        </div>
+                                                                                                    </div>
+
+                                                                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                                                        <div className={cn(
+                                                                                                            "text-[22px] font-black tracking-tighter tabular-nums",
+                                                                                                            idx === activeIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
                                                                                                         )}>
-                                                                                                            {p.code}
-                                                                                                        </span>
-                                                                                                    )}
-                                                                                                    <span className={cn(
-                                                                                                        "px-2.5 py-0.5 rounded-md transition-colors font-bold",
-                                                                                                        idx === activeIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
-                                                                                                    )}>
-                                                                                                        {normalizeUOM(p.unit)}
+                                                                                                            {formatNumber(p.cost_price)}
+                                                                                                        </div>
+                                                                                                        <div className={cn(
+                                                                                                            "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
+                                                                                                            idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                                                                                                        )}>
+                                                                                                            <History size={10} strokeWidth={2.5} />
+                                                                                                            NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                                {searchTerm && (
+                                                                                    <div
+                                                                                        className={cn(
+                                                                                            "dropdown-item flex items-center justify-between gap-3 cursor-pointer group/quick-add transition-all duration-150 select-none",
+                                                                                            filteredProducts.length === 0 ? "p-4" : "p-3 bg-black/[0.02] dark:bg-white/[0.02]"
+                                                                                        )}
+                                                                                        onClick={() => {
+                                                                                            const cleanName = searchTerm.trim();
+                                                                                            setQuickAddName(cleanName);
+                                                                                            setSearchTerm('');
+                                                                                            setShowQuickAddProduct(true);
+                                                                                        }}
+                                                                                    >
+                                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                                            <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] flex items-center justify-center shrink-0 group-hover/quick-add:scale-110 group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white transition-all shadow-xs">
+                                                                                                <Plus size={18} strokeWidth={2.5} />
+                                                                                            </div>
+                                                                                            <div className="flex flex-col min-w-0">
+                                                                                                {filteredProducts.length === 0 && (
+                                                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-primary/70 dark:text-[#d4a574]/80 group-hover/quick-add:text-white/80">
+                                                                                                        Chưa có trong danh mục
                                                                                                     </span>
-                                                                                                    {p.multiplier > 1 && (
-                                                                                                        <span className={idx === activeIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
-                                                                                                            / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
-                                                                                                        </span>
-                                                                                                    )}
+                                                                                                )}
+                                                                                                <div className="text-xs font-black uppercase tracking-tight truncate group-hover/quick-add:text-white text-primary dark:text-[#d4a574]">
+                                                                                                    Thêm sản phẩm mới: <span className="underline underline-offset-2">"{searchTerm.trim()}"</span>
                                                                                                 </div>
                                                                                             </div>
                                                                                         </div>
-
-                                                                                        <div className="flex items-center gap-8 relative z-10">
-                                                                                            <div
-                                                                                                className={cn(
-                                                                                                    "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
-                                                                                                    p.stock <= 0
-                                                                                                        ? "bg-rose-600 text-white"
-                                                                                                        : p.stock < 10
-                                                                                                            ? "bg-amber-500 text-slate-950"
-                                                                                                            : idx === activeIndex
-                                                                                                                ? "bg-white/25 text-white"
-                                                                                                                : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
-                                                                                                )}
-                                                                                                title="Tồn kho thực tế"
-                                                                                            >
-                                                                                                <div className="flex items-center gap-1.5 tabular-nums">
-                                                                                                    <Package size={14} strokeWidth={2.5} />
-                                                                                                    <span className="tabular-nums font-black">{p.stock}</span>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            <div className="flex flex-col items-end gap-1 shrink-0">
-                                                                                                <div className={cn(
-                                                                                                    "text-[22px] font-black tracking-tighter tabular-nums",
-                                                                                                    idx === activeIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
-                                                                                                )}>
-                                                                                                    {formatNumber(p.cost_price)}
-                                                                                                </div>
-                                                                                                <div className={cn(
-                                                                                                    "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
-                                                                                                    idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
-                                                                                                )}>
-                                                                                                    <History size={10} strokeWidth={2.5} />
-                                                                                                    NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
-                                                                                                </div>
-                                                                                            </div>
+                                                                                        <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white border border-primary/20 dark:border-white/10 font-mono shadow-2xs">
+                                                                                            <span>Thêm nhanh</span>
                                                                                         </div>
                                                                                     </div>
-                                                                                ))}
+                                                                                )}
                                                                             </div>
-                                                                            {searchTerm && filteredProducts.length === 0 && (
-                                                                                <div
-                                                                                    className="p-4 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-primary hover:text-white cursor-pointer text-primary dark:text-emerald-400 font-black uppercase text-xs flex items-center gap-2 font-sans"
-                                                                                    onClick={() => {
-                                                                                        setQuickAddName(searchTerm);
-                                                                                        setSearchTerm('');
-                                                                                        setShowQuickAddProduct(true);
-                                                                                    }}
-                                                                                >
-                                                                                    <Plus size={16} strokeWidth={3} />
-                                                                                    <span>Thêm sản phẩm mới: "{searchTerm}"</span>
-                                                                                </div>
-                                                                            )}
                                                                         </m.div>
                                                                     )}
                                                                 </AnimatePresence>
@@ -3830,7 +3854,7 @@ export default function Purchase() {
                                                                     )}
                                                                     </AnimatePresence>
                                                                         {item.active_ingredient && (
-                                                                            <div className="pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
+                                                                            <div data-tooltip="active-ingredient" className="no-print print:hidden pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
                                                                                 <ActiveIngredientTooltipContent activeIngredient={item.active_ingredient} />
                                                                                 <div className="absolute -bottom-1.5 left-6 w-3 h-3 rotate-45 bg-[#faf8f3] dark:bg-[#141d13] border-r border-b border-[#8b6f47]/30 dark:border-emerald-500/30" />
                                                                             </div>
@@ -3951,60 +3975,68 @@ export default function Purchase() {
                                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-[#fbf9f4]/95 dark:border-t-slate-900/95 drop-shadow-xs" />
                                                                             </div>
                                                                         )}
-                                                                        <div className={cn("relative w-full transition-all", cartColorConfig?.enableTextPills && "rounded-2xl border shadow-xs")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'price') : undefined}>
+                                                                        <div className={cn("relative w-full group/price transition-all", cartColorConfig?.enableTextPills && "rounded-2xl border shadow-xs")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'price') : undefined}>
                                                                             <input
                                                                                 type="text"
-                                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }}
+                                                                                style={{
+                                                                                    color: item.price === 0
+                                                                                        ? 'transparent'
+                                                                                        : ((cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined),
+                                                                                    textShadow: item.price === 0 ? 'none' : undefined,
+                                                                                    ...(item.price !== 0 ? getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) : {})
+                                                                                }}
                                                                                 className={cn(
-                                                                                    "w-full p-2 text-center bg-transparent border-none focus:ring-0 rounded font-black outline-none text-lg tabular-nums text-primary dark:text-emerald-400",
-                                                                                    item.price === 0 && "text-transparent select-none placeholder:text-transparent"
+                                                                                    "w-full p-2 text-center bg-transparent border-none focus:ring-0 rounded font-black outline-none text-lg tabular-nums transition-colors",
+                                                                                    item.price === 0
+                                                                                        ? "text-transparent select-none placeholder:text-transparent focus:text-slate-900 dark:focus:text-white"
+                                                                                        : "text-primary dark:text-emerald-400"
                                                                                 )}
-                                                                            value={formatNumber(item.price)}
-                                                                            onFocus={(e) => e.target.select()}
-                                                                            autoComplete="off"
-                                                                            onChange={(e) => {
-                                                                                const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                                                                                updateCartItem(idx, 'price', val);
-                                                                            }}
-                                                                            onBlur={() => {
-                                                                                if (item.product_id && item.price > 0) {
-                                                                                    const prod = products.find(p => p.id === item.product_id);
-                                                                                    if (prod && prod.sale_price > 0 && item.price > prod.sale_price) {
-                                                                                        checkPriceRaiseAlert([{ product_id: prod.id, price: item.price }]);
+                                                                                value={formatNumber(item.price)}
+                                                                                onFocus={(e) => e.target.select()}
+                                                                                autoComplete="off"
+                                                                                onChange={(e) => {
+                                                                                    const val = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                                                                                    updateCartItem(idx, 'price', val);
+                                                                                }}
+                                                                                onBlur={() => {
+                                                                                    if (item.product_id && item.price > 0) {
+                                                                                        const prod = products.find(p => p.id === item.product_id);
+                                                                                        if (prod && prod.sale_price > 0 && item.price > prod.sale_price) {
+                                                                                            checkPriceRaiseAlert([{ product_id: prod.id, price: item.price }]);
+                                                                                        }
                                                                                     }
-                                                                                }
-                                                                            }}
-                                                                            onKeyDown={(e) => {
-                                                                                if (e.key === 'Enter' || e.key === 'Tab') {
-                                                                                    e.preventDefault();
-                                                                                    if (e.key === 'Enter') playTabSound();
-                                                                                    searchInputRef.current?.focus();
-                                                                                } else if (e.key === 'ArrowDown') {
-                                                                                    e.preventDefault();
-                                                                                    const nextIdx = idx + 1;
-                                                                                    if (nextIdx < cart.length) {
-                                                                                        document.getElementById(`price-${nextIdx}`)?.focus();
+                                                                                }}
+                                                                                onKeyDown={(e) => {
+                                                                                    if (e.key === 'Enter' || e.key === 'Tab') {
+                                                                                        e.preventDefault();
+                                                                                        if (e.key === 'Enter') playTabSound();
+                                                                                        searchInputRef.current?.focus();
+                                                                                    } else if (e.key === 'ArrowDown') {
+                                                                                        e.preventDefault();
+                                                                                        const nextIdx = idx + 1;
+                                                                                        if (nextIdx < cart.length) {
+                                                                                            document.getElementById(`price-${nextIdx}`)?.focus();
+                                                                                        }
+                                                                                    } else if (e.key === 'ArrowUp') {
+                                                                                        e.preventDefault();
+                                                                                        const prevIdx = idx - 1;
+                                                                                        if (prevIdx >= 0) {
+                                                                                            document.getElementById(`price-${prevIdx}`)?.focus();
+                                                                                        } else {
+                                                                                            workingPriceRef.current?.focus();
+                                                                                        }
                                                                                     }
-                                                                                } else if (e.key === 'ArrowUp') {
-                                                                                    e.preventDefault();
-                                                                                    const prevIdx = idx - 1;
-                                                                                    if (prevIdx >= 0) {
-                                                                                        document.getElementById(`price-${prevIdx}`)?.focus();
-                                                                                    } else {
-                                                                                        workingPriceRef.current?.focus();
-                                                                                    }
-                                                                                }
-                                                                            }}
-                                                                            id={`price-${idx}`}
-                                                                        />
-                                                                        {item.price === 0 && (
-                                                                            <div className="absolute inset-0 flex items-center justify-end pr-2 pointer-events-none">
-                                                                                <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 font-black text-[10px] px-2 py-0.5 rounded-lg uppercase tracking-wider border border-rose-500/20">
-                                                                                    HÀNG TẶNG
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
+                                                                                }}
+                                                                                id={`price-${idx}`}
+                                                                            />
+                                                                            {item.price === 0 && (
+                                                                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-focus-within/price:opacity-0 transition-opacity">
+                                                                                    <span className="bg-rose-500/15 text-rose-600 dark:text-rose-400 font-black text-[10.5px] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-rose-500/25 shadow-xs whitespace-nowrap">
+                                                                                        HÀNG TẶNG
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                 </div>
                                                             </td>
                                                             <td className="py-2 px-4 text-right">

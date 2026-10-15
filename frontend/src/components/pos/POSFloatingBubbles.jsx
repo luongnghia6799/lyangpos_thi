@@ -2,7 +2,7 @@ import React, { useRef, useEffect, memo, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
   Sprout, Phone, Package, MapPin, Wallet, Truck, 
-  RefreshCcw, History, Activity, ChevronDown 
+  RefreshCcw, History, Activity, ChevronDown, TrendingUp 
 } from 'lucide-react';
 import { formatNumber, cn } from '@/lib/utils';
 import OrderNotePopup from '@/components/widgets/OrderNotePopup';
@@ -482,12 +482,11 @@ function POSFloatingBubbles({
         id="total-bubble"
         data-bubble="total-container"
         ref={totalBubbleRef}
-        layout="position"
+        layout
         initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16, transition: { duration: 0.18, ease: "easeInOut" } }}
-        transition={{ type: "spring", stiffness: 420, damping: 28, mass: 0.8 }}
-        className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-center gap-2.5"
+        className="absolute bottom-3 right-3 z-[110] pointer-events-none flex items-end gap-3"
       >
         <AnimatePresence mode="popLayout" initial={false}>
           {isCash ? (
@@ -752,21 +751,25 @@ function POSFloatingBubbles({
           )}
         </AnimatePresence>
 
-        {/* Total Amount Bubble */}
+        {/* Total Amount Bubble with Spring Resize & Number Transition */}
         <m.div
           key="total-amount-bubble"
           id="total-amount-bubble"
           data-bubble="total"
           layout
           initial={{ opacity: 0, scale: 0.94, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1, 
+            y: 0 
+          }}
           exit={{ opacity: 0, scale: 0.94, y: 10 }}
           whileHover={{ scale: 1.015, y: -1 }}
           whileTap={{ scale: 0.985 }}
           transition={{
-            layout: { type: "spring", stiffness: 420, damping: 30 },
-            scale: { type: "spring", stiffness: 480, damping: 25 },
-            y: { type: "spring", stiffness: 480, damping: 25 },
+            layout: { type: "spring", stiffness: 420, damping: 28 },
+            scale: { type: "spring", stiffness: 450, damping: 25 },
+            y: { type: "spring", stiffness: 450, damping: 25 },
             opacity: { duration: 0.2 }
           }}
           onMouseDown={onMouseDownProfit}
@@ -775,53 +778,122 @@ function POSFloatingBubbles({
           onTouchStart={onMouseDownProfit}
           onTouchEnd={onMouseUpProfit}
           style={totalStyle}
-          className="px-6 py-3 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 flex flex-col items-end group/total pointer-events-auto relative overflow-hidden transition-[border-color,background-color,box-shadow] duration-200"
+          className={cn(
+            "px-6 py-3 rounded-2xl border-2 bg-[#fbf9f4] dark:bg-[#1a1e17] flex flex-col items-end group/total pointer-events-auto relative overflow-hidden select-none cursor-pointer transition-[border-color,background-color,box-shadow] duration-250",
+            isProfitRevealed 
+              ? "border-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.3),0_16px_36px_-2px_rgba(16,185,129,0.35)] dark:shadow-[0_0_0_2px_rgba(52,211,153,0.3),0_20px_40px_-2px_rgba(16,185,129,0.3)] min-w-[215px] sm:min-w-[235px]" 
+              : "border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] hover:border-[#2d5016] dark:hover:border-emerald-400 min-w-[170px]"
+          )}
+          title="Bấm giữ để mở Lợi nhuận bí mật đơn hàng"
         >
           <Wallet className="absolute -left-8 -bottom-8 w-36 h-36 text-[#2d5016]/5 dark:text-emerald-500/5 -rotate-12 transition-transform group-hover/total:scale-110 group-hover/total:-rotate-6 pointer-events-none select-none" />
-          <div className="flex items-center gap-1.5 mb-0.5 z-10 relative">
+
+          {/* Secret Profit Ambient Glow */}
+          <AnimatePresence>
+            {isProfitRevealed && (
+              <m.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/20 dark:bg-emerald-400/20 rounded-full blur-2xl pointer-events-none"
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Header Label with Transition */}
+          <div className="flex items-center gap-1.5 mb-1 z-10 relative">
             <div 
-              className="w-2 h-2 rounded-full animate-pulse" 
-              style={{ 
+              className={cn("w-2 h-2 rounded-full transition-all duration-300", isProfitRevealed ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-ping" : "animate-pulse")} 
+              style={!isProfitRevealed ? { 
                 backgroundColor: (cartColorConfig?.bubbleBorderColor && cartColorConfig.bubbleBorderColor !== 'default') 
                   ? cartColorConfig.bubbleBorderColor 
                   : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') 
                     ? cartColorConfig.accentColor 
                     : '#10b981' 
-              }} 
+              } : undefined} 
             />
-            <span 
-              className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5" 
-              style={totalStyle?.color ? { color: totalStyle.color } : undefined}
-            >
-              Tổng cộng thanh toán
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span 
+                className={cn(
+                  "text-[9px] font-black uppercase tracking-[0.15em] flex items-center gap-1.5 transition-colors",
+                  isProfitRevealed ? "text-emerald-700 dark:text-emerald-300" : "text-[#8b6f47] dark:text-[#d4a574]"
+                )} 
+                style={(!isProfitRevealed && totalStyle?.color) ? { color: totalStyle.color } : undefined}
+              >
+                Tổng cộng thanh toán
+              </span>
+              <AnimatePresence>
+                {isProfitRevealed && (
+                  <m.span 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="px-1.5 py-0.2 rounded-full text-[7.5px] font-black tracking-widest bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                  >
+                    BÍ MẬT
+                  </m.span>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-          <div 
-            className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums text-[#2d5016] dark:text-emerald-400 flex items-baseline gap-1 z-10 relative" 
-            style={totalStyle?.color ? { color: totalStyle.color } : undefined}
-          >
-            {formatNumber(effectiveTotal)}
-            <span className="text-sm text-emerald-600 dark:text-emerald-400 font-bold ml-0.5" style={totalStyle?.color ? { color: totalStyle.color } : undefined}>
-              đ
-            </span>
+
+          {/* Main Total Number - Always Prominent & Big with spring resize flip */}
+          <div className="relative z-10 overflow-hidden flex items-baseline justify-end min-h-[34px] sm:min-h-[38px] w-full">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <m.div 
+                key={`total-${effectiveTotal}`}
+                layout
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95, position: "absolute" }}
+                transition={{
+                  layout: { type: "spring", stiffness: 400, damping: 28 },
+                  y: { type: "spring", stiffness: 450, damping: 26 },
+                  opacity: { duration: 0.15 },
+                  scale: { duration: 0.15 }
+                }}
+                className="text-2xl sm:text-3xl font-black tracking-tighter tabular-nums flex items-baseline gap-1 ml-auto text-[#2d5016] dark:text-emerald-400 whitespace-nowrap"
+                style={totalStyle?.color ? { color: totalStyle.color } : undefined}
+              >
+                {formatNumber(effectiveTotal)}
+                <span 
+                  className="text-sm font-bold ml-0.5 text-emerald-600 dark:text-emerald-400"
+                  style={totalStyle?.color ? { color: totalStyle.color } : undefined}
+                >
+                  đ
+                </span>
+              </m.div>
+            </AnimatePresence>
           </div>
+
+          {/* Secret Profit Drawer - Revealed smoothly on long-press */}
           <AnimatePresence>
-            {isProfitRevealed && (cart.some(t => t.product_id !== null) || (currentProduct?.product && currentProduct.product.id !== null)) && (
+            {isProfitRevealed && (
               <m.div
                 layout
-                initial={{ opacity: 0, height: 0, scale: 0.9 }}
-                animate={{ opacity: 1, height: "auto", scale: 1 }}
-                exit={{ opacity: 0, height: 0, scale: 0.9 }}
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
                 transition={{
-                  height: { duration: 0.22, ease: [0.16, 1, 0.3, 1] },
+                  height: { type: "spring", stiffness: 400, damping: 28 },
                   opacity: { duration: 0.18 },
-                  scale: { duration: 0.18 }
+                  marginTop: { duration: 0.18 }
                 }}
-                className="mt-1 px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center gap-1.5 border border-emerald-500/20 z-10 relative overflow-hidden"
+                className="pt-2 border-t border-emerald-500/25 dark:border-emerald-400/25 flex items-center justify-between gap-3.5 w-full z-10 relative overflow-hidden"
               >
-                <Activity size={12} className="text-emerald-600 dark:text-emerald-400" />
-                <span className="text-[10px] font-black uppercase tracking-tight">
-                  Lợi nhuận: {formatNumber(orderProfit)}đ
+                <div className="flex flex-col items-start text-left">
+                  <span className="text-[8.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1 leading-none mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+                    Lợi nhuận đơn
+                  </span>
+                  <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-tight drop-shadow-xs">
+                    +{formatNumber(orderProfit)}đ
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 tabular-nums shrink-0">
+                  <TrendingUp size={11} className="text-emerald-600 dark:text-emerald-400" />
+                  {effectiveTotal > 0 ? ((orderProfit / effectiveTotal) * 100).toFixed(1) : 0}% lãi
                 </span>
               </m.div>
             )}

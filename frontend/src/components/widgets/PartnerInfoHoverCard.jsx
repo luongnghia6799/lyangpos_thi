@@ -1,11 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, MapPin, Receipt, FileText, Edit3, CreditCard } from 'lucide-react';
-
-const formatNumber = (num) => {
-    if (num === null || num === undefined || isNaN(num)) return '0';
-    return Number(num).toLocaleString('vi-VN');
-};
+import { formatNumber } from '../../lib/utils';
 
 export const PartnerInfoHoverCard = React.memo(({ partner, isVisible, position = 'bottom' }) => {
     if (!partner || !isVisible) return null;

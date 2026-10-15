@@ -773,6 +773,36 @@ body {
   .print\:hidden,
   [class*="print:hidden"],
   [class*="print:hidden"] *,
+  /* Tooltips, Popovers, Overlays, Toasts, Portals, and Floating Elements */
+  [role="tooltip"],
+  [role="tooltip"] *,
+  [data-tooltip],
+  [data-tooltip] *,
+  [data-active-ingredient-tooltip],
+  [data-active-ingredient-tooltip] *,
+  [key*="tooltip"],
+  [key*="tooltip"] *,
+  .tooltip,
+  .tooltip *,
+  [class*="tooltip"],
+  [class*="tooltip"] *,
+  [class*="popover"],
+  [class*="popover"] *,
+  [class*="hover-card"],
+  [class*="hover-card"] *,
+  [data-radix-popper-content-wrapper],
+  [data-radix-popper-content-wrapper] *,
+  [data-radix-tooltip-content],
+  [data-radix-tooltip-content] *,
+  [data-floating-ui-portal],
+  [data-floating-ui-portal] *,
+  div[style*="z-index: 999999"],
+  div[style*="z-index: 99999"],
+  div[style*="z-index: 9999"],
+  body > div:not(#root):not(.only-print):not(#print-template),
+  body > div:not(#root):not(.only-print):not(#print-template) *,
+  body > span:not(.only-print):not(#print-template),
+  body > span:not(.only-print):not(#print-template) *,
   [data-decoration-item],
   [data-decoration-item] *,
   [data-decorations-layer],
@@ -1384,10 +1414,23 @@ body {
 @media print {
   #custom-cursor-container,
   .cursor-dot,
-  .cursor-follower {
+  .cursor-follower,
+  [role="tooltip"],
+  [data-tooltip],
+  [data-active-ingredient-tooltip],
+  .tooltip,
+  [class*="tooltip"],
+  [class*="popover"],
+  body > div:not(#root):not(.only-print):not(#print-template) {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    top: -99999px !important;
+    left: -99999px !important;
   }
 }
 

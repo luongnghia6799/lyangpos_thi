@@ -2,6 +2,7 @@ import { forwardRef, useState, useEffect, createElement, useSyncExternalStore } 
 import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
 import { mergeClasses, hasA11yProp, toPascalCase, toKebabCase } from 'lucide-react/dist/esm/shared/src/utils.js';
 import dynamicIconImports from 'lucide-react/dist/esm/dynamicIconImports.js';
+import { getDuoIconComponent, isDuoIconName } from './duoIconsConfig';
 
 const STORAGE_KEY = 'app_custom_icons';
 const CLIENT_ID = Math.random().toString(36).substring(2);
@@ -46,6 +47,7 @@ export function preloadIconNode(iconName) {
         name = name.name;
     }
     if (!name || typeof name !== 'string') return Promise.resolve(null);
+    if (isDuoIconName(name)) return Promise.resolve(null);
     const kebab = getIconKebabKey(name);
     const pascal = toPascalCase(kebab);
 
@@ -201,9 +203,10 @@ const Icon = forwardRef(
             }
         }
 
-        const isDifferentName = Boolean(overrideName && overrideName !== baseName);
+        const isDuo = Boolean(overrideName && isDuoIconName(overrideName));
+        const isDifferentName = Boolean(overrideName && overrideName !== baseName && !isDuo);
 
-        // State quản lý dynamic node khi icon được đổi sang icon khác
+        // State quản lý dynamic node khi icon được đổi sang icon khác (chỉ cho Lucide)
         const [loadedNode, setLoadedNode] = useState(() => {
             if (!isDifferentName) return null;
             const kebab = getIconKebabKey(overrideName);
@@ -283,6 +286,34 @@ const Icon = forwardRef(
 
             if (onContextMenu) onContextMenu(e);
         };
+
+        if (isDuo) {
+            const DuoComponent = getDuoIconComponent(overrideName);
+            if (DuoComponent) {
+                return createElement(
+                    DuoComponent,
+                    {
+                        ref,
+                        size,
+                        className: mergeClasses(
+                            "lucide",
+                            "duo-icon",
+                            className
+                        ),
+                        'data-lucide-name': baseName,
+                        'data-duo-name': overrideName,
+                        onContextMenu: handleContextMenu,
+                        style: {
+                            display: 'inline-block',
+                            verticalAlign: 'middle',
+                            ...rest.style
+                        },
+                        ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+                        ...rest
+                    }
+                );
+            }
+        }
 
         return createElement(
             "svg",

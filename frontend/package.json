@@ -18,6 +18,9 @@
     "tauri:build:no-accounting": "vite build --mode no-accounting && tauri build --bundles nsis && node rename_installer_no_accounting.js"
   },
   "dependencies": {
+    "@duo-icons/react": "^1.0.1",
+    "@hugeicons/core-free-icons": "^4.3.5",
+    "@hugeicons/react": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-scroll-area": "^1.2.10",

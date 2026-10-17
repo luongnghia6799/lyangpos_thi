@@ -703,6 +703,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 whileHover={{ scale: 1.15, x: 2 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => onToggleSidebar(false)}
+                style={getButtonComputedStyle(cartColorConfig, 'toggle')}
                 className="absolute -left-5 top-7 w-9 h-9 bg-[#f6f2ea] dark:bg-[#151311] hover:bg-[#8b6f47] hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-slate-900 rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 z-[60] shadow-md hover:border-[#8b6f47] dark:hover:border-[#d4a574] transition-all cursor-pointer"
                 title="Thu gọn bảng thanh toán"
               >
@@ -715,6 +716,13 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                   <div
                     onClick={() => {
                       partner ? onOpenPartnerHistory?.(partner) : onFocusPartnerSearch?.();
+                    }}
+                    style={{
+                      ...getBubbleComputedStyle(cartColorConfig, 'partner'),
+                      ...(partner?.debt_balance <= 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                        borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor,
+                        boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}30` : undefined
+                      } : {})
                     }}
                     className="bg-transparent p-3 rounded-2xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 shadow-sm hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40 transition-colors group/partner-sidebar cursor-pointer relative overflow-hidden"
                   >
@@ -799,6 +807,14 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 <div className="space-y-2.5 pt-0.5">
                   <div
                     onClick={() => partner ? onOpenPartnerHistory?.(partner) : null}
+                    style={{
+                      ...getBubbleComputedStyle(cartColorConfig, 'total'),
+                      ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                        background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                        borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor,
+                        boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}45` : undefined
+                      } : {})
+                    }}
                     className="bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] text-white p-4.5 rounded-2xl border-2 border-emerald-400/50 relative overflow-hidden group/total-card flex flex-col justify-between cursor-pointer shadow-xl shadow-[#2d5016]/20"
                     title={partner ? "Xem lịch sử giao dịch khách hàng" : "Xem lịch sử đơn hàng"}
                   >
@@ -892,6 +908,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                           whileHover={{ y: -2, scale: 1.02 }}
                           whileTap={{ scale: 0.96 }}
                           onClick={onOpenQuickDebt}
+                          style={getButtonComputedStyle(cartColorConfig, 'buttons')}
                           className="flex items-center justify-center gap-1.5 py-2 px-3 bg-black/[0.03] dark:bg-white/[0.04] text-[#2d5016] dark:text-emerald-300 border border-[#8b6f47]/30 dark:border-emerald-500/50 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-xs cursor-pointer"
                         >
                           <BookOpen size={14} strokeWidth={2.5} />
@@ -901,6 +918,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                           whileHover={{ y: -2, scale: 1.02 }}
                           whileTap={{ scale: 0.96 }}
                           onClick={onOpenQuickVoucher}
+                          style={getButtonComputedStyle(cartColorConfig, 'buttons')}
                           className="flex items-center justify-center gap-1.5 py-2 px-3 bg-black/[0.03] dark:bg-white/[0.04] text-[#2d5016] dark:text-emerald-300 border border-[#8b6f47]/30 dark:border-emerald-500/50 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black text-xs uppercase tracking-wider transition-colors shadow-xs cursor-pointer"
                         >
                           <ReceiptText size={14} strokeWidth={2.5} />
@@ -1068,6 +1086,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                       whileTap={{ scale: 0.95 }}
                       disabled={cart.length === 0}
                       onClick={onHoldOrder}
+                      style={getButtonComputedStyle(cartColorConfig, 'hold')}
                       className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                     >
                       <Pause size={18} strokeWidth={2.5} />
@@ -1078,6 +1097,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                       whileTap={{ scale: 0.95 }}
                       disabled={cart.length === 0 || isSaving}
                       onClick={() => onSaveOrder(false)}
+                      style={getButtonComputedStyle(cartColorConfig, 'save')}
                       className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                     >
                       <Save size={18} strokeWidth={2.5} />
@@ -1090,6 +1110,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     whileTap={{ scale: 0.98 }}
                     disabled={cart.length === 0 || isSaving}
                     onClick={() => onSaveAndPrintOrder(true)}
+                    style={getButtonComputedStyle(cartColorConfig, 'save_print')}
                     className="w-full bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-2xl font-black uppercase tracking-widest gap-2.5 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
                   >
                     {isSaving ? (
@@ -1173,6 +1194,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     whileTap={{ scale: 0.92 }}
                     transition={{ type: "spring", stiffness: 480, damping: 25 }}
                     onClick={onOpenShippingPanel}
+                    style={getButtonComputedStyle(cartColorConfig, 'shipping')}
                     className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 hover:text-[#2d5016] transition-colors group/ship relative overflow-hidden shadow-md shadow-[#8b6f47]/5 cursor-pointer"
                     title="Quản lý giao hàng"
                   >

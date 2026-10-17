@@ -1977,6 +1977,36 @@ export default function Purchase() {
                                     );
                                 })()}
                             </m.button>
+                            {summaryLayoutMode === 'sidebar' && (
+                                <div className="flex items-center gap-1 shrink-0 select-none">
+                                    <m.button
+                                        onClick={() => navigateHistory('prev')}
+                                        whileHover={{ scale: 1.08 }}
+                                        whileTap={{ scale: 0.92 }}
+                                        style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
+                                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-all cursor-pointer"
+                                        title="Đơn trước (Ctrl + Mũi tên Trái)"
+                                    >
+                                        <ChevronLeft size={16} strokeWidth={2.8} />
+                                    </m.button>
+                                    <m.button
+                                        onClick={() => navigateHistory('next')}
+                                        disabled={historyStep === 0}
+                                        whileHover={historyStep === 0 ? {} : { scale: 1.08 }}
+                                        whileTap={historyStep === 0 ? {} : { scale: 0.92 }}
+                                        style={historyStep !== 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
+                                        className={cn(
+                                            "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
+                                            historyStep === 0 
+                                                ? "opacity-25 cursor-not-allowed bg-transparent border border-[#8b6f47]/15 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]" 
+                                                : "bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 cursor-pointer"
+                                        )}
+                                        title={historyStep === 0 ? "Đã ở đơn mới nhất" : "Đơn kế tiếp (Ctrl + Mũi tên Phải)"}
+                                    >
+                                        <ChevronRight size={16} strokeWidth={2.8} />
+                                    </m.button>
+                                </div>
+                            )}
                             {/* Date Picker Modal styled like ReminderModal */}
                             <OrderDatePickerModal
                                 isOpen={isOrderDatePickerOpen}
@@ -2296,11 +2326,11 @@ export default function Purchase() {
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setIsNoteModalOpen(true)}
-                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
+                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer group"
                             title={note ? `Ghi chú: ${note}` : "Thêm ghi chú đơn nhập"}
                         >
-                            <FileText size={16} strokeWidth={2.5} />
+                            <FileText size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
                             {note && (
                                 <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
                             )}
@@ -2312,11 +2342,11 @@ export default function Purchase() {
                             whileTap={{ scale: 0.98 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
                             onClick={() => setIsHeldSidebarOpen(true)}
-                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
+                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
                             title="Danh sách đơn nhập tạm"
                         >
-                            <Pause size={16} strokeWidth={2.5} />
+                            <Pause size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
                             {heldPurchases.length > 0 && (
                                 <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">
                                     {heldPurchases.length}
@@ -2324,54 +2354,16 @@ export default function Purchase() {
                             )}
                         </m.button>
 
-                        {/* 4. History Step Navigator (if in sidebar mode) */}
-                        {summaryLayoutMode === 'sidebar' && (
-                            <m.div className="flex items-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] p-0.5 transition-all shadow-xs shrink-0">
-                                <m.button
-                                    onClick={() => navigateHistory('prev')}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="w-7 h-7 flex items-center justify-center transition-colors rounded-lg bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
-                                    title="Đơn trước"
-                                >
-                                    <ChevronLeft size={14} strokeWidth={2.5} />
-                                </m.button>
-                                <m.button
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => {
-                                        if (historyStep !== 0) {
-                                            if (!loadDraft()) resetForm();
-                                        }
-                                    }}
-                                    className="px-2.5 flex items-center justify-center min-w-[55px]"
-                                >
-                                    <span className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#e8dfd5]" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
-                                        {editingOriginalOrder?.display_id ? `#${editingOriginalOrder.display_id}` : (editOrderId ? `#${editOrderId}` : "MỚI")}
-                                    </span>
-                                </m.button>
-                                <m.button
-                                    onClick={() => navigateHistory('next')}
-                                    disabled={historyStep === 0}
-                                    whileTap={{ scale: 0.9 }}
-                                    className={cn(
-                                        "w-7 h-7 flex items-center justify-center transition-colors rounded-lg",
-                                        historyStep === 0 ? "opacity-30 cursor-not-allowed text-[#8b6f47] dark:text-[#d4a574]" : "bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
-                                    )}
-                                >
-                                    <ChevronRight size={14} strokeWidth={2.5} />
-                                </m.button>
-                            </m.div>
-                        )}
-
                         {/* 5. Wholesale / Retail Mode */}
                         <m.button
                             whileHover={{ y: -2, scale: 1.05 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleModeChange(posMode === 'Retail' ? 'Wholesale' : 'Retail')}
-                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
+                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
                             title={posMode === 'Wholesale' ? "Chế độ Nhập Sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Nhập Lẻ (Bấm để đổi sang Sỉ)"}
                         >
-                            {posMode === 'Wholesale' ? <Users size={16} strokeWidth={2.5} /> : <User size={16} strokeWidth={2.5} />}
+                            <span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{posMode === 'Wholesale' ? <Users size={16} strokeWidth={2.5} /> : <User size={16} strokeWidth={2.5} />}</span>
                             <div className={cn(
                                 "absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900",
                                 posMode === 'Wholesale' ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600"
@@ -2385,11 +2377,11 @@ export default function Purchase() {
                             onClick={() => {
                                 setIsDailyHistoryOpen(true);
                             }}
-                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer"
+                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
                             title="Lịch sử đơn nhập hàng trong ngày"
                         >
-                            <History size={16} strokeWidth={2.5} />
+                            <History size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
                         </m.button>
 
                         {/* 6.5 Nút ĐẶT HÀNG trên Header */}
@@ -2416,14 +2408,14 @@ export default function Purchase() {
                                 whileHover={{ y: -2, scale: 1.05 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setIsActionMenuOpen(prev => !prev)}
-                                style={isActionMenuOpen && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor, borderColor: cartColorConfig.accentColor } : (!isActionMenuOpen && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined)}
+                                style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(isActionMenuOpen ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }}
                                 className={cn(
-                                    "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer",
-                                    isActionMenuOpen ? "bg-[#8b6f47] text-white border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47] text-[#8b6f47] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#8b6f47] dark:text-[#d4a574] dark:hover:text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"
+                                    "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer group",
+                                    isActionMenuOpen ? "!bg-[#8b6f47] !text-white !border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"
                                 )}
                                 title="Thao tác khác"
                             >
-                                <Menu size={16} strokeWidth={2.5} />
+                                <Menu size={16} strokeWidth={2.5} className={isActionMenuOpen ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} />
                             </m.button>
 
                             {/* Dropdown Menu */}
@@ -4885,6 +4877,7 @@ export default function Purchase() {
                                                         <button
                                                             disabled={cart.length === 0}
                                                             onClick={handleHold}
+                                                            style={getButtonComputedStyle(cartColorConfig, 'hold')}
                                                             className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                                                         >
                                                             <DynamicIcon id="purchase.hold_btn" defaultIcon={Pause} label="Nút Tạm Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
@@ -4893,6 +4886,7 @@ export default function Purchase() {
                                                         <button
                                                             disabled={cart.length === 0 || loading}
                                                             onClick={() => handleSave(false)}
+                                                            style={getButtonComputedStyle(cartColorConfig, 'save')}
                                                             className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
                                                         >
                                                             <DynamicIcon id="purchase.save_btn" defaultIcon={Save} label="Nút Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
@@ -4912,6 +4906,7 @@ export default function Purchase() {
                                                         <button
                                                             disabled={cart.length === 0 || loading}
                                                             onClick={() => handleSave(true)}
+                                                            style={getButtonComputedStyle(cartColorConfig, 'save_print')}
                                                             className="flex-1 bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-xl font-black uppercase tracking-widest gap-2 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
                                                         >
                                                             {loading ? (

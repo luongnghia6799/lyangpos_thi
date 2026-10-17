@@ -226,7 +226,7 @@ async fn populate_order_details_response(
          CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
          CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
          invoice_no \
-         FROM order_detail WHERE order_id = ?"
+         FROM order_detail WHERE order_id = ? ORDER BY id ASC"
     )
     .bind(order.id)
     .fetch_all(pool)
@@ -1546,7 +1546,7 @@ pub async fn delete_order(
          CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
          CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
          invoice_no \
-         FROM order_detail WHERE order_id = ?"
+         FROM order_detail WHERE order_id = ? ORDER BY id ASC"
     )
     .bind(order.id)
     .fetch_all(&mut *tx)
@@ -1863,7 +1863,7 @@ pub async fn update_order(
          CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
          CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
          invoice_no \
-         FROM order_detail WHERE order_id = ?"
+         FROM order_detail WHERE order_id = ? ORDER BY id ASC"
     )
     .bind(order.id)
     .fetch_all(&mut *tx)
@@ -2590,7 +2590,7 @@ pub async fn update_shipping_status(
          CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
          CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
          invoice_no \
-         FROM order_detail WHERE order_id = ?"
+         FROM order_detail WHERE order_id = ? ORDER BY id ASC"
     )
     .bind(order.id)
     .fetch_all(&mut *tx)
@@ -2896,7 +2896,7 @@ pub async fn import_consignment(
          CAST(is_invoiced AS BOOLEAN) as is_invoiced, \
          CAST(invoiced_quantity AS REAL) as invoiced_quantity, \
          invoice_no \
-         FROM order_detail WHERE order_id = ?"
+         FROM order_detail WHERE order_id = ? ORDER BY id ASC"
     )
     .bind(order.id)
     .fetch_all(&mut *tx)

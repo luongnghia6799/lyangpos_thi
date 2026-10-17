@@ -873,7 +873,8 @@ pub async fn get_partner_ledger(
              p.name as product_name, p.unit, p.secondary_unit, CAST(p.multiplier AS REAL) as multiplier \
              FROM order_detail od \
              LEFT JOIN product p ON od.product_id = p.id \
-             WHERE od.order_id IN ({})",
+             WHERE od.order_id IN ({}) \
+             ORDER BY od.id ASC",
             placeholders
         );
 

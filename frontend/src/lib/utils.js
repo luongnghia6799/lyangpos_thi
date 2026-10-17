@@ -157,21 +157,22 @@ export const normalizeUOM = (uom) => {
 };
 
 export const UOM_PRIORITY = {
-    'bao': 100, 'bành': 100, 'phuy': 100, 'phi': 100,
-    'xô': 90,
-    'thùng': 80, 'thg': 80, 'can': 80, 'két': 80,
-    'tấm': 70, 'cuộn': 70,
-    'túi': 60, 'bịch': 60, 'bó': 60,
-    'bình': 50,
-    'chai': 40, 'hũ': 40, 'lọ': 30, 'hộp': 30,
-    'tip': 20, 'tuýp': 20, 'viên': 20,
-    'gói': 10, 'cái': 10, 'chiếc': 10, 'vỉ': 10
+    'bao': 100, 'banh': 100, 'bành': 100, 'phuy': 100, 'phi': 100,
+    'xo': 90, 'xô': 90,
+    'thung': 80, 'thùng': 80, 'thg': 80, 'can': 80, 'ket': 80, 'két': 80,
+    'tam': 70, 'tấm': 70, 'cuon': 70, 'cuộn': 70,
+    'tui': 60, 'túi': 60, 'bich': 60, 'bịch': 60, 'bo': 60, 'bó': 60,
+    'binh': 50, 'bình': 50,
+    'chai': 40, 'hu': 40, 'hũ': 40, 'lo': 30, 'lọ': 30, 'hop': 30, 'hộp': 30,
+    'tip': 20, 'tuyp': 20, 'tuýp': 20, 'vien': 20, 'viên': 20,
+    'goi': 10, 'gói': 10, 'cai': 10, 'cái': 10, 'chiec': 10, 'chiếc': 10, 'vi': 10, 'vỉ': 10
 };
 
 export const getUomPriority = (uom) => {
     if (!uom) return 0;
-    const clean = removeAccents(uom.toLowerCase().trim());
-    return UOM_PRIORITY[clean] || 0;
+    const raw = String(uom).toLowerCase().trim();
+    const clean = removeAccents(raw);
+    return UOM_PRIORITY[clean] || UOM_PRIORITY[raw] || 0;
 };
 
 export const isComboItem = (item) => {
@@ -197,8 +198,8 @@ export const smartSortItems = (items) => {
         }
 
         // 2. Unit priority (Thùng, Bao, Can, Chai, Hộp, etc.)
-        const uomA = a.unit || a.product_unit;
-        const uomB = b.unit || b.product_unit;
+        const uomA = a.unit || a.product_unit || a.product?.unit;
+        const uomB = b.unit || b.product_unit || b.product?.unit;
         const priorityA = getUomPriority(uomA);
         const priorityB = getUomPriority(uomB);
         if (priorityA !== priorityB) {
@@ -206,7 +207,9 @@ export const smartSortItems = (items) => {
         }
 
         // 3. Alphabetical by product name
-        return (a.product_name || a.name || '').localeCompare(b.product_name || b.name || '', 'vi');
+        const nameA = a.product_name || a.name || a.product?.name || '';
+        const nameB = b.product_name || b.name || b.product?.name || '';
+        return nameA.localeCompare(nameB, 'vi');
     });
 };
 

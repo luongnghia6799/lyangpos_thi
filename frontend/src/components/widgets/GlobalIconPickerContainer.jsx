@@ -14,7 +14,7 @@ export default function GlobalIconPickerContainer() {
     // Bắt sự kiện chuột phải trên BẤT KỲ icon SVG nào trên toàn bộ ứng dụng
     React.useEffect(() => {
         const handleGlobalContextMenu = (e) => {
-            const svg = e.target && e.target.closest && (e.target.closest('svg.lucide') || e.target.closest('svg'));
+            const svg = e.target && e.target.closest && (e.target.closest('svg.lucide') || e.target.closest('svg.duo-icons') || e.target.closest('svg.duo-icon') || e.target.closest('svg'));
             if (!svg) return;
 
             // Bỏ qua nếu đang click bên trong popup chọn icon
@@ -23,10 +23,15 @@ export default function GlobalIconPickerContainer() {
             e.preventDefault();
             e.stopPropagation();
 
+            const explicitId = svg.getAttribute('data-icon-id') || (svg.closest('[data-icon-id]') && svg.closest('[data-icon-id]').getAttribute('data-icon-id'));
             let iconName = '';
-            const nameAttr = svg.getAttribute('data-lucide-name') || (svg.closest('[data-lucide-name]') && svg.closest('[data-lucide-name]').getAttribute('data-lucide-name'));
+            const nameAttr = svg.getAttribute('data-lucide-name') || 
+                             (svg.closest('[data-lucide-name]') && svg.closest('[data-lucide-name]').getAttribute('data-lucide-name')) ||
+                             svg.getAttribute('data-duo-name');
             if (nameAttr) {
                 iconName = nameAttr;
+            } else if (explicitId) {
+                iconName = explicitId.replace(/^icon\./, '').replace(/^nav\./, '');
             } else {
                 for (const cls of svg.classList) {
                     if (cls.startsWith('lucide-') && cls !== 'lucide-icon') {
@@ -38,7 +43,8 @@ export default function GlobalIconPickerContainer() {
             }
 
             const savedCustoms = getStoredCustomIcons();
-            const existingConfig = iconName ? (savedCustoms[`icon.${iconName}`] || savedCustoms[iconName]) : null;
+            const lookupId = explicitId || (iconName ? `icon.${iconName}` : null);
+            const existingConfig = lookupId ? (savedCustoms[lookupId] || savedCustoms[iconName]) : (iconName ? (savedCustoms[`icon.${iconName}`] || savedCustoms[iconName]) : null);
 
             let currentActiveName = iconName;
             let currentStroke = 2;
@@ -56,7 +62,7 @@ export default function GlobalIconPickerContainer() {
             const parentLabel = parentButton ? (parentButton.innerText || parentButton.getAttribute('title') || '').trim() : '';
             const displayLabel = parentLabel ? `${iconName || 'Icon'} (${parentLabel.slice(0, 25)})` : (iconName || 'Icon');
 
-            const targetId = iconName ? `icon.${iconName}` : `dom.icon_${Date.now()}`;
+            const targetId = explicitId || (iconName ? `icon.${iconName}` : `dom.icon_${Date.now()}`);
             const rect = svg.getBoundingClientRect();
 
             window.dispatchEvent(new CustomEvent('app_open_icon_picker', {

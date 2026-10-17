@@ -1743,7 +1743,7 @@ function POSPage({
     ys = i.useRef(null),
     bn = i.useRef(null),
     [gn, Zi] = i.useState(!1),
-    ve = i.useMemo(() => J.ui_enable_smart_sorting !== "true" ? y : Tn(y), [y, J.ui_enable_smart_sorting]),
+    ve = i.useMemo(() => String(J.ui_enable_smart_sorting) !== "true" ? y : Tn(y), [y, J.ui_enable_smart_sorting]),
     [fn, yn] = i.useState(!1),
     [Ha, el] = i.useState(!1),
     ta = i.useRef(null),
@@ -2235,7 +2235,11 @@ function POSPage({
         }, ...r];
       }
       if (r.length !== 0) {
-        J.ui_enable_smart_sorting === "true" && (r = Tn(r)), Zs(!0);
+        if (String(J.ui_enable_smart_sorting) === "true") {
+          r = Tn(r);
+          H(r);
+        }
+        Zs(!0);
         try {
           const s = {
             partner_id: p ? p.id : null,
@@ -2455,7 +2459,7 @@ function POSPage({
       Gt(orderObj.id);
       Br(orderObj);
       const detailsList = orderObj.details || orderObj.items || [];
-      H(detailsList.map(a => {
+      const loadedCart = detailsList.map(a => {
         const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
@@ -2471,11 +2475,16 @@ function POSPage({
           stock: r ? r.stock : a.stock || 0,
           latest_audit: r?.latest_audit,
           active_ingredient: a.active_ingredient || r?.active_ingredient,
+          is_combo: Boolean(a.is_combo || r?.is_combo),
+          combo_items: a.combo_items || r?.combo_items || [],
+          product: r || null,
           is_manual_price: !0,
           isPacked: !1,
           cartId: Math.random().toString(36).substr(2, 9)
         };
-      }));
+      });
+      const isSmartSort = String(J.ui_enable_smart_sorting) === "true";
+      H(isSmartSort ? Tn(loadedCart) : loadedCart);
       He({
         product: null,
         quantity: 0,
@@ -3637,7 +3646,36 @@ function POSPage({
                         </div>
                       </>
                     );
-                  })()}</x.button></div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
+                  })()}</x.button>{Ze === "sidebar" && (
+                    <div className="flex items-center gap-1 shrink-0 select-none">
+                      <x.button 
+                        onClick={() => na("prev")} 
+                        whileHover={{ scale: 1.08 }} 
+                        whileTap={{ scale: 0.92 }} 
+                        style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined} 
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#2d5016] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-all cursor-pointer" 
+                        title="Đơn trước (Ctrl + Mũi tên Trái)"
+                      >
+                        <Comp_qs size={16} strokeWidth={2.8} />
+                      </x.button>
+                      <x.button 
+                        onClick={() => na("next")} 
+                        disabled={Ce === 0} 
+                        whileHover={Ce === 0 ? {} : { scale: 1.08 }} 
+                        whileTap={Ce === 0 ? {} : { scale: 0.92 }} 
+                        style={Ce !== 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined} 
+                        className={c(
+                          "w-8 h-8 flex items-center justify-center rounded-xl transition-all", 
+                          Ce === 0 
+                            ? "opacity-25 cursor-not-allowed bg-transparent border border-[#8b6f47]/15 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]" 
+                            : "bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#2d5016] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 cursor-pointer"
+                        )}
+                        title={Ce === 0 ? "Đã ở đơn mới nhất" : "Đơn kế tiếp (Ctrl + Mũi tên Phải)"}
+                      >
+                        <Dr size={16} strokeWidth={2.8} />
+                      </x.button>
+                    </div>
+                  )}</div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
                       rotate: -8
                     }} animate={{
@@ -3788,39 +3826,33 @@ function POSPage({
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
-                }} onClick={() => Bt(!0)} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button whileHover={{
+                }} onClick={() => Bt(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer group" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
-                }} onClick={() => St(!0)} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Danh sách đơn tạm / treo"><Comp_jt size={16} strokeWidth={2.5} className="relative z-10" />{Fe.length > 0 && <x.span initial={{
+                }} onClick={() => St(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Danh sách đơn tạm / treo"><Comp_jt size={16} strokeWidth={2.5} className="relative z-10 group-hover:!text-white group-active:!text-white transition-colors" />{Fe.length > 0 && <x.span initial={{
                     scale: 0
                   }} animate={{
                     scale: 1
-                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button>{Ze === "sidebar" && <x.div className="flex items-center rounded-xl border border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] p-0.5 transition-all shadow-xs shrink-0"><x.button onClick={() => na("prev")} whileTap={{
-                    scale: 0.9
-                  }} className="w-7 h-7 flex items-center justify-center transition-all rounded-lg bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]" title="Đơn trước"><Comp_qs size={14} strokeWidth={2.5} /></x.button><x.button whileTap={{
-                    scale: 0.98
-                  }} onClick={() => Ce !== 0 && !ks() && Wt()} className="px-2.5 flex items-center justify-center min-w-[55px]"><span className="text-[11px] font-black uppercase tracking-tight text-[#2d5016] dark:text-[#e8dfd5]" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>{le?.display_id ? `#${le.display_id}` : Q ? `#${Q}` : "MỚI"}</span></x.button><x.button onClick={() => na("next")} disabled={Ce === 0} whileTap={{
-                    scale: 0.9
-                  }} className={c("w-7 h-7 flex items-center justify-center transition-all rounded-lg", Ce === 0 ? "opacity-30 cursor-not-allowed text-[#8b6f47] dark:text-[#d4a574]" : "bg-transparent hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]")}><Dr size={14} strokeWidth={2.5} /></x.button></x.div>}<x.button whileHover={{
+                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button><x.button whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
-                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}>{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}<div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></x.button><x.button whileHover={{
+                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}><span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}</span><div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></x.button><x.button whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
                 }} onClick={() => {
                   Xr(!0);
-                }} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} /></x.button><div className="relative" ref={$r}><x.button whileHover={{
+                }} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" /></x.button><div className="relative" ref={$r}><x.button whileHover={{
                     y: -2,
                     scale: 1.05
                   }} whileTap={{
                     scale: 0.98
-                  }} onClick={() => Ct(t => !t)} style={ar && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor, borderColor: cartColorConfig.accentColor } : (!ar && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined)} className={c("w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer", ar ? "bg-[#2d5016] text-white border-[#2d5016] shadow-md shadow-[#2d5016]/25" : "bg-[#8b6f47]/[0.08] hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-white/[0.05] dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40")} title="Thao tác khác"><Comp_co size={16} strokeWidth={2.5} /></x.button><P>{ar && <x.div initial={{
+                  }} onClick={() => Ct(t => !t)} style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(ar ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }} className={c("w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer group", ar ? "!bg-[#2d5016] !text-white !border-[#2d5016] shadow-md shadow-[#2d5016]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40")} title="Thao tác khác"><Comp_co size={16} strokeWidth={2.5} className={ar ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} /></x.button><P>{ar && <x.div initial={{
                       opacity: 0,
                       y: 8,
                       scale: 0.95
@@ -4156,21 +4188,21 @@ function POSPage({
   title="Bấm để uncheck toàn bộ / soạn lại (Đè để chọn số lần đọc lặp)"
 >
   <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span>
-  {packingRepeatCount !== 1 && (
-    <span className="ml-1 px-1 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[8.5px] font-black inline-block align-middle scale-90">
-      {packingRepeatCount === Infinity || packingRepeatCount === 'Infinity' ? '∞' : `${packingRepeatCount}x`}
-    </span>
-  )}
 </th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={t => {
                                       t.stopPropagation();
-                                      const a = J.ui_enable_smart_sorting === "true" ? "false" : "true";
+                                      const a = String(J.ui_enable_smart_sorting) === "true" ? "false" : "true";
                                       Na(r => ({
                                         ...r,
                                         ui_enable_smart_sorting: a
-                                      })), localStorage.setItem("ui_enable_smart_sorting", a), new BroadcastChannel("pos_data_sync").postMessage({
+                                      }));
+                                      localStorage.setItem("ui_enable_smart_sorting", a);
+                                      if (a === "true") {
+                                        H(prev => Tn(prev));
+                                      }
+                                      new BroadcastChannel("pos_data_sync").postMessage({
                                         type: "UI_SETTING_UPDATED",
                                         key: "ui_enable_smart_sorting",
                                         value: a
@@ -4178,11 +4210,11 @@ function POSPage({
                                     }}
                                     className={c(
                                       "relative overflow-hidden flex items-center gap-2 px-3 py-1 rounded-full cursor-pointer transition-colors duration-150 select-none shadow-xs border group/gom-nhom",
-                                      J.ui_enable_smart_sorting === "true"
+                                      String(J.ui_enable_smart_sorting) === "true"
                                         ? "bg-[#2d5016]/12 hover:bg-[#2d5016]/20 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 border-[#2d5016]/40 dark:border-emerald-400/40 text-[#2d5016] dark:text-emerald-300 shadow-[0_0_12px_rgba(45,80,22,0.12)] dark:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
                                         : "bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.12] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
                                     )}
-                                    style={J.ui_enable_smart_sorting === 'true' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                    style={String(J.ui_enable_smart_sorting) === 'true' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
                                       backgroundColor: `${cartColorConfig.accentColor}25`,
                                       borderColor: cartColorConfig.accentColor,
                                       color: cartColorConfig.accentColor
@@ -4196,11 +4228,11 @@ function POSPage({
                                     <div
                                       className={c(
                                         "relative z-10 w-6 h-3.5 rounded-full transition-colors duration-300 p-0.5 flex items-center shadow-inner",
-                                        J.ui_enable_smart_sorting === "true"
+                                        String(J.ui_enable_smart_sorting) === "true"
                                           ? "bg-[#2d5016] dark:bg-emerald-500 justify-end"
                                           : "bg-[#8b6f47]/25 dark:bg-white/20 justify-start"
                                       )}
-                                      style={J.ui_enable_smart_sorting === 'true' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                      style={String(J.ui_enable_smart_sorting) === 'true' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
                                         backgroundColor: cartColorConfig.accentColor
                                       } : undefined}
                                     >
@@ -4691,7 +4723,7 @@ function POSPage({
           type: 'product',
           data: r,
           position: { x: e.clientX, y: e.clientY },
-          onDelete: () => H(prev => prev.filter((_, i) => i !== idx))
+          onDelete: () => H(prev => prev.filter(it => it.cartId ? it.cartId !== item.cartId : it !== item))
         });
       }
     }}

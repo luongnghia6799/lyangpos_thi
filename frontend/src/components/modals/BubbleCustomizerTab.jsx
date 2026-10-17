@@ -434,12 +434,15 @@ export const getBubbleComputedStyle = (config, bubbleKey = 'all') => {
 // Helper to compute button styles
 export const getButtonComputedStyle = (config, btnKey = 'all') => {
     if (!config) return {};
-    const mode = config.bubbleCustomMode || 'all';
     
     // Check if this is the Save & Print F9 button
     if (btnKey === 'save_print') {
-        const bg = config.btnSavePrintBg;
-        const borderCol = config.btnSavePrintBorder;
+        const bg = (config.btnSavePrintBg && config.btnSavePrintBg !== 'default')
+            ? config.btnSavePrintBg
+            : ((config.accentColor && config.accentColor !== 'default') ? config.accentColor : null);
+        const borderCol = (config.btnSavePrintBorder && config.btnSavePrintBorder !== 'default')
+            ? config.btnSavePrintBorder
+            : (config.borderColor && config.borderColor !== 'default' ? config.borderColor : null);
         let textCol = config.btnSavePrintTextColor;
         if (!textCol || textCol === 'default') {
             if (config.btnTextColor && config.btnTextColor !== 'default') textCol = config.btnTextColor;
@@ -456,8 +459,8 @@ export const getButtonComputedStyle = (config, btnKey = 'all') => {
         }
 
         const res = {};
-        if (bg && bg !== 'default') res.background = bg;
-        if (borderCol && borderCol !== 'default') res.borderColor = borderCol;
+        if (bg) res.background = bg;
+        if (borderCol) res.borderColor = borderCol;
         if (textCol && textCol !== 'default') {
             res.color = textCol;
             res['--btn-text'] = textCol;
@@ -466,11 +469,18 @@ export const getButtonComputedStyle = (config, btnKey = 'all') => {
         return res;
     }
 
-    // Standard mini-sidebar & auxiliary buttons
+    // Standard sidebar, mini-sidebar & auxiliary buttons
     let bg = config.btnBg;
     let borderCol = config.btnBorderColor;
     let textCol = config.btnTextColor;
     const borderWidth = (config.btnEnableBorder === false) ? 0 : Number(config.btnBorderWidth || 2);
+
+    if ((!textCol || textCol === 'default') && config.accentColor && config.accentColor !== 'default') {
+        textCol = config.accentColor;
+    }
+    if ((!borderCol || borderCol === 'default') && config.borderColor && config.borderColor !== 'default') {
+        borderCol = config.borderColor;
+    }
 
     const y = Number(config.btnShadowY !== undefined ? config.btnShadowY : 8);
     const blur = Number(config.btnShadowBlur !== undefined ? config.btnShadowBlur : 18);
@@ -505,6 +515,7 @@ export const getButtonComputedStyle = (config, btnKey = 'all') => {
     if (shadows.length > 0) res.boxShadow = shadows.join(', ');
     return res;
 };
+
 
 export default function BubbleCustomizerTab({ config, onChangeConfig }) {
     const currentConfig = { ...config };

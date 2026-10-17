@@ -57,6 +57,20 @@
   --color-neutral-700: #404040;
 }
 
+/* Suppress ugly browser focus outlines on button/link click */
+button:focus,
+button:focus-visible,
+button:active,
+a:focus,
+a:focus-visible,
+a:active,
+[role="button"]:focus,
+[role="button"]:focus-visible,
+[role="button"]:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
 *:not(#print-template):not(#print-template *):not(.font-preview-sample):not(.font-preview-sample *):not(.typing-practice-root):not(.typing-practice-root *):not(.typing-custom-font):not(.typing-custom-font *):not(.type-letter):not([id^="type-word-"]) {
   font-family: var(--app-global-font);
 }

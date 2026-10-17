@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, X, Check, Sparkles, RotateCcw, Sliders, Minus, Plus, Layers } from 'lucide-react';
+import { Search, X, Check, Sparkles, RotateCcw, Sliders, Minus, Plus, Layers, Palette } from 'lucide-react';
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { getAllLucideIcons, POPULAR_ICONS, getLucideIconComponent } from '../../lib/iconConfig';
+import { getAllDuoIcons } from '../../lib/duoIconsConfig';
 import Portal from '../widgets/Portal';
 import { cn } from '../../lib/utils';
 
@@ -25,6 +26,7 @@ export default function IconPickerModal({
 }) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [activeLibrary, setActiveLibrary] = useState('all'); // 'all' | 'duo' | 'lucide'
     const [displayLimit, setDisplayLimit] = useState(INITIAL_DISPLAY_LIMIT);
     const [strokeWidth, setStrokeWidth] = useState(2);
     const [selectedIconName, setSelectedIconName] = useState('');
@@ -45,22 +47,36 @@ export default function IconPickerModal({
             setSelectedIconName(currentTarget.currentIconName || '');
             setSearch('');
             setSelectedCategory('All');
+            // Nếu icon hiện tại là DuoIcon thì tự động chọn tab DuoIcons để tiện theo dõi
+            if (currentTarget.currentIconName && (currentTarget.currentIconName.startsWith('duo:') || currentTarget.currentIconName.startsWith('duo-'))) {
+                setActiveLibrary('duo');
+            } else {
+                setActiveLibrary('all');
+            }
         }
     }, [isOpen, currentTarget?.id]);
 
-    // Lấy danh sách toàn bộ icon an toàn
-    const allIcons = useMemo(() => {
+    const duoIcons = useMemo(() => getAllDuoIcons(), []);
+
+    const lucideIcons = useMemo(() => {
         if (!isOpen && !currentTarget) return POPULAR_ICONS;
         return getAllLucideIcons();
     }, [isOpen, currentTarget]);
 
-    // Reset pagination khi search hoặc đổi category
+    // Lấy danh sách toàn bộ icon an toàn theo thư viện
+    const allIcons = useMemo(() => {
+        if (activeLibrary === 'duo') return duoIcons;
+        if (activeLibrary === 'lucide') return lucideIcons;
+        return [...duoIcons, ...lucideIcons];
+    }, [activeLibrary, duoIcons, lucideIcons]);
+
+    // Reset pagination khi search hoặc đổi category hoặc đổi thư viện
     useEffect(() => {
         setDisplayLimit(INITIAL_DISPLAY_LIMIT);
         if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollTop = 0;
         }
-    }, [search, selectedCategory]);
+    }, [search, selectedCategory, activeLibrary]);
 
     // Tính toán vị trí Popout tương đối với anchorRect
     const popoutPosition = useMemo(() => {
@@ -112,6 +128,7 @@ export default function IconPickerModal({
     const categories = useMemo(() => {
         const ordered = [
             'All',
+            '🎨 Duo Icons',
             'Phổ biến',
             'Điều hướng',
             'Bán hàng',
@@ -119,6 +136,7 @@ export default function IconPickerModal({
             'Giao dịch',
             'Báo cáo',
             'Tài chính',
+            'Thiết bị & Công nghệ',
             'Đối tác',
             'Hệ thống',
             'Tiện ích',
@@ -127,14 +145,21 @@ export default function IconPickerModal({
             'Kho Icon Khác'
         ];
         const existing = new Set(allIcons.map(i => i.category));
-        return ordered.filter(cat => cat === 'All' || cat === 'Phổ biến' || existing.has(cat));
-    }, [allIcons]);
+        return ordered.filter(cat => 
+            cat === 'All' || 
+            (cat === '🎨 Duo Icons' && activeLibrary !== 'duo') || 
+            (cat === 'Phổ biến' && activeLibrary !== 'duo') || 
+            existing.has(cat)
+        );
+    }, [allIcons, activeLibrary]);
 
     const filteredIcons = useMemo(() => {
         const query = search.trim().toLowerCase();
         let baseList = allIcons;
 
-        if (selectedCategory === 'Phổ biến') {
+        if (selectedCategory === '🎨 Duo Icons') {
+            baseList = duoIcons;
+        } else if (selectedCategory === 'Phổ biến') {
             baseList = POPULAR_ICONS;
         } else if (selectedCategory !== 'All') {
             baseList = allIcons.filter(item => item.category === selectedCategory);
@@ -145,11 +170,12 @@ export default function IconPickerModal({
         return baseList.filter(item => {
             return (
                 item.name.toLowerCase().includes(query) ||
+                (item.rawName && item.rawName.toLowerCase().includes(query)) ||
                 (item.label && item.label.toLowerCase().includes(query)) ||
                 (item.category && item.category.toLowerCase().includes(query))
             );
         });
-    }, [search, selectedCategory, allIcons]);
+    }, [search, selectedCategory, allIcons, duoIcons]);
 
     const visibleIcons = useMemo(() => {
         return filteredIcons.slice(0, displayLimit);
@@ -286,56 +312,123 @@ export default function IconPickerModal({
                                 </div>
                             </div>
 
+                            {/* Library Switcher Tabs */}
+                            <div className="px-3 pt-2 pb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30">
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveLibrary('all'); setSelectedCategory('All'); }}
+                                    className={cn(
+                                        "flex-1 py-1.5 px-2 rounded-xl text-[10.5px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
+                                        activeLibrary === 'all'
+                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xs"
+                                            : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
+                                    )}
+                                >
+                                    <Sparkles size={11} className={activeLibrary === 'all' ? "text-amber-400" : "text-slate-400"} />
+                                    <span>Tất cả</span>
+                                    <span className="text-[9px] px-1 py-0.2 rounded-full bg-slate-700 dark:bg-slate-200 text-slate-200 dark:text-slate-800 font-mono">
+                                        {duoIcons.length + lucideIcons.length}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveLibrary('duo'); setSelectedCategory('All'); }}
+                                    className={cn(
+                                        "flex-1 py-1.5 px-2 rounded-xl text-[10.5px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
+                                        activeLibrary === 'duo'
+                                            ? "bg-indigo-600 text-white border-transparent shadow-xs"
+                                            : "bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100/70"
+                                    )}
+                                >
+                                    <Layers size={11} className={activeLibrary === 'duo' ? "text-white" : "text-indigo-500"} />
+                                    <span>DuoIcons</span>
+                                    <span className={cn(
+                                        "text-[9px] px-1 py-0.2 rounded-full font-mono font-bold",
+                                        activeLibrary === 'duo' ? "bg-white/20 text-white" : "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300"
+                                    )}>
+                                        {duoIcons.length}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setActiveLibrary('lucide'); setSelectedCategory('All'); }}
+                                    className={cn(
+                                        "flex-1 py-1.5 px-2 rounded-xl text-[10.5px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
+                                        activeLibrary === 'lucide'
+                                            ? "bg-emerald-600 text-white border-transparent shadow-xs"
+                                            : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
+                                    )}
+                                >
+                                    <Sliders size={11} className={activeLibrary === 'lucide' ? "text-white" : "text-slate-400"} />
+                                    <span>Lucide</span>
+                                    <span className={cn(
+                                        "text-[9px] px-1 py-0.2 rounded-full font-mono font-bold",
+                                        activeLibrary === 'lucide' ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                    )}>
+                                        {lucideIcons.length}
+                                    </span>
+                                </button>
+                            </div>
+
                             {/* Control Stroke Width */}
                             <div className="px-3 py-2 bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                                    <Sliders size={13} className="text-emerald-600 dark:text-emerald-400" />
-                                    <span>Độ dày nét:</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono text-[10.5px]">
-                                        {strokeWidth.toFixed(2)}px
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleStrokeChange(strokeWidth - 0.25)}
-                                        className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-                                        title="Giảm độ dày nét"
-                                    >
-                                        <Minus size={10} />
-                                    </button>
-
-                                    <div className="flex items-center gap-1 mx-1">
-                                        {STROKE_PRESETS.map((p) => {
-                                            const isSelected = Math.abs(strokeWidth - p.value) < 0.1;
-                                            return (
-                                                <button
-                                                    key={p.value}
-                                                    type="button"
-                                                    onClick={() => handleStrokeChange(p.value)}
-                                                    className={cn(
-                                                        "px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all",
-                                                        isSelected
-                                                            ? "bg-emerald-600 text-white shadow-xs"
-                                                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-                                                    )}
-                                                >
-                                                    {p.label}
-                                                </button>
-                                            );
-                                        })}
+                                {activeLibrary === 'duo' ? (
+                                    <div className="flex items-center gap-1.5 text-[10.5px] text-indigo-600 dark:text-indigo-400 font-bold w-full justify-center py-0.5">
+                                        <Layers size={13} />
+                                        <span>DuoIcons: Phong cách Duotone 2 lớp tự nhiên theo màu chữ/nền</span>
                                     </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                                            <Sliders size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                            <span>Độ dày nét:</span>
+                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono text-[10.5px]">
+                                                {strokeWidth.toFixed(2)}px
+                                            </span>
+                                        </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => handleStrokeChange(strokeWidth + 0.25)}
-                                        className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-                                        title="Tăng độ dày nét"
-                                    >
-                                        <Plus size={10} />
-                                    </button>
-                                </div>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleStrokeChange(strokeWidth - 0.25)}
+                                                className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                                title="Giảm độ dày nét"
+                                            >
+                                                <Minus size={10} />
+                                            </button>
+
+                                            <div className="flex items-center gap-1 mx-1">
+                                                {STROKE_PRESETS.map((p) => {
+                                                    const isSelected = Math.abs(strokeWidth - p.value) < 0.1;
+                                                    return (
+                                                        <button
+                                                            key={p.value}
+                                                            type="button"
+                                                            onClick={() => handleStrokeChange(p.value)}
+                                                            className={cn(
+                                                                "px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all",
+                                                                isSelected
+                                                                    ? "bg-emerald-600 text-white shadow-xs"
+                                                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                                                            )}
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleStrokeChange(strokeWidth + 0.25)}
+                                                className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                                title="Tăng độ dày nét"
+                                            >
+                                                <Plus size={10} />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Search and Category Filter */}
@@ -346,7 +439,7 @@ export default function IconPickerModal({
                                         type="text"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Tìm hơn 1400+ icon (Home, Cart, Bell, User, Flame, Wifi...)"
+                                        placeholder={activeLibrary === 'duo' ? "Tìm trong 91 DuoIcons (Bank, Box, User, Rocket, Car...)" : "Tìm hơn 1500+ icon (Duo & Lucide: Home, Bank, Cart, Bell, User...)"}
                                         className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-emerald-500/50 border border-transparent focus:border-emerald-500 transition-all"
                                         autoFocus
                                     />
@@ -377,7 +470,7 @@ export default function IconPickerModal({
                                                         : "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
                                                 )}
                                             >
-                                                {cat === 'All' ? `Tất cả (${allIcons.length})` : cat}
+                                                {cat === 'All' ? `Tất cả (${filteredIcons.length})` : cat}
                                             </button>
                                         );
                                     })}
@@ -394,24 +487,26 @@ export default function IconPickerModal({
                                     <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                                         <Search size={28} className="opacity-30 mb-2" />
                                         <p className="text-xs font-bold">Không tìm thấy icon "{search}"</p>
-                                        <p className="text-[10px] opacity-70">Thử gõ tên tiếng Anh như: Box, Store, Star, Key...</p>
+                                        <p className="text-[10px] opacity-70">Thử gõ tên tiếng Anh như: Bank, Box, Store, Star, Key...</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-5 gap-1.5">
                                         {visibleIcons.map((item) => {
-                                            const IconComp = getLucideIconComponent(item.name);
+                                            const isDuo = item.library === 'duo' || (item.name && item.name.startsWith('duo:'));
+                                            const IconComp = item.component || getLucideIconComponent(item.name);
                                             if (!IconComp) return null;
-                                            const isCurrent = currentName === item.name;
+                                            const isCurrent = currentName === item.name || currentName === item.rawName || (item.name.startsWith('duo:') && currentName === `duo:${item.rawName}`) || (currentName && item.name === `duo:${currentName}`);
 
                                             return (
                                                 <button
                                                     key={item.name}
                                                     type="button"
-                                                    title={`${item.label} (${item.name})`}
+                                                    title={`${item.label} (${item.rawName || item.name}) - ${isDuo ? 'DuoIcons' : 'Lucide'}`}
                                                     onClick={() => {
                                                         setSelectedIconName(item.name);
                                                         onSelectIcon(currentTarget.id, {
                                                             name: item.name,
+                                                            library: isDuo ? 'duo' : 'lucide',
                                                             strokeWidth
                                                         });
                                                         onClose();
@@ -420,22 +515,38 @@ export default function IconPickerModal({
                                                         "group relative flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all duration-150 cursor-pointer text-center",
                                                         isCurrent
                                                             ? "bg-emerald-500/15 dark:bg-emerald-500/25 border-emerald-500 text-[#2d5016] dark:text-emerald-300 shadow-xs ring-1 ring-emerald-500"
-                                                            : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 hover:border-emerald-500/40 hover:scale-[1.04]"
+                                                            : isDuo
+                                                                ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-800/40 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/30 hover:border-indigo-500/50 hover:scale-[1.04]"
+                                                                : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 hover:border-emerald-500/40 hover:scale-[1.04]"
                                                     )}
                                                 >
                                                     {isCurrent && (
-                                                        <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                                                        <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs z-10">
                                                             <Check size={8} strokeWidth={3} />
                                                         </div>
                                                     )}
-                                                    <div className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                                                        <IconComp size={17} strokeWidth={strokeWidth} />
+                                                    {isDuo && !isCurrent && (
+                                                        <span className="absolute top-1 right-1 text-[7px] font-black uppercase px-1 py-0.2 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 leading-none">
+                                                            DUO
+                                                        </span>
+                                                    )}
+                                                    <div className={cn(
+                                                        "w-6 h-6 rounded-lg flex items-center justify-center transition-colors",
+                                                        isDuo 
+                                                            ? "text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300"
+                                                            : "text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                                                    )}>
+                                                        {isDuo ? (
+                                                            <IconComp size={18} />
+                                                        ) : (
+                                                            <IconComp size={17} strokeWidth={strokeWidth} />
+                                                        )}
                                                     </div>
                                                     <span className="text-[9px] font-bold text-slate-800 dark:text-slate-200 truncate w-full mt-0.5 leading-tight">
                                                         {item.label}
                                                     </span>
                                                     <span className="text-[7.5px] font-mono text-slate-400 dark:text-slate-500 truncate w-full leading-none">
-                                                        {item.name}
+                                                        {item.rawName || item.name}
                                                     </span>
                                                 </button>
                                             );

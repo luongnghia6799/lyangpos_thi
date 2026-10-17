@@ -3,6 +3,7 @@ import { toPascalCase, toKebabCase } from 'lucide-react/dist/esm/shared/src/util
 import { preloadIconNode, iconNodeCache, getIconKebabKey } from './customIcon.js';
 import { createElement, useState, useEffect } from 'react';
 import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
+import { getDuoIconComponent, isDuoIconName, getAllDuoIcons } from './duoIconsConfig.js';
 
 export const POPULAR_ICONS = [
     // Điều hướng & Chức năng chính
@@ -205,8 +206,21 @@ export const getLucideIconComponent = (name) => {
     if (!name) return null;
     const rawName = typeof name === 'object' && name !== null ? name.name : name;
     if (!rawName || typeof rawName !== 'string') return null;
+
+    if (isDuoIconName(rawName)) {
+        const DuoComp = getDuoIconComponent(rawName);
+        if (DuoComp) {
+            return (props) => createElement(DuoComp, {
+                className: `duo-icons ${props.className || ''}`,
+                ...props
+            });
+        }
+    }
+
     return (props) => createElement(DynamicIconRenderer, { name: rawName, ...props });
 };
+
+export { getDuoIconComponent, isDuoIconName, getAllDuoIcons };
 
 // Khởi tạo danh sách 1,900+ icon từ dynamicIconImports (Không tốn RAM, không load file thừa)
 let cachedAllIcons = null;
@@ -235,7 +249,8 @@ export const getAllLucideIcons = () => {
                             name: pascalKey,
                             kebab: kebabKey,
                             label: friendlyLabel,
-                            category: 'Kho Icon Khác'
+                            category: 'Kho Icon Khác',
+                            library: 'lucide'
                         });
                     }
                 }
@@ -251,6 +266,12 @@ export const getAllLucideIcons = () => {
     return list;
 };
 
+export const getAllIcons = () => {
+    const duo = getAllDuoIcons();
+    const lucide = getAllLucideIcons();
+    return [...duo, ...lucide];
+};
+
 export const ALL_LUCIDE_ICONS = new Proxy([], {
     get(target, prop) {
         const full = getAllLucideIcons();
@@ -260,3 +281,4 @@ export const ALL_LUCIDE_ICONS = new Proxy([], {
         return full[prop];
     }
 });
+

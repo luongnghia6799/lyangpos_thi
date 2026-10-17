@@ -859,88 +859,87 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
     const isLite = !!liteTheme;
     const itemRef = useRef(null);
     const cartColorConfig = useCartColorConfig();
-    const hasCustomAccent = !isLite && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
-    const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+    const hasCustomAccent = !isLite && (
+        (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ||
+        (cartColorConfig?.btnSavePrintBg && cartColorConfig.btnSavePrintBg !== 'default') ||
+        (cartColorConfig?.btnBg && cartColorConfig.btnBg !== 'default')
+    );
+    const accentCol = hasCustomAccent ? (
+        (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default')
+            ? cartColorConfig.accentColor
+            : ((cartColorConfig?.btnSavePrintBg && cartColorConfig.btnSavePrintBg !== 'default')
+                ? cartColorConfig.btnSavePrintBg
+                : cartColorConfig?.btnBg)
+    ) : undefined;
     const isCustomSidebar = !isLite && !isFlyout && customSidebarStyle?.enabled;
     const isSidebarLightText = !isCustomSidebar || customSidebarStyle?.isLightText !== false;
 
-    const linkStyle = isLite ? {
-        color: active ? '#ffffff' : liteTheme.text,
-    } : {};
+    const navGradient = accentCol ? (
+        accentCol.includes('gradient')
+            ? accentCol
+            : `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`
+    ) : undefined;
+    const navBorderColor = accentCol && !accentCol.includes('gradient') 
+        ? `${accentCol}80` 
+        : (cartColorConfig?.borderColor !== 'default' ? cartColorConfig.borderColor : undefined);
+
+    const linkStyle = active ? (
+        hasCustomAccent ? {
+            background: navGradient || accentCol,
+            color: '#ffffff',
+            boxShadow: `0 4px 14px ${accentCol}40`,
+            borderColor: navBorderColor || 'rgba(255, 255, 255, 0.2)'
+        } : (isLite ? {
+            background: liteTheme.accent || '#10b981',
+            color: '#ffffff',
+            boxShadow: `0 4px 14px ${(liteTheme.accent || '#10b981')}40`,
+            borderColor: liteTheme.border || 'transparent'
+        } : (isCustomSidebar ? {
+            background: isSidebarLightText ? 'rgba(255, 255, 255, 0.22)' : 'rgba(0, 0, 0, 0.15)',
+            color: isSidebarLightText ? '#ffffff' : '#0f172a',
+            borderColor: isSidebarLightText ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)'
+        } : {}))
+    ) : (
+        isLite ? { color: liteTheme.text } : {}
+    );
 
     const content = (
-        <div className={cn("relative", active ? "z-20" : "z-10", isCollapsed ? "px-0 flex justify-center py-1.5" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1.5"))}>
+        <div className={cn("relative", active ? "z-20" : "z-10", isCollapsed ? "px-0 flex justify-center py-1" : (isFlyout ? "px-1.5 py-0.5" : "px-3 py-1"))}>
             <Link
                 ref={itemRef}
                 to={path}
                 onClick={onClick}
-                style={linkStyle}
+                style={{ ...linkStyle, outline: 'none', WebkitTapHighlightColor: 'transparent' }}
                 title={isCollapsed ? label : undefined}
                 className={cn(
-                    "group relative flex items-center transition-colors duration-200",
+                    "group relative flex items-center transition-all duration-200 select-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none",
                     isCollapsed 
-                        ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" 
-                        : (isFlyout ? "gap-3 px-3 py-2.5 rounded-xl" : "gap-4 px-4 py-3 rounded-2xl"),
-                    isLite 
-                        ? (active ? "shadow-md" : "hover:bg-black/5 dark:hover:bg-white/5")
-                        : (active
-                            ? "text-white font-black"
-                            : isFlyout
-                                ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10 font-bold"
-                                : isCustomSidebar 
-                                    ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10") 
-                                    : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
+                        ? "w-11 h-11 rounded-full justify-center mx-auto" 
+                        : (isFlyout ? "w-full gap-3 px-3 py-2 rounded-xl" : "w-full gap-3.5 px-3.5 py-2.5 rounded-2xl"),
+                    active 
+                        ? (hasCustomAccent || isLite || isCustomSidebar
+                            ? "font-black shadow-md border border-white/20 dark:border-white/10 ring-2 ring-white/10"
+                            : "bg-gradient-to-br from-[#2d5016] to-[#3f6e1f] dark:from-emerald-700 dark:to-emerald-600 text-white font-black shadow-[0_4px_16px_rgba(45,80,22,0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")
+                        : (isFlyout
+                            ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10 font-bold"
+                            : (isCustomSidebar 
+                                ? (isSidebarLightText ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-black hover:bg-black/10") 
+                                : "text-slate-400 hover:text-[#2d5016] dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-[#2d5016]/5 dark:hover:bg-white/5"))
                 )}
             >
-                {active && isLite && (
-                    <div
-                        style={{
-                            background: liteTheme.accent,
-                            borderColor: liteTheme.border
-                         }}
-                        className="absolute inset-0 rounded-2xl z-0 border shadow-inner overflow-hidden"
-                    />
-                )}
-                {active && !isLite && (
-                    <div
-                        style={hasCustomAccent ? {
-                            background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
-                            borderColor: `${accentCol}80`
-                        } : undefined}
-                        className={cn(
-                            "absolute inset-0 bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 z-0 overflow-hidden shadow-sm",
-                            isFlyout ? "rounded-xl" : "rounded-2xl"
-                        )}
-                    >
-                        <div
-                            style={hasCustomAccent ? {
-                                backgroundColor: cartColorConfig.headerText !== 'default' 
-                                    ? cartColorConfig.headerText 
-                                    : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
-                            } : undefined}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20"
-                        />
-                    </div>
-                )}
-
-                {/* Mascot resting on top of active pill waving hello (static at rest, 0% GPU) */}
-                {active && !isFlyout && (
-                    <ActivePillMascot isCollapsed={isCollapsed} />
-                )}
-
-                <div
-                    className={cn(
-                        "relative z-10 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110",
-                        isFlyout ? "w-5 h-5" : "w-6 h-6"
-                    )}
-                >
+                <div className="relative z-10 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 w-6 h-6">
                     <DynamicIcon 
                         id={`nav.${path || label}`}
                         defaultIcon={Icon}
                         label={label}
-                        size={isFlyout ? 17 : 19} 
+                        size={isFlyout ? 17 : (active ? 20 : 19)} 
                         strokeWidth={active ? 2.5 : 2} 
-                        className={cn("transition-all duration-200", active && !isLite ? "text-white drop-shadow-sm" : "")} 
+                        className={cn(
+                            "transition-all duration-200", 
+                            active 
+                                ? "text-white" 
+                                : "text-slate-400 dark:text-slate-500 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400"
+                        )} 
                     />
                 </div>
 
@@ -1072,42 +1071,82 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
     };
 
     const cartColorConfig = useCartColorConfig();
-    const hasCustomAccent = !isLite && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default';
-    const accentCol = hasCustomAccent ? cartColorConfig.accentColor : undefined;
+    const hasCustomAccent = !isLite && (
+        (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ||
+        (cartColorConfig?.btnSavePrintBg && cartColorConfig.btnSavePrintBg !== 'default') ||
+        (cartColorConfig?.btnBg && cartColorConfig.btnBg !== 'default')
+    );
+    const accentCol = hasCustomAccent ? (
+        (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default')
+            ? cartColorConfig.accentColor
+            : ((cartColorConfig?.btnSavePrintBg && cartColorConfig.btnSavePrintBg !== 'default')
+                ? cartColorConfig.btnSavePrintBg
+                : cartColorConfig?.btnBg)
+    ) : undefined;
+    const groupGradient = accentCol ? (
+        accentCol.includes('gradient')
+            ? accentCol
+            : `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`
+    ) : undefined;
+    const groupBorderColor = accentCol && !accentCol.includes('gradient')
+        ? `${accentCol}80`
+        : (cartColorConfig?.borderColor !== 'default' ? cartColorConfig.borderColor : undefined);
+
+    const isGroupActive = isAnyChildActive || isFlyoutOpen;
+    const groupStyle = isGroupActive ? (
+        hasCustomAccent ? {
+            background: groupGradient || accentCol,
+            color: '#ffffff',
+            boxShadow: `0 4px 14px ${accentCol}40`,
+            borderColor: groupBorderColor || 'rgba(255, 255, 255, 0.2)'
+        } : (isLite ? {
+            background: liteTheme.accent || '#10b981',
+            color: '#ffffff',
+            boxShadow: `0 4px 14px ${(liteTheme.accent || '#10b981')}40`,
+            borderColor: liteTheme.border || 'transparent'
+        } : (isCustomSidebar ? {
+            background: isSidebarLightText ? 'rgba(255, 255, 255, 0.22)' : 'rgba(0, 0, 0, 0.15)',
+            color: isSidebarLightText ? '#ffffff' : '#0f172a',
+            borderColor: isSidebarLightText ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.1)'
+        } : {}))
+    ) : {};
 
     return (
         <div
             ref={groupRef}
-            className={cn("flex flex-col gap-1 py-1.5 relative group/group", isAnyChildActive ? "z-20" : "z-10")}
+            className={cn("flex flex-col gap-1 py-1 relative group/group", isAnyChildActive ? "z-20" : "z-10")}
         >
             <button
                 ref={headerBtnRef}
                 type="button"
                 onClick={handleHeaderClick}
+                style={{ ...groupStyle, outline: 'none', WebkitTapHighlightColor: 'transparent' }}
                 title={isCollapsed && !isFlyoutOpen ? item.label : undefined}
-                style={hasCustomAccent && (isAnyChildActive || isFlyoutOpen) ? {
-                    background: `linear-gradient(135deg, ${accentCol}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : accentCol}dd)`,
-                    borderColor: `${accentCol}80`
-                } : undefined}
                 className={cn(
-                    "group relative flex items-center transition-colors duration-200 cursor-pointer",
-                    isCollapsed ? "justify-center w-[calc(100%-16px)] h-11 px-0 rounded-2xl mx-auto" : "gap-4 px-4 py-3 mx-3 rounded-2xl",
-                    isLite
-                        ? ((isAnyChildActive || isFlyoutOpen) ? "text-emerald-400 bg-white/5" : "text-slate-400 hover:text-white hover:bg-white/5")
-                        : ((isAnyChildActive || isFlyoutOpen)
-                            ? "text-white font-black bg-gradient-to-r from-[#2d5016] to-[#3d6b20] dark:from-emerald-700 dark:to-emerald-600 border border-[#2d5016]/40 dark:border-emerald-500/40 shadow-sm"
-                            : isCustomSidebar
-                                ? (isSidebarLightText ? "text-white/80 hover:text-white hover:bg-white/10" : "text-slate-800 hover:text-black hover:bg-black/10")
-                                : "sidebar-nav-item text-[#8b6f47] hover:text-primary dark:text-[#d4a574]/80 dark:hover:text-white hover:bg-primary/5 dark:hover:bg-primary/10")
+                    "group relative flex items-center transition-all duration-200 cursor-pointer select-none outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none",
+                    isCollapsed ? "w-11 h-11 rounded-full justify-center mx-auto" : "gap-3.5 px-3.5 py-2.5 mx-2 rounded-2xl",
+                    isGroupActive
+                        ? (hasCustomAccent || isLite || isCustomSidebar
+                            ? "font-black shadow-md border border-white/20 dark:border-white/10 ring-2 ring-white/10"
+                            : "bg-gradient-to-br from-[#2d5016] to-[#3f6e1f] dark:from-emerald-700 dark:to-emerald-600 text-white font-black shadow-[0_4px_16px_rgba(45,80,22,0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")
+                        : (isCustomSidebar
+                            ? (isSidebarLightText ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-black hover:bg-black/10")
+                            : "text-slate-400 hover:text-[#2d5016] dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
                 )}
             >
-                <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+                <div className="relative shrink-0 w-6 h-6 flex items-center justify-center">
                     <DynamicIcon 
                         id={`nav.group.${item.label}`}
                         defaultIcon={item.icon}
                         label={`Nhóm: ${item.label}`}
-                        size={19} 
-                        className={cn("transition-transform duration-300", (isAnyChildActive || isFlyoutOpen) ? "scale-110 text-white" : "group-hover:scale-110")} 
+                        size={isGroupActive ? 20 : 19} 
+                        strokeWidth={isGroupActive ? 2.5 : 2}
+                        className={cn(
+                            "transition-transform duration-200", 
+                            isGroupActive 
+                                ? "text-white" 
+                                : "text-slate-400 dark:text-slate-500 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400 group-hover:scale-105"
+                        )} 
                     />
                 </div>
                 {!isCollapsed && (
@@ -1117,22 +1156,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                 {item.label}
                             </span>
                         </div>
-                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-60 shrink-0", isOpen ? "rotate-90 opacity-100 text-white" : "")} />
-                    </>
-                )}
-
-                {/* Active Indicator for Collapsed Mode */}
-                {isCollapsed && isAnyChildActive && (
-                    <>
-                        <div 
-                            style={hasCustomAccent ? {
-                                backgroundColor: cartColorConfig.headerText !== 'default' 
-                                    ? cartColorConfig.headerText 
-                                    : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : '#ffffff')
-                            } : undefined}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#a3e635] dark:bg-emerald-300 rounded-r-md z-20" 
-                        />
-                        <ActivePillMascot isCollapsed={isCollapsed} />
+                        <ChevronRight size={14} className={cn("transition-transform duration-300 opacity-60 shrink-0", isOpen ? "rotate-90 opacity-100 text-white" : "text-slate-400")} />
                     </>
                 )}
 
@@ -2682,7 +2706,7 @@ export default function Layout({ children }) {
             </div>
 
             {/* Navigation Scroll Area */}
-            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pt-8 pb-3 space-y-1 relative z-10">
+            <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar pt-3 pb-2 space-y-1 relative z-10">
                 {MENU_ITEMS.map((item) => (
                     item.children ? (
                         <NavGroup
@@ -2710,25 +2734,23 @@ export default function Layout({ children }) {
 
             {/* Bottom Actions Cluster */}
             <div className={cn("w-full mb-3 shrink-0 flex justify-center relative z-20", isSidebarCollapsed ? "px-0" : "px-3")}>
-                <m.div 
-                    layout
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                <div 
                     className={cn(
-                        "backdrop-blur-xl border border-[#2d5016]/40 dark:border-emerald-500/30 bg-gradient-to-b from-[#2d5016] to-[#223d11] dark:from-[#13220f] dark:to-[#0c160a] shadow-lg shadow-[#2d5016]/25 dark:shadow-emerald-950/50 text-white overflow-hidden transition-all duration-300",
-                        isSidebarCollapsed ? "w-[48px] rounded-2xl p-1.5 space-y-1.5 flex flex-col items-center" : "w-full space-y-2 rounded-3xl p-2.5"
+                        "backdrop-blur-2xl border border-white/20 dark:border-white/15 bg-gradient-to-b from-[#2d5016]/95 via-[#233f11]/95 to-[#192f0b]/95 dark:from-[#1b3310]/95 dark:via-[#13240b]/95 dark:to-[#0c1707]/95 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_12px_32px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)] text-white overflow-hidden",
+                        isSidebarCollapsed ? "w-[48px] rounded-2xl p-1.5 flex flex-col items-center" : "w-full space-y-2 rounded-3xl p-2.5"
                     )} 
                     style={hasCustomAccent ? {
-                        background: `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
-                        borderColor: `${accentCol}60`,
-                        boxShadow: `0 8px 24px ${accentCol}35`
+                        background: accentCol.includes('gradient') ? accentCol : `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
+                        borderColor: !accentCol.includes('gradient') ? `${accentCol}60` : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
+                        boxShadow: !accentCol.includes('gradient') ? `0 8px 24px ${accentCol}35` : undefined
                     } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
                 >
                     {/* Footer Actions (Reminder, Volume, Theme, Close) */}
                     {isSidebarCollapsed ? (
-                        <div className="flex flex-col items-center gap-1.5 w-full">
+                        <div className="flex flex-col items-center w-full">
                             {/* 1. Reminders */}
                             <m.button
-                                whileHover={{ scale: 1.08 }}
+                                whileHover={{ scale: 1.06 }}
                                 whileTap={{ scale: 0.92 }}
                                 onClick={() => window.dispatchEvent(new CustomEvent('pos_open_reminders'))}
                                 style={isLiteMode ? {
@@ -2736,7 +2758,7 @@ export default function Layout({ children }) {
                                     color: reminderCount > 0 ? "rgb(245, 158, 11)" : liteTheme.accent
                                 } : {}}
                                 className={cn(
-                                    "w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none relative cursor-pointer",
+                                    "w-8 h-8 rounded-xl transition-colors duration-150 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/20 dark:hover:bg-white/15 shrink-0 shadow-none relative cursor-pointer",
                                     isLiteMode ? "" : (reminderCount > 0 ? "text-amber-300 hover:text-amber-200" : "text-white hover:text-emerald-200")
                                 )}
                                 title="Nhắc nhở & Lịch hẹn"
@@ -2751,20 +2773,40 @@ export default function Layout({ children }) {
                                 </div>
                             </m.button>
 
-                            {/* Extra Collapsible Action Buttons (Animate upwards above toggle button) */}
+                            {/* Extra Collapsible Action Buttons with Staggered Spring Pop & Silky Smooth Collapse */}
                             <AnimatePresence initial={false}>
                                 {isExtraActionsExpanded && (
                                     <m.div
                                         key="extra-dock-items-collapsed"
-                                        initial={{ opacity: 0, height: 0, scale: 0.85 }}
-                                        animate={{ opacity: 1, height: "auto", scale: 1 }}
-                                        exit={{ opacity: 0, height: 0, scale: 0.85 }}
-                                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        animate={{ 
+                                            opacity: 1, 
+                                            height: "auto",
+                                            marginTop: 6,
+                                            transition: {
+                                                height: { type: "spring", stiffness: 340, damping: 18, mass: 0.75 },
+                                                marginTop: { type: "spring", stiffness: 340, damping: 18, mass: 0.75 },
+                                                opacity: { duration: 0.2, ease: "easeOut" }
+                                            }
+                                        }}
+                                        exit={{ 
+                                            opacity: 0, 
+                                            height: 0,
+                                            marginTop: 0,
+                                            transition: {
+                                                height: { duration: 0.22, ease: [0.32, 0.72, 0, 1] },
+                                                marginTop: { duration: 0.22, ease: [0.32, 0.72, 0, 1] },
+                                                opacity: { duration: 0.16, ease: "easeOut" }
+                                            }
+                                        }}
                                         className="flex flex-col items-center gap-1.5 w-full overflow-hidden"
                                     >
                                         {/* 2. Sound Volume */}
                                         <m.button
-                                            whileHover={{ scale: 1.08 }}
+                                            initial={{ opacity: 0, y: -10, scale: 0.6 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 420, damping: 16, delay: 0.02 }}
+                                            whileHover={{ scale: 1.06 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={toggleMute}
                                             style={isLiteMode ? {
@@ -2772,7 +2814,7 @@ export default function Layout({ children }) {
                                                 color: isMuted ? "rgb(239, 68, 68)" : liteTheme.accent
                                             } : {}}
                                             className={cn(
-                                                "w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/15 dark:hover:bg-white/10 shrink-0 shadow-none cursor-pointer",
+                                                "w-8 h-8 rounded-xl transition-colors duration-150 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-white/20 dark:hover:bg-white/15 shrink-0 shadow-none cursor-pointer",
                                                 isLiteMode ? "" : (isMuted ? "text-rose-300 hover:text-rose-200" : "text-white hover:text-emerald-200")
                                             )}
                                             title={isMuted ? "Bật loa thông báo" : "Tắt loa thông báo"}
@@ -2782,10 +2824,13 @@ export default function Layout({ children }) {
 
                                         {/* 3. Theme */}
                                         <m.button
-                                            whileHover={{ scale: 1.08 }}
+                                            initial={{ opacity: 0, y: -10, scale: 0.6 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 420, damping: 16, delay: 0.05 }}
+                                            whileHover={{ scale: 1.06 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={toggleTheme}
-                                            className="w-9 h-9 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-emerald-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                            className="w-8 h-8 rounded-xl hover:bg-white/20 bg-transparent dark:hover:bg-white/15 text-white hover:text-emerald-200 transition-colors duration-150 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
                                             title="Sáng / Tối"
                                         >
                                             {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
@@ -2793,10 +2838,13 @@ export default function Layout({ children }) {
 
                                         {/* 4. Cart Color Customizer */}
                                         <m.button
-                                            whileHover={{ scale: 1.08 }}
+                                            initial={{ opacity: 0, y: -10, scale: 0.6 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 420, damping: 16, delay: 0.08 }}
+                                            whileHover={{ scale: 1.06 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setShowCartColorCustomizer(true)}
-                                            className="w-9 h-9 rounded-xl hover:bg-white/15 bg-transparent dark:hover:bg-white/10 text-white hover:text-amber-200 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
+                                            className="w-8 h-8 rounded-xl hover:bg-white/20 bg-transparent dark:hover:bg-white/15 text-white hover:text-amber-200 transition-colors duration-150 flex flex-col items-center justify-center gap-0.5 shadow-none shrink-0 cursor-pointer"
                                             title="Tùy chỉnh màu sắc & giao diện giỏ hàng"
                                         >
                                             <Palette size={16} />
@@ -2804,14 +2852,17 @@ export default function Layout({ children }) {
 
                                         {/* 5. Hide Sidebar */}
                                         <m.button
-                                            whileHover={{ scale: 1.08 }}
+                                            initial={{ opacity: 0, y: -10, scale: 0.6 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 420, damping: 16, delay: 0.11 }}
+                                            whileHover={{ scale: 1.06 }}
                                             whileTap={{ scale: 0.92 }}
                                             onClick={() => setIsSidebarHidden(true)}
                                             style={isLiteMode ? {
                                                 backgroundColor: "rgba(239, 68, 68, 0.12)",
                                                 color: "rgb(239, 68, 68)"
                                             } : {}}
-                                            className="w-9 h-9 rounded-xl transition-all duration-200 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer"
+                                            className="w-9 h-9 rounded-xl transition-colors duration-150 flex flex-col items-center justify-center gap-0.5 bg-transparent hover:bg-rose-500/20 shrink-0 shadow-none text-rose-300 hover:text-rose-200 cursor-pointer"
                                             title="Đóng / Ẩn hoàn toàn menu"
                                         >
                                             <X size={16} strokeWidth={2.5} />
@@ -2820,28 +2871,34 @@ export default function Layout({ children }) {
                                 )}
                             </AnimatePresence>
 
-                            {/* Toggle Extra Actions Button */}
-                            <m.button
-                                whileHover={{ scale: 1.12 }}
-                                whileTap={{ scale: 0.88 }}
-                                onClick={toggleExtraActions}
-                                className={cn(
-                                    "w-9 h-9 rounded-xl transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer",
-                                    isExtraActionsExpanded 
-                                        ? "bg-white/20 text-emerald-200 shadow-inner" 
-                                        : "bg-white/5 hover:bg-white/15 text-white/75 hover:text-white"
-                                )}
-                                title={isExtraActionsExpanded ? "Thu gọn bớt tiện ích" : "Mở rộng thêm tiện ích (Loa, Phông, Màu giỏ, Đóng...)"}
-                            >
-                                {isExtraActionsExpanded ? (
-                                    <ChevronDown size={16} className="text-emerald-300" />
-                                ) : (
-                                    <ChevronUp size={16} />
-                                )}
-                            </m.button>
+                            {/* Toggle Extra Actions Button with Spring Rotation */}
+                            <div className="pt-1.5 w-full flex justify-center">
+                                <m.button
+                                    whileHover={{ scale: 1.06 }}
+                                    whileTap={{ scale: 0.92 }}
+                                    onClick={toggleExtraActions}
+                                    className={cn(
+                                        "w-8 h-8 rounded-xl transition-colors duration-150 flex items-center justify-center shrink-0 cursor-pointer shadow-xs",
+                                        isExtraActionsExpanded 
+                                            ? "bg-white/20 text-emerald-200 shadow-inner" 
+                                            : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white"
+                                    )}
+                                    title={isExtraActionsExpanded ? "Thu gọn bớt tiện ích" : "Mở rộng thêm tiện ích (Loa, Phông, Màu giỏ, Đóng...)"}
+                                >
+                                    <m.div
+                                        animate={{ 
+                                            rotate: isExtraActionsExpanded ? 180 : 0
+                                        }}
+                                        transition={{ type: "spring", stiffness: 440, damping: 18 }}
+                                        className="flex items-center justify-center"
+                                    >
+                                        <ChevronUp size={16} className={isExtraActionsExpanded ? "text-emerald-300" : "text-white/85"} />
+                                    </m.div>
+                                </m.button>
+                            </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-5 gap-1 justify-items-center transition-all duration-300 w-full">
+                        <div className="grid grid-cols-5 gap-1 justify-items-center transition-colors duration-200 w-full">
                             {/* 1. Reminders */}
                             <m.button
                                 whileHover={{ scale: 1.08 }}
@@ -2955,7 +3012,7 @@ export default function Layout({ children }) {
                             color: liteTheme.text
                         } : {}}
                         className={cn(
-                            "w-full rounded-2xl transition-all duration-300 flex items-center justify-center gap-2.5 border-t border-white/20 pt-2 cursor-pointer select-none",
+                            "w-full rounded-2xl transition-colors duration-200 flex items-center justify-center gap-2.5 border-t border-white/20 pt-2 cursor-pointer select-none",
                             isSidebarCollapsed ? "py-1.5 min-h-[34px]" : "py-2.5 min-h-[38px] px-3",
                             isLiteMode ? "" : "text-white"
                         )}
@@ -2971,7 +3028,7 @@ export default function Layout({ children }) {
                             </>
                         )}
                     </m.button>
-                </m.div>
+                </div>
             </div>
 
 

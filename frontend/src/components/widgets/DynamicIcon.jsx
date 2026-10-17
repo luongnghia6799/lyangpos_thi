@@ -67,7 +67,7 @@ function DynamicIconComponent({
         );
     }
 
-    return <ActiveIcon size={size} strokeWidth={effectiveStroke} className={className} {...props} />;
+    return <ActiveIcon size={size} strokeWidth={effectiveStroke} className={className} data-icon-id={id} {...props} />;
 }
 
 export default React.memo(DynamicIconComponent);

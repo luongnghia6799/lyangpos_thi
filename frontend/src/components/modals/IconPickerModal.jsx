@@ -334,23 +334,23 @@ export default function IconPickerModal({
                                 width: '430px',
                                 maxHeight: '540px'
                             }}
-                            className="bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-700/80 flex flex-col overflow-hidden z-20 ring-1 ring-black/10 dark:ring-white/10 origin-center"
+                            className="bg-[#faf8f3]/98 dark:bg-[#0c140e]/98 backdrop-blur-2xl rounded-2xl shadow-2xl border border-[#8b6f47]/30 dark:border-white/10 flex flex-col overflow-hidden z-20 ring-1 ring-black/10 dark:ring-white/10 origin-center text-slate-800 dark:text-slate-100"
                         >
                             {/* Header Popout */}
-                            <div className="px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/60">
+                            <div className="px-3.5 py-2.5 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between bg-[#d4a574]/15 dark:bg-white/[0.02]">
                                 <div className="flex items-center gap-2 min-w-0">
-                                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2d5016] to-[#4a7c59] text-white flex items-center justify-center shrink-0 shadow-xs">
                                         <Sparkles size={14} />
                                     </div>
                                     <div className="min-w-0 truncate">
-                                        <h3 className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-white leading-tight flex items-center gap-1.5">
+                                        <h3 className="text-xs font-black uppercase tracking-tight text-[#2d5016] dark:text-[#d4a574] leading-tight flex items-center gap-1.5">
                                             <span>Tùy Chỉnh Icon & Nét Vẽ</span>
-                                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-bold">
+                                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-bold">
                                                 {allIcons.length}+
                                             </span>
                                         </h3>
-                                        <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium truncate">
-                                            Đổi cho: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{currentTarget.label || currentTarget.id}</strong>
+                                        <p className="text-[10.5px] text-[#8b6f47] dark:text-slate-400 font-medium truncate">
+                                            Đổi cho: <strong className="text-[#2d5016] dark:text-[#d4a574] font-bold">{currentTarget.label || currentTarget.id}</strong>
                                         </p>
                                     </div>
                                 </div>
@@ -372,7 +372,7 @@ export default function IconPickerModal({
                                     <button
                                         type="button"
                                         onClick={onClose}
-                                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                        className="p-1.5 rounded-lg text-[#8b6f47] dark:text-slate-400 hover:text-[#2d5016] dark:hover:text-white hover:bg-[#8b6f47]/10 dark:hover:bg-white/10 transition-colors cursor-pointer"
                                     >
                                         <X size={15} />
                                     </button>
@@ -380,18 +380,18 @@ export default function IconPickerModal({
                             </div>
 
                             {/* Library Switcher Tabs */}
-                            <div className="px-2.5 pt-2 pb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1 bg-slate-50/50 dark:bg-slate-800/30">
+                            <div className="px-2.5 pt-2 pb-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 flex items-center gap-1 bg-[#d4a574]/5 dark:bg-white/[0.01]">
                                 <button
                                     type="button"
                                     onClick={() => { setActiveLibrary('all'); setSelectedCategory('All'); }}
                                     className={cn(
                                         "flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
                                         activeLibrary === 'all'
-                                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-xs"
-                                            : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
+                                            ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white border-transparent shadow-xs"
+                                            : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/10"
                                     )}
                                 >
-                                    <Sparkles size={11} className={activeLibrary === 'all' ? "text-amber-400" : "text-slate-400"} />
+                                    <Sparkles size={11} className={activeLibrary === 'all' ? "text-amber-300" : "text-[#8b6f47]/70 dark:text-slate-400"} />
                                     <span>Tất cả</span>
                                 </button>
                                 <button
@@ -400,16 +400,16 @@ export default function IconPickerModal({
                                     className={cn(
                                         "flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
                                         activeLibrary === 'iconify'
-                                            ? "bg-purple-600 text-white border-transparent shadow-xs"
-                                            : "bg-purple-50/70 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60 hover:bg-purple-100/70"
+                                            ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white border-transparent shadow-xs"
+                                            : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/10"
                                     )}
                                     title="Kho hơn 200,000+ icons (Solar, Flat Color, 3D, Material, Tabler...)"
                                 >
-                                    <Globe size={11} className={activeLibrary === 'iconify' ? "text-white" : "text-purple-500"} />
+                                    <Globe size={11} className={activeLibrary === 'iconify' ? "text-white" : "text-[#8b6f47]/70 dark:text-slate-400"} />
                                     <span>Iconify</span>
                                     <span className={cn(
                                         "text-[8px] px-1 py-0.2 rounded-full font-mono font-black",
-                                        activeLibrary === 'iconify' ? "bg-white/20 text-white" : "bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300"
+                                        activeLibrary === 'iconify' ? "bg-white/20 text-white" : "bg-[#8b6f47]/15 dark:bg-white/10 text-[#8b6f47] dark:text-slate-300"
                                     )}>
                                         200K+
                                     </span>
@@ -420,15 +420,15 @@ export default function IconPickerModal({
                                     className={cn(
                                         "flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
                                         activeLibrary === 'duo'
-                                            ? "bg-indigo-600 text-white border-transparent shadow-xs"
-                                            : "bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100/70"
+                                            ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white border-transparent shadow-xs"
+                                            : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/10"
                                     )}
                                 >
-                                    <Layers size={11} className={activeLibrary === 'duo' ? "text-white" : "text-indigo-500"} />
+                                    <Layers size={11} className={activeLibrary === 'duo' ? "text-white" : "text-[#8b6f47]/70 dark:text-slate-400"} />
                                     <span>Duo</span>
                                     <span className={cn(
                                         "text-[8.5px] px-1 py-0.2 rounded-full font-mono font-bold",
-                                        activeLibrary === 'duo' ? "bg-white/20 text-white" : "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300"
+                                        activeLibrary === 'duo' ? "bg-white/20 text-white" : "bg-[#8b6f47]/15 dark:bg-white/10 text-[#8b6f47] dark:text-slate-300"
                                     )}>
                                         91
                                     </span>
@@ -439,15 +439,15 @@ export default function IconPickerModal({
                                     className={cn(
                                         "flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1 border cursor-pointer",
                                         activeLibrary === 'lucide'
-                                            ? "bg-emerald-600 text-white border-transparent shadow-xs"
-                                            : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
+                                            ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white border-transparent shadow-xs"
+                                            : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/10"
                                     )}
                                 >
-                                    <Sliders size={11} className={activeLibrary === 'lucide' ? "text-white" : "text-slate-400"} />
+                                    <Sliders size={11} className={activeLibrary === 'lucide' ? "text-white" : "text-[#8b6f47]/70 dark:text-slate-400"} />
                                     <span>Lucide</span>
                                     <span className={cn(
                                         "text-[8.5px] px-1 py-0.2 rounded-full font-mono font-bold",
-                                        activeLibrary === 'lucide' ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                        activeLibrary === 'lucide' ? "bg-white/20 text-white" : "bg-[#8b6f47]/15 dark:bg-white/10 text-[#8b6f47] dark:text-slate-300"
                                     )}>
                                         1.9k
                                     </span>
@@ -455,28 +455,28 @@ export default function IconPickerModal({
                             </div>
 
                             {/* Control Stroke Width */}
-                            <div className="px-3 py-2 bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                            <div className="px-3 py-2 bg-black/[0.02] dark:bg-white/[0.02] border-b border-[#8b6f47]/10 dark:border-white/10 flex items-center justify-between gap-2">
                                 {activeLibrary === 'iconify' ? (
-                                    <div className="flex items-center gap-1.5 text-[10px] text-purple-600 dark:text-purple-400 font-bold w-full justify-between py-0.5">
+                                    <div className="flex items-center gap-1.5 text-[10px] text-[#2d5016] dark:text-[#d4a574] font-bold w-full justify-between py-0.5">
                                         <div className="flex items-center gap-1 truncate">
-                                            <Sparkles size={12} className="text-purple-500 shrink-0" />
+                                            <Sparkles size={12} className="text-[#2d5016] dark:text-[#d4a574] shrink-0" />
                                             <span className="truncate">Tự động tải & lưu Offline vĩnh viễn khi chọn</span>
                                         </div>
-                                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-300 font-mono shrink-0">
+                                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-mono shrink-0">
                                             {isSearchingIconify ? "Đang tìm..." : `${filteredIcons.length} icon`}
                                         </span>
                                     </div>
                                 ) : activeLibrary === 'duo' ? (
-                                    <div className="flex items-center gap-1.5 text-[10px] text-indigo-600 dark:text-indigo-400 font-bold w-full justify-center py-0.5">
+                                    <div className="flex items-center gap-1.5 text-[10px] text-[#2d5016] dark:text-[#d4a574] font-bold w-full justify-center py-0.5">
                                         <Layers size={12} />
                                         <span>DuoIcons: Phong cách Duotone 2 lớp theo màu chữ/nền</span>
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300 shrink-0">
-                                            <Sliders size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#2d5016] dark:text-[#d4a574] shrink-0">
+                                            <Sliders size={13} className="text-[#2d5016] dark:text-[#4ade80]" />
                                             <span>Độ dày nét:</span>
-                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono text-[10.5px]">
+                                            <span className="px-1.5 py-0.5 rounded bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-mono text-[10.5px]">
                                                 {strokeWidth.toFixed(2)}px
                                             </span>
                                         </div>
@@ -485,7 +485,7 @@ export default function IconPickerModal({
                                             <button
                                                 type="button"
                                                 onClick={() => handleStrokeChange(strokeWidth - 0.25)}
-                                                className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                                className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
                                                 title="Giảm độ dày nét"
                                             >
                                                 <Minus size={10} />
@@ -502,8 +502,8 @@ export default function IconPickerModal({
                                                             className={cn(
                                                                 "px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all",
                                                                 isSelected
-                                                                    ? "bg-emerald-600 text-white shadow-xs"
-                                                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
+                                                                    ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white shadow-xs"
+                                                                    : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 hover:bg-[#8b6f47]/10"
                                                             )}
                                                         >
                                                             {p.label}
@@ -515,7 +515,7 @@ export default function IconPickerModal({
                                             <button
                                                 type="button"
                                                 onClick={() => handleStrokeChange(strokeWidth + 0.25)}
-                                                className="w-5 h-5 rounded bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                                                className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
                                                 title="Tăng độ dày nét"
                                             >
                                                 <Plus size={10} />
@@ -526,9 +526,9 @@ export default function IconPickerModal({
                             </div>
 
                             {/* Search and Category Filter */}
-                            <div className="p-2.5 border-b border-slate-100 dark:border-slate-800/80 space-y-2">
+                            <div className="p-2.5 border-b border-[#8b6f47]/10 dark:border-white/10 space-y-2 bg-black/[0.01] dark:bg-white/[0.01]">
                                 <div className="relative">
-                                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8b6f47]/60" />
                                     <input
                                         type="text"
                                         value={search}
@@ -540,16 +540,16 @@ export default function IconPickerModal({
                                                 ? "Tìm trong 91 DuoIcons (Bank, Box, User, Rocket, Car...)"
                                                 : "Tìm hơn 1500+ icon (Home, Cart, Bell, User, Flame, Wifi...)"
                                         }
-                                        className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-emerald-500/50 border border-transparent focus:border-emerald-500 transition-all"
+                                        className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-white/80 dark:bg-[#06140e] border border-[#8b6f47]/25 dark:border-white/10 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder-[#8b6f47]/60 focus:outline-none focus:ring-1.5 focus:ring-[#2d5016]/30 dark:focus:ring-[#4ade80]/30 focus:border-[#2d5016] dark:focus:border-[#4ade80] transition-all"
                                         autoFocus
                                     />
                                     {isSearchingIconify ? (
-                                        <Loader2 size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-purple-500 animate-spin" />
+                                        <Loader2 size={13} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#2d5016] dark:text-[#4ade80] animate-spin" />
                                     ) : search ? (
                                         <button
                                             type="button"
                                             onClick={() => setSearch('')}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8b6f47]/60 hover:text-slate-800 dark:hover:text-white p-0.5 cursor-pointer"
                                         >
                                             <X size={12} />
                                         </button>
@@ -568,10 +568,8 @@ export default function IconPickerModal({
                                                 className={cn(
                                                     "px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border shrink-0 cursor-pointer",
                                                     isSelected
-                                                        ? activeLibrary === 'iconify'
-                                                            ? "bg-purple-600 text-white border-transparent shadow-xs"
-                                                            : "bg-[#2d5016] dark:bg-emerald-600 text-white border-transparent shadow-xs"
-                                                        : "bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-700/60 hover:bg-slate-100"
+                                                        ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white border-transparent shadow-xs"
+                                                        : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#8b6f47]/10"
                                                 )}
                                             >
                                                 {cat === 'All' ? `Tất cả (${filteredIcons.length})` : cat}
@@ -588,12 +586,12 @@ export default function IconPickerModal({
                                 className="flex-1 overflow-y-auto p-2 min-h-[240px] max-h-[290px]"
                             >
                                 {isSearchingIconify && filteredIcons.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
-                                        <Loader2 size={24} className="animate-spin text-purple-500" />
-                                        <p className="text-xs font-bold">Đang tìm trong 200,000+ Iconify icons...</p>
+                                    <div className="flex flex-col items-center justify-center py-12 text-[#8b6f47] dark:text-slate-400 gap-2">
+                                        <Loader2 size={24} className="animate-spin text-[#2d5016] dark:text-[#4ade80]" />
+                                        <p className="text-xs font-bold text-[#2d5016] dark:text-[#d4a574]">Đang tìm trong 200,000+ Iconify icons...</p>
                                     </div>
                                 ) : filteredIcons.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <div className="flex flex-col items-center justify-center py-12 text-[#8b6f47] dark:text-slate-400">
                                         <Search size={28} className="opacity-30 mb-2" />
                                         <p className="text-xs font-bold">Không tìm thấy icon "{search}"</p>
                                         <p className="text-[10px] opacity-70">
@@ -634,33 +632,17 @@ export default function IconPickerModal({
                                                     className={cn(
                                                         "group relative flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all duration-150 cursor-pointer text-center",
                                                         isCurrent
-                                                            ? isIconify 
-                                                                ? "bg-purple-500/15 dark:bg-purple-500/25 border-purple-500 text-purple-700 dark:text-purple-300 shadow-xs ring-1 ring-purple-500"
-                                                                : "bg-emerald-500/15 dark:bg-emerald-500/25 border-emerald-500 text-[#2d5016] dark:text-emerald-300 shadow-xs ring-1 ring-emerald-500"
-                                                            : isIconify
-                                                                ? "bg-purple-50/30 dark:bg-purple-950/20 border-purple-200/50 dark:border-purple-800/40 hover:bg-purple-50/80 dark:hover:bg-purple-900/30 hover:border-purple-500/50 hover:scale-[1.04]"
-                                                                : isDuo
-                                                                    ? "bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-800/40 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/30 hover:border-indigo-500/50 hover:scale-[1.04]"
-                                                                    : "bg-slate-50/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-800/80 hover:bg-emerald-50/60 dark:hover:bg-slate-800 hover:border-emerald-500/40 hover:scale-[1.04]"
+                                                            ? "bg-[#2d5016]/12 dark:bg-[#4ade80]/15 border-[#2d5016] dark:border-[#4ade80] text-[#2d5016] dark:text-[#4ade80] shadow-sm ring-1 ring-[#2d5016] dark:ring-[#4ade80]"
+                                                            : "bg-white/75 dark:bg-white/[0.03] border-[#8b6f47]/20 dark:border-white/10 hover:bg-[#2d5016]/8 dark:hover:bg-white/[0.08] hover:border-[#2d5016]/50 dark:hover:border-[#4ade80]/50 hover:scale-[1.04]"
                                                     )}
                                                 >
                                                     {isCurrent && (
-                                                        <div className={cn(
-                                                            "absolute top-1 right-1 w-3.5 h-3.5 rounded-full text-white flex items-center justify-center shadow-xs z-10",
-                                                            isIconify ? "bg-purple-600" : "bg-emerald-500"
-                                                        )}>
+                                                        <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full text-white flex items-center justify-center shadow-xs z-10 bg-[#2d5016] dark:bg-[#4ade80] dark:text-slate-900">
                                                             <Check size={8} strokeWidth={3} />
                                                         </div>
                                                     )}
 
-                                                    <div className={cn(
-                                                        "w-6 h-6 rounded-lg flex items-center justify-center transition-colors",
-                                                        isIconify
-                                                            ? "text-purple-600 dark:text-purple-400 group-hover:text-purple-700 dark:group-hover:text-purple-300"
-                                                            : isDuo 
-                                                                ? "text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300"
-                                                                : "text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
-                                                    )}>
+                                                    <div className="w-6 h-6 rounded-lg flex items-center justify-center transition-colors text-[#2d5016] dark:text-[#a7f3d0] group-hover:text-[#1e3a0f] dark:group-hover:text-white">
                                                         {isIconify ? (
                                                             <IconifyIcon icon={item.id || item.name} width={19} height={19} />
                                                         ) : isDuo ? (
@@ -669,10 +651,10 @@ export default function IconPickerModal({
                                                             <IconComp size={17} strokeWidth={strokeWidth} />
                                                         )}
                                                     </div>
-                                                    <span className="text-[9px] font-bold text-slate-800 dark:text-slate-200 truncate w-full mt-0.5 leading-tight">
+                                                    <span className="text-[9px] font-bold text-slate-800 dark:text-slate-100 truncate w-full mt-0.5 leading-tight">
                                                         {item.label}
                                                     </span>
-                                                    <span className="text-[7.5px] font-mono text-slate-400 dark:text-slate-500 truncate w-full leading-none">
+                                                    <span className="text-[7.5px] font-mono text-[#8b6f47]/80 dark:text-slate-400 truncate w-full leading-none">
                                                         {item.rawName || item.name}
                                                     </span>
                                                 </button>
@@ -686,7 +668,7 @@ export default function IconPickerModal({
                                         <button
                                             type="button"
                                             onClick={() => setDisplayLimit(prev => Math.min(prev + LOAD_MORE_STEP * 2, filteredIcons.length))}
-                                            className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 text-[10px] font-bold cursor-pointer transition-colors"
+                                            className="px-3 py-1 rounded-lg bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 text-[#2d5016] dark:text-slate-200 border border-[#8b6f47]/20 dark:border-white/10 text-[10px] font-bold cursor-pointer transition-colors"
                                         >
                                             Đang hiện {displayLimit}/{filteredIcons.length} icon — Cuộn hoặc bấm để tải thêm
                                         </button>
@@ -695,14 +677,14 @@ export default function IconPickerModal({
                             </div>
 
                             {/* Footer */}
-                            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-500">
+                            <div className="px-3 py-2 bg-[#d4a574]/10 dark:bg-white/[0.02] border-t border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between text-[10px] text-[#8b6f47] dark:text-slate-400">
                                 <span className="font-medium flex items-center gap-1">
-                                    <Layers size={11} className="text-emerald-600" />
+                                    <Layers size={11} className="text-[#2d5016] dark:text-[#4ade80]" />
                                     <span>
-                                        Hiển thị <strong className="text-slate-700 dark:text-slate-300">{filteredIcons.length}</strong> / {allIcons.length} icon
+                                        Hiển thị <strong className="text-[#2d5016] dark:text-[#d4a574] font-bold">{filteredIcons.length}</strong> / {allIcons.length} icon
                                     </span>
                                 </span>
-                                <span className="text-slate-400">
+                                <span className="text-[#8b6f47]/80 dark:text-slate-400">
                                     Bấm vào icon bất kỳ để áp dụng
                                 </span>
                             </div>

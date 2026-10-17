@@ -652,16 +652,7 @@ export default function IconPickerModal({
                                                             <Check size={8} strokeWidth={3} />
                                                         </div>
                                                     )}
-                                                    {isIconify && !isCurrent && (
-                                                        <span className="absolute top-1 right-1 text-[6.5px] font-black uppercase px-1 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/20 leading-none">
-                                                            {(item.id && item.id.split(':')[0]) || 'ICON'}
-                                                        </span>
-                                                    )}
-                                                    {isDuo && !isCurrent && (
-                                                        <span className="absolute top-1 right-1 text-[7px] font-black uppercase px-1 py-0.2 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 leading-none">
-                                                            DUO
-                                                        </span>
-                                                    )}
+
                                                     <div className={cn(
                                                         "w-6 h-6 rounded-lg flex items-center justify-center transition-colors",
                                                         isIconify

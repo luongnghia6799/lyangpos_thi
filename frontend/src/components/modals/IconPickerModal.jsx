@@ -454,76 +454,59 @@ export default function IconPickerModal({
                                 </button>
                             </div>
 
-                            {/* Control Stroke Width */}
-                            <div className="px-3 py-2 bg-black/[0.02] dark:bg-white/[0.02] border-b border-[#8b6f47]/10 dark:border-white/10 flex items-center justify-between gap-2">
-                                {activeLibrary === 'iconify' ? (
-                                    <div className="flex items-center gap-1.5 text-[10px] text-[#2d5016] dark:text-[#d4a574] font-bold w-full justify-between py-0.5">
-                                        <div className="flex items-center gap-1 truncate">
-                                            <Sparkles size={12} className="text-[#2d5016] dark:text-[#d4a574] shrink-0" />
-                                            <span className="truncate">Tự động tải & lưu Offline vĩnh viễn khi chọn</span>
-                                        </div>
-                                        <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-mono shrink-0">
-                                            {isSearchingIconify ? "Đang tìm..." : `${filteredIcons.length} icon`}
+                            {/* Control Stroke Width (chỉ hiển thị cho Lucide / Tất cả) */}
+                            {(activeLibrary === 'all' || activeLibrary === 'lucide') && (
+                                <div className="px-3 py-2 bg-black/[0.02] dark:bg-white/[0.02] border-b border-[#8b6f47]/10 dark:border-white/10 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#2d5016] dark:text-[#d4a574] shrink-0">
+                                        <Sliders size={13} className="text-[#2d5016] dark:text-[#4ade80]" />
+                                        <span>Độ dày nét:</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-mono text-[10.5px]">
+                                            {strokeWidth.toFixed(2)}px
                                         </span>
                                     </div>
-                                ) : activeLibrary === 'duo' ? (
-                                    <div className="flex items-center gap-1.5 text-[10px] text-[#2d5016] dark:text-[#d4a574] font-bold w-full justify-center py-0.5">
-                                        <Layers size={12} />
-                                        <span>DuoIcons: Phong cách Duotone 2 lớp theo màu chữ/nền</span>
+
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStrokeChange(strokeWidth - 0.25)}
+                                            className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
+                                            title="Giảm độ dày nét"
+                                        >
+                                            <Minus size={10} />
+                                        </button>
+
+                                        <div className="flex items-center gap-1 mx-1">
+                                            {STROKE_PRESETS.map((p) => {
+                                                const isSelected = Math.abs(strokeWidth - p.value) < 0.1;
+                                                return (
+                                                    <button
+                                                        key={p.value}
+                                                        type="button"
+                                                        onClick={() => handleStrokeChange(p.value)}
+                                                        className={cn(
+                                                            "px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all",
+                                                            isSelected
+                                                                ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white shadow-xs"
+                                                                : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 hover:bg-[#8b6f47]/10"
+                                                        )}
+                                                    >
+                                                        {p.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleStrokeChange(strokeWidth + 0.25)}
+                                            className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
+                                            title="Tăng độ dày nét"
+                                        >
+                                            <Plus size={10} />
+                                        </button>
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#2d5016] dark:text-[#d4a574] shrink-0">
-                                            <Sliders size={13} className="text-[#2d5016] dark:text-[#4ade80]" />
-                                            <span>Độ dày nét:</span>
-                                            <span className="px-1.5 py-0.5 rounded bg-[#2d5016]/10 dark:bg-white/10 text-[#2d5016] dark:text-[#d4a574] font-mono text-[10.5px]">
-                                                {strokeWidth.toFixed(2)}px
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleStrokeChange(strokeWidth - 0.25)}
-                                                className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
-                                                title="Giảm độ dày nét"
-                                            >
-                                                <Minus size={10} />
-                                            </button>
-
-                                            <div className="flex items-center gap-1 mx-1">
-                                                {STROKE_PRESETS.map((p) => {
-                                                    const isSelected = Math.abs(strokeWidth - p.value) < 0.1;
-                                                    return (
-                                                        <button
-                                                            key={p.value}
-                                                            type="button"
-                                                            onClick={() => handleStrokeChange(p.value)}
-                                                            className={cn(
-                                                                "px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all",
-                                                                isSelected
-                                                                    ? "bg-gradient-to-r from-[#2d5016] to-[#3a6320] text-white shadow-xs"
-                                                                    : "bg-white/70 dark:bg-white/5 text-[#8b6f47] dark:text-slate-300 hover:bg-[#8b6f47]/10"
-                                                            )}
-                                                        >
-                                                            {p.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => handleStrokeChange(strokeWidth + 0.25)}
-                                                className="w-5 h-5 rounded bg-[#8b6f47]/10 dark:bg-white/10 hover:bg-[#8b6f47]/20 dark:hover:bg-white/20 flex items-center justify-center text-[#8b6f47] dark:text-slate-300 cursor-pointer transition-colors"
-                                                title="Tăng độ dày nét"
-                                            >
-                                                <Plus size={10} />
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                                </div>
+                            )}
 
                             {/* Search and Category Filter */}
                             <div className="p-2.5 border-b border-[#8b6f47]/10 dark:border-white/10 space-y-2 bg-black/[0.01] dark:bg-white/[0.01]">

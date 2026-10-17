@@ -3,6 +3,8 @@ import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
 import { mergeClasses, hasA11yProp, toPascalCase, toKebabCase } from 'lucide-react/dist/esm/shared/src/utils.js';
 import dynamicIconImports from 'lucide-react/dist/esm/dynamicIconImports.js';
 import { getDuoIconComponent, isDuoIconName } from './duoIconsConfig';
+import { isIconifyName, normalizeIconifyName } from './iconifyConfig';
+import { Icon as IconifyIcon } from '@iconify/react';
 
 const STORAGE_KEY = 'app_custom_icons';
 const CLIENT_ID = Math.random().toString(36).substring(2);
@@ -47,7 +49,7 @@ export function preloadIconNode(iconName) {
         name = name.name;
     }
     if (!name || typeof name !== 'string') return Promise.resolve(null);
-    if (isDuoIconName(name)) return Promise.resolve(null);
+    if (isDuoIconName(name) || isIconifyName(name)) return Promise.resolve(null);
     const kebab = getIconKebabKey(name);
     const pascal = toPascalCase(kebab);
 
@@ -203,8 +205,9 @@ const Icon = forwardRef(
             }
         }
 
-        const isDuo = Boolean(overrideName && isDuoIconName(overrideName));
-        const isDifferentName = Boolean(overrideName && overrideName !== baseName && !isDuo);
+        const isIconify = Boolean(overrideName && isIconifyName(overrideName));
+        const isDuo = Boolean(overrideName && !isIconify && isDuoIconName(overrideName));
+        const isDifferentName = Boolean(overrideName && overrideName !== baseName && !isDuo && !isIconify);
 
         // State quản lý dynamic node khi icon được đổi sang icon khác (chỉ cho Lucide)
         const [loadedNode, setLoadedNode] = useState(() => {
@@ -286,6 +289,34 @@ const Icon = forwardRef(
 
             if (onContextMenu) onContextMenu(e);
         };
+
+        if (isIconify) {
+            const cleanIconify = normalizeIconifyName(overrideName);
+            return createElement(
+                IconifyIcon,
+                {
+                    ref,
+                    icon: cleanIconify,
+                    width: size,
+                    height: size,
+                    className: mergeClasses(
+                        "lucide",
+                        "iconify-icon-replacement",
+                        className
+                    ),
+                    'data-lucide-name': baseName,
+                    'data-iconify-name': cleanIconify,
+                    onContextMenu: handleContextMenu,
+                    style: {
+                        display: 'inline-block',
+                        verticalAlign: 'middle',
+                        ...rest.style
+                    },
+                    ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
+                    ...rest
+                }
+            );
+        }
 
         if (isDuo) {
             const DuoComponent = getDuoIconComponent(overrideName);

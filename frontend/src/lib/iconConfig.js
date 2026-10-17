@@ -4,6 +4,8 @@ import { preloadIconNode, iconNodeCache, getIconKebabKey } from './customIcon.js
 import { createElement, useState, useEffect } from 'react';
 import defaultAttributes from 'lucide-react/dist/esm/defaultAttributes.js';
 import { getDuoIconComponent, isDuoIconName, getAllDuoIcons } from './duoIconsConfig.js';
+import { isIconifyName, normalizeIconifyName } from './iconifyConfig.js';
+import { Icon as IconifyIcon } from '@iconify/react';
 
 export const POPULAR_ICONS = [
     // Điều hướng & Chức năng chính
@@ -206,6 +208,22 @@ export const getLucideIconComponent = (name) => {
     if (!name) return null;
     const rawName = typeof name === 'object' && name !== null ? name.name : name;
     if (!rawName || typeof rawName !== 'string') return null;
+
+    if (isIconifyName(rawName)) {
+        const cleanName = normalizeIconifyName(rawName);
+        return (props) => createElement(IconifyIcon, {
+            icon: cleanName,
+            width: props.size || 20,
+            height: props.size || 20,
+            className: `iconify-icon ${props.className || ''}`,
+            style: {
+                display: 'inline-block',
+                verticalAlign: 'middle',
+                ...props.style
+            },
+            ...props
+        });
+    }
 
     if (isDuoIconName(rawName)) {
         const DuoComp = getDuoIconComponent(rawName);

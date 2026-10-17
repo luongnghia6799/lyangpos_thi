@@ -14,7 +14,7 @@ export default function GlobalIconPickerContainer() {
     // Bắt sự kiện chuột phải trên BẤT KỲ icon SVG nào trên toàn bộ ứng dụng
     React.useEffect(() => {
         const handleGlobalContextMenu = (e) => {
-            const svg = e.target && e.target.closest && (e.target.closest('svg.lucide') || e.target.closest('svg.duo-icons') || e.target.closest('svg.duo-icon') || e.target.closest('svg'));
+            const svg = e.target && e.target.closest && (e.target.closest('svg.lucide') || e.target.closest('svg.duo-icons') || e.target.closest('svg.duo-icon') || e.target.closest('svg.iconify') || e.target.closest('svg.iconify-icon') || e.target.closest('svg'));
             if (!svg) return;
 
             // Bỏ qua nếu đang click bên trong popup chọn icon
@@ -27,6 +27,7 @@ export default function GlobalIconPickerContainer() {
             let iconName = '';
             const nameAttr = svg.getAttribute('data-lucide-name') || 
                              (svg.closest('[data-lucide-name]') && svg.closest('[data-lucide-name]').getAttribute('data-lucide-name')) ||
+                             svg.getAttribute('data-iconify-name') ||
                              svg.getAttribute('data-duo-name');
             if (nameAttr) {
                 iconName = nameAttr;

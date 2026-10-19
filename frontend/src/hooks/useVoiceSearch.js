@@ -81,7 +81,7 @@ export default function useVoiceSearch({
 
   // Gửi audio thu âm qua MediaRecorder lên backend AI Transcribe
   const transcribeRecordedAudio = useCallback(async (audioBlob) => {
-    if (!audioBlob || audioBlob.size < 800) {
+    if (!audioBlob || audioBlob.size < 200) {
       setIsProcessing(false);
       return;
     }
@@ -99,7 +99,10 @@ export default function useVoiceSearch({
       reader.readAsDataURL(audioBlob);
       const base64Data = await base64Promise;
 
-      const resp = await axios.post('/api/ai/transcribe-voice', {
+      const baseUrl = axios.defaults.baseURL || 'http://localhost:3579';
+      const endpoint = `${baseUrl.replace(/\/+$/, '')}/api/ai/transcribe-voice`;
+
+      const resp = await axios.post(endpoint, {
         audio_base64: base64Data,
         mime_type: audioBlob.type || 'audio/webm'
       });
@@ -179,7 +182,7 @@ export default function useVoiceSearch({
       });
       mediaStreamRef.current = stream;
 
-      // Setup Web Audio Analyser để đo volume & detect im lặng
+      // Setup Web Audio Analyser để đo volume & detect im lặng chính xác qua RMS
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (AudioContextClass) {
         const audioCtx = new AudioContextClass();
@@ -189,29 +192,31 @@ export default function useVoiceSearch({
         source.connect(analyser);
         audioCtxRef.current = audioCtx;
 
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const timeData = new Uint8Array(analyser.fftSize);
 
         const checkAudio = () => {
           if (!mediaStreamRef.current) return;
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
+          analyser.getByteTimeDomainData(timeData);
+          let sumSquares = 0;
+          for (let i = 0; i < timeData.length; i++) {
+            const norm = (timeData[i] - 128) / 128;
+            sumSquares += norm * norm;
           }
-          const avg = sum / dataArray.length;
-          const level = Math.min(100, Math.round((avg / 128) * 100));
+          const rms = Math.sqrt(sumSquares / timeData.length);
+          // Âm lượng giọng nói người thường: rms 0.03 -> 0.25 => scale chuẩn 0 -> 100
+          const level = Math.min(100, Math.round(rms * 450));
           setAudioLevel(level);
 
-          // Phát hiện giọng nói
-          if (level > 15) {
+          // Phát hiện khi bắt đầu nói (level > 10)
+          if (level > 10) {
             hasSpokenRef.current = true;
             clearSilenceTimer();
-          } else if (hasSpokenRef.current && level < 8) {
-            // Đã nói rồi và đang im lặng -> đếm ngược để tự động dừng
+          } else if (hasSpokenRef.current && level < 7) {
+            // Đã nói xong và bắt đầu im lặng -> tự động dừng sau silenceTimeoutMs
             if (!silenceTimerRef.current) {
               silenceTimerRef.current = setTimeout(() => {
                 stopListening();
-              }, silenceTimeoutMs);
+              }, silenceTimeoutMs || 1200);
             }
           }
 

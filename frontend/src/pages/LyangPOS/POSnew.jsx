@@ -3644,14 +3644,13 @@ function POSPage({
   const handleToggleVoiceSearch = i.useCallback(() => {
     if (!isVoiceSupported) {
       G({
-        message: "Môi trường hiện tại không hỗ trợ Web Speech API nhận diện giọng nói.",
+        message: "Môi trường hiện tại không hỗ trợ Microphone nhận diện giọng nói.",
         type: "error"
       });
       return;
     }
     if (isVoiceListening) {
       stopVoiceListening();
-      setIsVoiceSearchOpen(false);
     } else {
       setVoiceInterimText('');
       setVoiceMatchedProduct(null);
@@ -5677,6 +5676,7 @@ function POSPage({
                 stopVoiceListening();
                 setIsVoiceSearchOpen(false);
               }}
+              onToggleListening={toggleVoiceListening}
               onConfirmApply={handleApplyVoiceResult}
             />
             </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;

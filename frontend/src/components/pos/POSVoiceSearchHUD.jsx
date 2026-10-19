@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import { Mic, Sparkles, X, CornerDownLeft, Loader2, GripHorizontal } from 'lucide-react';
+import { Mic, Sparkles, X, CornerDownLeft, Loader2, GripHorizontal, Square } from 'lucide-react';
 import Portal from '../widgets/Portal';
 import { cn } from '../../lib/utils';
 
@@ -18,6 +18,7 @@ export default function POSVoiceSearchHUD({
   matchedProduct = null,
   error = null,
   onClose,
+  onToggleListening,
   onConfirmApply
 }) {
   const popupRef = useRef(null);
@@ -66,20 +67,25 @@ export default function POSVoiceSearchHUD({
             {/* Drag Handle & Header Row */}
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#8b6f47]/15 dark:border-white/10 cursor-grab active:cursor-grabbing">
               <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-7 h-7 rounded-xl flex items-center justify-center transition-all shadow-sm",
-                  isProcessing
-                    ? "bg-amber-500 text-slate-950 animate-spin"
-                    : isListening
-                    ? "bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-emerald-500/30 animate-pulse"
-                    : "bg-[#8b6f47]/10 dark:bg-white/10 text-slate-700 dark:text-slate-300"
-                )}>
+                <button
+                  type="button"
+                  onClick={onToggleListening}
+                  title={isListening ? "Bấm để dừng nói và nhận diện ngay" : "Bấm để bắt đầu thu âm lại"}
+                  className={cn(
+                    "w-7 h-7 rounded-xl flex items-center justify-center transition-all shadow-sm cursor-pointer",
+                    isProcessing
+                      ? "bg-amber-500 text-slate-950 animate-spin"
+                      : isListening
+                      ? "bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-emerald-500/30 animate-pulse hover:scale-105"
+                      : "bg-[#8b6f47]/10 dark:bg-white/10 text-slate-700 dark:text-slate-300 hover:bg-emerald-600 hover:text-white"
+                  )}
+                >
                   {isProcessing ? (
                     <Loader2 size={15} strokeWidth={2.5} className="animate-spin" />
                   ) : (
                     <Mic size={15} strokeWidth={2.5} />
                   )}
-                </div>
+                </button>
 
                 <div>
                   <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1 leading-none">
@@ -90,7 +96,7 @@ export default function POSVoiceSearchHUD({
                     {isProcessing 
                       ? "Đang nhận diện AI..." 
                       : isListening 
-                      ? "Đang nghe... Nói tên hàng" 
+                      ? (audioLevel > 10 ? "Đang thu giọng nói..." : "Đang lắng nghe... Nói tên hàng") 
                       : "Đã nhận diện"}
                   </p>
                 </div>
@@ -98,9 +104,13 @@ export default function POSVoiceSearchHUD({
 
               {/* Soundwave Animation ngay trên header row */}
               {isListening && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500/20 h-6">
+                <div 
+                  onClick={onToggleListening}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500/30 h-7 cursor-pointer hover:bg-emerald-500/20 transition-all"
+                  title="Bấm để dừng nói và nhận diện"
+                >
                   {barWeights.map((weight, idx) => {
-                    const dynamicHeight = Math.max(4, Math.min(18, Math.round((audioLevel / 100) * 16 * weight + 4)));
+                    const dynamicHeight = Math.max(4, Math.min(20, Math.round((audioLevel / 100) * 18 * weight + 4)));
                     return (
                       <m.div
                         key={idx}
@@ -110,6 +120,9 @@ export default function POSVoiceSearchHUD({
                       />
                     );
                   })}
+                  <span className="text-[9.5px] font-black text-emerald-700 dark:text-emerald-300 ml-1">
+                    Dừng (F7)
+                  </span>
                 </div>
               )}
 
@@ -130,19 +143,24 @@ export default function POSVoiceSearchHUD({
             </div>
 
             {/* Transcript Display Box */}
-            <div className="px-3 py-2 rounded-xl bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] border border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-center text-center min-h-[42px]">
+            <div className="px-3 py-2.5 rounded-xl bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] border border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-center text-center min-h-[46px]">
               {isProcessing ? (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 animate-pulse">
-                  <Loader2 size={13} className="animate-spin shrink-0" />
-                  <span>Đang giải mã giọng nói qua AI...</span>
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 animate-pulse">
+                  <Loader2 size={14} className="animate-spin shrink-0" />
+                  <span>AI đang giải mã giọng nói sang tên sản phẩm...</span>
                 </div>
               ) : interimText ? (
                 <p className="text-[13.5px] font-black text-slate-900 dark:text-emerald-300 leading-snug line-clamp-2">
                   "{interimText}"
                 </p>
+              ) : isListening ? (
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                  <span>Nói: "5 bao đầu trâu", "2 chai an vin", "3 gói a rô bát"...</span>
+                </p>
               ) : (
                 <p className="text-[11px] font-bold text-slate-400 italic">
-                  Nói: "5 bao đầu trâu", "2 chai an vin", "3 gói a rô bát"...
+                  Chưa nhận được câu nói. Bấm F7 để nói lại.
                 </p>
               )}
             </div>
@@ -200,7 +218,7 @@ export default function POSVoiceSearchHUD({
             <div className="mt-2 pt-1.5 border-t border-[#8b6f47]/10 dark:border-white/10 flex items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500">
               <span className="flex items-center gap-1">
                 <kbd className="px-1 py-0.2 rounded bg-black/10 dark:bg-white/10 font-mono text-[8.5px]">F7</kbd>
-                <span>Bật/Tắt</span>
+                <span>{isListening ? "Dừng nói" : "Nói lại"}</span>
               </span>
               {matchedProduct && (
                 <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">

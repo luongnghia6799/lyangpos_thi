@@ -31,7 +31,7 @@ import {
   Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, 
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette,
-  ChevronDown, Upload as UploadIcon
+  ChevronDown, Upload as UploadIcon, Mic
 } from "lucide-react";
 import CartColorCustomizerModal, { 
   DEFAULT_CART_COLOR_CONFIG, 
@@ -65,6 +65,9 @@ import QuickRowDeletePrompt from "../../components/pos/QuickRowDeletePrompt";
 import HeldOrdersDrawer from "../../components/pos/HeldOrdersDrawer";
 import RemoteTerminalInspectPopover from "../../components/pos/RemoteTerminalInspectPopover";
 import OrderSwitchOverlay from "../../components/pos/OrderSwitchOverlay";
+import useVoiceSearch from "../../hooks/useVoiceSearch";
+import { matchAgriVoiceProduct } from "../../lib/agriVoiceParser";
+import POSVoiceSearchHUD from "../../components/pos/POSVoiceSearchHUD";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -803,6 +806,10 @@ function POSPage({
       }
     }),
     [isCompressingMascot, setIsCompressingMascot] = i.useState(false),
+    [isVoiceSearchOpen, setIsVoiceSearchOpen] = i.useState(false),
+    [voiceInterimText, setVoiceInterimText] = i.useState(''),
+    [voiceMatchedProduct, setVoiceMatchedProduct] = i.useState(null),
+    [voiceParsedData, setVoiceParsedData] = i.useState(null),
     mascotQuickFileInputRef = i.useRef(null),
     $r = i.useRef(null);
 
@@ -2823,6 +2830,10 @@ function POSPage({
         setTimeout(() => {
           ys.current?.focus();
         }, 100);
+      } else if (s === (J.kb_voice || "F7").toUpperCase() || (a.altKey && a.key.toLowerCase() === "v")) {
+        a.preventDefault();
+        a.stopPropagation();
+        handleToggleVoiceSearch();
       } else if (s === (J.kb_speech || "F10").toUpperCase()) {
         a.preventDefault();
         a.stopPropagation();
@@ -3496,17 +3507,19 @@ function POSPage({
     Ba = i.useMemo(() => T.map(t => ({
       ...t,
       _normName: xt((t.name || "").toLowerCase()),
+      _normAlias: xt((t.alias || "").toLowerCase()),
       _normCode: xt((t.code || "").toLowerCase()),
       _normActive: xt((t.active_ingredient || "").toLowerCase()),
       _lowName: (t.name || "").toLowerCase(),
+      _lowAlias: (t.alias || "").toLowerCase(),
       _lowCode: (t.code || "").toLowerCase(),
       _lowActive: (t.active_ingredient || "").toLowerCase()
     })), [T]),
     cartFilteredProducts = i.useMemo(() => {
       const t = (zt || "").toLowerCase().trim(),
         a = xt(t);
-      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
-        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
+      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowAlias.includes(t) || r._normAlias.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
+        const n = o => (o._lowAlias && o._lowAlias === t) || (o._normAlias && o._normAlias === a) ? -2 : (o._lowAlias && o._lowAlias.startsWith(t)) || (o._normAlias && o._normAlias.startsWith(a)) ? -1 : o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowAlias.includes(t) || o._normAlias.includes(a) ? 1.5 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
           l = n(r),
           d = n(s);
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
@@ -3517,8 +3530,8 @@ function POSPage({
     wt = i.useMemo(() => {
       const t = Z.toLowerCase(),
         a = xt(t);
-      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
-        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
+      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowAlias.includes(t) || r._normAlias.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
+        const n = o => (o._lowAlias && o._lowAlias === t) || (o._normAlias && o._normAlias === a) ? -2 : (o._lowAlias && o._lowAlias.startsWith(t)) || (o._normAlias && o._normAlias.startsWith(a)) ? -1 : o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowAlias.includes(t) || o._normAlias.includes(a) ? 1.5 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
           l = n(r),
           d = n(s);
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
@@ -3560,6 +3573,94 @@ function POSPage({
         a > 50 && a < 85 && qi(a);
       }
     }, [wa]);
+
+  const handleApplyVoiceResult = i.useCallback((product, parsed) => {
+    stopVoiceListening();
+    setIsVoiceSearchOpen(false);
+
+    if (!product) return;
+
+    const qty = parsed?.qty && parsed.qty > 0 ? parsed.qty : 1;
+    const hasCustomPrice = Boolean(p && p.id && R && R[product.id] !== void 0);
+    const prodPrice = hasCustomPrice ? R[product.id] : product.sale_price;
+
+    ia(product, qty, prodPrice);
+    playSuccessSound();
+    G({
+      message: `Đã thêm ${qty} ${parsed?.uom || product.unit || ''} ${product.name} vào giỏ`,
+      type: "success"
+    });
+
+    ae('');
+    He({
+      product: null,
+      name: '',
+      quantity: 0,
+      price: 0,
+      secondary_qty: 0
+    });
+    se.current?.focus();
+  }, [ia, p, R, ae, He, G]);
+
+  const {
+    isSupported: isVoiceSupported,
+    isListening: isVoiceListening,
+    isProcessing: isVoiceProcessing,
+    audioLevel: voiceAudioLevel,
+    error: voiceError,
+    startListening: startVoiceListening,
+    stopListening: stopVoiceListening,
+    toggleListening: toggleVoiceListening
+  } = useVoiceSearch({
+    onInterim: (text) => {
+      setVoiceInterimText(text);
+      if (text) {
+        const match = matchAgriVoiceProduct(text, T);
+        setVoiceMatchedProduct(match.topMatch);
+        setVoiceParsedData(match.parsed);
+      }
+    },
+    onResult: (finalText) => {
+      setVoiceInterimText(finalText);
+      const match = matchAgriVoiceProduct(finalText, T);
+      setVoiceMatchedProduct(match.topMatch);
+      setVoiceParsedData(match.parsed);
+
+      if (match.topMatch && match.parsed?.qty && match.topScore >= 80) {
+        handleApplyVoiceResult(match.topMatch, match.parsed);
+      } else if (match.topMatch && match.topScore >= 95) {
+        handleApplyVoiceResult(match.topMatch, match.parsed);
+      } else if (match.parsed?.cleanSearch) {
+        ae(match.parsed.cleanSearch);
+        setIsVoiceSearchOpen(false);
+        requestAnimationFrame(() => {
+          se.current?.focus();
+          se.current?.select?.();
+        });
+      }
+    }
+  });
+
+  const handleToggleVoiceSearch = i.useCallback(() => {
+    if (!isVoiceSupported) {
+      G({
+        message: "Môi trường hiện tại không hỗ trợ Web Speech API nhận diện giọng nói.",
+        type: "error"
+      });
+      return;
+    }
+    if (isVoiceListening) {
+      stopVoiceListening();
+      setIsVoiceSearchOpen(false);
+    } else {
+      setVoiceInterimText('');
+      setVoiceMatchedProduct(null);
+      setVoiceParsedData(null);
+      setIsVoiceSearchOpen(true);
+      startVoiceListening();
+    }
+  }, [isVoiceSupported, isVoiceListening, startVoiceListening, stopVoiceListening, G]);
+
   i.useEffect(() => {
     const handleAddProduct = (e) => {
       if (!e || !e.detail) return;
@@ -4480,7 +4581,7 @@ function POSPage({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-8 px-2.5 bg-transparent hover:bg-primary text-primary hover:text-white dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 border border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent dark:hover:border-transparent transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-primary/15 text-primary group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
+                                }} tabIndex={-1} className="h-8 px-2.5 bg-transparent hover:bg-primary text-primary hover:text-white dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 border border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent dark:hover:border-transparent transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-primary/15 text-primary group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button><x.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={handleToggleVoiceSearch} tabIndex={-1} className={c("h-8 px-2.5 rounded-xl font-black flex items-center gap-1.5 border transition-all duration-200 whitespace-nowrap shrink-0 group/f7 active:scale-95 cursor-pointer shadow-xs", isVoiceListening ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent animate-pulse shadow-emerald-500/30" : "bg-transparent hover:bg-emerald-600 text-emerald-700 hover:text-white dark:hover:bg-emerald-700 dark:text-emerald-400 dark:hover:text-white border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent")} title="Tìm kiếm giọng nói thông minh (F7 hoặc Alt+V)"><div className={c("w-4.5 h-4.5 rounded-md flex items-center justify-center transition-all", isVoiceListening ? "bg-white/25 text-white" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 group-hover/f7:bg-white/20 group-hover/f7:text-white")}><Mic size={12} strokeWidth={2.8} /></div><div className={c("px-1 py-0.5 rounded text-[7.5px] font-black border transition-all", isVoiceListening ? "bg-white/25 text-white border-white/40" : "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f7:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f7:text-white border-[#8b6f47]/20 dark:border-[#d4a574]/30")}>F7</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
   <POSProductDropdown
     id="pos-product-dropdown"
     dropdownKey="pos-product-dropdown"
@@ -5561,6 +5662,22 @@ function POSPage({
               packingSpeakingLoop={packingSpeakingLoop}
               packingRepeatCount={packingRepeatCount}
               onSelectRepeat={selectPackingRepeat}
+            />
+            {/* HUD tìm kiếm bằng giọng nói thông minh */}
+            <POSVoiceSearchHUD
+              isOpen={isVoiceSearchOpen}
+              isListening={isVoiceListening}
+              isProcessing={isVoiceProcessing}
+              audioLevel={voiceAudioLevel}
+              interimText={voiceInterimText}
+              parsedData={voiceParsedData}
+              matchedProduct={voiceMatchedProduct}
+              error={voiceError}
+              onClose={() => {
+                stopVoiceListening();
+                setIsVoiceSearchOpen(false);
+              }}
+              onConfirmApply={handleApplyVoiceResult}
             />
             </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }

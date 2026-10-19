@@ -973,3 +973,158 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         "recommended_products": recommended_products
     })))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct TranscribeVoiceRequest {
+    pub audio_base64: String,
+    pub mime_type: Option<String>,
+    pub api_key: Option<String>,
+}
+
+pub async fn transcribe_voice(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<TranscribeVoiceRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    // 1. Get API keys
+    let mut api_keys: Vec<String> = Vec::new();
+    if let Some(ref k) = payload.api_key {
+        let trimmed = k.trim();
+        if !trimmed.is_empty() {
+            api_keys.push(trimmed.to_string());
+        }
+    }
+
+    let setting_keys = ["gemini_api_key", "gemini_api_key_2", "gemini_api_key_3"];
+    for sk in setting_keys {
+        if let Ok(Some(row)) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = ?")
+            .bind(sk)
+            .fetch_optional(&pool)
+            .await
+        {
+            let val: String = row.get(0);
+            let trimmed = val.trim();
+            if !trimmed.is_empty() && !api_keys.contains(&trimmed.to_string()) {
+                api_keys.push(trimmed.to_string());
+            }
+        }
+    }
+
+    if api_keys.is_empty() {
+        return Ok(Json(json!({
+            "success": false,
+            "error": "Chưa cấu hình Gemini API Key trong hệ thống.",
+            "transcript": ""
+        })));
+    }
+
+    // Clean audio base64 prefix if present
+    let clean_base64 = if let Some(idx) = payload.audio_base64.find(',') {
+        &payload.audio_base64[idx + 1..]
+    } else {
+        &payload.audio_base64
+    };
+
+    let mime_type = payload.mime_type.as_deref().unwrap_or("audio/webm");
+
+    let system_instruction = r#"Bạn là hệ thống chuyển âm thanh thành văn bản (Speech To Text) chuyên biệt cho cửa hàng Vật tư Nông nghiệp và Phân bón thuốc bảo vệ thực vật tại Việt Nam.
+Nhiệm vụ: Lắng nghe đoạn ghi âm và chép lại ĐÚNG CHÍNH XÁC những gì người dùng nói bằng tiếng Việt (bao gồm số lượng, đơn vị tính, tên sản phẩm hoặc tên biệt danh như a rô bát, an tra côn, a mít ta, an vin, can si bo, mười sáu đầu trâu, ba số 17, 20 15 5...).
+QUY TẮC BẮT BUỘC:
+1. CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN ĐÃ NGHE ĐƯỢC.
+2. KHÔNG giải thích, KHÔNG thêm lời chào, KHÔNG thêm dấu ngoặc kép hay bất kỳ định dạng markdown thừa nào."#;
+
+    let request_body = json!({
+        "systemInstruction": {
+            "parts": [
+                { "text": system_instruction }
+            ]
+        },
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "inlineData": {
+                            "mimeType": mime_type,
+                            "data": clean_base64
+                        }
+                    },
+                    {
+                        "text": "Hãy nhận diện và chép lại câu nói trong đoạn âm thanh này."
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 2048
+        }
+    });
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+
+    let models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"];
+    let mut transcript = String::new();
+    let mut error_msg = String::new();
+
+    'key_loop: for key in &api_keys {
+        for model in models {
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+                model, key
+            );
+
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .json(&request_body)
+                .send()
+                .await;
+
+            match res {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        if let Ok(gemini_res) = resp.json::<serde_json::Value>().await {
+                            if let Some(text) = gemini_res
+                                .get("candidates")
+                                .and_then(|c| c.get(0))
+                                .and_then(|c0| c0.get("content"))
+                                .and_then(|cnt| cnt.get("parts"))
+                                .and_then(|p| p.get(0))
+                                .and_then(|p0| p0.get("text"))
+                                .and_then(|t| t.as_str())
+                            {
+                                transcript = text.trim().trim_matches('"').to_string();
+                                break 'key_loop;
+                            }
+                        }
+                    } else {
+                        let status = resp.status();
+                        let text = resp.text().await.unwrap_or_default();
+                        error_msg = format!("HTTP {}: {}", status, text);
+                    }
+                }
+                Err(e) => {
+                    error_msg = format!("Lỗi kết nối Gemini: {}", e);
+                }
+            }
+        }
+    }
+
+    if transcript.is_empty() {
+        return Ok(Json(json!({
+            "success": false,
+            "error": format!("Không thể nhận diện âm thanh. Chi tiết: {}", error_msg),
+            "transcript": ""
+        })));
+    }
+
+    Ok(Json(json!({
+        "success": true,
+        "transcript": transcript,
+        "error": serde_json::Value::Null
+    })))
+}
+

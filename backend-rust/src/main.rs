@@ -107,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/open-zalo", post(routes::system::open_zalo).get(routes::system::open_zalo))
         .route("/api/purchase/scan-invoice", post(routes::system::scan_purchase_invoice))
         .route("/api/ai/consult", post(routes::ai::consult_ai))
+        .route("/api/ai/transcribe-voice", post(routes::ai::transcribe_voice))
         // Active Ingredients Pharmacological Research Knowledge & Sync
         .route("/api/active-ingredients/researched", get(routes::active_ingredient::get_researched_ingredients))
         .route("/api/active-ingredients/researched/sync", post(routes::active_ingredient::sync_and_research_warehouse))

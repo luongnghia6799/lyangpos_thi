@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Palette, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, SlidersHorizontal, ArrowDown, User, DollarSign,
-    CreditCard, Receipt, Printer, MousePointerClick, ShieldCheck, Type
+    CreditCard, Receipt, Printer, MousePointerClick, ShieldCheck, Type, Truck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -680,33 +680,63 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         {/* Left Side: Partner Bubble & Note/Ship buttons */}
                         <div className="flex items-center gap-2.5">
-                            {/* Partner Bubble Preview */}
+                            {/* Partner Bubble Preview with Perched Delivery Badge */}
                             {(() => {
                                 const st = getBubbleComputedStyle(currentConfig, 'partner');
+                                const bg = currentConfig?.badgeDeliveryBg;
+                                const borderCol = currentConfig?.badgeDeliveryBorder;
+                                const textCol = currentConfig?.badgeDeliveryText;
+                                const deliverySt = {};
+                                if (bg && bg !== 'default') {
+                                    if (bg.includes('gradient')) deliverySt.background = bg;
+                                    else deliverySt.backgroundColor = bg;
+                                }
+                                if (borderCol && borderCol !== 'default') {
+                                    deliverySt.borderColor = borderCol;
+                                    deliverySt.borderWidth = `${currentConfig?.badgeBorderWidth || 2}px`;
+                                    deliverySt.borderStyle = 'solid';
+                                }
+                                if (textCol && textCol !== 'default') {
+                                    deliverySt.color = textCol;
+                                }
                                 return (
-                                    <div 
-                                        style={st}
-                                        className="flex items-center gap-3 p-2.5 px-4 rounded-2xl border-2 transition-all duration-300 bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 cursor-pointer shadow-md select-none"
-                                    >
+                                    <div className="relative group/partner-preview">
                                         <div 
-                                            className="w-8 h-8 rounded-xl bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center font-black shrink-0 transition-colors"
-                                            style={st.color ? { color: st.color, backgroundColor: `${st.color}20` } : undefined}
+                                            style={deliverySt}
+                                            className="absolute -top-3.5 right-2 z-20 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black border-2 bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white border-emerald-300 dark:border-emerald-400 shadow-sm select-none transition-all"
+                                            title="Badge Nhắc Chở Phân"
                                         >
-                                            <User size={16} />
+                                            <span className="relative flex h-1.5 w-1.5 mr-0.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
+                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                                            </span>
+                                            <Truck size={10} strokeWidth={2.8} style={deliverySt.color ? { color: deliverySt.color } : undefined} />
+                                            <span style={deliverySt.color ? { color: deliverySt.color } : undefined}>Nhắc Chở Phân</span>
                                         </div>
-                                        <div className="flex flex-col text-left">
-                                            <span 
-                                                className="text-[8px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-colors"
-                                                style={st.color ? { color: st.color, opacity: 0.8 } : undefined}
+                                        <div 
+                                            style={st}
+                                            className="flex items-center gap-3 p-2.5 px-4 rounded-2xl border-2 transition-all duration-300 bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 cursor-pointer shadow-md select-none"
+                                        >
+                                            <div 
+                                                className="w-8 h-8 rounded-xl bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 flex items-center justify-center font-black shrink-0 transition-colors"
+                                                style={st.color ? { color: st.color, backgroundColor: `${st.color}20` } : undefined}
                                             >
-                                                Khách Hàng
-                                            </span>
-                                            <span 
-                                                className="text-xs font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight transition-colors"
-                                                style={st.color ? { color: st.color } : undefined}
-                                            >
-                                                Nguyễn Văn A
-                                            </span>
+                                                <User size={16} />
+                                            </div>
+                                            <div className="flex flex-col text-left">
+                                                <span 
+                                                    className="text-[8px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-colors"
+                                                    style={st.color ? { color: st.color, opacity: 0.8 } : undefined}
+                                                >
+                                                    Khách Hàng
+                                                </span>
+                                                <span 
+                                                    className="text-xs font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight transition-colors"
+                                                    style={st.color ? { color: st.color } : undefined}
+                                                >
+                                                    Nguyễn Văn A
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 );

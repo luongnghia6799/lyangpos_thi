@@ -617,10 +617,11 @@ export default function DailyOrderHistoryModal({
 
                                             <div className="flex items-center gap-1.5">
                                                 {/* View Details Button */}
+                                                {/* View Detail Button */}
                                                 <ActionTooltip text="Xem chi tiết đơn hàng">
                                                     <button
                                                         onClick={() => setSelectedDetailOrder(order)}
-                                                        className="p-2 bg-blue-500/10 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl border border-blue-500/20 transition-all active:scale-95 flex items-center justify-center"
+                                                        className="w-8 h-8 bg-blue-500/10 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl border border-blue-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
                                                     >
                                                         <Eye size={15} />
                                                     </button>
@@ -631,7 +632,7 @@ export default function DailyOrderHistoryModal({
                                                     <ActionTooltip text={type === 'Purchase' ? "In Phiếu Nhập Hàng" : "In Hóa Đơn Bán Hàng"}>
                                                         <button
                                                             onClick={() => onPrintOrder(order, type === 'Purchase' ? 'Purchase' : 'Sale')}
-                                                            className="p-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+                                                            className="w-8 h-8 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
                                                         >
                                                             <Printer size={15} />
                                                         </button>
@@ -643,7 +644,7 @@ export default function DailyOrderHistoryModal({
                                                     <ActionTooltip text="In Phiếu Xuất Kho">
                                                         <button
                                                             onClick={() => onPrintOrder(order, 'Delivery')}
-                                                            className="p-2 bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white rounded-xl border border-amber-500/20 transition-all active:scale-95"
+                                                            className="w-8 h-8 bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white rounded-xl border border-amber-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
                                                         >
                                                             <Package size={15} />
                                                         </button>
@@ -666,7 +667,7 @@ export default function DailyOrderHistoryModal({
                                                             onEditOrder(enrichedOrder);
                                                             onClose();
                                                         }}
-                                                        className="p-2 bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center transition-all active:scale-95"
+                                                        className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center transition-all active:scale-95 shrink-0"
                                                     >
                                                         <SquarePen size={15} strokeWidth={2.5} />
                                                     </button>
@@ -683,7 +684,7 @@ export default function DailyOrderHistoryModal({
                                                                     console.error(err);
                                                                 }
                                                             }}
-                                                            className="p-2 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all active:scale-95"
+                                                            className="w-8 h-8 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
                                                         >
                                                             <Trash2 size={15} />
                                                         </button>

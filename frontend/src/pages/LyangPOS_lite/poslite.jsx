@@ -24,12 +24,13 @@ import {
   BadgePercent,
   Mic,
   Clock,
+  Truck,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import LiteClock from "../../components/widgets/LiteClock";
 import { useProductData, usePartnerData } from "../../queries/useProductData";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber, formatRelativePurchaseDate } from "../../lib/utils";
+import { formatCurrency, cn, playPopSound, playSuccessSound, removeAccents, formatNumber, formatRelativePurchaseDate, getFertilizerItemsInCart } from "../../lib/utils";
 import { getLiteTheme } from "../../lib/liteTheme";
 import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
 import axios from "axios";
@@ -41,6 +42,7 @@ import PartnerEditModal from "../../components/modals/PartnerEditModal";
 import QuickDebtModal from "../../components/modals/QuickDebtModal";
 import QuickVoucherModal from "../../components/modals/QuickVoucherModal";
 import QuickAuditPopout from "../../components/modals/QuickAuditPopout";
+import QuickDeliveryReminderModal from "../../components/modals/QuickDeliveryReminderModal";
 import Portal from "../../components/widgets/Portal";
 import logo from "../../assets/logo.png";
 
@@ -162,9 +164,15 @@ const POSLite = () => {
   const [contextMenu, setContextMenu] = useState(null);
   const [isQuickDebtOpen, setIsQuickDebtOpen] = useState(false);
   const [isQuickVoucherOpen, setIsQuickVoucherOpen] = useState(false);
+  const [isDeliveryReminderOpen, setIsDeliveryReminderOpen] = useState(false);
   const [isAuditOpen, setIsAuditOpen] = useState(false);
   const [auditProduct, setAuditProduct] = useState(null);
   const [auditCoords, setAuditCoords] = useState({ top: 0, left: 0, right: 0, bottom: 0 });
+
+  const fertilizerItems = useMemo(() => {
+    return getFertilizerItemsInCart(cart, products);
+  }, [cart, products]);
+  const hasFertilizer = fertilizerItems.length > 0;
   const [showThemePopover, setShowThemePopover] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotePopover, setShowNotePopover] = useState(false);
@@ -2135,6 +2143,22 @@ const POSLite = () => {
                   <BadgePercent size={12} />
                 </button>
 
+                {/* Nhắc nhở chở phân Button */}
+                {hasFertilizer && (
+                  <button
+                    onClick={() => setIsDeliveryReminderOpen(true)}
+                    className="pos-lite-control-btn flex items-center justify-center transition-all shadow-xs"
+                    style={{
+                      borderColor: "var(--lite-accent)",
+                      color: "var(--lite-accent)",
+                      backgroundColor: "var(--lite-input-bg)"
+                    }}
+                    title={`Có mua phân bón (${fertilizerItems.length} loại)! Bấm để tạo nhắc chở phân cho ${selectedPartner ? selectedPartner.name : 'Khách lẻ'}`}
+                  >
+                    <Truck size={13} strokeWidth={2.6} />
+                  </button>
+                )}
+
                 {/* Ghi chú Popover Button */}
                 <div className="relative">
                   <button 
@@ -2387,8 +2411,57 @@ const POSLite = () => {
               </span>
             </div>
 
+            {/* Quick Fertilizer Delivery Prompt */}
+            {hasFertilizer && (
+              <div 
+                onClick={() => setIsDeliveryReminderOpen(true)}
+                className="mt-3 p-2 rounded-lg border flex items-center justify-between cursor-pointer transition-all group select-none shadow-xs"
+                style={{
+                  borderColor: "var(--lite-border)",
+                  backgroundColor: "var(--lite-input-bg)"
+                }}
+                title="Bấm để tạo nhắc nhở giao phân"
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div 
+                    className="w-6 h-6 rounded flex items-center justify-center shrink-0 shadow-xs"
+                    style={{
+                      backgroundColor: "var(--lite-accent)",
+                      color: "var(--lite-inv-text)"
+                    }}
+                  >
+                    <Truck size={13} strokeWidth={2.6} />
+                  </div>
+                  <div className="flex flex-col text-left overflow-hidden">
+                    <span 
+                      className="text-[11px] font-black group-hover:underline truncate"
+                      style={{ color: "var(--lite-text)" }}
+                    >
+                      Chở phân cho {selectedPartner ? selectedPartner.name : 'Khách lẻ'}
+                    </span>
+                    <span 
+                      className="text-[9px] font-bold opacity-75"
+                      style={{ color: "var(--lite-text)" }}
+                    >
+                      {fertilizerItems.length} mặt hàng phân bón
+                    </span>
+                  </div>
+                </div>
+                <span 
+                  className="text-[10px] font-black px-2 py-0.5 rounded shrink-0 border"
+                  style={{
+                    backgroundColor: "var(--lite-accent)",
+                    color: "var(--lite-inv-text)",
+                    borderColor: "transparent"
+                  }}
+                >
+                  Nhắc chở 🚚
+                </span>
+              </div>
+            )}
+
             {/* Checkout Action Buttons (Moved from main header to below Invoice Total) */}
-            <div className="mt-3 flex flex-col gap-2">
+            <div className={cn("flex flex-col gap-2", hasFertilizer ? "mt-2" : "mt-3")}>
               {/* Primary Action Row */}
               <div className="grid grid-cols-2 gap-2">
                 <button 
@@ -2706,15 +2779,34 @@ const POSLite = () => {
             product={auditProduct}
             isOpen={isAuditOpen}
             onClose={() => setIsAuditOpen(false)}
-            onSave={(updatedProduct) => {
-              queryClient.invalidateQueries({ queryKey: ['products'] });
-              setIsAuditOpen(false);
-              showToast("Đã cập nhật tồn kho thành công!");
+            onSave={async (auditData) => {
+              try {
+                await axios.post('/api/inventory/audit', auditData);
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                const syncChan = new BroadcastChannel('pos_data_sync');
+                syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
+                syncChan.close();
+                window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
+                setIsAuditOpen(false);
+                showToast("Đã cập nhật tồn kho thành công!");
+              } catch (err) {
+                console.error("Quick audit failed:", err);
+                showToast("Lỗi khi cập nhật kho", "error");
+                throw err;
+              }
             }}
             coordinates={auditCoords}
           />
         )}
       </Portal>
+
+      <QuickDeliveryReminderModal
+        isOpen={isDeliveryReminderOpen}
+        onClose={() => setIsDeliveryReminderOpen(false)}
+        partner={selectedPartner}
+        fertilizerItems={fertilizerItems}
+        onSuccess={(msg) => showToast(msg)}
+      />
     </div>
   );
 };

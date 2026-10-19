@@ -610,9 +610,6 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
     let safe_slug = if safe_slug.is_empty() { "am_thanh" } else { safe_slug };
     let safe_slug = if safe_slug.len() > 40 { &safe_slug[..40] } else { safe_slug };
 
-    // Human readable filename with voice, rate, pitch
-    let human_readable_name = format!("{}_{}_{}_{}.mp3", safe_slug, voice_suffix, rate_slug, pitch_slug);
-
     let tts_dir = resolve_tts_dir();
     let category_dir = tts_dir.join(category);
     let _ = std::fs::create_dir_all(&category_dir);
@@ -632,29 +629,25 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
 
     let mut found_path: Option<PathBuf> = None;
 
-    // Hasher with text, voice, rate, pitch
+    // Hasher with full text (including Vietnamese tones/diacritics), voice, rate, pitch
     let mut hasher = Md5::new();
     hasher.update(format!("{}_{}_{}_{}", text, voice_suffix, ssml_rate, ssml_pitch).as_bytes());
     let hash_primary = format!("{:x}", hasher.finalize());
+    let text_hash = &hash_primary[..6];
     let hash_tts = format!("tts_{}_{}_{}_{}.mp3", hash_primary, voice_suffix, rate_slug, pitch_slug);
 
-    let mut candidates = vec![
-        human_readable_name.clone(),
-        hash_tts,
+    // Collision-free unique filename with text hash to distinguish words like 'tám' vs 'tấm'
+    let unique_human_name = format!("{}_{}_{}_{}_{}.mp3", safe_slug, text_hash, voice_suffix, rate_slug, pitch_slug);
+    let legacy_human_name = format!("{}_{}_{}_{}.mp3", safe_slug, voice_suffix, rate_slug, pitch_slug);
+
+    // 1. Stage 1: Exact hashed candidates (guaranteed collision-free across any cache dir)
+    let exact_candidates = [
+        unique_human_name.clone(),
+        hash_tts.clone(),
     ];
 
-    // Backward compatibility for pre-cached default audio files (0% rate, 0Hz pitch)
-    if is_default_params {
-        let mut default_hasher = Md5::new();
-        default_hasher.update(format!("{}_{}", text, voice_suffix).as_bytes());
-        let legacy_hash = format!("{:x}", default_hasher.finalize());
-        candidates.push(format!("{}_{}.mp3", safe_slug, voice_suffix));
-        candidates.push(format!("{}.mp3", safe_slug));
-        candidates.push(format!("tts_{}_{}.mp3", legacy_hash, voice_suffix));
-    }
-
     for dir in &cache_dirs {
-        for cand in &candidates {
+        for cand in &exact_candidates {
             let p = dir.join(cand);
             if p.exists() && std::fs::metadata(&p).map(|m| m.len() >= 100).unwrap_or(false) {
                 found_path = Some(p);
@@ -663,6 +656,39 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
         }
         if found_path.is_some() {
             break;
+        }
+    }
+
+    // 2. Stage 2: Legacy backward compatibility
+    if found_path.is_none() {
+        let mut default_hasher = Md5::new();
+        default_hasher.update(format!("{}_{}", text, voice_suffix).as_bytes());
+        let legacy_hash = format!("{:x}", default_hasher.finalize());
+        let legacy_hash_cand = format!("tts_{}_{}.mp3", legacy_hash, voice_suffix);
+
+        // Safe across dirs because legacy_hash is an MD5 of the exact accented text
+        for dir in &cache_dirs {
+            let p = dir.join(&legacy_hash_cand);
+            if p.exists() && std::fs::metadata(&p).map(|m| m.len() >= 100).unwrap_or(false) {
+                found_path = Some(p);
+                break;
+            }
+        }
+
+        // Un-hashed candidates: ONLY check within category_dir, and NEVER check for sensitive homonyms like 'tam'
+        if found_path.is_none() && safe_slug != "tam" {
+            let unhashed_cands = [
+                legacy_human_name,
+                format!("{}_{}.mp3", safe_slug, voice_suffix),
+                format!("{}.mp3", safe_slug),
+            ];
+            for cand in &unhashed_cands {
+                let p = category_dir.join(cand);
+                if p.exists() && std::fs::metadata(&p).map(|m| m.len() >= 100).unwrap_or(false) {
+                    found_path = Some(p);
+                    break;
+                }
+            }
         }
     }
 
@@ -681,7 +707,7 @@ pub async fn get_tts(Query(params): Query<TtsParams>) -> impl IntoResponse {
         }
     }
 
-    let target_file = category_dir.join(&human_readable_name);
+    let target_file = category_dir.join(&unique_human_name);
 
     let edge_voice = if voice_suffix == "nam" {
         "vi-VN-NamMinhNeural"

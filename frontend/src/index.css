@@ -1929,6 +1929,52 @@ body.decorations-editing-active #cash-calculator-bubble {
   pointer-events: none !important;
 }
 
+/* ==========================================================================
+   GLOBAL ICON & ICON BUTTON NORMALIZATION (LUCIDE, ICONIFY, DUO)
+   Đảm bảo toàn bộ icon và nút action chứa icon trên TOÀN BỘ APP luôn:
+   - Giữ tỷ lệ 1:1 chuẩn xác, không bị méo shape
+   - Khử triệt để lỗi strut line-height của browser khiến nút icon bị dãn dọc
+   - Tự động căn giữa nội dung trong các nút icon
+   ========================================================================== */
+svg.lucide,
+svg.iconify-icon-replacement,
+svg.iconify-icon,
+svg.duo-icon,
+svg.duo-icons,
+.iconify-icon-replacement,
+.iconify-icon {
+  display: block;
+  flex-shrink: 0;
+  box-sizing: content-box;
+  aspect-ratio: 1 / 1;
+}
+
+/* Khử khoảng trống thừa do line-height gây ra khi button chứa 1 icon */
+button:has(> svg:only-child),
+button:has(> .iconify-icon-replacement:only-child),
+button:has(> .iconify-icon:only-child),
+button:has(> .duo-icon:only-child) {
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Các nút icon có padding đều (p-1, p-1.5, p-2, p-2.5, p-3) luôn đảm bảo dáng vuông cân đối */
+button:has(> svg:only-child).p-1,
+button:has(> svg:only-child).p-1\.5,
+button:has(> svg:only-child).p-2,
+button:has(> svg:only-child).p-2\.5,
+button:has(> svg:only-child).p-3,
+button:has(> .iconify-icon-replacement:only-child).p-1,
+button:has(> .iconify-icon-replacement:only-child).p-1\.5,
+button:has(> .iconify-icon-replacement:only-child).p-2,
+button:has(> .iconify-icon-replacement:only-child).p-2\.5,
+button:has(> .iconify-icon-replacement:only-child).p-3 {
+  aspect-ratio: 1 / 1;
+}
+
+
 
 
 

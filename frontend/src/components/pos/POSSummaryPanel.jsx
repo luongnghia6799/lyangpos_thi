@@ -31,7 +31,7 @@ import { cn, formatNumber, formatCurrency, formatDate } from '@/lib/utils';
 import MarqueeText from '@/components/widgets/MarqueeText';
 import DynamicIcon from '@/components/widgets/DynamicIcon';
 import CustomSelect from '@/components/forms/CustomSelect';
-import { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle } from '@/components/modals/CartColorCustomizerModal';
+import { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, getBadgeComputedStyle } from '@/components/modals/CartColorCustomizerModal';
 
 /**
  * POSSummaryPanel - Standalone High-Performance Summary & Payment Sidebar / Bottom Panel
@@ -52,6 +52,10 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
   debtAfterOrder = 0,
   onOpenPartnerHistory,
   onFocusPartnerSearch,
+
+  hasFertilizer = false,
+  fertilizerItems = [],
+  onOpenDeliveryReminder,
 
   // Remote Inspect / Multi-terminal
   isRemoteInspect = false,
@@ -211,13 +215,37 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 <Wallet size={42} strokeWidth={1.5} />
               </div>
               <div className="flex items-center justify-between w-full relative z-10 pt-0.5">
-                <span
-                  className={cn("text-[9px] font-black uppercase tracking-wider leading-normal", effectiveDebt > 0 ? "text-rose-200" : "text-emerald-200")}
-                  style={getBubbleComputedStyle(cartColorConfig, "partner")?.color ? { color: getBubbleComputedStyle(cartColorConfig, "partner").color } : undefined}
-                >
-                  DƯ NỢ
-                </span>
-                {effectivePartner && effectiveDebt !== 0 && (
+                <div className="flex items-center gap-1">
+                  <span
+                    className={cn("text-[9px] font-black uppercase tracking-wider leading-normal", effectiveDebt > 0 ? "text-rose-200" : "text-emerald-200")}
+                    style={getBubbleComputedStyle(cartColorConfig, "partner")?.color ? { color: getBubbleComputedStyle(cartColorConfig, "partner").color } : undefined}
+                  >
+                    DƯ NỢ
+                  </span>
+                  {hasFertilizer && (() => {
+                    const deliverySt = getBadgeComputedStyle(cartColorConfig, 'delivery');
+                    return (
+                      <m.button
+                        type="button"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenDeliveryReminder?.();
+                        }}
+                        style={deliverySt}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white text-[8px] font-black uppercase tracking-wider shadow-sm transition-all border border-emerald-300/40 cursor-pointer"
+                        title={`Có mua phân bón (${fertilizerItems.length} loại)! Bấm để tạo nhắc chở phân`}
+                      >
+                        <Truck size={10} strokeWidth={2.6} style={deliverySt?.color ? { color: deliverySt.color } : undefined} />
+                        <span style={deliverySt?.color ? { color: deliverySt.color } : undefined}>Chở phân ({fertilizerItems.length})</span>
+                      </m.button>
+                    );
+                  })()}
+                </div>
+                {effectivePartner && effectiveDebt !== 0 && !hasFertilizer && (
                   <m.span
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}

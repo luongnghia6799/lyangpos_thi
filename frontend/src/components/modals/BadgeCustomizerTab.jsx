@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
     Palette, RotateCcw, Check, Sparkles, Bookmark, Tag, 
     Clock, PackageCheck, BadgePercent, CircleAlert, SlidersHorizontal,
-    Square, Eye, SunMedium
+    Square, Eye, SunMedium, Truck
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { hexToRgba, isLightColor, adjustColor } from './BubbleCustomizerTab';
@@ -21,6 +21,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: 'default',
         badgeEnableShadow: false,
+        badgeDeliveryBg: 'default',
+        badgeDeliveryBorder: 'default',
+        badgeDeliveryText: 'default',
         previewBorder: '#8b6f47',
         previewAccent: '#2d5016'
     },
@@ -35,6 +38,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: '#1b340d',
         badgeEnableShadow: true,
+        badgeDeliveryBg: 'linear-gradient(to right, #059669, #2d5016, #1d380e)',
+        badgeDeliveryBorder: '#6ee7b7',
+        badgeDeliveryText: '#ffffff',
         previewBorder: '#2d5016',
         previewAccent: '#10b981'
     },
@@ -49,6 +55,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: '#4e391e',
         badgeEnableShadow: true,
+        badgeDeliveryBg: 'linear-gradient(to right, #d97706, #8b6f47, #451a03)',
+        badgeDeliveryBorder: '#fcd34d',
+        badgeDeliveryText: '#ffffff',
         previewBorder: '#8b6f47',
         previewAccent: '#d97706'
     },
@@ -63,6 +72,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: '#9f1239',
         badgeEnableShadow: true,
+        badgeDeliveryBg: 'linear-gradient(to right, #f43f5e, #be123c, #881337)',
+        badgeDeliveryBorder: '#fda4af',
+        badgeDeliveryText: '#ffffff',
         previewBorder: '#f43f5e',
         previewAccent: '#fb7185'
     },
@@ -77,6 +89,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: '#164e63',
         badgeEnableShadow: true,
+        badgeDeliveryBg: 'linear-gradient(to right, #06b6d4, #0e7490, #164e63)',
+        badgeDeliveryBorder: '#67e8f9',
+        badgeDeliveryText: '#ffffff',
         previewBorder: '#0891b2',
         previewAccent: '#06b6d4'
     },
@@ -91,6 +106,9 @@ export const BADGE_PRESETS = [
         badgeEnableBorder: true,
         badgeTextColor: '#0f172a',
         badgeEnableShadow: false,
+        badgeDeliveryBg: 'linear-gradient(to right, #334155, #1e293b, #0f172a)',
+        badgeDeliveryBorder: '#94a3b8',
+        badgeDeliveryText: '#ffffff',
         previewBorder: '#475569',
         previewAccent: '#64748b'
     }
@@ -121,6 +139,17 @@ export const getBadgeComputedStyle = (config, badgeType = 'stock') => {
             if (config.badgeLossBg && config.badgeLossBg !== 'default') bg = config.badgeLossBg;
             if (config.badgeLossBorder && config.badgeLossBorder !== 'default') borderCol = config.badgeLossBorder;
             if (config.badgeLossText && config.badgeLossText !== 'default') textCol = config.badgeLossText;
+        } else if (badgeType === 'delivery' || badgeType === 'fertilizer' || badgeType === 'delivery_reminder') {
+            if (config.badgeDeliveryBg && config.badgeDeliveryBg !== 'default') bg = config.badgeDeliveryBg;
+            if (config.badgeDeliveryBorder && config.badgeDeliveryBorder !== 'default') borderCol = config.badgeDeliveryBorder;
+            if (config.badgeDeliveryText && config.badgeDeliveryText !== 'default') textCol = config.badgeDeliveryText;
+        }
+    } else {
+        // mode === 'all'
+        if (badgeType === 'delivery' || badgeType === 'fertilizer' || badgeType === 'delivery_reminder') {
+            if (config.badgeDeliveryBg && config.badgeDeliveryBg !== 'default') bg = config.badgeDeliveryBg;
+            if (config.badgeDeliveryBorder && config.badgeDeliveryBorder !== 'default') borderCol = config.badgeDeliveryBorder;
+            if (config.badgeDeliveryText && config.badgeDeliveryText !== 'default') textCol = config.badgeDeliveryText;
         }
     }
 
@@ -131,14 +160,22 @@ export const getBadgeComputedStyle = (config, badgeType = 'stock') => {
 
     const res = {};
     if (bg && bg !== 'default') {
-        res.backgroundColor = bg;
+        if (bg.includes('gradient')) {
+            res.background = bg;
+        } else {
+            res.backgroundColor = bg;
+        }
     }
-    const borderWidth = (config.badgeEnableBorder === false) ? 0 : Number(config.badgeBorderWidth || 2);
+    const isDelivery = (badgeType === 'delivery' || badgeType === 'fertilizer' || badgeType === 'delivery_reminder');
+    const borderWidth = (config.badgeEnableBorder === false || (isDelivery && config.badgeDeliveryEnableBorder === false)) 
+        ? 0 
+        : Number(config.badgeBorderWidth || 2);
+
     if (borderCol && borderCol !== 'default') {
         res.borderColor = borderCol;
         res.borderWidth = `${borderWidth}px`;
         res.borderStyle = 'solid';
-    } else if (config.badgeEnableBorder === false) {
+    } else if (config.badgeEnableBorder === false || (isDelivery && config.badgeDeliveryEnableBorder === false)) {
         res.border = 'none';
     } else if (borderWidth !== 2) {
         res.borderWidth = `${borderWidth}px`;
@@ -148,8 +185,8 @@ export const getBadgeComputedStyle = (config, badgeType = 'stock') => {
         res.color = textCol;
     }
 
-    if (config.badgeEnableShadow && borderCol && borderCol !== 'default') {
-        res.boxShadow = `0 2px 8px ${hexToRgba(borderCol, 0.25) || 'rgba(0,0,0,0.15)'}`;
+    if ((config.badgeEnableShadow || (isDelivery && config.badgeDeliveryEnableShadow)) && borderCol && borderCol !== 'default') {
+        res.boxShadow = `0 4px 16px ${hexToRgba(borderCol, 0.4) || 'rgba(0,0,0,0.2)'}`;
     }
 
     return res;
@@ -168,7 +205,10 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
             badgeBorderWidth: preset.badgeBorderWidth,
             badgeEnableBorder: preset.badgeEnableBorder,
             badgeTextColor: preset.badgeTextColor,
-            badgeEnableShadow: preset.badgeEnableShadow
+            badgeEnableShadow: preset.badgeEnableShadow,
+            badgeDeliveryBg: preset.badgeDeliveryBg || 'default',
+            badgeDeliveryBorder: preset.badgeDeliveryBorder || 'default',
+            badgeDeliveryText: preset.badgeDeliveryText || 'default'
         });
     };
 
@@ -177,9 +217,9 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
     };
 
     const quickColors = [
-        '#2d5016', '#8b6f47', '#d97706', '#f43f5e', '#0891b2', 
-        '#10b981', '#059669', '#3b82f6', '#8b5cf6', '#475569', 
-        '#000000', '#ffffff'
+        '#6ee7b7', '#34d399', '#10b981', '#2d5016', '#fcd34d', '#d97706',
+        '#fb7185', '#f43f5e', '#38bdf8', '#0891b2', '#c084fc', '#8b5cf6',
+        '#8b6f47', '#475569', '#000000', '#ffffff'
     ];
 
     const quickBgColors = [
@@ -196,8 +236,9 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
     ];
 
     const quickTextColors = [
+        '#ffffff', '#6ee7b7', '#fef08a', '#fda4af', '#7dd3fc', '#e9d5ff',
         '#1b340d', '#4e391e', '#78350f', '#9f1239', '#164e63',
-        '#064e3b', '#1e3a8a', '#581c87', '#0f172a', '#ffffff'
+        '#064e3b', '#1e3a8a', '#581c87', '#0f172a'
     ];
 
     const getTargetFieldNames = () => {
@@ -209,6 +250,8 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
             return { bg: 'badgeLowPriceBg', border: 'badgeLowPriceBorder', text: 'badgeLowPriceText' };
         } else if (subTarget === 'loss') {
             return { bg: 'badgeLossBg', border: 'badgeLossBorder', text: 'badgeLossText' };
+        } else if (subTarget === 'delivery') {
+            return { bg: 'badgeDeliveryBg', border: 'badgeDeliveryBorder', text: 'badgeDeliveryText' };
         }
         return { bg: 'badgeBg', border: 'badgeBorderColor', text: 'badgeTextColor' };
     };
@@ -230,10 +273,10 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
                 <div>
                     <h3 className="text-base font-black text-slate-800 dark:text-emerald-400 flex items-center gap-2">
                         <Bookmark size={18} className="text-amber-600 dark:text-amber-400" />
-                        Tùy Chỉnh Màu Sắc & Viền Các Badge (Nhãn Dòng)
+                        Tùy Chỉnh Màu Sắc & Viền Các Badge (Nhãn Dòng & Nhắc Chở Phân)
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Tự do chỉnh màu nền, viền và chữ cho nhãn Tồn kho, Lần mua gần nhất, Giá thấp, Lỗ vốn theo đúng gu thẩm mỹ của bạn.
+                        Tự do chỉnh màu nền, viền và chữ cho nhãn Tồn kho, Lần mua gần nhất, Giá thấp, Lỗ vốn và nút Nhắc Chở Phân theo đúng gu thẩm mỹ của bạn.
                     </p>
                 </div>
                 <button
@@ -250,7 +293,7 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
             <div className="p-4 rounded-2xl bg-gradient-to-br from-[#fbf9f4] to-[#ede8dc] dark:from-[#1a1e17] dark:to-[#121610] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-md">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-[10px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                        <Eye size={13} /> Xem trước thực tế các Badge
+                        <Eye size={13} /> Xem trước thực tế các Badge (Bấm vào badge để chọn chỉnh)
                     </span>
                     <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
                         {isIndividualMode ? `Đang chỉnh riêng: ${subTarget}` : 'Áp dụng đồng bộ'}
@@ -260,8 +303,16 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
                 <div className="flex flex-wrap items-center gap-3 p-3 bg-white/70 dark:bg-black/30 rounded-xl border border-black/5 dark:border-white/5">
                     {/* Stock badge preview */}
                     <div 
+                        onClick={() => {
+                            onChangeConfig({ ...currentConfig, badgeCustomMode: 'individual' });
+                            setSubTarget('stock');
+                        }}
                         style={getBadgeComputedStyle(currentConfig, 'stock')}
-                        className="px-2.5 py-0.5 rounded-full text-[11px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-default select-none bg-[#2d5016]/20 text-[#1b340d] border-[#2d5016]/45 dark:bg-emerald-500/25 dark:text-emerald-200 dark:border-emerald-400/50"
+                        className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[11px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none bg-[#2d5016]/20 text-[#1b340d] border-[#2d5016]/45 dark:bg-emerald-500/25 dark:text-emerald-200 dark:border-emerald-400/50",
+                            subTarget === 'stock' && "ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-[#121610]"
+                        )}
+                        title="Bấm để chỉnh nhãn Tồn kho"
                     >
                         <PackageCheck size={12} strokeWidth={2.8} />
                         <span>526</span>
@@ -269,8 +320,16 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
 
                     {/* Last purchase badge preview */}
                     <div 
+                        onClick={() => {
+                            onChangeConfig({ ...currentConfig, badgeCustomMode: 'individual' });
+                            setSubTarget('purchase');
+                        }}
                         style={getBadgeComputedStyle(currentConfig, 'last_purchase')}
-                        className="px-2.5 py-0.5 rounded-full text-[10px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-default select-none bg-[#8b6f47]/20 text-[#4e391e] border-[#8b6f47]/45 dark:bg-[#d4a574]/25 dark:text-[#f7e6d0] dark:border-[#d4a574]/50"
+                        className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[10px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none bg-[#8b6f47]/20 text-[#4e391e] border-[#8b6f47]/45 dark:bg-[#d4a574]/25 dark:text-[#f7e6d0] dark:border-[#d4a574]/50",
+                            subTarget === 'purchase' && "ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-[#121610]"
+                        )}
+                        title="Bấm để chỉnh nhãn Đã mua"
                     >
                         <Clock size={11} strokeWidth={2.6} />
                         <span>Đã mua: 11/10/2026</span>
@@ -278,8 +337,16 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
 
                     {/* Low price badge preview */}
                     <div 
+                        onClick={() => {
+                            onChangeConfig({ ...currentConfig, badgeCustomMode: 'individual' });
+                            setSubTarget('low_price');
+                        }}
                         style={getBadgeComputedStyle(currentConfig, 'low_price')}
-                        className="px-2.5 py-0.5 rounded-full text-[9.5px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-default select-none bg-[#d97706]/20 text-[#78350f] border-[#b45309]/50 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50"
+                        className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[9.5px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none bg-[#d97706]/20 text-[#78350f] border-[#b45309]/50 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50",
+                            subTarget === 'low_price' && "ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-[#121610]"
+                        )}
+                        title="Bấm để chỉnh nhãn Giá thấp"
                     >
                         <BadgePercent size={11} strokeWidth={2.8} />
                         <span>GIÁ THẤP (8,000đ)</span>
@@ -287,11 +354,40 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
 
                     {/* Loss / Warning badge preview */}
                     <div 
+                        onClick={() => {
+                            onChangeConfig({ ...currentConfig, badgeCustomMode: 'individual' });
+                            setSubTarget('loss');
+                        }}
                         style={getBadgeComputedStyle(currentConfig, 'loss')}
-                        className="px-2.5 py-0.5 rounded-full text-[9.5px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-default select-none bg-rose-500/25 text-rose-950 border-rose-500/50 dark:bg-rose-500/30 dark:text-rose-200 dark:border-rose-400/60"
+                        className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[9.5px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none bg-rose-500/25 text-rose-950 border-rose-500/50 dark:bg-rose-500/30 dark:text-rose-200 dark:border-rose-400/60",
+                            subTarget === 'loss' && "ring-2 ring-emerald-500 ring-offset-2 dark:ring-offset-[#121610]"
+                        )}
+                        title="Bấm để chỉnh nhãn Cảnh báo lỗ"
                     >
                         <CircleAlert size={11} strokeWidth={2.8} />
                         <span>LỖ VỐN</span>
+                    </div>
+
+                    {/* Delivery reminder badge preview */}
+                    <div 
+                        onClick={() => {
+                            onChangeConfig({ ...currentConfig, badgeCustomMode: 'individual' });
+                            setSubTarget('delivery');
+                        }}
+                        style={getBadgeComputedStyle(currentConfig, 'delivery')}
+                        className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black border-2 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer select-none bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white border-emerald-300 dark:border-emerald-400",
+                            subTarget === 'delivery' && "ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-[#121610]"
+                        )}
+                        title="Bấm để tùy chỉnh màu & viền cho Badge Nhắc Chở Phân"
+                    >
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                        </span>
+                        <Truck size={12} strokeWidth={2.8} />
+                        <span>Nhắc Chở Phân (2)</span>
                     </div>
                 </div>
             </div>
@@ -433,6 +529,20 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
                             <CircleAlert size={12} />
                             <span>4. Cảnh Báo Lỗ</span>
                         </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setSubTarget('delivery')}
+                            className={cn(
+                                "px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
+                                subTarget === 'delivery'
+                                    ? "bg-gradient-to-r from-emerald-700 to-[#1d380e] text-emerald-200 border border-emerald-400/60 shadow-xs"
+                                    : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-black/10"
+                            )}
+                        >
+                            <Truck size={12} />
+                            <span>5. Nhắc Chở Phân</span>
+                        </button>
                     </div>
                 )}
             </div>
@@ -554,6 +664,39 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
                         <div className="w-5 h-5 rounded-lg border border-black/10 shadow-xs" style={{ backgroundColor: currentBg !== 'default' ? currentBg : 'rgba(45,80,22,0.2)' }} />
                     </div>
                 </div>
+
+                {subTarget === 'delivery' && (
+                    <div className="space-y-1.5 pb-2">
+                        <div className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                            <Sparkles size={11} /> Mẫu Gradient Chở Phân Sang Trọng:
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {[
+                                { name: 'Emerald Vụ Mùa', val: 'linear-gradient(to right, #059669, #2d5016, #1d380e)' },
+                                { name: 'Xanh Neon Mint', val: 'linear-gradient(to right, #10b981, #059669)' },
+                                { name: 'Hổ Phách Vàng', val: 'linear-gradient(to right, #f59e0b, #b45309)' },
+                                { name: 'Đỏ San Hô', val: 'linear-gradient(to right, #f43f5e, #be123c)' },
+                                { name: 'Cyan Biển Sâu', val: 'linear-gradient(to right, #06b6d4, #0e7490)' },
+                                { name: 'Tím Cyber', val: 'linear-gradient(to right, #8b5cf6, #6d28d9)' },
+                                { name: 'Titan Tối Giản', val: 'linear-gradient(to right, #334155, #0f172a)' },
+                                { name: 'Đen Obsidian', val: '#1e293b' }
+                            ].map(item => (
+                                <button
+                                    key={item.name}
+                                    type="button"
+                                    onClick={() => onChangeConfig({ ...currentConfig, [fieldNames.bg]: item.val })}
+                                    className={cn(
+                                        "px-2.5 py-1.5 rounded-xl text-[10px] font-black text-white text-left transition-all border border-white/20 shadow-xs hover:scale-105 cursor-pointer truncate",
+                                        currentBg === item.val && "ring-2 ring-emerald-400"
+                                    )}
+                                    style={{ background: item.val }}
+                                >
+                                    {item.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-2 flex-wrap">
                     {quickBgColors.map((col, idx) => (

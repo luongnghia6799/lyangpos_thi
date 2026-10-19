@@ -53,7 +53,7 @@ const PRESET_COLORS = [
   '#ec4899', // Pink
 ];
 
-export default function ReminderModal({ isOpen, onClose }) {
+export default function ReminderModal({ isOpen, onClose, initialData = null }) {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterTab, setFilterTab] = useState('pending'); // 'pending', 'all', 'completed'
@@ -102,11 +102,19 @@ export default function ReminderModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       fetchReminders();
-      if (!remindAt) {
+      if (initialData) {
+        setTitle(initialData.title || '');
+        setDescription(initialData.description || '');
+        setRemindAt(initialData.remindAt || initDefaultTime());
+        setTtsMessage(initialData.ttsMessage || initialData.title || '');
+        if (initialData.priority) setPriority(initialData.priority);
+        if (initialData.color) setColor(initialData.color);
+        setShowAddForm(true);
+      } else if (!remindAt) {
         setRemindAt(initDefaultTime());
       }
     }
-  }, [isOpen]);
+  }, [isOpen, initialData]);
 
   const resetForm = () => {
     setTitle('');

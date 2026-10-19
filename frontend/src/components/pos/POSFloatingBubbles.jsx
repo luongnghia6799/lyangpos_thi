@@ -10,7 +10,8 @@ import ShippingInfoPopup from '@/components/widgets/ShippingInfoPopup';
 import { 
   getBubbleComputedStyle, 
   getButtonComputedStyle, 
-  getBubbleBadgeStyle 
+  getBubbleBadgeStyle,
+  getBadgeComputedStyle 
 } from '@/components/modals/CartColorCustomizerModal';
 
 /**
@@ -27,6 +28,10 @@ function POSFloatingBubbles({
   cartColorConfig,
   onOpenPartnerHistory,
   onOpenPartnerSearch,
+
+  hasFertilizer = false,
+  fertilizerItems = [],
+  onOpenDeliveryReminder,
 
   orderNote = '',
   isNoteOpen = false,
@@ -152,56 +157,96 @@ function POSFloatingBubbles({
         className="absolute bottom-3 left-3 z-[110] pointer-events-none flex flex-col items-start gap-2.5"
       >
         <div className="flex items-center gap-2.5 pointer-events-auto">
-          <m.div
-            key="partner-card-bubble"
-            id="partner-card-bubble"
-            data-bubble="partner"
-            layout
-            initial={{ opacity: 0, scale: 0.94, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 10 }}
-            whileHover={{ scale: 1.015, y: -1 }}
-            whileTap={{ scale: 0.985 }}
-            transition={{
-              layout: {
-                type: "spring",
-                stiffness: 380,
-                damping: 28,
-                mass: 0.9
-              },
-              scale: { type: "spring", stiffness: 420, damping: 22 },
-              y: { type: "spring", stiffness: 420, damping: 22 },
-              opacity: { duration: 0.2 }
-            }}
-            onClick={e => {
-              e.stopPropagation();
-              if (partner) {
-                onOpenPartnerHistory?.();
-              } else {
-                onOpenPartnerSearch?.();
-              }
-            }}
-            style={partnerStyle}
-            className="flex items-start group/partner-bubble cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden"
-          >
-            <Sprout 
-              className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none select-none" 
-              style={partnerStyle?.color ? { color: partnerStyle.color, opacity: 0.1 } : undefined} 
-            />
-            <div 
+          <div className="relative group/partner-wrapper">
+            {/* Prominent Fertilizer Delivery Reminder Button perched on top of Partner Bubble */}
+            <AnimatePresence>
+              {hasFertilizer && (() => {
+                const deliverySt = getBadgeComputedStyle(cartColorConfig, 'delivery');
+                return (
+                  <m.button
+                    type="button"
+                    layout
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                    whileHover={{ scale: 1.06, y: -2 }}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      onOpenDeliveryReminder?.();
+                    }}
+                    style={deliverySt}
+                    className="absolute -top-3.5 right-3 z-30 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white shadow-[0_6px_20px_rgba(45,80,22,0.45)] border-2 border-emerald-300 dark:border-emerald-400 cursor-pointer select-none group/fert hover:brightness-110 active:scale-95 transition-all"
+                    title={`Có mua phân bón (${fertilizerItems?.length || 1} loại)! Bấm để tạo nhanh nhắc nhở chở phân cho ${partner ? partner.name : 'Khách lẻ'}`}
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                    </span>
+                    <Truck size={13} strokeWidth={2.8} className="text-white drop-shadow-sm group-hover/fert:translate-x-0.5 transition-transform" style={deliverySt?.color ? { color: deliverySt.color } : undefined} />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white drop-shadow-sm whitespace-nowrap" style={deliverySt?.color ? { color: deliverySt.color } : undefined}>
+                      Nhắc Chở Phân ({fertilizerItems?.length || 1})
+                    </span>
+                  </m.button>
+                );
+              })()}
+            </AnimatePresence>
+
+            <m.div
+              key="partner-card-bubble"
+              id="partner-card-bubble"
+              data-bubble="partner"
+              layout
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              whileHover={{ scale: 1.015, y: -1 }}
+              whileTap={{ scale: 0.985 }}
+              transition={{
+                layout: {
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 28,
+                  mass: 0.9
+                },
+                scale: { type: "spring", stiffness: 420, damping: 22 },
+                y: { type: "spring", stiffness: 420, damping: 22 },
+                opacity: { duration: 0.2 }
+              }}
+              onClick={e => {
+                e.stopPropagation();
+                if (partner) {
+                  onOpenPartnerHistory?.();
+                } else {
+                  onOpenPartnerSearch?.();
+                }
+              }}
+              style={partnerStyle}
               className={cn(
-                "flex flex-col relative z-10",
-                (partner || isRemoteInspect) 
-                  ? "min-w-[220px] max-w-[380px] sm:max-w-[420px]" 
-                  : "min-w-[140px] max-w-[260px]"
+                "flex items-start group/partner-bubble cursor-pointer transition-[border-color,background-color,box-shadow] duration-200 p-3 px-5 rounded-2xl border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/35 bg-[#fbf9f4] dark:bg-[#1a1e17] hover:border-[#2d5016] dark:hover:border-emerald-400 shadow-[0_10px_22px_-2px_rgba(139,111,71,0.24)] dark:shadow-[0_12px_24px_-2px_rgba(0,0,0,0.7)] hover:shadow-[0_14px_28px_-2px_rgba(139,111,71,0.3)] relative overflow-hidden",
+                hasFertilizer && "ring-2 ring-emerald-500/60 dark:ring-emerald-400/60 shadow-[0_12px_26px_rgba(16,185,129,0.3)]"
               )}
             >
+              <Sprout 
+                className="absolute -right-4 -bottom-4 w-28 h-28 text-[#8b6f47]/10 dark:text-[#d4a574]/10 -rotate-12 transition-transform group-hover/partner-bubble:scale-110 group-hover/partner-bubble:-rotate-6 pointer-events-none select-none" 
+                style={partnerStyle?.color ? { color: partnerStyle.color, opacity: 0.1 } : undefined} 
+              />
               <div 
-                className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] mb-0.5 leading-normal py-0.5" 
-                style={partnerStyle?.color ? { color: partnerStyle.color } : undefined}
+                className={cn(
+                  "flex flex-col relative z-10",
+                  (partner || isRemoteInspect) 
+                    ? "min-w-[220px] max-w-[380px] sm:max-w-[420px]" 
+                    : "min-w-[140px] max-w-[260px]"
+                )}
               >
-                Đối tác / Khách hàng
-              </div>
+                <div className="flex items-center justify-between gap-2 mb-0.5 leading-normal py-0.5">
+                  <div 
+                    className="text-[9px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574]" 
+                    style={partnerStyle?.color ? { color: partnerStyle.color } : undefined}
+                  >
+                    Đối tác / Khách hàng
+                  </div>
+                </div>
               <div className="flex items-center gap-1.5 mb-1">
                 {isRemoteInspect ? (
                   <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-md text-[9px] font-black tracking-wider shrink-0 border border-emerald-500/20">
@@ -386,6 +431,7 @@ function POSFloatingBubbles({
                 )}
             </div>
           </m.div>
+        </div>
 
           {/* Note Bubble Button */}
           <m.div layout="position" transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.9 }} className="relative group/note-container pointer-events-auto">
@@ -940,6 +986,8 @@ const arePropsEqual = (prev, next) => {
     prev.debtAfterOrder === next.debtAfterOrder &&
     prev.isRemoteInspect === next.isRemoteInspect &&
     prev.cartColorConfig === next.cartColorConfig &&
+    prev.hasFertilizer === next.hasFertilizer &&
+    prev.fertilizerItems?.length === next.fertilizerItems?.length &&
     prev.orderNote === next.orderNote &&
     prev.isNoteOpen === next.isNoteOpen &&
     prev.shippingStatus === next.shippingStatus &&

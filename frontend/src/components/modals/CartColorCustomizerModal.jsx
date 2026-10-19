@@ -303,7 +303,13 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     badgeLowPriceText: 'default',
     badgeLossBg: 'default',
     badgeLossBorder: 'default',
-    badgeLossText: 'default'
+    badgeLossText: 'default',
+    badgeDeliveryBg: 'default',
+    badgeDeliveryBorder: 'default',
+    badgeDeliveryText: 'default',
+    badgeDeliveryBorderWidth: '2',
+    badgeDeliveryEnableBorder: true,
+    badgeDeliveryEnableShadow: true
 };
 
 export const getCartTextShadowStyle = (config, baseColor = null) => {

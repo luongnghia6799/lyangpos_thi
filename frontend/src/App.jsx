@@ -727,13 +727,15 @@ function App() {
   }, []);
 
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderInitialData, setReminderInitialData] = useState(null);
   const [showMascotPopover, setShowMascotPopover] = useState(false);
   const [showAiConsultantModal, setShowAiConsultantModal] = useState(false);
   const [mascotPos, setMascotPos] = useState({ x: 800, y: 500 });
   const [mascotSize, setMascotSize] = useState(110);
 
   useEffect(() => {
-    const handleOpenReminderModal = () => {
+    const handleOpenReminderModal = (e) => {
+      setReminderInitialData(e?.detail || null);
       setShowReminderModal(true);
     };
     const handleOpenMascotPopover = (e) => {
@@ -815,7 +817,14 @@ function App() {
 
             {/* Global Reminder Banner & Sound Alert across all tabs */}
             <GlobalReminderAlert onOpenManager={() => setShowReminderModal(true)} />
-            <ReminderModal isOpen={showReminderModal} onClose={() => setShowReminderModal(false)} />
+            <ReminderModal 
+              isOpen={showReminderModal} 
+              initialData={reminderInitialData}
+              onClose={() => {
+                setShowReminderModal(false);
+                setReminderInitialData(null);
+              }} 
+            />
 
             <Suspense fallback={<LoadingOverlay isVisible={true} message="Khởi động..." />}>
               <Routes>

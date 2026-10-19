@@ -36,6 +36,7 @@ uploads/
 **/uploads/
 tts_cache/
 **/tts_cache/
+*.mp3
 backups/
 **/backups/
 

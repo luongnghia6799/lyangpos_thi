@@ -256,6 +256,12 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
         try {
             await saveProduct(formData);
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            try {
+                const syncChan = new BroadcastChannel('pos_data_sync');
+                syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
+                syncChan.close();
+            } catch (e) {}
+            window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
             onSave();
             onClose();
         } catch (err) {

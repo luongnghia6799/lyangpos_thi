@@ -307,11 +307,6 @@ const Icon = forwardRef(
                     'data-lucide-name': baseName,
                     'data-iconify-name': cleanIconify,
                     onContextMenu: handleContextMenu,
-                    style: {
-                        display: 'inline-block',
-                        verticalAlign: 'middle',
-                        ...rest.style
-                    },
                     ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
                     ...rest
                 }
@@ -334,11 +329,6 @@ const Icon = forwardRef(
                         'data-lucide-name': baseName,
                         'data-duo-name': overrideName,
                         onContextMenu: handleContextMenu,
-                        style: {
-                            display: 'inline-block',
-                            verticalAlign: 'middle',
-                            ...rest.style
-                        },
                         ...!children && !hasA11yProp(rest) && { "aria-hidden": "true" },
                         ...rest
                     }

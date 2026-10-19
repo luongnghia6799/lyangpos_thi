@@ -515,23 +515,23 @@ const CartTableRow = React.memo(function CartTableRow({
                     style={getBadgeComputedStyle(cartColorConfig, 'stock')}
                     className={cn(
                       "relative cursor-pointer px-2.5 py-0.5 rounded-full text-[11px] font-black border-2 transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none",
-                      item.stock <= 0
+                      (product?.stock !== undefined ? product.stock : item.stock) <= 0
                         ? "bg-rose-500/25 text-rose-950 dark:text-rose-200 border-rose-500/50 dark:border-rose-400/60 hover:bg-rose-500/35"
-                        : item.stock < 10
+                        : (product?.stock !== undefined ? product.stock : item.stock) < 10
                           ? "bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500/50 dark:border-amber-400/60 hover:bg-amber-500/35"
                           : "bg-[#2d5016]/20 text-[#1b340d] dark:bg-emerald-500/25 dark:text-emerald-200 border-[#2d5016]/45 dark:border-emerald-400/50 hover:bg-[#2d5016]/30 dark:hover:bg-emerald-500/35"
                     )}
                     title="Kiểm tồn nhanh"
                   >
                     <div className="flex items-center gap-1 tabular-nums">
-                      {item.stock <= 0 ? (
+                      {(product?.stock !== undefined ? product.stock : item.stock) <= 0 ? (
                         <PackageX size={12} strokeWidth={2.8} className="text-rose-700 dark:text-rose-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
-                      ) : item.stock < 10 ? (
+                      ) : (product?.stock !== undefined ? product.stock : item.stock) < 10 ? (
                         <CircleAlert size={12} strokeWidth={2.8} className="text-amber-700 dark:text-amber-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                       ) : (
                         <PackageCheck size={12} strokeWidth={2.8} className="text-[#2d5016] dark:text-emerald-400 shrink-0" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} />
                       )}
-                      <span className="tabular-nums font-black">{item.stock}</span>
+                      <span className="tabular-nums font-black">{product?.stock !== undefined ? product.stock : item.stock}</span>
                     </div>
                     {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
                       <>

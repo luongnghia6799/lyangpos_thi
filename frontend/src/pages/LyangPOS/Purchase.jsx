@@ -264,6 +264,58 @@ export default function Purchase() {
     const [auditProduct, setAuditProduct] = useState(null);
     const [auditCoords, setAuditCoords] = useState(null);
 
+    const activeAuditProduct = useMemo(() => {
+        if (!auditProduct) return null;
+        return products.find(p => p.id === auditProduct.id) || auditProduct;
+    }, [products, auditProduct]);
+
+    const handleQuickAuditSave = async (auditData) => {
+        try {
+            await axios.post('/api/inventory/audit', auditData);
+            await queryClient.invalidateQueries({ queryKey: ['products'] });
+            try {
+                const syncChan = new BroadcastChannel('pos_data_sync');
+                syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
+                syncChan.close();
+            } catch (e) {}
+            window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
+            setIsAuditOpen(false);
+            setAuditProduct(null);
+            setToast({ message: "Đã cập nhật tồn kho thành công!", type: "success" });
+        } catch (err) {
+            console.error("Quick Audit failed:", err);
+            setToast({ message: err?.response?.data?.error || "Lỗi khi cập nhật kho", type: "error" });
+            throw err;
+        }
+    };
+
+    // Live sync cart items with latest product data (stock, accounting_stock, name)
+    useEffect(() => {
+        if (!products || products.length === 0) return;
+        setCart(prevCart => {
+            let changed = false;
+            const updated = prevCart.map(item => {
+                if (!item.product_id) return item;
+                const prod = products.find(p => p.id === item.product_id);
+                if (prod && (
+                    item.stock !== prod.stock || 
+                    item.accounting_stock !== prod.accounting_stock ||
+                    item.product_name !== prod.name
+                )) {
+                    changed = true;
+                    return {
+                        ...item,
+                        product_name: prod.name || item.product_name,
+                        stock: prod.stock,
+                        accounting_stock: prod.accounting_stock
+                    };
+                }
+                return item;
+            });
+            return changed ? updated : prevCart;
+        });
+    }, [products]);
+
     // Price Raise Warning States
     const [priceRaiseItems, setPriceRaiseItems] = useState([]);
     const [isPriceRaiseModalOpen, setIsPriceRaiseModalOpen] = useState(false);
@@ -817,6 +869,10 @@ export default function Purchase() {
                         }
                     } catch {}
                 }
+            } else if (data.type === 'PRODUCT_UPDATED' || data.type === 'INVENTORY_AUDIT_SAVED' || data.type === 'INVENTORY_UPDATED') {
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+            } else if (data.type === 'SETTINGS_UPDATED') {
+                fetchSettings();
             } else if (data.type === 'UI_SETTING_UPDATED') {
                 if (data.key === 'pos_keep_order_after_save') {
                     setKeepOrderAfterSave(data.value === 'true');
@@ -910,6 +966,21 @@ export default function Purchase() {
     };
 
     const [workingItem, setWorkingItem] = useState({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' });
+
+    // Live sync workingItem product with latest product data
+    useEffect(() => {
+        if (!products || products.length === 0 || !workingItem.product?.id) return;
+        const freshProd = products.find(p => p.id === workingItem.product.id);
+        if (freshProd && (
+            freshProd.stock !== workingItem.product.stock || 
+            freshProd.accounting_stock !== workingItem.product.accounting_stock
+        )) {
+            setWorkingItem(prev => ({
+                ...prev,
+                product: freshProd
+            }));
+        }
+    }, [products, workingItem.product?.id]);
     const [rowSearchIdx, setRowSearchIdx] = useState(null);
     const [rowSearchTerm, setRowSearchTerm] = useState('');
     const [rowActiveIndex, setRowActiveIndex] = useState(0);
@@ -3638,44 +3709,45 @@ export default function Purchase() {
                                                                                     </div>
                                                                                 )}
                                                                             </div>
-                                                                            {item.product_id && (
+                                                                            {item.product_id && (() => {
+                                                                                const currentProd = products.find(p => p.id === item.product_id) || item;
+                                                                                const currentStock = currentProd.stock !== undefined ? currentProd.stock : (item.stock !== undefined ? item.stock : 0);
+                                                                                const currentAccountingStock = currentProd.accounting_stock !== undefined ? currentProd.accounting_stock : (item.accounting_stock !== undefined ? item.accounting_stock : 0);
+                                                                                return (
                                                                                 <div className="shrink-0 z-10 flex flex-col items-end gap-1">
                                                                                     <div 
                                                                                         onClick={(e) => {
                                                                                             e.stopPropagation();
-                                                                                            const prod = products.find(p => p.id === item.product_id);
-                                                                                            if (prod) {
-                                                                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                                                                setAuditProduct(prod);
-                                                                                                setAuditCoords({
-                                                                                                    top: rect.top,
-                                                                                                    bottom: rect.bottom,
-                                                                                                    left: rect.left,
-                                                                                                    right: rect.right
-                                                                                                });
-                                                                                                setIsAuditOpen(true);
-                                                                                            }
+                                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                                            setAuditProduct(currentProd);
+                                                                                            setAuditCoords({
+                                                                                                top: rect.top,
+                                                                                                bottom: rect.bottom,
+                                                                                                left: rect.left,
+                                                                                                right: rect.right
+                                                                                            });
+                                                                                            setIsAuditOpen(true);
                                                                                         }} 
                                                                                         className={cn(
                                                                                             "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none backdrop-blur-md", 
-                                                                                            (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 
+                                                                                            currentStock <= 0 
                                                                                                 ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10 hover:border-rose-500/60" 
-                                                                                                : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 
+                                                                                                : currentStock < 10 
                                                                                                     ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10 hover:border-amber-500/60" 
                                                                                                     : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10 hover:border-emerald-500/60"
                                                                                         )} 
                                                                                         title="Kiểm tồn nhanh"
                                                                                     >
                                                                                         <div className="flex items-center gap-1 tabular-nums">
-                                                                                            {(item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) <= 0 ? (
+                                                                                            {currentStock <= 0 ? (
                                                                                                 <Package size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
-                                                                                            ) : (item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)) < 10 ? (
+                                                                                            ) : currentStock < 10 ? (
                                                                                                 <AlertTriangle size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
                                                                                             ) : (
                                                                                                 <Package size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                                                             )}
                                                                                             <span className="tabular-nums font-black">
-                                                                                                {item.stock !== undefined ? item.stock : (products.find(p => p.id === item.product_id)?.stock || 0)}
+                                                                                                {currentStock}
                                                                                             </span>
                                                                                         </div>
                                                                                         {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
@@ -3684,14 +3756,15 @@ export default function Purchase() {
                                                                                                 <div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán">
                                                                                                     <ReceiptText size={11} strokeWidth={2.4} className="shrink-0 text-white" />
                                                                                                     <span className="tabular-nums font-black">
-                                                                                                        {item.accounting_stock !== undefined ? item.accounting_stock : (products.find(p => p.id === item.product_id)?.accounting_stock || 0)}
+                                                                                                        {currentAccountingStock}
                                                                                                     </span>
                                                                                                 </div>
                                                                                             </>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                            )}
+                                                                                );
+                                                                            })()}
                                                                         </div>
                                                                     )}
                                                                     <AnimatePresence>
@@ -5341,12 +5414,7 @@ export default function Purchase() {
                     )}
                 </AnimatePresence>
 
-                <ProductEditModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    product={editingProduct}
-                    onSave={fetchProducts}
-                />
+
 
                 <PartnerEditModal
                     isOpen={isPartnerEditModalOpen}
@@ -5821,16 +5889,15 @@ export default function Purchase() {
                 />
                 {/* Quick Audit Popout */}
                 <Portal>
-                    {isAuditOpen && auditProduct && (
+                    {isAuditOpen && activeAuditProduct && (
                         <QuickAuditPopout
-                            product={auditProduct}
+                            product={activeAuditProduct}
                             isOpen={isAuditOpen}
-                            onClose={() => setIsAuditOpen(false)}
-                            onSave={() => {
-                                queryClient.invalidateQueries({ queryKey: ['products'] });
+                            onClose={() => {
                                 setIsAuditOpen(false);
-                                setToast({ message: "Đã cập nhật tồn kho thành công!", type: "success" });
+                                setAuditProduct(null);
                             }}
+                            onSave={handleQuickAuditSave}
                             coordinates={auditCoords}
                         />
                     )}
@@ -5866,6 +5933,12 @@ export default function Purchase() {
                         onSave={() => {
                             fetchProducts();
                             queryClient.invalidateQueries({ queryKey: ['products'] });
+                            try {
+                                const syncChan = new BroadcastChannel('pos_data_sync');
+                                syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
+                                syncChan.close();
+                            } catch (e) {}
+                            window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
                             setIsEditModalOpen(false);
                             setEditingProduct(null);
                         }}

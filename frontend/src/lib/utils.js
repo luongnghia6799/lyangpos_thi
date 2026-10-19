@@ -1312,7 +1312,8 @@ export const speakNumber = (num, isCurrency = false, partnerName = "", customTem
     const voiceParam = (selectedVoiceName === 'edge-vi-male' || localStorage.getItem("pos_tts_mode") === "male") ? 'edge-vi-male' : 'edge-vi-female';
     
     const cacheKey = `${voiceParam}_${rate}_${pitch}_${viText}`;
-    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(viText)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
+    const cat = isCurrency ? 'so_tien' : (typeof num === 'number' || !isNaN(Number(num)) ? 'so_luong' : 'he_thong');
+    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(viText)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}&category=${cat}`;
 
     const playWithTraditionalAudio = async () => {
       try {
@@ -1419,8 +1420,9 @@ export const speakAudioSequence = async (items = []) => {
 
   const buffers = await Promise.all(parsedItems.map(async item => {
     const { text, customGap, isNumeric } = item;
+    const cat = isNumeric ? 'so_luong' : 'alias';
     const cacheKey = `${voiceParam}_${rate}_${pitch}_${text}`;
-    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}`;
+    const audioUrl = `${baseUrl.replace(/\/+$/, '')}/api/tts?text=${encodeURIComponent(text)}&voice=${voiceParam}&rate=${rate}&pitch=${encodeURIComponent(pitch)}&category=${cat}`;
 
     let buffer = ttsAudioCache[cacheKey];
     if (buffer instanceof Promise) {
@@ -1529,5 +1531,35 @@ export const speakAudioSequence = async (items = []) => {
 };
 
 export const speakVi = (text) => speakNumber(text);
+
+/**
+ * Checks if a product or cart item is a fertilizer (phân bón, NPK, đạm, lân, kali, hữu cơ, etc.)
+ */
+export const isFertilizerProduct = (product) => {
+    if (!product) return false;
+    // Category id 2 is "Phân bón"
+    if (product.category_id === 2 || product.category_id === '2') return true;
+    
+    // Category name check
+    const catName = removeAccents(String(product.category_name || product.category || '')).toLowerCase();
+    if (catName.includes('phan bon') || catName.includes('phan')) return true;
+
+    // Name and alias check
+    const text = removeAccents(String(`${product.name || product.product_name || ''} ${product.alias || ''}`)).toLowerCase();
+    const fertRegex = /\b(phan|bon\s*la|npk|dam|lan|kali|dap|ure|huu\s*co|vi\s*luong|humic|dau\s*trau|yara|canxi\s*bo|phu\s*my)\b/i;
+    return fertRegex.test(text);
+};
+
+/**
+ * Filters and returns all fertilizer items currently in the cart
+ */
+export const getFertilizerItemsInCart = (cart = [], products = []) => {
+    if (!Array.isArray(cart) || cart.length === 0) return [];
+    return cart.filter((item) => {
+        const prod = products?.find(p => p.id === (item.product_id || item.id));
+        return isFertilizerProduct(prod) || isFertilizerProduct(item);
+    });
+};
+
 
 

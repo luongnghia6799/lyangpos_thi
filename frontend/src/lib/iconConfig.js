@@ -216,11 +216,6 @@ export const getLucideIconComponent = (name) => {
             width: props.size || 20,
             height: props.size || 20,
             className: `iconify-icon ${props.className || ''}`,
-            style: {
-                display: 'inline-block',
-                verticalAlign: 'middle',
-                ...props.style
-            },
             ...props
         });
     }

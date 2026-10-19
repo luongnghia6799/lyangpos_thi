@@ -611,14 +611,14 @@ export default function PartnerHistoryModal({ isOpen, partner, onClose }) {
                                                                     <>
                                                                         <button
                                                                             onClick={() => setEditingOrder(o)}
-                                                                            className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
+                                                                            className="w-8 h-8 flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                                                                             title="Xem/Sửa"
                                                                         >
                                                                             <Edit size={18} />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteOrder(o)}
-                                                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
+                                                                            className="w-8 h-8 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
                                                                             title="Xóa"
                                                                         >
                                                                             <Trash2 size={18} />
@@ -629,14 +629,14 @@ export default function PartnerHistoryModal({ isOpen, partner, onClose }) {
                                                                     <>
                                                                         <button
                                                                             onClick={() => setEditingVoucher(o)}
-                                                                            className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
+                                                                            className="w-8 h-8 flex items-center justify-center text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-xl transition-all"
                                                                             title="Sửa nợ sổ tay"
                                                                         >
                                                                             <Edit size={18} />
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleDeleteVoucher(o)}
-                                                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
+                                                                            className="w-8 h-8 flex items-center justify-center text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all"
                                                                             title="Xóa nợ sổ tay"
                                                                         >
                                                                             <Trash2 size={18} />

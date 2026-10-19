@@ -8,6 +8,7 @@ export default function CustomDateTimePicker({
   value,
   onChange,
   className,
+  triggerClassName,
   placeholder = 'Chọn ngày giờ...',
   disabled = false,
 }) {
@@ -184,7 +185,8 @@ export default function CustomDateTimePicker({
           isOpen
             ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-white dark:bg-slate-900 shadow-sm'
             : 'border-slate-200 dark:border-slate-800 hover:border-emerald-500/60',
-          disabled && 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900'
+          disabled && 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-900',
+          triggerClassName
         )}
       >
         <div className="flex items-center gap-2.5 truncate">

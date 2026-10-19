@@ -186,13 +186,14 @@ import { useProductData as eo, usePartnerData as to, useShippingSummary as ao } 
 const od = eo;
 const dd = to;
 const cd = ao;
+import QuickDeliveryReminderModal from "@/components/modals/QuickDeliveryReminderModal";
 import { 
   cn as c, formatNumber as z, formatCurrency as lt, formatDate as ot, removeAccents as xt, 
   speakNumber as ht, speakAudioSequence, stopAllTTS, precacheAmounts as yl, precacheCommonTTS as Ss, 
   cancelPrecacheCommonTTS, clearTTSAudioCache,
   normalizeUOM as Ae, smartSortItems as Tn, formatDebt as vl, playSuccessSound as Is, 
   playErrorSound as Sl, playPopSound as Ds, playTabSound as zs, playTypingSound as playTypingSoundUtil, 
-  playAddToCartSound, formatRelativePurchaseDate 
+  playAddToCartSound, formatRelativePurchaseDate, getFertilizerItemsInCart 
 } from "@/lib/utils";
 import Portal from "@/components/widgets/Portal";
 const Fn = Portal;
@@ -904,7 +905,12 @@ function POSPage({
     [Ec, qc] = i.useState(() => localStorage.getItem("pos_tts_enable_cart_product_name") !== "false"),
     [Mc, Wc] = i.useState(() => localStorage.getItem("pos_tts_cart_speech_order") || "name_first"),
     [p, F] = i.useState(() => be("selectedPartner", null)),
+    [isDeliveryReminderOpen, setIsDeliveryReminderOpen] = i.useState(false),
     pRef = i.useRef(p);
+  const fertilizerItems = i.useMemo(() => {
+    return getFertilizerItemsInCart(y, T);
+  }, [y, T]);
+  const hasFertilizer = fertilizerItems.length > 0;
   i.useEffect(() => {
     pRef.current = p;
   }, [p]);
@@ -3581,7 +3587,7 @@ function POSPage({
     '--pos-accent': Je.accent,
     '--radius-pos': `${Je.radius}rem`,
     '--bg-transparent-blur': `${Je.blur}px`
-  }} className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative", Ya && "gpu-disabled-mode")}><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><div className="flex items-center gap-3 shrink-0"><div className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><x.button type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 450, damping: 25 }} className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none">{(() => {
+  }} className={c("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors relative", Ya && "gpu-disabled-mode")}><div className="flex-1 flex flex-col overflow-hidden no-print"><div className="p-3.5 px-5 flex gap-5 items-center justify-between print:hidden transition-colors relative z-[3000] bg-transparent"><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-3 shrink-0"><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-3 group cursor-default relative"><div className="flex flex-col"><h1 className="text-2xl font-black text-[#2d5016] dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>BÁN HÀNG</h1><span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">by LyangNghia</span></div><x.button layout type="button" onClick={() => setIsOrderDatePickerOpen(true)} title="Bấm để chọn ngày hóa đơn" whileHover={{ scale: 1.03, y: -0.5 }} whileTap={{ scale: 0.97 }} transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 }, scale: { type: "spring", stiffness: 450, damping: 25 }, y: { type: "spring", stiffness: 450, damping: 25 } }} className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none overflow-hidden">{(() => {
                     const originalDateStr = le?.date ? le.date.slice(0, 10) : '';
                     let isDateModified = false;
                     if (customOrderDate) {
@@ -3616,56 +3622,79 @@ function POSPage({
                           <span className={c("w-2 h-2 rounded-full shrink-0", isDateModified ? "bg-amber-600 dark:bg-amber-400" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574]" : "bg-[#2d5016] dark:bg-emerald-400")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
                           <span className={c("absolute w-2 h-2 rounded-full animate-ping opacity-40", isDateModified ? "bg-amber-500" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574]" : "bg-[#2d5016] dark:bg-emerald-400")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
                         </div>
-                        <div className="flex flex-col justify-center leading-none min-w-0">
-                          <x.span 
-                            key={le?.display_id || (Q ? `edit-${Q}` : (Ce > 0 ? `active-${Ce}` : "new"))}
-                            initial={{ opacity: 0.6, y: -1 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.18 }}
-                            className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" 
-                            style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}
-                          >
-                            #{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}
-                          </x.span>
-                          {(() => {
-                            if (isDateModified) {
-                              const timeStr = le?.date ? new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-                              const activeDate = customOrderDate || originalDateStr;
-                              let dateStr = activeDate;
-                              if (activeDate) {
-                                const p = activeDate.split('-');
-                                dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
-                              }
-                              return <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase">{timeStr} - {dateStr} (ĐÃ SỬA)</span>;
-                            }
-                            if (le?.date) {
-                              return <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">{new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - {new Date(le.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}</span>;
-                            }
-                            return <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">{Q ? "ĐANG SỬA" : "TẠO MỚI"}</span>;
-                          })()}
-                        </div>
+                        <x.div layout="position" className="flex flex-col justify-center leading-none min-w-0">
+                          <Ws mode="wait">
+                            <x.span 
+                              key={le?.display_id || (Q ? `edit-${Q}` : (Ce > 0 ? `active-${Ce}` : "new"))}
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 4 }}
+                              transition={{ duration: 0.16, ease: "easeOut" }}
+                              className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" 
+                              style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}
+                            >
+                              #{le?.display_id || Q || (Ce > 0 ? Ce : "MỚI")}
+                            </x.span>
+                          </Ws>
+                          <Ws mode="wait">
+                            <x.div
+                              key={isDateModified ? `mod-${customOrderDate || originalDateStr}` : (le?.date || (Q ? 'edit' : 'new'))}
+                              initial={{ opacity: 0, y: -3 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 3 }}
+                              transition={{ duration: 0.16, ease: "easeOut" }}
+                            >
+                              {(() => {
+                                if (isDateModified) {
+                                  const timeStr = le?.date ? new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                                  const activeDate = customOrderDate || originalDateStr;
+                                  let dateStr = activeDate;
+                                  if (activeDate) {
+                                    const p = activeDate.split('-');
+                                    dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
+                                  }
+                                  return <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase block">{timeStr} - {dateStr} (ĐÃ SỬA)</span>;
+                                }
+                                if (le?.date) {
+                                  return <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase block">{new Date(le.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - {new Date(le.date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}</span>;
+                                }
+                                return <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase block">{Q ? "ĐANG SỬA" : "TẠO MỚI"}</span>;
+                              })()}
+                            </x.div>
+                          </Ws>
+                        </x.div>
                       </>
                     );
                   })()}</x.button>{Ze === "sidebar" && (
-                    <div className="flex items-center gap-1 shrink-0 select-none">
+                    <x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-1 shrink-0 select-none">
                       <x.button 
+                        layout
                         onClick={() => na("prev")} 
                         whileHover={{ scale: 1.08 }} 
                         whileTap={{ scale: 0.92 }} 
+                        transition={{ 
+                          layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 },
+                          scale: { type: "spring", stiffness: 450, damping: 20 }
+                        }}
                         style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined} 
-                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#2d5016] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-all cursor-pointer" 
+                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#2d5016] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-colors cursor-pointer" 
                         title="Đơn trước (Ctrl + Mũi tên Trái)"
                       >
                         <Comp_qs size={16} strokeWidth={2.8} />
                       </x.button>
                       <x.button 
+                        layout
                         onClick={() => na("next")} 
                         disabled={Ce === 0} 
                         whileHover={Ce === 0 ? {} : { scale: 1.08 }} 
                         whileTap={Ce === 0 ? {} : { scale: 0.92 }} 
+                        transition={{ 
+                          layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 },
+                          scale: { type: "spring", stiffness: 450, damping: 20 }
+                        }}
                         style={Ce !== 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined} 
                         className={c(
-                          "w-8 h-8 flex items-center justify-center rounded-xl transition-all", 
+                          "w-8 h-8 flex items-center justify-center rounded-xl transition-colors", 
                           Ce === 0 
                             ? "opacity-25 cursor-not-allowed bg-transparent border border-[#8b6f47]/15 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]" 
                             : "bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#2d5016] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 cursor-pointer"
@@ -3674,8 +3703,8 @@ function POSPage({
                       >
                         <Dr size={16} strokeWidth={2.8} />
                       </x.button>
-                    </div>
-                  )}</div><div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><div className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
+                    </x.div>
+                  )}</x.div><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
                       rotate: -8
                     }} animate={{
@@ -3821,12 +3850,12 @@ function POSPage({
       position: { x: e.clientX, y: e.clientY }
     });
   }}
-/></div><x.button whileHover={{
+/></x.div><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
-                }} onClick={() => Bt(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer group" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button whileHover={{
+                }} onClick={() => Bt(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer group" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
@@ -3835,19 +3864,19 @@ function POSPage({
                     scale: 0
                   }} animate={{
                     scale: 1
-                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button><x.button whileHover={{
+                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
-                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}><span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}</span><div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></x.button><x.button whileHover={{
+                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}><span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}</span><div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
                   y: -2,
                   scale: 1.05
                 }} whileTap={{
                   scale: 0.98
                 }} onClick={() => {
                   Xr(!0);
-                }} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" /></x.button><div className="relative" ref={$r}><x.button whileHover={{
+                }} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" /></x.button><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="relative shrink-0" ref={$r}><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
                     y: -2,
                     scale: 1.05
                   }} whileTap={{
@@ -4007,7 +4036,7 @@ function POSPage({
                         } catch {}
                       }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
                         Ct(!1), Ci();
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
+                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></x.div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
                     x: -20,
                     scale: 0.8
@@ -4019,7 +4048,7 @@ function POSPage({
                     opacity: 0,
                     x: -20,
                     scale: 0.8
-                  }} className="flex items-center h-9 relative overflow-hidden bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 rounded-2xl px-3 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 group/revenue box-border"><div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/revenue:scale-110 group-hover/revenue:rotate-6"><Comp_u_d size={26} strokeWidth={2.5} /></div><div className="flex flex-col justify-center leading-none relative z-10"><p className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] tabular-nums tracking-tight leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P></div></div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-2 shrink-0"><div className="flex items-center gap-2 ml-auto"><div className="flex items-center gap-1 shrink-0 h-[26px]"><div className="max-w-[120px] overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-1 shrink-0">{fe.map((t, a) => {
+                  }} className="flex items-center h-9 relative overflow-hidden bg-[#8b6f47]/[0.06] hover:bg-[#8b6f47]/[0.1] dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#2d5016]/40 dark:hover:border-emerald-400/30 rounded-2xl px-3 backdrop-blur-md shadow-xs transition-all duration-300 shrink-0 group/revenue box-border"><div className="absolute -right-1 -bottom-1 text-[#2d5016]/10 dark:text-emerald-400/10 pointer-events-none transition-transform duration-300 group-hover/revenue:scale-110 group-hover/revenue:rotate-6"><Comp_u_d size={26} strokeWidth={2.5} /></div><div className="flex flex-col justify-center leading-none relative z-10"><p className="text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-none mb-0.5">Doanh thu năm</p><p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] tabular-nums tracking-tight leading-none">{z(p.yearly_revenue)}</p></div></x.div>}</P></x.div></x.div><div className="flex-1 min-w-[8px]" /><div className="flex items-center gap-2 shrink-0"><div className="flex items-center gap-2 ml-auto"><div className="flex items-center gap-1 shrink-0 h-[26px]"><div className="max-w-[120px] overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-1 shrink-0">{fe.map((t, a) => {
                     const r = t.id === g,
                       s = t.id === ne;
                     return <div key={t.id} className="group/tab relative shrink-0"><button onClick={n => {
@@ -4914,6 +4943,9 @@ function POSPage({
     isRemoteInspect={g === "remote_inspect"}
     remoteState={k}
     cartColorConfig={cartColorConfig}
+    hasFertilizer={hasFertilizer}
+    fertilizerItems={fertilizerItems}
+    onOpenDeliveryReminder={() => setIsDeliveryReminderOpen(true)}
     onOpenPartnerHistory={() => setIsHistoryPanelOpen(true)}
     onOpenPartnerSearch={() => Xr(!0)}
     orderNote={K}
@@ -4967,6 +4999,9 @@ function POSPage({
               partnerDebt={p?.debt_balance || 0}
               debtBeforeOrder={de}
               debtAfterOrder={it}
+              hasFertilizer={hasFertilizer}
+              fertilizerItems={fertilizerItems}
+              onOpenDeliveryReminder={() => setIsDeliveryReminderOpen(true)}
               onOpenPartnerHistory={(ptn) => setIsHistoryPanelOpen(true)}
               onFocusPartnerSearch={() => Et.current?.focus()}
               isRemoteInspect={g === "remote_inspect"}
@@ -5080,6 +5115,9 @@ function POSPage({
               partnerDebt={p?.debt_balance || 0}
               debtBeforeOrder={de}
               debtAfterOrder={it}
+              hasFertilizer={hasFertilizer}
+              fertilizerItems={fertilizerItems}
+              onOpenDeliveryReminder={() => setIsDeliveryReminderOpen(true)}
               onOpenPartnerHistory={(ptn) => setIsHistoryPanelOpen(true)}
               onFocusPartnerSearch={() => Et.current?.focus()}
               isRemoteInspect={g === "remote_inspect"}
@@ -5223,7 +5261,13 @@ function POSPage({
                 message: ye ? "Đã cập nhật phiếu thành công!" : "Đã lập phiếu thành công!",
                 type: "success"
               }), ye && (Ia(null), _a(!1));
-            }} /></Ee><POSPrintPreviewModal
+            }} /></Ee><QuickDeliveryReminderModal
+              isOpen={isDeliveryReminderOpen}
+              onClose={() => setIsDeliveryReminderOpen(false)}
+              partner={p}
+              fertilizerItems={fertilizerItems}
+              onSuccess={(msg) => Ve.success(msg)}
+            /><POSPrintPreviewModal
               isOpen={ds && !!Ta}
               orderData={Ta}
               settings={J}

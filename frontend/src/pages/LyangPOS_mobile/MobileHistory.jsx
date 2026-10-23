@@ -19,9 +19,8 @@ import {
   FileText,
   Printer
 } from 'lucide-react';
-import { formatNumber } from '../../lib/utils';
+import { formatNumber, removeAccents, cn } from '../../lib/utils';
 import MobileMenu from '../../components/mobile/MobileMenu';
-import { cn } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import PrintTemplate from '../../components/panels/PrintTemplate';
 
@@ -118,12 +117,89 @@ export default function MobileHistory() {
 
     // Search filter
     if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      res = res.filter(o => 
-        (o.partner_name || '').toLowerCase().includes(s) ||
-        (o.display_id || '').toLowerCase().includes(s) ||
-        (o.id || '').toString().includes(s)
-      );
+      const trimmedTerm = searchTerm.trim();
+      const s = trimmedTerm.toLowerCase();
+      const sNoAccent = removeAccents(s);
+
+      // Amount parsing
+      let amountCondition = null;
+      const compMatch = trimmedTerm.match(/^([><]=?|=)\s*([0-9.,]+)\s*(k|nghin|nghìn|ngan|ngàn|tr|trieu|triệu|m)?$/i);
+      if (compMatch) {
+        const op = compMatch[1];
+        const rawNum = compMatch[2];
+        const unit = (compMatch[3] || '').toLowerCase();
+        let val = 0;
+        if (unit) {
+          const parsed = parseFloat(rawNum.replace(',', '.'));
+          if (!isNaN(parsed)) {
+            val = (unit === 'k' || unit.startsWith('ngh') || unit.startsWith('nga')) ? Math.round(parsed * 1000) : Math.round(parsed * 1000000);
+          }
+        } else {
+          val = parseFloat(rawNum.replace(/[.,\s]/g, '')) || 0;
+        }
+        amountCondition = (amount) => {
+          const absVal = Math.abs(amount);
+          if (op === '>') return amount > val || absVal > val;
+          if (op === '>=') return amount >= val || absVal >= val;
+          if (op === '<') return (amount < val && amount > 0) || (absVal < val && absVal > 0);
+          if (op === '<=') return (amount <= val && amount > 0) || (absVal <= val && absVal > 0);
+          if (op === '=') return amount === val || absVal === val;
+          return false;
+        };
+      } else {
+        const shorthandMatch = trimmedTerm.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(k|nghin|nghìn|ngan|ngàn|tr|trieu|triệu|m)$/i);
+        if (shorthandMatch) {
+          const num = parseFloat(shorthandMatch[1].replace(',', '.'));
+          const unit = shorthandMatch[2].toLowerCase();
+          if (!isNaN(num)) {
+            const targetAmount = (unit === 'k' || unit.startsWith('ngh') || unit.startsWith('nga')) ? Math.round(num * 1000) : Math.round(num * 1000000);
+            const targetStr = String(targetAmount);
+            amountCondition = (amount) => {
+              const tot = Math.round(amount);
+              const absTot = Math.abs(tot);
+              return tot === targetAmount || absTot === targetAmount || String(tot).startsWith(targetStr) || String(absTot).startsWith(targetStr);
+            };
+          }
+        } else {
+          const isNumericOrCurrency = /^[\d.,\s]+([đ₫d]|vnd)?$/i.test(trimmedTerm);
+          if (isNumericOrCurrency) {
+            const cleanDigits = trimmedTerm.replace(/[.,\sđ₫d]|vnd/gi, '');
+            if (cleanDigits.length > 0) {
+              const isAllZeroes = /^0+$/.test(cleanDigits);
+              amountCondition = (amount) => {
+                const tot = Math.round(amount);
+                const absTot = Math.abs(tot);
+                const totStr = String(tot);
+                const absTotStr = String(absTot);
+                if (isAllZeroes) return tot === 0;
+                if (cleanDigits.length === 1) return totStr === cleanDigits;
+                return totStr.includes(cleanDigits) || absTotStr.includes(cleanDigits);
+              };
+            }
+          }
+        }
+      }
+
+      res = res.filter(o => {
+        const partner = (o.partner_name || '').toLowerCase();
+        const displayId = (o.display_id || '').toLowerCase();
+        const idStr = (o.id || '').toString();
+        const textMatch = partner.includes(s) || removeAccents(partner).includes(sNoAccent) ||
+                          displayId.includes(s) || idStr.includes(s);
+
+        let totalMatch = false;
+        const total = Number(o.total_amount !== undefined ? o.total_amount : (o.total || 0)) || 0;
+        if (amountCondition) {
+          totalMatch = amountCondition(total);
+        }
+        if (!totalMatch) {
+          const formattedVn = total.toLocaleString('vi-VN');
+          const formattedEn = total.toLocaleString('en-US');
+          if (formattedVn.includes(s) || formattedEn.includes(s)) totalMatch = true;
+        }
+
+        return textMatch || totalMatch;
+      });
     }
 
     // Type filter
@@ -189,7 +265,7 @@ export default function MobileHistory() {
           <Search className="absolute left-3.5 text-slate-400" size={20} />
           <input
             className="w-full bg-slate-100 dark:bg-slate-800/80 rounded-xl py-2.5 pl-11 pr-10 outline-none font-semibold text-sm text-slate-900 dark:text-white placeholder:text-slate-400 transition-all"
-            placeholder="Tìm theo đối tác, mã đơn..."
+            placeholder="Tìm theo đối tác, mã đơn, tiền..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />

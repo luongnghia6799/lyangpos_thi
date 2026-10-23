@@ -165,25 +165,36 @@ function POSFloatingBubbles({
                 return (
                   <m.button
                     type="button"
-                    layout
+                    layout="position"
+                    transition={{
+                      layout: {
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 28,
+                        mass: 0.9
+                      },
+                      scale: { type: "spring", stiffness: 420, damping: 22 },
+                      y: { type: "spring", stiffness: 420, damping: 22 },
+                      opacity: { duration: 0.2 }
+                    }}
                     initial={{ opacity: 0, y: 10, scale: 0.8 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.8 }}
-                    whileHover={{ scale: 1.06, y: -2 }}
-                    whileTap={{ scale: 0.94 }}
+                    whileHover={{ scale: 1.05, y: -1 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={e => {
                       e.stopPropagation();
                       onOpenDeliveryReminder?.();
                     }}
                     style={deliverySt}
-                    className="absolute -top-3.5 right-3 z-30 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white shadow-[0_6px_20px_rgba(45,80,22,0.45)] border-2 border-emerald-300 dark:border-emerald-400 cursor-pointer select-none group/fert hover:brightness-110 active:scale-95 transition-all"
+                    className="absolute -top-3.5 right-3 z-30 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white shadow-[0_6px_20px_rgba(45,80,22,0.45)] border-2 border-emerald-300 dark:border-emerald-400 cursor-pointer select-none group/fert hover:brightness-110 transition-[filter,box-shadow] duration-150 transform-gpu"
                     title={`Có mua phân bón (${fertilizerItems?.length || 1} loại)! Bấm để tạo nhanh nhắc nhở chở phân cho ${partner ? partner.name : 'Khách lẻ'}`}
                   >
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
+                    <span className="relative flex h-2 w-2 pointer-events-none">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90 will-change-transform transform-gpu" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
                     </span>
-                    <Truck size={13} strokeWidth={2.8} className="text-white drop-shadow-sm group-hover/fert:translate-x-0.5 transition-transform" style={deliverySt?.color ? { color: deliverySt.color } : undefined} />
+                    <Truck size={13} strokeWidth={2.8} className="text-white drop-shadow-sm group-hover/fert:translate-x-0.5 transition-transform duration-150" style={deliverySt?.color ? { color: deliverySt.color } : undefined} />
                     <span className="text-[10px] font-black uppercase tracking-wider text-white drop-shadow-sm whitespace-nowrap" style={deliverySt?.color ? { color: deliverySt.color } : undefined}>
                       Nhắc Chở Phân ({fertilizerItems?.length || 1})
                     </span>

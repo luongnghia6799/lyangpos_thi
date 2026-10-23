@@ -68,7 +68,6 @@ import OrderSwitchOverlay from "../../components/pos/OrderSwitchOverlay";
 import useVoiceSearch from "../../hooks/useVoiceSearch";
 import { matchAgriVoiceProduct } from "../../lib/agriVoiceParser";
 import POSVoiceSearchHUD from "../../components/pos/POSVoiceSearchHUD";
-import voskService from "../../lib/voskService";
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -878,13 +877,6 @@ function POSPage({
       };
       return () => syncChan.close();
     } catch (e) {}
-  }, []);
-
-  i.useEffect(() => {
-    // Tải trước mô hình nhận diện giọng nói Vosk offline ở chế độ nền
-    voskService.loadModel().catch(err => {
-      console.warn('[Vosk] Preload offline model background error:', err);
-    });
   }, []);
 
   i.useEffect(() => {

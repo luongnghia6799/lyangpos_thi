@@ -10,7 +10,7 @@ import {
 import Portal from '../widgets/Portal';
 import CustomDatePicker from '../forms/CustomDatePicker';
 import CustomSelect from '../forms/CustomSelect';
-import { formatCurrency, formatNumber, formatDate, getLocalDateString, cn } from '../../lib/utils';
+import { formatCurrency, formatNumber, formatDate, getLocalDateString, cn, removeAccents } from '../../lib/utils';
 
 // Custom sleek tooltip component replacing native browser titles
 const ActionTooltip = ({ text, children, position = "top", className = "" }) => (
@@ -169,20 +169,126 @@ export default function DailyOrderHistoryModal({
     }, [searchTerm, selectedPaymentMethod, pageSize]);
 
     const filteredOrders = useMemo(() => {
+        const trimmedTerm = searchTerm.trim();
+        const termLower = trimmedTerm.toLowerCase();
+        const termNoAccent = removeAccents(termLower);
+
+        // Pre-parse total amount search query if applicable
+        let amountCondition = null;
+        if (trimmedTerm) {
+            // 1. Comparison query: e.g. "> 500k", ">= 1tr", "< 100.000", "<= 200000", "= 75k"
+            const compMatch = trimmedTerm.match(/^([><]=?|=)\s*([0-9.,]+)\s*(k|nghin|nghìn|ngan|ngàn|tr|trieu|triệu|m)?$/i);
+            if (compMatch) {
+                const op = compMatch[1];
+                const rawNum = compMatch[2];
+                const unit = (compMatch[3] || '').toLowerCase();
+                let val = 0;
+                if (unit) {
+                    const parsed = parseFloat(rawNum.replace(',', '.'));
+                    if (!isNaN(parsed)) {
+                        if (unit === 'k' || unit.startsWith('ngh') || unit.startsWith('nga')) {
+                            val = Math.round(parsed * 1000);
+                        } else {
+                            val = Math.round(parsed * 1000000);
+                        }
+                    }
+                } else {
+                    const cleaned = rawNum.replace(/[.,\s]/g, '');
+                    val = parseFloat(cleaned) || 0;
+                }
+
+                amountCondition = (amount) => {
+                    const absVal = Math.abs(amount);
+                    if (op === '>') return amount > val || absVal > val;
+                    if (op === '>=') return amount >= val || absVal >= val;
+                    if (op === '<') return (amount < val && amount > 0) || (absVal < val && absVal > 0);
+                    if (op === '<=') return (amount <= val && amount > 0) || (absVal <= val && absVal > 0);
+                    if (op === '=') return amount === val || absVal === val;
+                    return false;
+                };
+            } else {
+                // 2. Shorthand query: e.g. "220k", "1.955tr", "50 nghin", "2tr"
+                const shorthandMatch = trimmedTerm.match(/^([0-9]+(?:[.,][0-9]+)?)\s*(k|nghin|nghìn|ngan|ngàn|tr|trieu|triệu|m)$/i);
+                if (shorthandMatch) {
+                    const num = parseFloat(shorthandMatch[1].replace(',', '.'));
+                    const unit = shorthandMatch[2].toLowerCase();
+                    if (!isNaN(num)) {
+                        const targetAmount = (unit === 'k' || unit.startsWith('ngh') || unit.startsWith('nga'))
+                            ? Math.round(num * 1000)
+                            : Math.round(num * 1000000);
+                        const targetStr = String(targetAmount);
+
+                        amountCondition = (amount) => {
+                            const tot = Math.round(amount);
+                            const absTot = Math.abs(tot);
+                            return tot === targetAmount || absTot === targetAmount ||
+                                   String(tot).startsWith(targetStr) || String(absTot).startsWith(targetStr);
+                        };
+                    }
+                } else {
+                    // 3. Numeric / formatted currency: e.g. "220000", "220.000", "220,000", "220.000đ", "220 000"
+                    const isNumericOrCurrency = /^[\d.,\s]+([đ₫d]|vnd)?$/i.test(trimmedTerm);
+                    if (isNumericOrCurrency) {
+                        const cleanDigits = trimmedTerm.replace(/[.,\sđ₫d]|vnd/gi, '');
+                        if (cleanDigits.length > 0) {
+                            const isAllZeroes = /^0+$/.test(cleanDigits);
+
+                            amountCondition = (amount) => {
+                                const tot = Math.round(amount);
+                                const absTot = Math.abs(tot);
+                                const totStr = String(tot);
+                                const absTotStr = String(absTot);
+
+                                if (isAllZeroes) {
+                                    return tot === 0;
+                                }
+
+                                if (cleanDigits.length === 1) {
+                                    return totStr === cleanDigits;
+                                }
+
+                                return totStr.includes(cleanDigits) || absTotStr.includes(cleanDigits);
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
         return orders.filter(order => {
             if (selectedPaymentMethod !== 'ALL' && order.payment_method !== selectedPaymentMethod) {
                 return false;
             }
-            if (!searchTerm.trim()) return true;
-            const term = searchTerm.toLowerCase();
-            const idMatch = (order.id?.toString() || '').includes(term) || (order.display_id?.toString() || '').includes(term);
+            if (!trimmedTerm) return true;
+
+            const idMatch = (order.id?.toString() || '').includes(termLower) || (order.display_id?.toString() || '').includes(termLower);
             const defaultPartnerName = type === 'Purchase' ? 'ncc vãng lai' : 'khách lẻ';
             const currentPartnerName = order.partner_name || order.partner?.name || defaultPartnerName;
-            const partnerMatch = currentPartnerName.toLowerCase().includes(term);
-            const phoneMatch = (order.partner_phone || order.partner?.phone || '').includes(term);
-            const noteMatch = (order.note || '').toLowerCase().includes(term);
-            const productMatch = order.details && order.details.some(d => (d.product_name || '').toLowerCase().includes(term));
-            return idMatch || partnerMatch || phoneMatch || noteMatch || productMatch;
+            const partnerMatch = currentPartnerName.toLowerCase().includes(termLower) ||
+                                 removeAccents(currentPartnerName.toLowerCase()).includes(termNoAccent);
+            const phoneMatch = (order.partner_phone || order.partner?.phone || '').includes(termLower);
+            const noteMatch = (order.note || '').toLowerCase().includes(termLower) ||
+                              removeAccents((order.note || '').toLowerCase()).includes(termNoAccent);
+            const productMatch = order.details && order.details.some(d => {
+                const pName = (d.product_name || '').toLowerCase();
+                return pName.includes(termLower) || removeAccents(pName).includes(termNoAccent);
+            });
+
+            // Total amount match
+            let totalMatch = false;
+            const orderTotal = Number(order.total_amount !== undefined ? order.total_amount : (order.total || 0)) || 0;
+            if (amountCondition) {
+                totalMatch = amountCondition(orderTotal);
+            }
+            if (!totalMatch) {
+                const formattedVn = orderTotal.toLocaleString('vi-VN');
+                const formattedEn = orderTotal.toLocaleString('en-US');
+                if (formattedVn.includes(termLower) || formattedEn.includes(termLower)) {
+                    totalMatch = true;
+                }
+            }
+
+            return idMatch || partnerMatch || phoneMatch || noteMatch || productMatch || totalMatch;
         });
     }, [orders, selectedPaymentMethod, searchTerm, type]);
 
@@ -473,12 +579,12 @@ export default function DailyOrderHistoryModal({
 
                         {/* Search Input & Page Size */}
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:w-64">
+                            <div className="relative flex-1 sm:w-72">
                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                 <input
                                     ref={searchInputRef}
                                     type="text"
-                                    placeholder={type === 'Purchase' ? "Tìm NCC, mã đơn, SP..." : "Tìm khách, mã đơn, SP..."}
+                                    placeholder={type === 'Purchase' ? "Tìm NCC, mã đơn, tiền, SP..." : "Tìm khách, mã đơn, tiền, SP..."}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onFocus={(e) => e.target.select()}

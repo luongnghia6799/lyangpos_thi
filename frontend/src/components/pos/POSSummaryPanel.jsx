@@ -236,7 +236,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                           onOpenDeliveryReminder?.();
                         }}
                         style={deliverySt}
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white text-[8px] font-black uppercase tracking-wider shadow-sm transition-all border border-emerald-300/40 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white text-[8px] font-black uppercase tracking-wider shadow-sm transition-[background-color,border-color,box-shadow] duration-150 border border-emerald-300/40 cursor-pointer"
                         title={`Có mua phân bón (${fertilizerItems.length} loại)! Bấm để tạo nhắc chở phân`}
                       >
                         <Truck size={10} strokeWidth={2.6} style={deliverySt?.color ? { color: deliverySt.color } : undefined} />

@@ -2472,8 +2472,8 @@ function POSPage({
       Gt(orderObj.id);
       Br(orderObj);
       const detailsList = orderObj.details || orderObj.items || [];
-      const loadedCart = detailsList.map(a => {
-        const r = T.find(s => s.id === a.product_id);
+      const loadedCart = detailsList.map((a, idx) => {
+        const r = a.product || (a.product_id ? T.find(s => s.id === a.product_id) : null);
         return {
           product_id: a.product_id,
           product_name: a.product_name || a.name || r?.name,
@@ -2493,7 +2493,7 @@ function POSPage({
           product: r || null,
           is_manual_price: !0,
           isPacked: !1,
-          cartId: Math.random().toString(36).substr(2, 9)
+          cartId: `ord-${orderObj.id || 'curr'}-item-${a.id || a.product_id || idx}-${idx}`
         };
       });
       const isSmartSort = String(J.ui_enable_smart_sorting) === "true";
@@ -2532,6 +2532,7 @@ function POSPage({
         if (!ks()) Wt();
         return;
       }
+      const startTime = Date.now();
       yn(!0);
       try {
         const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
@@ -2549,6 +2550,11 @@ function POSPage({
           await Ka(order);
           Vr(a);
           Ds();
+          const elapsed = Date.now() - startTime;
+          const minOverlayDuration = 260;
+          if (elapsed < minOverlayDuration) {
+            await new Promise(resolve => setTimeout(resolve, minOverlayDuration - elapsed));
+          }
         } else {
           if (t === "prev") {
             G({

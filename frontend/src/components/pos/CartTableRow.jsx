@@ -58,7 +58,7 @@ const CartTableRow = React.memo(function CartTableRow({
   onBlurSearch,
   onKeyDownSearch
 }) {
-  const product = productsList.find(s => s.id === item.product_id) || item;
+  const product = item.product || (item.product_id ? productsList.find(s => s.id === item.product_id) : null) || item;
   const isLoss = item.price < item.cost_price;
   const isBelowNewCost = item.latest_cost_price > 0 && item.price < item.latest_cost_price && item.price >= item.cost_price;
   const isLowPrice = product && item.price < product.sale_price && item.price >= (item.latest_cost_price || item.cost_price);
@@ -79,7 +79,7 @@ const CartTableRow = React.memo(function CartTableRow({
     let totalCostPerCombo = 0;
 
     const components = rawItems.map(ci => {
-      const ingProd = productsList.find(p => p.id === ci.product_id);
+      const ingProd = ci.product || (ci.product_id ? productsList.find(p => p.id === ci.product_id) : null);
       const name = ingProd?.name || ci.product_name || 'Sản phẩm';
       const unit = ingProd?.unit || ci.unit || 'Cái';
       const stock = ingProd?.stock !== undefined ? ingProd.stock : 0;
@@ -194,20 +194,32 @@ const CartTableRow = React.memo(function CartTableRow({
 
   return (
     <m.tr
-      layout="position"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{
+        opacity: 0,
+        y: 8,
+        x: -8
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        x: 0
+      }}
       exit={{
         opacity: 0,
-        x: 50,
-        scale: 0.95,
-        backgroundColor: "rgba(0,0,0,0)",
-        transition: { duration: 0.2, ease: "easeIn" }
+        x: 20,
+        transition: {
+          duration: 0.12,
+          ease: "easeIn"
+        }
       }}
-      transition={{ duration: 0.22, ease: "easeOut" }}
+      transition={{
+        duration: 0.22,
+        delay: Math.min(index * 0.016, 0.22),
+        ease: [0.22, 1, 0.36, 1]
+      }}
       id={`cart-row-${index}`}
       className={cn(
-        "relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0",
+        "relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0 transform-gpu",
         cartColorConfig?.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
         item.isPacked && "line-through decoration-emerald-500/30 opacity-60",
         isSearchFocused ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-[#2d5016]/[0.045] dark:hover:bg-[#d4a574]/[0.08]"
@@ -1150,4 +1162,40 @@ const ComboBreakdownPopout = React.memo(function ComboBreakdownPopout({
   );
 });
 
-export default CartTableRow;
+function areCartRowPropsEqual(prev, next) {
+  if (prev.index !== next.index) return false;
+  if (prev.totalRows !== next.totalRows) return false;
+  if (prev.isSearchFocused !== next.isSearchFocused) return false;
+  if (next.isSearchFocused && prev.searchQuery !== next.searchQuery) return false;
+  if (prev.posMode !== next.posMode) return false;
+  if (prev.blockTabPrice !== next.blockTabPrice) return false;
+  if (prev.showLastPurchaseBadge !== next.showLastPurchaseBadge) return false;
+  if (prev.cartColorConfig !== next.cartColorConfig) return false;
+  if (prev.selectedPartner?.id !== next.selectedPartner?.id) return false;
+
+  const pIt = prev.item;
+  const nIt = next.item;
+  if (pIt === nIt) return true;
+  if (!pIt || !nIt) return false;
+  if (pIt.cartId !== nIt.cartId) return false;
+  if (pIt.product_id !== nIt.product_id) return false;
+  if (pIt.quantity !== nIt.quantity) return false;
+  if (pIt.price !== nIt.price) return false;
+  if (pIt.unit !== nIt.unit) return false;
+  if (pIt.multiplier !== nIt.multiplier) return false;
+  if (pIt.isPacked !== nIt.isPacked) return false;
+  if (pIt.product_name !== nIt.product_name) return false;
+  if (pIt.active_ingredient !== nIt.active_ingredient) return false;
+  if (pIt.ai_scanned !== nIt.ai_scanned) return false;
+  if (pIt.ai_matched_status !== nIt.ai_matched_status) return false;
+
+  const pid = nIt.product_id;
+  if (pid) {
+    if (prev.partnerCustomPrices?.[pid] !== next.partnerCustomPrices?.[pid]) return false;
+    if (prev.partnerLastPurchases?.[pid] !== next.partnerLastPurchases?.[pid]) return false;
+  }
+
+  return true;
+}
+
+export default React.memo(CartTableRow, areCartRowPropsEqual);

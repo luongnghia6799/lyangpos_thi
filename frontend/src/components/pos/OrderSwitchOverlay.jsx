@@ -38,7 +38,7 @@ const OrderSwitchOverlay = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className={`${positionClass} select-none pointer-events-none overflow-hidden rounded-3xl flex items-center justify-center ${className}`}
+                    className={`${positionClass} select-none pointer-events-none overflow-hidden rounded-3xl flex items-center justify-center transform-gpu will-change-transform ${className}`}
                 >
                     {/* STYLE 1: VÒNG XOAY VỤ MÙA (AGRI RING) - CHUẨN THIẾT KẾ MẪU */}
                     {style === 'ring' && (
@@ -47,7 +47,7 @@ const OrderSwitchOverlay = ({
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="flex flex-col items-center justify-center gap-3.5 bg-black/10 dark:bg-black/25 backdrop-blur-[2px] w-full h-full rounded-3xl"
+                            className="flex flex-col items-center justify-center gap-3.5 bg-black/10 dark:bg-black/25 backdrop-blur-[2px] w-full h-full rounded-3xl transform-gpu"
                         >
                             <div className="relative w-16 h-16 flex items-center justify-center">
                                 {/* Vòng xoay spinner chính */}

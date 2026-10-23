@@ -1227,13 +1227,13 @@ export default function Purchase() {
         setEditOrderId(orderObj.id);
         setEditingOriginalOrder(orderObj);
         const detailsList = orderObj.details || orderObj.items || [];
-        setCart(detailsList.map(d => {
-            const matchedProd = products.find(p => p.id === d.product_id);
+        setCart(detailsList.map((d, idx) => {
+            const matchedProd = d.product || (d.product_id ? products.find(p => p.id === d.product_id) : null);
             const multiplier = d.multiplier || matchedProd?.multiplier || 1;
             const qty = d.quantity !== undefined ? d.quantity : 1;
             const price = d.price !== undefined ? d.price : (d.unit_price !== undefined ? d.unit_price : (matchedProd?.cost_price || 0));
             return {
-                cartId: Math.random().toString(36).substr(2, 9),
+                cartId: `purchase-${orderObj.id || 'curr'}-item-${d.id || d.product_id || idx}-${idx}`,
                 product_id: d.product_id,
                 name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
                 product_name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
@@ -1719,6 +1719,7 @@ export default function Purchase() {
             if (!loadDraft()) resetForm();
             return;
         }
+        const startTime = Date.now();
         try {
             setHistoryLoading(true);
             const res = await axios.get(`/api/orders?type=Purchase&limit=1&page=${nextStep}`);
@@ -1740,6 +1741,11 @@ export default function Purchase() {
                 setSelectedPartner(partner ? { ...partner, debt_balance: resolvedOldDebt } : (order.partner || null));
                 setHistoryStep(nextStep);
                 playPopSound();
+                const elapsed = Date.now() - startTime;
+                const minOverlayDuration = 260;
+                if (elapsed < minOverlayDuration) {
+                    await new Promise(resolve => setTimeout(resolve, minOverlayDuration - elapsed));
+                }
             } else {
                 if (direction === 'prev') setToast({ message: "Không còn đơn nhập hàng cũ hơn.", type: "error" });
                 else if (!loadDraft()) resetForm();
@@ -3336,31 +3342,31 @@ export default function Purchase() {
                                                     {cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
                                                             key={item.cartId || `purchase-item-${item.product_id || 'prod'}-${idx}`}
-                                                            layout="position"
                                                             initial={{
                                                                 opacity: 0,
-                                                                x: -20
+                                                                y: 8,
+                                                                x: -8
                                                             }}
                                                             animate={{
                                                                 opacity: 1,
+                                                                y: 0,
                                                                 x: 0
                                                             }}
                                                             exit={{
                                                                 opacity: 0,
-                                                                x: 50,
-                                                                scale: 0.95,
-                                                                backgroundColor: "rgba(0,0,0,0)",
+                                                                x: 20,
                                                                 transition: {
-                                                                    duration: 0.2,
+                                                                    duration: 0.12,
                                                                     ease: "easeIn"
                                                                 }
                                                             }}
                                                             transition={{
                                                                 duration: 0.22,
-                                                                ease: "easeOut"
+                                                                delay: Math.min(idx * 0.016, 0.22),
+                                                                ease: [0.22, 1, 0.36, 1]
                                                             }}
-                                                                className={cn(
-                                                                    "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
+                                                            className={cn(
+                                                                "relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0 transform-gpu",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
                                                                         ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]"

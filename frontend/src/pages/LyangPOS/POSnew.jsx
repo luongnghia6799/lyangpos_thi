@@ -31,7 +31,7 @@ import {
   Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, 
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette,
-  ChevronDown, Upload as UploadIcon, Mic
+  ChevronDown, Upload as UploadIcon, Shield, Lock, Unlock, Edit3, FilePlus
 } from "lucide-react";
 import CartColorCustomizerModal, { 
   DEFAULT_CART_COLOR_CONFIG, 
@@ -45,6 +45,7 @@ import CartColorCustomizerModal, {
   getBadgeComputedStyle,
   compressImageForWatermark
 } from "../../components/modals/CartColorCustomizerModal";
+import SearchTypingOverlay from "../../components/widgets/SearchTypingOverlay";
 import DynamicIcon from "../../components/widgets/DynamicIcon";
 import ResizableDropdownContainer from "../../components/widgets/ResizableDropdownContainer";
 import CartTableRow from "../../components/pos/CartTableRow";
@@ -65,9 +66,8 @@ import QuickRowDeletePrompt from "../../components/pos/QuickRowDeletePrompt";
 import HeldOrdersDrawer from "../../components/pos/HeldOrdersDrawer";
 import RemoteTerminalInspectPopover from "../../components/pos/RemoteTerminalInspectPopover";
 import OrderSwitchOverlay from "../../components/pos/OrderSwitchOverlay";
-import useVoiceSearch from "../../hooks/useVoiceSearch";
-import { matchAgriVoiceProduct } from "../../lib/agriVoiceParser";
-import POSVoiceSearchHUD from "../../components/pos/POSVoiceSearchHUD";
+import { checkIsAdmin } from "../../lib/auth";
+
 
 // Lucide icon & UI component aliases used across POS
 const Comp_fd = ro;
@@ -806,10 +806,6 @@ function POSPage({
       }
     }),
     [isCompressingMascot, setIsCompressingMascot] = i.useState(false),
-    [isVoiceSearchOpen, setIsVoiceSearchOpen] = i.useState(false),
-    [voiceInterimText, setVoiceInterimText] = i.useState(''),
-    [voiceMatchedProduct, setVoiceMatchedProduct] = i.useState(null),
-    [voiceParsedData, setVoiceParsedData] = i.useState(null),
     mascotQuickFileInputRef = i.useRef(null),
     $r = i.useRef(null);
 
@@ -899,11 +895,11 @@ function POSPage({
     [mc, xc] = i.useState(() => localStorage.getItem("pos_tts_currency_partner_template") || "dạ {amount} đồng"),
     [hc, bc] = i.useState(() => {
       const saved = localStorage.getItem("pos_tts_thankyou_template");
-      return saved && saved !== "Cảm ơn quý khách đã chọn Sáu Quý" ? saved : "Cảm ơn quý khách";
+      return saved && saved !== "Cảm ơn quý khách đã chọn Lí An" ? saved : "Cảm ơn quý khách";
     }),
     [gc, fc] = i.useState(() => {
       const saved = localStorage.getItem("pos_tts_thankyou_partner_template");
-      return saved && saved !== "Cảm ơn {partner} đã chọn Sáu Quý" ? saved : "Cảm ơn quý khách";
+      return saved && saved !== "Cảm ơn {partner} đã chọn Lí An" ? saved : "Cảm ơn quý khách";
     }),
     [yc, vc] = i.useState(() => localStorage.getItem("pos_tts_enable_thankyou") !== "false"),
     [kc, wc] = i.useState(() => localStorage.getItem("pos_tts_disable_partner_template") === "true"),
@@ -913,6 +909,7 @@ function POSPage({
     [Mc, Wc] = i.useState(() => localStorage.getItem("pos_tts_cart_speech_order") || "name_first"),
     [p, F] = i.useState(() => be("selectedPartner", null)),
     [isDeliveryReminderOpen, setIsDeliveryReminderOpen] = i.useState(false),
+    [isHeaderShippingPopupOpen, setIsHeaderShippingPopupOpen] = i.useState(false),
     pRef = i.useRef(p);
   const fertilizerItems = i.useMemo(() => {
     return getFertilizerItemsInCart(y, T);
@@ -965,7 +962,14 @@ function POSPage({
     [customOrderDate, setCustomOrderDate] = i.useState(""),
     [isOrderDatePickerOpen, setIsOrderDatePickerOpen] = i.useState(!1),
     [Fr, nr] = i.useState(null),
-    [Ce, Vr] = i.useState(0);
+    [Ce, Vr] = i.useState(0),
+    [protectPastOrders, setProtectPastOrders] = i.useState(() => {
+      const saved = localStorage.getItem("pos_protect_past_orders");
+      return saved !== null ? saved === "true" : true;
+    }),
+    [isPastOrderUnlocked, setIsPastOrderUnlocked] = i.useState(false);
+
+  const isOrderLocked = protectPastOrders && Boolean(Q || Ce > 0) && !isPastOrderUnlocked;
   i.useEffect(() => {
     (async () => {
       try {
@@ -1203,6 +1207,7 @@ function POSPage({
     [We, rs] = i.useState(0),
     [R, or] = i.useState({}),
     [partnerLastPurchases, setPartnerLastPurchases] = i.useState({}),
+    partnerPurchasesCacheRef = i.useRef({}),
     [ln, Ai] = i.useState([]),
     [ss, ns] = i.useState(""),
     [J, Na] = i.useState(() => {
@@ -1227,6 +1232,9 @@ function POSPage({
     [Tt, ct] = i.useState(null),
     [zt, ls] = i.useState(""),
     [It, Ca] = i.useState(0),
+    cartRowActiveIndexRef = i.useRef(0),
+    cartFilteredProductsRef = i.useRef([]),
+    cartRef = i.useRef([]),
     [Li, os] = i.useState(!1),
     [ds, Sa] = i.useState(!1),
     [showFloatingMascot, setShowFloatingMascot] = i.useState(() => localStorage.getItem('ui_show_pos_mascot') !== 'false'),
@@ -1260,6 +1268,8 @@ function POSPage({
     redoStackRef = i.useRef([]),
     lastStateSnapshotRef = i.useRef(null),
     isUndoingRef = i.useRef(!1);
+
+  cartRef.current = y;
 
   i.useEffect(() => {
     if (isUndoingRef.current) {
@@ -1759,8 +1769,18 @@ function POSPage({
     ve = i.useMemo(() => String(J.ui_enable_smart_sorting) !== "true" ? y : Tn(y), [y, J.ui_enable_smart_sorting]),
     [fn, yn] = i.useState(!1),
     [Ha, el] = i.useState(!1),
+    currentUser = i.useMemo(() => {
+      try {
+        const saved = sessionStorage.getItem('user');
+        return saved ? JSON.parse(saved) : {};
+      } catch (e) {
+        return {};
+      }
+    }, []),
+    isAdmin = checkIsAdmin(currentUser?.role),
     ta = i.useRef(null),
     yr = t => {
+      if (!isAdmin) return;
       ta.current || (ta.current = setTimeout(() => {
         el(a => !a), ta.current = null;
       }, 3e3));
@@ -2222,9 +2242,60 @@ function POSPage({
         name: ""
       });
       const a = Te === "Wholesale" ? "Debt" : "Cash";
-      ge(a), a === "Cash" && re(0), Gt(null), Br(null), setCustomOrderDate(""), Ur(null), Vr(0), qt(null), ra(""), sa(""), ie.current && (ie.current[g] = null), Ds(), setTimeout(() => se.current?.focus(), 100);
+      ge(a), a === "Cash" && re(0), Gt(null), Br(null), setIsPastOrderUnlocked(false), setCustomOrderDate(""), Ur(null), Vr(0), qt(null), ra(""), sa(""), ie.current && (ie.current[g] = null), Ds(), setTimeout(() => se.current?.focus(), 100);
     },
     Re = async (t = !0, a = "Sale") => {
+      if (isOrderLocked) {
+        if (!t) {
+          G({
+            message: "Hóa đơn đang ở chế độ chỉ xem (khóa sửa). Vui lòng bấm nút 'SỬA ĐƠN' để mở khóa nếu muốn thay đổi!",
+            type: "warning"
+          });
+          return;
+        }
+        // Khi khóa đơn nhưng người dùng muốn in (t === true) -> In hóa đơn đang xem, không gọi API sửa đơn
+        const orderToPrint = {
+          ...(le || {}),
+          id: Q || le?.id,
+          display_id: le?.display_id || le?.id || Q || "MỚI",
+          type: a || le?.type || "Sale",
+          payment_method: I || le?.payment_method || "Cash",
+          total_amount: le?.total_amount ?? le?.total ?? $,
+          details: (y && y.length > 0) ? y.map(o => ({
+            product_id: o.product_id,
+            product_name: o.product_name,
+            quantity: o.quantity,
+            price: o.price,
+            unit: o.unit || "Cái"
+          })) : (le?.details || []),
+          old_debt: le?.old_debt !== undefined && le?.old_debt !== null ? le.old_debt : (p && p.debt_balance || 0),
+          partner_id: p?.id || le?.partner_id,
+          partner_name: p?.name || le?.partner_name,
+          partner_address: p?.address || le?.partner_address,
+          partner_phone: p?.phone || le?.partner_phone,
+          partner: p || le?.partner || null,
+          note: K || le?.note,
+          amount_paid: oe !== undefined ? oe : (le?.amount_paid || 0),
+          cash_given: V !== undefined ? V : (le?.cash_given || 0),
+          date: customOrderDate || (le?.date ? le.date : undefined),
+          shipping_status: tt || le?.shipping_status,
+          shipping_address: vr || le?.shipping_address,
+          shipping_phone: kr || le?.shipping_phone,
+        };
+        Ur(orderToPrint);
+        Ys(orderToPrint);
+        pn(a || orderToPrint.type || "Sale");
+        try {
+          await ensureFontLoaded(J?.invoice_font_family, J?.invoice_custom_font_name);
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+          await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+        } catch (e) {}
+        window.print();
+        return;
+      }
+      setIsPastOrderUnlocked(false);
       let r = [...y];
       if (m.product && m.quantity !== 0) {
         const s = r.findIndex(n => n.product_id === m.product.id && n.price === m.price);
@@ -2373,12 +2444,12 @@ function POSPage({
               } catch (e) {}
               window.print();
               setTimeout(() => {
-                ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
+                ga ? (Gt(n.data.id), setIsPastOrderUnlocked(false), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
               }, 1e3);
             };
             setTimeout(printFn, 300);
           } else {
-            ga ? (Gt(n.data.id), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
+            ga ? (Gt(n.data.id), setIsPastOrderUnlocked(false), jr(), Ga(), Ua()) : (Wt(!1), localStorage.removeItem("pos_draft"));
             Is();
           }
         } catch (s) {
@@ -2434,14 +2505,6 @@ function POSPage({
   };
 
   i.useEffect(() => {
-    if (Ze !== "sidebar" || ka || cartColorConfig?.constrainCartAboveBubbles === false) {
-      if (cartScrollContainerRef.current) {
-        cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
-      }
-    }
-  }, [Ze, ka, cartColorConfig?.constrainCartAboveBubbles]);
-
-  i.useEffect(() => {
     const t = a => {
       a.detail && a.detail.action === "save_order" && Re(!1);
     };
@@ -2459,6 +2522,7 @@ function POSPage({
       }
     },
     Ka = async t => {
+      setIsPastOrderUnlocked(false);
       let orderObj = t;
       if (!orderObj) return;
       if ((!orderObj.details || orderObj.details.length === 0) && orderObj.id) {
@@ -2472,8 +2536,8 @@ function POSPage({
       Gt(orderObj.id);
       Br(orderObj);
       const detailsList = orderObj.details || orderObj.items || [];
-      const loadedCart = detailsList.map((a, idx) => {
-        const r = a.product || (a.product_id ? T.find(s => s.id === a.product_id) : null);
+      const loadedCart = detailsList.map(a => {
+        const r = T.find(s => s.id === a.product_id);
         return {
           product_id: a.product_id,
           product_name: a.product_name || a.name || r?.name,
@@ -2493,7 +2557,7 @@ function POSPage({
           product: r || null,
           is_manual_price: !0,
           isPacked: !1,
-          cartId: `ord-${orderObj.id || 'curr'}-item-${a.id || a.product_id || idx}-${idx}`
+          cartId: Math.random().toString(36).substr(2, 9)
         };
       });
       const isSmartSort = String(J.ui_enable_smart_sorting) === "true";
@@ -2525,15 +2589,27 @@ function POSPage({
       Ue(!1);
     },
     na = async t => {
+      setIsPastOrderUnlocked(false);
       setNavDirection(t);
       let a;
       if (t === "prev" ? a = Ce + 1 : a = Math.max(0, Ce - 1), a === 0) {
+        yn(!0);
+        const switchStart = Date.now();
+        if (y && y.length > 0) {
+          H([]);
+          await new Promise(res => setTimeout(res, 150));
+        }
         Ds();
         if (!ks()) Wt();
+        const elapsed = Date.now() - switchStart;
+        const delay = Math.max(0, 320 - elapsed);
+        setTimeout(() => {
+          yn(!1);
+        }, delay);
         return;
       }
-      const startTime = Date.now();
       yn(!0);
+      const switchStart = Date.now();
       try {
         const r = await M.get(`/api/orders?limit=1&page=${a}&type=Sale`);
         const items = r.data.items || r.data;
@@ -2547,14 +2623,13 @@ function POSPage({
               console.error("Error fetching full order details", e);
             }
           }
+          if (y && y.length > 0) {
+            H([]);
+            await new Promise(res => setTimeout(res, 150));
+          }
           await Ka(order);
           Vr(a);
           Ds();
-          const elapsed = Date.now() - startTime;
-          const minOverlayDuration = 260;
-          if (elapsed < minOverlayDuration) {
-            await new Promise(resolve => setTimeout(resolve, minOverlayDuration - elapsed));
-          }
         } else {
           if (t === "prev") {
             G({
@@ -2572,7 +2647,11 @@ function POSPage({
           type: "error"
         });
       } finally {
-        yn(!1);
+        const elapsed = Date.now() - switchStart;
+        const delay = Math.max(0, 340 - elapsed);
+        setTimeout(() => {
+          yn(!1);
+        }, delay);
       }
     },
     _n = async () => {
@@ -2778,8 +2857,23 @@ function POSPage({
         const o = document.getElementById("cash-given-compact"),
           d = document.getElementById("debt-amount-paid-compact"),
           u = document.getElementById("cash-given-sidebar"),
-          h = (o && o.offsetParent !== null) ? o : (d && d.offsetParent !== null) ? d : u;
-        h ? (h.focus(), h.select()) : (xr.current?.focus(), xr.current?.select());
+          h = (o && o.offsetParent !== null) ? o : (d && d.offsetParent !== null) ? d : (u && u.offsetParent !== null) ? u : null;
+        if (h) {
+          h.focus();
+          h.select();
+        } else {
+          if (!ka) {
+            en(!0);
+            setTimeout(() => {
+              const el = document.getElementById("cash-given-sidebar") || document.getElementById("debt-amount-paid-sidebar");
+              el?.focus();
+              el?.select();
+            }, 80);
+          } else {
+            xr.current?.focus();
+            xr.current?.select();
+          }
+        }
       }
       if (s === (J.kb_partner || "F3").toUpperCase()) {
         a.preventDefault(), a.stopPropagation(), W(!1), zi(!0), setTimeout(() => {
@@ -2836,10 +2930,6 @@ function POSPage({
         setTimeout(() => {
           ys.current?.focus();
         }, 100);
-      } else if (s === (J.kb_voice || "F7").toUpperCase() || (a.altKey && a.key.toLowerCase() === "v")) {
-        a.preventDefault();
-        a.stopPropagation();
-        handleToggleVoiceSearch();
       } else if (s === (J.kb_speech || "F10").toUpperCase()) {
         a.preventDefault();
         a.stopPropagation();
@@ -3003,11 +3093,18 @@ function POSPage({
       }
     },
     fetchPartnerPurchases = async t => {
-      setPartnerLastPurchases({});
-      if (!t) return;
+      if (!t) {
+        setPartnerLastPurchases({});
+        return;
+      }
+      if (partnerPurchasesCacheRef.current[t]) {
+        setPartnerLastPurchases(partnerPurchasesCacheRef.current[t]);
+      }
       try {
         const a = await M.get(`/api/partners/${t}/last-purchases`);
-        setPartnerLastPurchases(a.data || {});
+        const data = a.data || {};
+        partnerPurchasesCacheRef.current[t] = data;
+        setPartnerLastPurchases(data);
       } catch (a) {
         console.error("Error fetching partner last purchases:", a);
       }
@@ -3121,6 +3218,10 @@ function POSPage({
       }
     },
     ia = (t, a = null, r = null) => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'Sửa đơn' để thêm món!", type: "warning" });
+        return;
+      }
       if (g === "remote_inspect" && q) {
         const b = k?.cart || [],
           S = a !== null ? a : 1,
@@ -3290,6 +3391,10 @@ function POSPage({
       }
     },
     _r = (t, a, r) => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'Sửa đơn' để chỉnh sửa!", type: "warning" });
+        return;
+      }
       const s = ve[t];
       s && H(n => n.map(l => {
         if (l.cartId !== s.cartId) return l;
@@ -3432,10 +3537,18 @@ function POSPage({
     };
   }, [bt]);
   const bl = t => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'Sửa đơn' để xóa món!", type: "warning" });
+        return;
+      }
       const a = ve[t];
       a && H(r => r.filter(s => s.cartId !== a.cartId));
     },
     Cn = (t, a) => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'Sửa đơn' để thêm món!", type: "warning" });
+        return;
+      }
       t && (H([{
         product_id: null,
         product_name: t,
@@ -3513,31 +3626,50 @@ function POSPage({
     Ba = i.useMemo(() => T.map(t => ({
       ...t,
       _normName: xt((t.name || "").toLowerCase()),
-      _normAlias: xt((t.alias || "").toLowerCase()),
       _normCode: xt((t.code || "").toLowerCase()),
       _normActive: xt((t.active_ingredient || "").toLowerCase()),
       _lowName: (t.name || "").toLowerCase(),
-      _lowAlias: (t.alias || "").toLowerCase(),
       _lowCode: (t.code || "").toLowerCase(),
       _lowActive: (t.active_ingredient || "").toLowerCase()
     })), [T]),
     cartFilteredProducts = i.useMemo(() => {
-      const t = (zt || "").toLowerCase().trim(),
-        a = xt(t);
-      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowAlias.includes(t) || r._normAlias.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
-        const n = o => (o._lowAlias && o._lowAlias === t) || (o._normAlias && o._normAlias === a) ? -2 : (o._lowAlias && o._lowAlias.startsWith(t)) || (o._normAlias && o._normAlias.startsWith(a)) ? -1 : o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowAlias.includes(t) || o._normAlias.includes(a) ? 1.5 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
+      const t = (zt || "").toLowerCase().trim();
+      if (!t) {
+        const res = Ba.slice(0, 20);
+        cartFilteredProductsRef.current = res;
+        return res;
+      }
+      const a = xt(t);
+      const tokens = t.split(/\s+/).filter(Boolean);
+      const normTokens = a.split(/\s+/).filter(Boolean);
+      const res = Ba.filter(r => {
+        if (r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)) {
+          return true;
+        }
+        return tokens.every((tok, i) => {
+          const ntok = normTokens[i] || tok;
+          return r._lowName.includes(tok) || r._normName.includes(ntok) ||
+                 r._lowCode.includes(tok) || r._normCode.includes(ntok) ||
+                 r._lowActive.includes(tok) || r._normActive.includes(ntok) ||
+                 (tok === "vl" && (r._lowName.includes("vi lượng") || r._normName.includes("vi luong"))) ||
+                 ((tok === "vi" || tok === "luong" || tok === "lượng") && (r._lowName.includes("vl") || r._normName.includes("vl")));
+        });
+      }).sort((r, s) => {
+        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
           l = n(r),
           d = n(s);
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
           sensitivity: "base"
         });
-      }).slice(0, 20) : Ba.slice(0, 20);
+      }).slice(0, 20);
+      cartFilteredProductsRef.current = res;
+      return res;
     }, [Ba, zt]),
     wt = i.useMemo(() => {
       const t = Z.toLowerCase(),
         a = xt(t);
-      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowAlias.includes(t) || r._normAlias.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
-        const n = o => (o._lowAlias && o._lowAlias === t) || (o._normAlias && o._normAlias === a) ? -2 : (o._lowAlias && o._lowAlias.startsWith(t)) || (o._normAlias && o._normAlias.startsWith(a)) ? -1 : o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowAlias.includes(t) || o._normAlias.includes(a) ? 1.5 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
+      return t ? Ba.filter(r => r._lowName.includes(t) || r._normName.includes(a) || r._lowCode.includes(t) || r._normCode.includes(a) || r._lowActive.includes(t) || r._normActive.includes(a)).sort((r, s) => {
+        const n = o => o._lowName.startsWith(t) ? 0 : o._normName.startsWith(a) ? 1 : o._lowName.includes(t) ? 2 : o._normName.includes(a) ? 3 : o._lowCode.startsWith(t) ? 4 : o._normCode.startsWith(a) ? 5 : o._lowCode.includes(t) || o._normCode.includes(a) ? 6 : o._lowActive.startsWith(t) || o._normActive.startsWith(a) ? 7 : o._lowActive.includes(t) || o._normActive.includes(a) ? 8 : 9,
           l = n(r),
           d = n(s);
         return l !== d ? l - d : r._lowName.localeCompare(s._lowName, "vi", {
@@ -3546,9 +3678,10 @@ function POSPage({
       }).slice(0, 20) : Ba.slice(0, 20);
     }, [Ba, Z]),
     Cr = i.useMemo(() => {
-      const t = yt.toLowerCase(),
+      const t = (yt || "").toLowerCase().trim(),
         a = parseInt(t),
         r = xt(t);
+      if (!t) return Y.slice(0, 25);
       return Y.filter(s => {
         const n = !isNaN(a) && s.id === a,
           l = (s.name || "").toLowerCase();
@@ -3560,11 +3693,26 @@ function POSPage({
         }
         const l = (s.name || "").toLowerCase(),
           d = (n.name || "").toLowerCase(),
-          o = l.startsWith(t),
-          u = d.startsWith(t);
-        return o && !u ? -1 : !o && u ? 1 : l.localeCompare(d, "vi", {
-          sensitivity: "base"
-        });
+          lNorm = xt(l),
+          dNorm = xt(d);
+        const getPartnerScore = (name, norm, p) => {
+          if (name === t) return -40;
+          if (name.startsWith(t)) return -30;
+          if (name.includes(' ' + t)) return -20;
+          if (name.includes(t)) return -10;
+          if (norm === r) return 10;
+          if (norm.startsWith(r)) return 20;
+          if (norm.includes(' ' + r)) return 30;
+          if (norm.includes(r)) return 40;
+          if (p.phone && p.phone.startsWith(t)) return 50;
+          if (p.phone && p.phone.includes(t)) return 60;
+          return 99;
+        };
+        const scoreS = getPartnerScore(l, lNorm, s);
+        const scoreN = getPartnerScore(d, dNorm, n);
+        if (scoreS !== scoreN) return scoreS - scoreN;
+        if (l.length !== d.length) return l.length - d.length;
+        return l.localeCompare(d, "vi");
       }).slice(0, 25);
     }, [Y, yt]),
     fl = i.useCallback(() => {
@@ -3579,92 +3727,6 @@ function POSPage({
         a > 50 && a < 85 && qi(a);
       }
     }, [wa]);
-
-  const handleApplyVoiceResult = i.useCallback((product, parsed) => {
-    stopVoiceListening();
-    setIsVoiceSearchOpen(false);
-
-    if (!product) return;
-
-    const qty = parsed?.qty && parsed.qty > 0 ? parsed.qty : 1;
-    const hasCustomPrice = Boolean(p && p.id && R && R[product.id] !== void 0);
-    const prodPrice = hasCustomPrice ? R[product.id] : product.sale_price;
-
-    ia(product, qty, prodPrice);
-    playSuccessSound();
-    G({
-      message: `Đã thêm ${qty} ${parsed?.uom || product.unit || ''} ${product.name} vào giỏ`,
-      type: "success"
-    });
-
-    ae('');
-    He({
-      product: null,
-      name: '',
-      quantity: 0,
-      price: 0,
-      secondary_qty: 0
-    });
-    se.current?.focus();
-  }, [ia, p, R, ae, He, G]);
-
-  const {
-    isSupported: isVoiceSupported,
-    isListening: isVoiceListening,
-    isProcessing: isVoiceProcessing,
-    audioLevel: voiceAudioLevel,
-    error: voiceError,
-    startListening: startVoiceListening,
-    stopListening: stopVoiceListening,
-    toggleListening: toggleVoiceListening
-  } = useVoiceSearch({
-    onInterim: (text) => {
-      setVoiceInterimText(text);
-      if (text) {
-        const match = matchAgriVoiceProduct(text, T);
-        setVoiceMatchedProduct(match.topMatch);
-        setVoiceParsedData(match.parsed);
-      }
-    },
-    onResult: (finalText) => {
-      setVoiceInterimText(finalText);
-      const match = matchAgriVoiceProduct(finalText, T);
-      setVoiceMatchedProduct(match.topMatch);
-      setVoiceParsedData(match.parsed);
-
-      if (match.topMatch && match.parsed?.qty && match.topScore >= 80) {
-        handleApplyVoiceResult(match.topMatch, match.parsed);
-      } else if (match.topMatch && match.topScore >= 95) {
-        handleApplyVoiceResult(match.topMatch, match.parsed);
-      } else if (match.parsed?.cleanSearch) {
-        ae(match.parsed.cleanSearch);
-        setIsVoiceSearchOpen(false);
-        requestAnimationFrame(() => {
-          se.current?.focus();
-          se.current?.select?.();
-        });
-      }
-    }
-  });
-
-  const handleToggleVoiceSearch = i.useCallback(() => {
-    if (!isVoiceSupported) {
-      G({
-        message: "Môi trường hiện tại không hỗ trợ Microphone nhận diện giọng nói.",
-        type: "error"
-      });
-      return;
-    }
-    if (isVoiceListening) {
-      stopVoiceListening();
-    } else {
-      setVoiceInterimText('');
-      setVoiceMatchedProduct(null);
-      setVoiceParsedData(null);
-      setIsVoiceSearchOpen(true);
-      startVoiceListening();
-    }
-  }, [isVoiceSupported, isVoiceListening, startVoiceListening, stopVoiceListening, G]);
 
   i.useEffect(() => {
     const handleAddProduct = (e) => {
@@ -3687,6 +3749,66 @@ function POSPage({
       window.removeEventListener("mouseup", Ns);
     };
   }, [wa, Cs, Ns]);
+  const handleApplyProductToCartRow = (selectedProd, rowItem, rowIdx) => {
+    if (isOrderLocked) {
+      G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để chỉnh sửa!", type: "warning" });
+      return;
+    }
+    const curRow = rowItem || (Tt !== null ? ve[Tt] : null);
+    if (!curRow || !selectedProd) return;
+    let n = [...(cartRef.current || y)];
+    const l = n.findIndex(u => (curRow.cartId ? u.cartId === curRow.cartId : (curRow.id ? u.id === curRow.id : u === curRow)));
+    if (l === -1) return;
+    const d = n[l].quantity;
+    const hasCustomPrice = Boolean(p && p.id && R && R[selectedProd.id] !== void 0);
+    const displayPrice = hasCustomPrice ? R[selectedProd.id] : ((Te === "Wholesale" && selectedProd.bulk_price) || selectedProd.sale_price);
+    const o = n.findIndex((u, h) => h !== l && u.product_id === selectedProd.id);
+    if (o > -1) {
+      n[o].quantity += d;
+      n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
+      n.splice(l, 1);
+    } else {
+      n[l] = {
+        ...n[l],
+        product_id: selectedProd.id,
+        product_name: selectedProd.name,
+        unit: selectedProd.unit,
+        secondary_unit: selectedProd.secondary_unit,
+        multiplier: selectedProd.multiplier || 1,
+        price: displayPrice,
+        cost_price: selectedProd.cost_price,
+        latest_cost_price: selectedProd.latest_cost_price,
+        stock: selectedProd.stock,
+        latest_stock_entry: selectedProd.latest_stock_entry,
+        is_combo: selectedProd.is_combo,
+        active_ingredient: selectedProd.active_ingredient,
+        secondary_qty: d / (selectedProd.multiplier || 1),
+        is_manual_price: false
+      };
+      delete n[l]?.ai_scanned;
+    }
+    H(n);
+    cartRef.current = n;
+    ct(null);
+    ls("");
+    cartRowActiveIndexRef.current = 0;
+    Ca(0);
+    setTimeout(() => {
+      const targetCartId = o > -1 ? n[o > l ? o - 1 : o]?.cartId : n[l]?.cartId;
+      const b = ve.findIndex(O => O.cartId === targetCartId);
+      const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
+      const w = document.getElementById(`qty-sec-${S}`);
+      if (Te === "Wholesale" && w && !w.disabled) {
+        w.focus();
+        w.select?.();
+      } else {
+        const O = document.getElementById(`qty-main-${S}`);
+        O?.focus();
+        O?.select?.();
+      }
+    }, 100);
+  };
+
   return <Comp_fd reducedMotion={Ya ? "always" : "no-preference"} transition={Ya ? {
     type: "just"
   } : void 0}><><div id="pos-root-container" style={{
@@ -3726,7 +3848,6 @@ function POSPage({
                       <>
                         <div className="relative flex items-center justify-center shrink-0 w-2 h-2">
                           <span className={c("w-2 h-2 rounded-full shrink-0", isDateModified ? "bg-amber-600 dark:bg-amber-400" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574]" : "bg-[#2d5016] dark:bg-emerald-400")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
-                          <span className={c("absolute w-2 h-2 rounded-full animate-ping opacity-40", isDateModified ? "bg-amber-500" : Q ? "bg-[#8b6f47] dark:bg-[#d4a574]" : "bg-[#2d5016] dark:bg-emerald-400")} style={{ backgroundColor: !isDateModified && !Q && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
                         </div>
                         <x.div layout="position" className="flex flex-col justify-center leading-none min-w-0">
                           <Ws mode="wait">
@@ -3809,7 +3930,7 @@ function POSPage({
                       >
                         <Dr size={16} strokeWidth={2.8} />
                       </x.button>
-                    </x.div>
+                      </x.div>
                   )}</x.div><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
                       rotate: -8
@@ -3830,7 +3951,12 @@ function POSPage({
                         Ue(!0);
                         t.target.select?.();
                       }
-                    }} onFocus={t => {
+                    }} readOnly={isOrderLocked} onFocus={t => {
+                      if (isOrderLocked) {
+                        t.target.blur();
+                        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm 'Sửa đơn' nếu muốn thay đổi khách hàng!", type: "warning" });
+                        return;
+                      }
                       if (window._preventPartnerFocusOpen) {
                         window._preventPartnerFocusOpen = false;
                         return;
@@ -3854,8 +3980,10 @@ function POSPage({
                         });
                       }
                     }} onChange={t => {
+                      if (isOrderLocked) return;
                       W(!1), Ge(t.target.value), g !== "remote_inspect" && p && F(null), Ue(!0), rs(0);
                     }} onKeyDown={t => {
+                      if (isOrderLocked) return;
                       if (t.key === "Escape") t.preventDefault(), W(!1), Ue(!1);else if (t.key === "ArrowDown") t.preventDefault(), W(!1), rs(a => {
                         const maxIdx = yt ? Math.max(0, Cr.length - 1) : Cr.length,
                           r = Math.min(a + 1, maxIdx),
@@ -3908,7 +4036,7 @@ function POSPage({
                         type: "spring",
                         stiffness: 450,
                         damping: 28
-                      }} className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"><span className={c("font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm", ((g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name) || "").length > 12 && "partner-pill-marquee-text")}>{g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name}</span></x.div>}</Ws><Ws>{((g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) || yt) && !Me && <x.div initial={{
+                      }} className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"><span className="font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm truncate">{g === "remote_inspect" ? ze?.name || k?.partner_name : p?.name}</span></x.div>}</Ws><Ws>{((g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) || yt) && !Me && <x.div initial={{
                         opacity: 0,
                         scale: 0.6
                       }} animate={{
@@ -3922,7 +4050,12 @@ function POSPage({
                         stiffness: 450,
                         damping: 25
                       }} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"><button onClick={t => {
-                          t.stopPropagation(), W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
+                          t.stopPropagation();
+                          if (isOrderLocked) {
+                            G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm 'Sửa đơn' nếu muốn thay đổi khách hàng!", type: "warning" });
+                            return;
+                          }
+                          W(!1), g === "remote_inspect" ? Aa(null) : F(null), Ge("");
                         }} className={c("w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm" : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white")} title="Bỏ chọn đối tác"><Comp_ke size={10} strokeWidth={3} /></button></x.div>}</Ws></div><Vl partner={g === "remote_inspect" ? k?.partner : p} isVisible={xe && !Me && !!(g === "remote_inspect" ? k?.partner : p) && document.activeElement !== Et.current} /><POSPartnerDropdown
   isOpen={Me}
   searchQuery={yt}
@@ -3931,6 +4064,10 @@ function POSPage({
   scrollRef={xs}
   onHover={rs}
   onSelectRetail={() => {
+    if (isOrderLocked) {
+      G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm 'Sửa đơn' nếu muốn thay đổi khách hàng!", type: "warning" });
+      return;
+    }
     W(!1);
     g === "remote_inspect" ? Aa(null) : F(null);
     Ge("");
@@ -3938,6 +4075,10 @@ function POSPage({
     setTimeout(() => se.current?.focus(), 50);
   }}
   onSelectPartner={(partner) => {
+    if (isOrderLocked) {
+      G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm 'Sửa đơn' nếu muốn thay đổi khách hàng!", type: "warning" });
+      return;
+    }
     W(!1);
     g === "remote_inspect" ? Aa(partner) : F(partner);
     Ge("");
@@ -3956,38 +4097,79 @@ function POSPage({
       position: { x: e.clientX, y: e.clientY }
     });
   }}
-/></x.div><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
-                  y: -2,
-                  scale: 1.05
-                }} whileTap={{
-                  scale: 0.98
-                }} onClick={() => Bt(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer group" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
-                  y: -2,
-                  scale: 1.05
-                }} whileTap={{
-                  scale: 0.98
-                }} onClick={() => St(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Danh sách đơn tạm / treo"><Comp_jt size={16} strokeWidth={2.5} className="relative z-10 group-hover:!text-white group-active:!text-white transition-colors" />{Fe.length > 0 && <x.span initial={{
-                    scale: 0
-                  }} animate={{
-                    scale: 1
-                  }} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</x.span>}</x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
-                  y: -2,
-                  scale: 1.05
-                }} whileTap={{
-                  scale: 0.98
-                }} onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}><span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}</span><div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></x.button><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
-                  y: -2,
-                  scale: 1.05
-                }} whileTap={{
-                  scale: 0.98
-                }} onClick={() => {
+/></x.div><button type="button" onClick={() => Bt(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 shrink-0 cursor-pointer group" title={K ? `Ghi chú: ${K}` : "Thêm ghi chú đơn hàng"}><Comp_ei size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />{K && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />}</button>{(cartColorConfig?.bubbleLayoutStyle || 'modern') === 'modern' && (
+                <div className="relative shrink-0"><button type="button" data-shipping-trigger="true" onClick={() => {
+                  if (!tt) {
+                    qt("Shipping");
+                    if (p) {
+                      if (!vr && p.address) ra(p.address);
+                      if (!kr && p.phone) sa(p.phone);
+                    }
+                    setIsHeaderShippingPopupOpen(true);
+                  } else {
+                    setIsHeaderShippingPopupOpen(prev => !prev);
+                  }
+                }} style={{
+                  ...getButtonComputedStyle(cartColorConfig, 'buttons'),
+                  ...(tt === "Shipping" ? {
+                    backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016',
+                    borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016',
+                    color: '#ffffff'
+                  } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}))
+                }} className={c(
+                  "relative w-9 h-9 flex items-center justify-center rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu border shadow-xs hover:shadow-md shrink-0 cursor-pointer group",
+                  tt === "Shipping"
+                    ? "!bg-[#2d5016] !text-white !border-[#2d5016] shadow-md shadow-[#2d5016]/25"
+                    : c(
+                        "bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 hover:shadow-[#2d5016]/20",
+                        hasFertilizer && "border-emerald-600/70 dark:border-emerald-400/70 ring-2 ring-emerald-500/40 text-[#2d5016] dark:text-emerald-400 shadow-[0_4px_12px_rgba(16,185,129,0.25)]"
+                      )
+                )} title={
+                  hasFertilizer
+                    ? `Có mua phân bón (${fertilizerItems?.length || 1} loại)! Bấm để tạo nhắc chở phân hoặc thông tin giao hàng`
+                    : tt === "Shipping"
+                    ? `Đang bật giao hàng (${vr || 'Chưa có địa chỉ'}). Bấm để xem/sửa thông tin`
+                    : "Giao hàng tận nơi"
+                }><Io size={16} strokeWidth={2.5} className={tt === "Shipping" ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} />{hasFertilizer ? (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDeliveryReminderOpen(true);
+                    }}
+                    className="absolute -top-1.5 -right-1.5 z-20 flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white text-[8px] font-black border border-white dark:border-slate-800 shadow-md cursor-pointer hover:brightness-110 select-none leading-none"
+                    title={`Có mua phân bón (${fertilizerItems?.length || 1} loại)! Bấm để tạo nhanh nhắc chở phân`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0 pointer-events-none" />
+                    <span>{fertilizerItems?.length || 1}</span>
+                  </span>
+                ) : (
+                  tt === "Shipping" && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
+                  )
+                )}</button><ShippingInfoPopup
+                  isOpen={isHeaderShippingPopupOpen}
+                  initialAddress={vr}
+                  initialPhone={kr}
+                  hasFertilizer={hasFertilizer}
+                  fertilizerCount={fertilizerItems?.length || 1}
+                  onOpenDeliveryReminder={() => {
+                    setIsDeliveryReminderOpen(true);
+                    setIsHeaderShippingPopupOpen(false);
+                  }}
+                  onClose={() => setIsHeaderShippingPopupOpen(false)}
+                  onSave={({ address, phone }) => {
+                    ra(address);
+                    sa(phone);
+                  }}
+                  onDisableShipping={() => {
+                    qt(null);
+                    setIsHeaderShippingPopupOpen(false);
+                  }}
+                  placement="top"
+                /></div>
+              )}<button type="button" onClick={() => St(!0)} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Danh sách đơn tạm / treo"><Comp_jt size={16} strokeWidth={2.5} className="relative z-10 group-hover:!text-white group-active:!text-white transition-colors" />{Fe.length > 0 && <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">{Fe.length}</span>}</button><button type="button" onClick={() => ul(Te === "Retail" ? "Wholesale" : "Retail")} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title={Te === "Wholesale" ? "Chế độ Bán sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Bán lẻ (Bấm để đổi sang Sỉ)"}><span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{Te === "Wholesale" ? <Comp_jd size={16} strokeWidth={2.5} /> : <Ir size={16} strokeWidth={2.5} />}</span><div className={c("absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900", Te === "Wholesale" ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600")} /></button><button type="button" onClick={() => {
                   Xr(!0);
-                }} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" /></x.button><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="relative shrink-0" ref={$r}><x.button layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} whileHover={{
-                    y: -2,
-                    scale: 1.05
-                  }} whileTap={{
-                    scale: 0.98
-                  }} onClick={() => Ct(t => !t)} style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(ar ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }} className={c("w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer group", ar ? "!bg-[#2d5016] !text-white !border-[#2d5016] shadow-md shadow-[#2d5016]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40")} title="Thao tác khác"><Comp_co size={16} strokeWidth={2.5} className={ar ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} /></x.button><P>{ar && <x.div initial={{
+                }} style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }} className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu border border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#2d5016]/20 group shrink-0 cursor-pointer" title="Lịch sử hóa đơn trong ngày"><Comp_ua size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" /></button><div className="relative shrink-0" ref={$r}><button type="button" onClick={() => Ct(t => !t)} style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(ar ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#2d5016', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }} className={c("w-9 h-9 shrink-0 rounded-full transition-all duration-150 hover:-translate-y-0.5 hover:scale-105 active:scale-95 transform-gpu flex items-center justify-center border shadow-xs cursor-pointer group", ar ? "!bg-[#2d5016] !text-white !border-[#2d5016] shadow-md shadow-[#2d5016]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#2d5016] text-[#2d5016] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#2d5016] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#2d5016] dark:border-white/10 dark:hover:border-[#d4a574]/40")} title="Thao tác khác"><Comp_co size={16} strokeWidth={2.5} className={ar ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} /></button><P>{ar && <x.div initial={{
                       opacity: 0,
                       y: 8,
                       scale: 0.95
@@ -4001,9 +4183,17 @@ function POSPage({
                       scale: 0.95
                     }} transition={{
                       duration: 0.15
-                    }} className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border border-[#8b6f47]/30 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none" style={{ maxHeight: '50vh', overflowY: 'auto' }}><button onClick={() => {
+                    }} className="absolute right-0 top-full mt-2 w-80 max-h-[82vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f5] dark:bg-[#151c24] border border-[#8b6f47]/30 dark:border-white/10 rounded-3xl shadow-2xl p-2.5 z-[4000] flex flex-col gap-1 text-left select-none" style={{ maxHeight: '82vh', overflowY: 'auto' }}>
+                      <div className="px-3 py-1.5 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#8b6f47] dark:text-[#d4a574]">Menu & Tiện ích POS</span>
+                      </div>
+
+                      {/* Tác vụ nhanh */}
+                      <button onClick={() => {
                         Ct(!1), X(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform shrink-0"><En size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight text-left">AI SCAN</span></button><button onClick={() => {
+                      }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform shrink-0"><En size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight text-left">AI SCAN</span></button>
+
+                      <button onClick={() => {
                         Ct(!1);
                         const t = y.reduce((r, s) => r + (parseFloat(s.quantity) || 0) * (parseFloat(s.price) || 0), 0),
                           a = {
@@ -4036,10 +4226,10 @@ function POSPage({
                             }))
                           };
                         $i(a), Sa(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button>
+                      }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><$s size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Xem trước in đơn</span></button>
                       
                       {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
-                      <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                      <div className="p-2.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-black/5 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                             <Ro size={13} className="text-primary dark:text-emerald-400 shrink-0" strokeWidth={2.5} /> Mẫu in mặc định:
@@ -4070,12 +4260,33 @@ function POSPage({
                         )}
                       </div>
 
-
                       <button onClick={() => {
                         Ct(!1), fs(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button><button onClick={() => {
+                      }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Ln size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Màn hình soạn hàng</span></button>
+
+                      <button onClick={() => {
                         Ct(!1), ba(!0);
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button><button onClick={() => {
+                      }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button>
+
+                      {/* Phân cách Cài đặt hoạt động */}
+                      <div className="pt-2 border-t border-black/5 dark:border-white/10 mt-1">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-[#8b6f47] dark:text-[#d4a574] px-2 block mb-1">Cài đặt hoạt động & Bảo vệ</span>
+                      </div>
+
+                      {/* Khóa sửa đơn cũ (Bảo vệ đơn) */}
+                      <button onClick={() => {
+                        const nextVal = !protectPastOrders;
+                        setProtectPastOrders(nextVal);
+                        localStorage.setItem("pos_protect_past_orders", String(nextVal));
+                        try {
+                          const ch = new BroadcastChannel("pos_data_sync");
+                          ch.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_protect_past_orders", value: String(nextVal) });
+                          ch.close();
+                        } catch {}
+                        G({ message: nextVal ? "Đã bật chế độ khóa sửa đơn cũ" : "Đã tắt khóa sửa đơn cũ (cho phép sửa trực tiếp)", type: "info" });
+                      }} className="flex items-center justify-between px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Shield size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Khóa sửa đơn cũ</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{protectPastOrders ? "bật: chống sửa nhầm đơn cũ" : "tắt: sửa trực tiếp đơn cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", protectPastOrders ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
+
+                      <button onClick={() => {
                         const t = !ga;
                         Vs(t), localStorage.setItem("pos_keep_order_after_save", t ? "true" : "false");
                         try {
@@ -4086,7 +4297,9 @@ function POSPage({
                             value: t ? "true" : "false"
                           }), a.close();
                         } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_uo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Ở lại đơn vừa lưu</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ga ? "bật: giữ lại giỏ hàng" : "tắt: tự xóa giỏ hàng"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ga ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                      }} className="flex items-center justify-between px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_uo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Ở lại đơn vừa lưu</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ga ? "bật: giữ lại giỏ hàng" : "tắt: tự xóa giỏ hàng"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ga ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
+
+                      <button onClick={() => {
                         const t = ir === "card" ? "toast" : "card";
                         Ni(t), localStorage.setItem("pos_save_notice_style", t);
                         try {
@@ -4097,10 +4310,10 @@ function POSPage({
                             value: t
                           }), a.close();
                         } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
+                      }} className="flex items-center justify-between px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_mo size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{ir === "card" ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", ir === "card" ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
                       
                       {/* Chọn kiểu hoạt ảnh quay lại đơn trước */}
-                      <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                      <div className="p-2.5 bg-black/[0.03] dark:bg-white/[0.04] rounded-2xl border border-black/5 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                             <jo size={13} className="text-primary dark:text-emerald-400 shrink-0" strokeWidth={2.5} /> Hoạt ảnh chuyển đơn:
@@ -4129,6 +4342,7 @@ function POSPage({
                           <option value="none">Tắt hoạt ảnh (Tức thì 0 delay)</option>
                         </select>
                       </div>
+
                       <button onClick={() => {
                         const t = !blockTabPrice;
                         setBlockTabPrice(t), localStorage.setItem("pos_block_tab_unit_price", t ? "true" : "false");
@@ -4140,9 +4354,12 @@ function POSPage({
                             value: t ? "true" : "false"
                           }), a.close();
                         } catch {}
-                      }} className="flex items-center justify-between px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item w-full text-left"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button><button onClick={() => {
+                      }} className="flex items-center justify-between px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Rs size={16} strokeWidth={2.5} /></div><div className="flex flex-col text-left"><span className="uppercase tracking-tight text-[11px]">Chặn Tab vào ô đơn giá</span><span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{blockTabPrice ? "bật: bỏ qua ô giá khi Tab" : "tắt: Tab vào ô giá bình thường"}</span></div></div><div className={c("w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border", blockTabPrice ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start")}><div className="w-4 h-4 rounded-full bg-white shadow-sm" /></div></button>
+
+                      <button onClick={() => {
                         Ct(!1), Ci();
-                      }} className="flex items-center gap-3 px-3 py-2.5 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all border-t border-slate-100 dark:border-slate-800/80 pt-2.5 mt-0.5 group/menu-item"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button></x.div>}</P></x.div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
+                      }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform">{Ze === "bottom" ? <Comp_xo size={16} strokeWidth={2.5} /> : <Comp_ho size={16} strokeWidth={2.5} />}</div><span className="uppercase tracking-tight">Chuyển bố cục: {Ze === "bottom" ? "Cột phải" : "Ở dưới"}</span></button>
+                    </x.div>}</P></div><P mode="popLayout">{p && p.yearly_revenue > 0 && <x.div layout={!0} initial={{
                     opacity: 0,
                     x: -20,
                     scale: 0.8
@@ -4269,7 +4486,7 @@ function POSPage({
                   draggable="false"
                 />
               </div>
-            )}<div className="w-full h-full relative bg-transparent"><div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}><div className={c("w-full transition-colors relative", (Ze === "sidebar" && !ka && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (Ze === "sidebar" && !ka ? "pb-[400px]" : "pb-6"))}><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
+            )}<div className="w-full h-full relative bg-transparent"><div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-180 ease-out" style={{ bottom: (Ze === "sidebar" && !ka) ? (cartColorConfig?.bubbleLayoutStyle === 'classic' ? "128px" : "98px") : 0 }}><div className={c("w-full transition-colors relative", (Ze === "sidebar" && !ka) ? "pb-4" : "pb-6")}><table className="w-full text-left border-collapse table-fixed"><colgroup><col style={{
                             width: "3.5%"
                           }} /><col style={{
                             width: "3.5%"
@@ -4323,7 +4540,68 @@ function POSPage({
   title="Bấm để uncheck toàn bộ / soạn lại (Đè để chọn số lần đọc lặp)"
 >
   <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Soạn</span>
-</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span></div><x.button
+</th><th className="px-3 py-2.5 align-middle whitespace-nowrap"><div className="flex items-center justify-between w-full"><div className="flex items-center gap-2.5"><span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm</span></span><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: `${cartColorConfig.accentColor}20`, borderColor: `${cartColorConfig.accentColor}40`, color: cartColorConfig.accentColor } : undefined}><span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor } : undefined} />{ll} món</span>
+{Boolean(Q) ? (
+  <div className="inline-flex items-center gap-1.5 ml-1">
+    {protectPastOrders && (
+      isOrderLocked ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsPastOrderUnlocked(true);
+            G({ message: "Đã mở khóa sửa đơn! Bạn có thể chỉnh sửa hóa đơn này.", type: "success" });
+          }}
+          className="w-[26px] h-[26px] rounded-lg flex items-center justify-center bg-amber-500 hover:bg-amber-600 active:scale-90 text-white shadow-xs transition-all cursor-pointer select-none animate-pulse hover:animate-none"
+          title="Sửa đơn (Hóa đơn cũ đang khóa xem - Bấm để mở khóa sửa)"
+        >
+          <Lock size={13} strokeWidth={2.6} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsPastOrderUnlocked(false);
+            G({ message: "Đã khóa đơn lại chế độ chỉ xem.", type: "info" });
+          }}
+          className="w-[26px] h-[26px] rounded-lg flex items-center justify-center bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shadow-xs active:scale-90 transition-all cursor-pointer select-none"
+          title="Đang mở khóa sửa đơn (Bấm để khóa lại chế độ xem)"
+        >
+          <Unlock size={13} strokeWidth={2.6} />
+        </button>
+      )
+    )}
+    {/* Nút đơn mới kế nút sửa đơn (chỉ icon, không chữ) */}
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        Wt();
+        G({ message: "Đã tạo đơn mới thành công!", type: "success" });
+      }}
+      className="w-[26px] h-[26px] rounded-lg flex items-center justify-center bg-[#2d5016] hover:bg-[#3d6820] text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 shadow-xs active:scale-90 transition-all cursor-pointer select-none"
+      title="Tạo đơn mới (F4)"
+    >
+      <FilePlus size={13} strokeWidth={2.6} />
+    </button>
+  </div>
+) : (
+  y.length > 0 && (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        Wt();
+        G({ message: "Đã tạo đơn mới thành công!", type: "success" });
+      }}
+      className="w-[26px] h-[26px] rounded-lg flex items-center justify-center bg-[#2d5016]/10 hover:bg-[#2d5016] text-[#2d5016] hover:text-white dark:bg-emerald-500/15 dark:hover:bg-emerald-600 dark:text-emerald-400 dark:hover:text-white border border-[#2d5016]/20 hover:border-[#2d5016] dark:border-emerald-500/30 shadow-2xs active:scale-90 transition-all cursor-pointer select-none ml-1"
+      title="Tạo đơn mới (F4)"
+    >
+      <FilePlus size={13} strokeWidth={2.6} />
+    </button>
+  )
+)}</div><x.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={t => {
@@ -4381,7 +4659,7 @@ function POSPage({
                                         className="w-2.5 h-2.5 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                       />
                                     </div>
-                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row bg-transparent", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/20 dark:border-white/10" : "border-b-0")} style={{ backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent', borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) }} onContextMenu={e => {
+                                  </x.button></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", dl > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>{dl > 0 ? z(dl) : "—"}</span></div></th><th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><div className="flex flex-col items-center justify-center leading-tight"><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span><span className={c("text-[10px] font-mono tabular-nums transition-colors mt-0.5", ol > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>{ol > 0 ? z(ol) : "—"}</span></div></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn giá</span></th><th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th><th className="py-2.5 px-2 text-center align-middle" /></tr></thead><tbody className="divide-none"><tr className={c("sticky top-0 z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row bg-transparent border-b-0")} style={{ backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent', borderBottom: 'none' }} onContextMenu={e => {
   if (m.product) {
     e.preventDefault();
     e.stopPropagation();
@@ -4405,10 +4683,10 @@ function POSPage({
   <div className={c(
     "w-8 h-8 mx-auto rounded-xl flex items-center justify-center border transition-all duration-200 relative select-none",
     isPackingSpeaking
-      ? "bg-emerald-500 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse"
+      ? "bg-emerald-500 text-white border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
       : "bg-transparent text-primary dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/15 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black hover:border-transparent hover:scale-110 active:scale-95"
   )}>
-    <Nd size={15} strokeWidth={2.5} className={isPackingSpeaking ? "animate-pulse" : "group-hover/speaker-td:animate-pulse"} />
+    <Nd size={15} strokeWidth={2.5} />
     {packingRepeatCount !== 1 && (
       <span className={c(
         "absolute -top-1.5 -right-1.5 px-1 min-w-[15px] h-[15px] rounded-full text-[9px] font-black flex items-center justify-center leading-none shadow-xs ring-1 ring-white/50 dark:ring-black/50 pointer-events-none",
@@ -4440,7 +4718,8 @@ function POSPage({
   <div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95">
     <Ot size={16} strokeWidth={2.5} />
   </div>
-</td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors"><Gs size={18} strokeWidth={2.5} /></div><input id="pos-quick-product-search" type="text" placeholder="Tìm kiếm sản phẩm thông minh (F2)..." className="w-full h-10 py-1.5 pl-10 pr-16 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal text-slate-900 dark:text-white outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight" autoComplete="off" value={Z} onChange={t => {
+</td><td className="py-2.5 px-2 relative"><div className="relative group/search flex items-center gap-2.5"><div className="relative flex-1"><div className="relative"><div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors">{isOrderLocked ? <Lock size={17} strokeWidth={2.5} className="text-amber-500 dark:text-amber-400 animate-pulse" /> : <Gs size={18} strokeWidth={2.5} />}</div><SearchTypingOverlay text={Z} enabled={cartColorConfig?.enableSearchTypingAnimation !== false} inputRef={se} className="left-0 right-16 pl-10 pr-2 font-extrabold font-sans text-[13.5px] tracking-normal" style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }} /><input id="pos-quick-product-search" type="text" disabled={isOrderLocked} readOnly={isOrderLocked} placeholder={isOrderLocked ? "Hóa đơn cũ đang khóa sửa (Bấm nút 'SỬA ĐƠN' để mở khóa)" : "Tìm kiếm sản phẩm thông minh (F2)..."} className={c("w-full h-10 py-1.5 pl-10 pr-16 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-normal outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight caret-primary dark:caret-[#d4a574]", (cartColorConfig?.enableSearchTypingAnimation !== false && Z) ? "text-transparent" : "text-slate-900 dark:text-white")} autoComplete="off" value={Z} onChange={t => {
+                                      if (isOrderLocked) return;
                                       const a = t.target.value;
                                       playTypingSoundUtil();
                                       ae(a), Ft(0), os(!0);
@@ -4473,6 +4752,11 @@ function POSPage({
                                         });
                                       }
                                     }} onKeyDown={t => {
+                                      if (isOrderLocked) {
+                                        t.preventDefault();
+                                        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để mở khóa!", type: "warning" });
+                                        return;
+                                      }
                                       if (t.key === "Escape") {
                                         t.preventDefault(), ae(""), os(!1), He({
                                           product: null,
@@ -4553,6 +4837,11 @@ function POSPage({
                                         }
                                       }
                                     }} onFocus={t => {
+                                      if (isOrderLocked) {
+                                        t.target.blur();
+                                        G({ message: "Hóa đơn đang ở chế độ xem. Vui lòng bấm nút 'SỬA ĐƠN' để chỉnh sửa!", type: "warning" });
+                                        return;
+                                      }
                                       t.target.select();
                                       requestAnimationFrame(() => {
                                         if (se.current) {
@@ -4582,11 +4871,15 @@ function POSPage({
                                 }} whileTap={{
                                   scale: 0.95
                                 }} onClick={() => {
+                                  if (isOrderLocked) {
+                                    G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để thêm món ngoài!", type: "warning" });
+                                    return;
+                                  }
                                   La(!0), $a({
                                     name: "",
                                     price: ""
                                   }), ae(""), setTimeout(() => ys.current?.focus(), 100);
-                                }} tabIndex={-1} className="h-8 px-2.5 bg-transparent hover:bg-primary text-primary hover:text-white dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 border border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent dark:hover:border-transparent transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-primary/15 text-primary group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button><x.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} onClick={handleToggleVoiceSearch} tabIndex={-1} className={c("h-8 px-2.5 rounded-xl font-black flex items-center gap-1.5 border transition-all duration-200 whitespace-nowrap shrink-0 group/f7 active:scale-95 cursor-pointer shadow-xs", isVoiceListening ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent animate-pulse shadow-emerald-500/30" : "bg-transparent hover:bg-emerald-600 text-emerald-700 hover:text-white dark:hover:bg-emerald-700 dark:text-emerald-400 dark:hover:text-white border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent")} title="Tìm kiếm giọng nói thông minh (F7 hoặc Alt+V)"><div className={c("w-4.5 h-4.5 rounded-md flex items-center justify-center transition-all", isVoiceListening ? "bg-white/25 text-white" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 group-hover/f7:bg-white/20 group-hover/f7:text-white")}><Mic size={12} strokeWidth={2.8} /></div><div className={c("px-1 py-0.5 rounded text-[7.5px] font-black border transition-all", isVoiceListening ? "bg-white/25 text-white border-white/40" : "bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f7:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f7:text-white border-[#8b6f47]/20 dark:border-[#d4a574]/30")}>F7</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
+                                }} tabIndex={-1} className="h-8 px-2.5 bg-transparent hover:bg-primary text-primary hover:text-white dark:hover:bg-[#2d5016] dark:text-[#d4a574] dark:hover:text-white rounded-xl font-black flex items-center gap-1.5 border border-[#8b6f47]/25 dark:border-white/15 hover:border-transparent dark:hover:border-transparent transition-all duration-200 whitespace-nowrap shrink-0 group/f6 active:scale-95 cursor-pointer" title="Thêm món ngoài (F6)"><div className="w-4.5 h-4.5 rounded-md bg-primary/15 text-primary group-hover/f6:bg-white/20 group-hover/f6:text-white dark:bg-[#d4a574]/15 dark:text-[#d4a574] dark:group-hover/f6:text-white flex items-center justify-center group-hover/f6:rotate-12 transition-all"><Ot size={11} strokeWidth={3} /></div><div className="px-1 py-0.5 rounded bg-[#8b6f47]/15 dark:bg-[#d4a574]/20 group-hover/f6:bg-white/20 text-[#8b6f47] dark:text-[#d4a574] group-hover/f6:text-white text-[7.5px] font-black border border-[#8b6f47]/20 dark:border-[#d4a574]/30 group-hover/f6:border-white/30 transition-all">F6</div></x.button></div><Fn><Ws>{Z && !m.product && productSearchCoords.top > 0 && (
   <POSProductDropdown
     id="pos-product-dropdown"
     dropdownKey="pos-product-dropdown"
@@ -4604,6 +4897,10 @@ function POSPage({
       if (De !== idx) Ft(idx);
     }}
     onSelect={(selectedProd) => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để thêm món!", type: "warning" });
+        return;
+      }
       const s = m.quantity && m.quantity !== 0 ? m.quantity : 1;
       const hasCustomPrice = Boolean(p && p.id && R && R[selectedProd.id] !== void 0);
       He({
@@ -4633,7 +4930,7 @@ function POSPage({
     }}
   />
 )}
-{Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && (
+  {!isOrderLocked && Tt !== null && zt && cartRowSearchCoords.top > 0 && ve[Tt] && (
   <POSProductDropdown
     id="cart-row-product-dropdown"
     dropdownKey="cart-row-product-dropdown"
@@ -4652,76 +4949,14 @@ function POSPage({
       return hasCustomPrice ? R[r.id] : ((Te === "Wholesale" && r.bulk_price) || r.sale_price);
     }}
     onHover={(idx) => {
+      cartRowActiveIndexRef.current = idx;
       if (It !== idx) Ca(idx);
     }}
     onSelect={(selectedProd) => {
-      const curRow = ve[Tt];
-      if (!curRow) return;
-      let n = [...y];
-      const l = n.findIndex(u => u.cartId === curRow.cartId);
-      if (l === -1) return;
-      const d = n[l].quantity;
-      const hasCustomPrice = Boolean(p && p.id && R && R[selectedProd.id] !== void 0);
-      const displayPrice = hasCustomPrice ? R[selectedProd.id] : ((Te === "Wholesale" && selectedProd.bulk_price) || selectedProd.sale_price);
-      const o = n.findIndex((u, h) => h !== l && u.product_id === selectedProd.id);
-      if (o > -1) {
-        n[o].quantity += d;
-        n[o].secondary_qty = n[o].quantity / (n[o].multiplier || 1);
-        n.splice(l, 1);
-      } else {
-        n[l] = {
-          ...n[l],
-          product_id: selectedProd.id,
-          product_name: selectedProd.name,
-          unit: selectedProd.unit,
-          secondary_unit: selectedProd.secondary_unit,
-          multiplier: selectedProd.multiplier || 1,
-          price: displayPrice,
-          cost_price: selectedProd.cost_price,
-          latest_cost_price: selectedProd.latest_cost_price,
-          stock: selectedProd.stock,
-          is_combo: selectedProd.is_combo,
-          active_ingredient: selectedProd.active_ingredient,
-          is_manual_price: false
-        };
-        delete n[l]?.ai_scanned;
-      }
-      H(n);
-      ct(null);
-      ls("");
-      setTimeout(() => {
-        const targetCartId = o > -1 ? n[o > l ? o - 1 : o].cartId : n[l].cartId;
-        const b = ve.findIndex(O => O.cartId === targetCartId);
-        const S = b > -1 ? b : (o > -1 ? (o > l ? o - 1 : o) : l);
-        const w = document.getElementById(`qty-sec-${S}`);
-        if (Te === "Wholesale" && w && !w.disabled) {
-          w.focus();
-          w.select?.();
-        } else {
-          const O = document.getElementById(`qty-main-${S}`);
-          O?.focus();
-          O?.select?.();
-        }
-      }, 100);
-    }}
-    onQuickStock={(prod, coords) => {
-      Xt(prod);
-      za(coords);
-      Dt(!0);
-    }}
-    onContextMenu={(e, prod) => {
-      setItemContextMenu({
-        type: 'product',
-        data: prod,
-        position: { x: e.clientX, y: e.clientY }
-      });
-    }}
-    onCreateNewProduct={(query) => {
-      dn(query);
-      ur(!0);
+      handleApplyProductToCartRow(selectedProd);
     }}
   />
-)}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground"><input type="number" step="any" tabIndex={Te === "Wholesale" ? 0 : -1} className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+)}</Ws></Fn></td><td className="py-2.5 px-2 text-center"><div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">{m.product ? Ae(m.product.unit) : "-"}</div>{m.product && m.product.secondary_unit && <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">1 {Ae(m.product.secondary_unit)} = {m.product.multiplier} {Ae(m.product.unit)}</div>}</td><td className="py-2.5 px-2">{m.product && m.product.secondary_unit ? <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground"><input type="number" step="any" tabIndex={Te === "Wholesale" ? 0 : -1} className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal" value={m.secondary_qty !== undefined && m.secondary_qty !== null && m.secondary_qty !== "" ? (typeof m.secondary_qty === 'number' ? Math.round((m.secondary_qty + Number.EPSILON) * 1000) / 1000 : m.secondary_qty) : ""} disabled={isOrderLocked} readOnly={isOrderLocked} id="working-sec-qty" ref={Pa} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -4742,7 +4977,7 @@ function POSPage({
                                     } else if (t.key === "Enter") {
                                       t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price);
                                     }
-                                  }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                  }} /><span className="text-[10px] font-black font-sans text-muted-foreground uppercase pr-1 shrink-0 leading-normal">{Ae(m.product.secondary_unit)}</span></div> : <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>}</td><td className="py-2.5 px-2 group/qty"><div className="relative w-full"><input type="number" style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all" value={m.product ? m.quantity : ""} disabled={isOrderLocked} readOnly={isOrderLocked} id="working-main-qty" ref={Pt} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value) || 0;
                                     He(r => {
                                       const s = parseFloat(r.product?.multiplier) || 1;
@@ -4777,7 +5012,7 @@ function POSPage({
                                       quantity: t.quantity * -1,
                                       secondary_qty: t.secondary_qty * -1
                                     })), Pt.current?.focus();
-                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 bg-[#ede8dc]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#ede8dc]/95 dark:border-b-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && !(m.product && (m.price < m.product.cost_price || m.price < (m.product.latest_cost_price || 0)))) ? cartColorConfig.cartValuesColor : undefined }} className={c("w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
+                                  }} title="Đổi thành Trả Hàng (Âm)"><Ms size={11} strokeWidth={3} /></button></div></td><td className="py-2.5 px-2 text-right"><div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">{m.product && <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1 bg-[#ede8dc]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50 flex items-stretch whitespace-nowrap z-[9999] opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">Vốn TB</span><span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">{z(m.product.cost_price)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" /><div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"><span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">Nhập cuối</span><span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">{z(m.product.latest_cost_price || 0)}<span className="text-[9px] ml-0.5 opacity-60">đ</span></span></div><div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#ede8dc]/95 dark:border-b-slate-900/95 drop-shadow-xs" /></div>}<input type="text" tabIndex={blockTabPrice ? -1 : 0} style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && !(m.product && (m.price < m.product.cost_price || m.price < (m.product.latest_cost_price || 0)))) ? cartColorConfig.cartValuesColor : undefined }} className={c("w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base leading-normal transition-all", m.product && m.price < m.product.cost_price ? "text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-900/20 focus:ring-rose-200" : m.product && m.price < (m.product.latest_cost_price || 0) ? "text-orange-600 dark:text-orange-400 bg-orange-500/15 dark:bg-orange-900/10 focus:ring-orange-200" : "text-primary dark:text-foreground")} value={m.product ? z(m.price) : ""} disabled={isOrderLocked} readOnly={isOrderLocked} id="working-price" ref={ms} autoComplete="off" onFocus={t => t.target.select()} onChange={t => {
                                     const a = parseFloat(t.target.value.replace(/,/g, "")) || 0;
                                     He({
                                       ...m,
@@ -4785,38 +5020,28 @@ function POSPage({
                                     });
                                   }} onKeyDown={t => {
                                     t.key === "Enter" ? (t.preventDefault(), m.product && m.quantity !== 0 && ia(m.product, m.quantity, m.price)) : t.key === "Tab" && !t.shiftKey && (t.preventDefault(), t.stopPropagation(), se.current?.focus());
-                                  }} /><P initial={false}>
-  {m.product && (m.price < m.product.cost_price || (m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price) || (m.price < m.product.sale_price && m.price >= (m.product.latest_cost_price || m.product.cost_price)) || (p && R[m.product.id] !== void 0 && m.price === m.product.sale_price)) && (
-    <x.div
-      initial={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
-      animate={{ height: "auto", opacity: 1, scale: 1, marginTop: 4 }}
-      exit={{ height: 0, opacity: 0, scale: 0.85, marginTop: 0 }}
-      transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-      className="overflow-hidden flex items-center gap-1"
-    >
-      {m.price < m.product.cost_price && (
+                                  }} /><div className="flex items-center gap-1 mt-1">
+      {m.product && m.price < m.product.cost_price && (
         <div key="input-loss" style={getBadgeComputedStyle(cartColorConfig, 'loss')} className="bg-rose-500/25 dark:bg-rose-500/30 text-rose-950 dark:text-rose-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs">
           <Comp_da size={11} strokeWidth={2.8} className="text-rose-700 dark:text-rose-400" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />LỖ VỐN
         </div>
       )}
-      {m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && (
+      {m.product && m.price < (m.product.latest_cost_price || 0) && m.price >= m.product.cost_price && (
         <div key="input-below-new" style={getBadgeComputedStyle(cartColorConfig, 'loss')} className="bg-orange-500/25 dark:bg-orange-500/30 text-orange-950 dark:text-orange-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-orange-500/50 dark:border-orange-400/60 shadow-xs">
           <$n size={11} strokeWidth={2.8} className="text-orange-700 dark:text-orange-400" style={getBadgeComputedStyle(cartColorConfig, 'loss')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'loss').color } : undefined} />DƯỚI VỐN NHẬP
         </div>
       )}
-      {m.price < ((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price) && m.price >= (m.product.latest_cost_price || m.product.cost_price) && (
+      {m.product && m.price < ((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price) && m.price >= (m.product.latest_cost_price || m.product.cost_price) && (
         <div key="input-low-price" style={getBadgeComputedStyle(cartColorConfig, 'low_price')} className="bg-[#d97706]/20 dark:bg-amber-500/25 text-[#78350f] dark:text-amber-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#b45309]/50 dark:border-amber-400/50 shadow-xs">
           <Cd size={11} strokeWidth={2.8} className="text-[#b45309] dark:text-amber-400" style={getBadgeComputedStyle(cartColorConfig, 'low_price')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'low_price').color } : undefined} />GIÁ THẤP ({z((Te === "Wholesale" && m.product.bulk_price) || m.product.sale_price)}đ)
         </div>
       )}
-      {p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && (
+      {m.product && p && R[m.product.id] !== void 0 && m.price === m.product.sale_price && (
         <div key="input-sync" style={getBadgeComputedStyle(cartColorConfig, 'stock')} className="bg-[#2d5016]/20 dark:bg-emerald-500/25 text-[#1b340d] dark:text-emerald-200 text-[9px] px-2.5 py-0.5 rounded-full font-black whitespace-nowrap z-10 flex items-center gap-1.5 border-2 border-[#2d5016]/45 dark:border-emerald-400/50 shadow-xs">
           <Sd size={11} strokeWidth={2.8} className="text-[#2d5016] dark:text-emerald-400" style={getBadgeComputedStyle(cartColorConfig, 'stock')?.color ? { color: getBadgeComputedStyle(cartColorConfig, 'stock').color } : undefined} /><span className="text-[9px] font-black uppercase tracking-wider">Đồng bộ giá</span>
         </div>
       )}
-    </x.div>
-  )}
-</P></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2.5 py-0.5 bg-rose-500/25 text-rose-950 dark:text-rose-200 rounded-full text-[8.5px] font-black uppercase tracking-widest border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
+    </div></div></td><td className="py-2 px-2 text-right"><div style={{ color: (m.quantity >= 0 && cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className={c("font-black font-sans text-base leading-normal transition-colors", m.quantity < 0 ? "text-rose-600 dark:text-rose-400" : "text-primary")}>{m.product ? z(m.price * m.quantity) : ""}</div>{m.quantity < 0 && <span className="inline-block px-2.5 py-0.5 bg-rose-500/25 text-rose-950 dark:text-rose-200 rounded-full text-[8.5px] font-black uppercase tracking-widest border-2 border-rose-500/50 dark:border-rose-400/60 shadow-xs mt-0.5">Hàng trả</span>}</td><td className="py-2 px-1.5 text-center">{m.product && <button onClick={() => {
                                   ae("");
                                   He({
                                     product: null,
@@ -4827,6 +5052,7 @@ function POSPage({
                                   });
                                 }} className="group/clear-btn w-7 h-7 mx-auto rounded-lg flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_10px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer" title="Xóa dòng tạm"><Comp_ke size={15} strokeWidth={2.5} className="transition-transform duration-200 group-hover/clear-btn:rotate-90" /></button>}</td></tr><P initial={!1}>{...Qi || []}{g !== "remote_inspect" && ve.length > 0 && ve.map((t, a) => (
   <CartTableRow
+    isReadOnly={isOrderLocked}
     key={t.cartId || `cart-row-${a}-${t.product_id}`}
     item={t}
     index={a}
@@ -4841,6 +5067,7 @@ function POSPage({
     blockTabPrice={blockTabPrice}
     isSearchFocused={Tt === a}
     searchQuery={zt}
+    isOrderSwitching={fn}
     onUpdateField={_r}
     onRemove={bl}
     onTogglePack={xl}
@@ -4858,13 +5085,24 @@ function POSPage({
           type: 'product',
           data: r,
           position: { x: e.clientX, y: e.clientY },
-          onDelete: () => H(prev => prev.filter(it => it.cartId ? it.cartId !== item.cartId : it !== item))
+          onDelete: () => {
+            if (isOrderLocked) {
+              G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để xóa món!", type: "warning" });
+              return;
+            }
+            H(prev => prev.filter(it => it.cartId ? it.cartId !== item.cartId : it !== item));
+          }
         });
       }
     }}
     onFocusSearch={(e, idx, item) => {
+      if (isOrderLocked) {
+        G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để chỉnh sửa!", type: "warning" });
+        return;
+      }
       ct(idx);
       ls(item.product_name);
+      cartRowActiveIndexRef.current = 0;
       Ca(0);
       if (e?.target) {
         e.target.select?.();
@@ -4885,7 +5123,9 @@ function POSPage({
       }
     }}
     onChangeSearch={(e) => {
+      if (isOrderLocked) return;
       ls(e.target.value);
+      cartRowActiveIndexRef.current = 0;
       Ca(0);
     }}
     onBlurSearch={() => {
@@ -4894,19 +5134,18 @@ function POSPage({
       }, 200);
     }}
     onKeyDownSearch={(e, idx, item) => {
-      const s = cartFilteredProducts;
+      const s = cartFilteredProductsRef.current?.length > 0 ? cartFilteredProductsRef.current : cartFilteredProducts;
       if (e.key === "ArrowDown") {
         if (Tt === idx && s.length > 0) {
           e.preventDefault();
-          Ca(n => {
-            const l = Math.min(n + 1, s.length - 1);
-            requestAnimationFrame(() => {
-              if (Ea.current) {
-                const d = Ea.current.children[l];
-                d && d.scrollIntoView({ block: "nearest" });
-              }
-            });
-            return l;
+          const nextIdx = Math.min(cartRowActiveIndexRef.current + 1, s.length - 1);
+          cartRowActiveIndexRef.current = nextIdx;
+          Ca(nextIdx);
+          requestAnimationFrame(() => {
+            if (Ea.current) {
+              const d = Ea.current.children[nextIdx];
+              d && d.scrollIntoView({ block: "nearest" });
+            }
           });
         } else {
           e.preventDefault();
@@ -4916,15 +5155,14 @@ function POSPage({
       } else if (e.key === "ArrowUp") {
         if (Tt === idx && s.length > 0) {
           e.preventDefault();
-          Ca(n => {
-            const l = Math.max(n - 1, 0);
-            requestAnimationFrame(() => {
-              if (Ea.current) {
-                const d = Ea.current.children[l];
-                d && d.scrollIntoView({ block: "nearest" });
-              }
-            });
-            return l;
+          const prevIdx = Math.max(cartRowActiveIndexRef.current - 1, 0);
+          cartRowActiveIndexRef.current = prevIdx;
+          Ca(prevIdx);
+          requestAnimationFrame(() => {
+            if (Ea.current) {
+              const d = Ea.current.children[prevIdx];
+              d && d.scrollIntoView({ block: "nearest" });
+            }
           });
         } else {
           e.preventDefault();
@@ -4933,74 +5171,10 @@ function POSPage({
         }
       } else if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        if (s[It]) {
-          const l = s[It];
-          let d = [...y];
-          const o = item.quantity,
-            hasCust = Boolean(p && p.id && R && R[l.id] !== void 0),
-            unitPrice = hasCust ? R[l.id] : ((Te === "Wholesale" && l.bulk_price) || l.sale_price),
-            u = d.findIndex(b => b.cartId !== item.cartId && b.product_id === l.id),
-            h = d.findIndex(b => b.cartId === item.cartId);
-          if (h > -1) {
-            if (u > -1) {
-              d[u].quantity += o;
-              d[u].secondary_qty = d[u].quantity / (d[u].multiplier || 1);
-              d.splice(h, 1);
-              H(d);
-              ct(null);
-              ls("");
-              setTimeout(() => {
-                const b = ve.findIndex(O => O.cartId === d[u > h ? u - 1 : u].cartId),
-                  S = b > -1 ? b : (u > h ? u - 1 : u),
-                  w = document.getElementById(`qty-sec-${S}`);
-                if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-                else {
-                  const O = document.getElementById(`qty-main-${S}`);
-                  O?.focus(), O?.select?.();
-                }
-              }, 100);
-            } else {
-              d[h] = {
-                ...d[h],
-                product_id: l.id,
-                product_name: l.name,
-                unit: l.unit,
-                secondary_unit: l.secondary_unit,
-                multiplier: l.multiplier || 1,
-                price: unitPrice,
-                cost_price: l.cost_price,
-                latest_cost_price: l.latest_cost_price,
-                stock: l.stock,
-                latest_stock_entry: l.latest_stock_entry,
-                is_combo: l.is_combo,
-                secondary_qty: o / (l.multiplier || 1),
-                active_ingredient: l.active_ingredient,
-                is_manual_price: false
-              };
-              delete d[h]?.ai_scanned;
-              H(d);
-              ct(null);
-              ls("");
-              setTimeout(() => {
-                const w = document.getElementById(`qty-sec-${idx}`);
-                if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-                else {
-                  const S = document.getElementById(`qty-main-${idx}`);
-                  S?.focus(), S?.select?.();
-                }
-              }, 100);
-            }
-          }
-        } else {
-          ct(null);
-          setTimeout(() => {
-            const w = document.getElementById(`qty-sec-${idx}`);
-            if (Te === "Wholesale" && w && !w.disabled) w.focus(), w.select?.();
-            else {
-              const S = document.getElementById(`qty-main-${idx}`);
-              S?.focus(), S?.select?.();
-            }
-          }, 100);
+        const curIdx = cartRowActiveIndexRef.current;
+        const selectedProd = s[curIdx] || s[0];
+        if (selectedProd) {
+          handleApplyProductToCartRow(selectedProd, item, idx);
         }
       }
     }}
@@ -5058,7 +5232,7 @@ function POSPage({
     isNoteOpen={lr}
     onToggleNote={() => as(!lr)}
     onCloseNote={() => as(!1)}
-    onChangeOrderNote={$e}
+    onChangeOrderNote={(nt) => { if (isOrderLocked) return; $e(nt); }}
     shippingStatus={tt}
     shippingAddress={vr}
     shippingPhone={kr}
@@ -5077,17 +5251,18 @@ function POSPage({
       else re(0);
     }}
     amountPaid={oe}
-    onChangeAmountPaid={re}
+    onChangeAmountPaid={(amt) => { if (isOrderLocked) return; re(amt); }}
     cashGiven={V}
-    onChangeCashGiven={Ye}
+    onChangeCashGiven={(cg) => { if (isOrderLocked) return; Ye(cg); }}
     cashGivenInputRef={xr}
     totalAmount={$}
-    isProfitRevealed={Ha}
+    isProfitRevealed={isAdmin && Ha}
+    isAdmin={isAdmin}
     cart={y}
     currentProduct={m}
-    onMouseDownProfit={yr}
-    onMouseUpProfit={aa}
-    orderProfit={vs}
+    onMouseDownProfit={isAdmin ? yr : undefined}
+    onMouseUpProfit={isAdmin ? aa : undefined}
+    orderProfit={isAdmin ? vs : 0}
     canScrollDown={canScrollDown}
     onScrollDownCart={handleScrollDownCart}
     cartScrollContainerRef={cartScrollContainerRef}
@@ -5125,12 +5300,13 @@ function POSPage({
               }}
               cart={y}
               totalAmount={$}
-              isProfitRevealed={Ha}
-              orderProfit={vs}
-              onMouseDownProfit={yr}
-              onMouseUpProfit={aa}
+              isProfitRevealed={isAdmin && Ha}
+    isAdmin={isAdmin}
+              orderProfit={isAdmin ? vs : 0}
+              onMouseDownProfit={isAdmin ? yr : undefined}
+              onMouseUpProfit={isAdmin ? aa : undefined}
               paymentMethod={I}
-              onSelectPaymentMethod={ge}
+              onSelectPaymentMethod={(pm) => { if (isOrderLocked) { G({ message: "Hóa đơn đang khóa sửa. Vui lòng bấm nút 'SỬA ĐƠN' để thay đổi!", type: "warning" }); return; } ge(pm); }}
               amountPaid={oe}
               onChangeAmountPaid={re}
               cashGiven={V}
@@ -5241,10 +5417,11 @@ function POSPage({
               }}
               cart={y}
               totalAmount={$}
-              isProfitRevealed={Ha}
-              orderProfit={vs}
-              onMouseDownProfit={yr}
-              onMouseUpProfit={aa}
+              isProfitRevealed={isAdmin && Ha}
+    isAdmin={isAdmin}
+              orderProfit={isAdmin ? vs : 0}
+              onMouseDownProfit={isAdmin ? yr : undefined}
+              onMouseUpProfit={isAdmin ? aa : undefined}
               paymentMethod={I}
               onSelectPaymentMethod={ge}
               amountPaid={oe}
@@ -5668,23 +5845,7 @@ function POSPage({
               packingRepeatCount={packingRepeatCount}
               onSelectRepeat={selectPackingRepeat}
             />
-            {/* HUD tìm kiếm bằng giọng nói thông minh */}
-            <POSVoiceSearchHUD
-              isOpen={isVoiceSearchOpen}
-              isListening={isVoiceListening}
-              isProcessing={isVoiceProcessing}
-              audioLevel={voiceAudioLevel}
-              interimText={voiceInterimText}
-              parsedData={voiceParsedData}
-              matchedProduct={voiceMatchedProduct}
-              error={voiceError}
-              onClose={() => {
-                stopVoiceListening();
-                setIsVoiceSearchOpen(false);
-              }}
-              onToggleListening={toggleVoiceListening}
-              onConfirmApply={handleApplyVoiceResult}
-            />
+
             </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
 }
 export default POSPage;

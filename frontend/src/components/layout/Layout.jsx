@@ -71,7 +71,7 @@ import ButtonMascotOverlay from '../widgets/ButtonMascotOverlay';
 import { getLiteTheme } from '../../lib/liteTheme';
 import { getStoredSidebarStyle } from '../../lib/navConfig';
 import OrderEditPopup from '../modals/OrderEditPopup';
-import CartColorCustomizerModal from '../modals/CartColorCustomizerModal';
+import CartColorCustomizerModal, { applyCartThemeToDom } from '../modals/CartColorCustomizerModal';
 import DynamicIcon from '../widgets/DynamicIcon';
 import { MASCOT_LIST, playPopSound } from '../../lib/mascots';
 import SidebarLogoCustomizerModal, { getDashboardAvatar } from '../modals/SidebarLogoCustomizerModal';
@@ -459,7 +459,7 @@ function wrapMascotAngle(angle) {
     return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
-const SidebarMascotLogo = memo(({ onClick }) => {
+export const SidebarMascotLogo = memo(({ onClick, className, showPulseDot = false }) => {
     const containerRef = useRef(null);
     const spriteRef = useRef(null);
     const sectorRef = useRef(-1);
@@ -743,47 +743,60 @@ const SidebarMascotLogo = memo(({ onClick }) => {
                     setShowCustomizer(true);
                 }}
                 data-no-button-mascot="true"
-                className="w-14 h-14 aspect-square shrink-0 rounded-2xl overflow-hidden flex items-center justify-center cursor-pointer transition-transform shadow-xs relative bg-black/[0.03] dark:bg-white/[0.05] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40 dark:hover:border-white/25 select-none group"
+                className={cn(
+                    "w-14 h-14 aspect-square shrink-0 rounded-2xl flex items-center justify-center cursor-pointer transition-transform shadow-xs relative bg-black/[0.03] dark:bg-white/[0.05] border border-[#8b6f47]/20 dark:border-white/10 hover:border-[#8b6f47]/40 dark:hover:border-white/25 select-none group",
+                    className
+                )}
                 title={logoType === 'mascot'
                     ? "Linh vật LyangPOS (Chuột trái: Menu | Chuột phải: Đổi Avatar / Mascot)"
                     : "Logo LyangPOS (Chuột trái: Menu | Chuột phải: Đổi Avatar / Mascot)"
                 }
             >
-                {/* Ambient subtle glow */}
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-amber-500/5 to-transparent rounded-2xl pointer-events-none group-hover:from-emerald-500/20 group-hover:via-amber-500/10 transition-colors" />
+                {/* Inner clipped container for mascot sprite / image */}
+                <div className="w-full h-full rounded-[inherit] overflow-hidden relative flex items-center justify-center">
+                    {/* Ambient subtle glow */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-amber-500/5 to-transparent rounded-[inherit] pointer-events-none group-hover:from-emerald-500/20 group-hover:via-amber-500/10 transition-colors" />
 
-                {logoType === 'mascot' ? (
-                    /* Mascot Head Sprite - Smooth 2.5D Parallax with crisp instant frame switching */
-                    <div
-                        ref={spriteRef}
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            backgroundImage: `url("${currentChar?.directions || '/mascots/lyang-directions.webp'}")`,
-                            backgroundSize: '300% 300%',
-                            backgroundPosition: currentBgPosRef.current || '50% 50%',
-                            backgroundRepeat: 'no-repeat',
-                            transform: 'scale(1.22)',
-                            transformOrigin: 'center center'
-                        }}
-                        className="pointer-events-none select-none transition-transform duration-100 ease-out"
-                    />
-                ) : (
-                    /* Static Avatar Image */
-                    <div className="w-full h-full flex items-center justify-center p-1 relative z-10">
-                        <img
-                            src={effectiveStaticImage}
-                            alt="Sidebar Logo"
-                            className={cn(
-                                "w-full h-full rounded-xl transition-transform duration-200 group-hover:scale-105",
-                                effectiveStaticImage === '/logo.png' ? "object-contain p-1" : "object-cover"
-                            )}
-                            onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = '/logo.png';
+                    {logoType === 'mascot' ? (
+                        /* Mascot Head Sprite - Smooth 2.5D Parallax with crisp instant frame switching */
+                        <div
+                            ref={spriteRef}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                backgroundImage: `url("${currentChar?.directions || '/mascots/lyang-directions.webp'}")`,
+                                backgroundSize: '300% 300%',
+                                backgroundPosition: currentBgPosRef.current || '50% 50%',
+                                backgroundRepeat: 'no-repeat',
+                                transform: 'scale(1.22)',
+                                transformOrigin: 'center center'
                             }}
+                            className="pointer-events-none select-none transition-transform duration-100 ease-out"
                         />
-                    </div>
+                    ) : (
+                        /* Static Avatar Image */
+                        <div className="w-full h-full flex items-center justify-center p-1 relative z-10">
+                            <img
+                                src={effectiveStaticImage}
+                                alt="Sidebar Logo"
+                                className={cn(
+                                    "w-full h-full rounded-xl transition-transform duration-200 group-hover:scale-105",
+                                    effectiveStaticImage === '/logo.png' ? "object-contain p-1" : "object-cover"
+                                )}
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = '/logo.png';
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Vòng trạng thái pulse nằm ngoài overflow-hidden để không bao giờ bị che góc */}
+                {showPulseDot && (
+                    <span className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#112019] flex items-center justify-center shadow-xs z-30 pointer-events-none">
+                        <span className="w-2 h-2 rounded-full bg-white animate-ping opacity-75" />
+                    </span>
                 )}
             </m.div>
 
@@ -2233,6 +2246,7 @@ export default function Layout({ children }) {
             const liteItems = [
                 { icon: Home, label: "Tổng quan Lite", path: "/", roles: ['admin', 'accountant', 'user'] },
                 { icon: ShoppingCart, label: "Bán hàng Lite", path: "/pos", roles: ['admin', 'accountant', 'user'] },
+                { icon: Sparkles, label: "AI Tư Vấn", path: "/ai-consultant", roles: ['admin', 'accountant', 'user'] },
                 { icon: Truck, label: "Nhập hàng Lite", path: "/purchase", roles: ['admin', 'accountant', 'user'] },
                 { icon: HistoryIcon, label: "Lịch sử Lite", path: "/history", roles: ['admin', 'accountant', 'user'] },
                 { icon: TrendingUp, label: "Tổng hợp Lite", path: "/summary", roles: ['admin', 'accountant', 'user'] },
@@ -2243,6 +2257,7 @@ export default function Layout({ children }) {
         const items = [
             { icon: Home, label: "Tổng quan", path: "/", roles: ['admin'] },
             { icon: ShoppingCart, label: "Bán hàng (POS)", path: "/pos", roles: ['admin', 'accountant', 'user'] },
+            { icon: Sparkles, label: "AI Tư Vấn", path: "/ai-consultant", roles: ['admin', 'accountant', 'user'] },
             {
                 label: "Giao dịch",
                 icon: ShoppingBag,
@@ -2420,6 +2435,7 @@ export default function Layout({ children }) {
             document.documentElement.classList.remove('dark');
         }
         localStorage.setItem('theme', theme);
+        applyCartThemeToDom();
     }, [theme]);
 
     useEffect(() => {

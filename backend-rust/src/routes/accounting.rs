@@ -10,9 +10,9 @@ use sqlx::SqlitePool;
 
 use crate::error::AppError;
 use crate::models::accounting::{
-    AccountingMapping, AccountingTemplate, BulkBatchInvoiceDto, DailyInvoicesQueryDto,
-    SaveAccountingConfigDto, UpdateOrderDetailInvoiceStatusDto, UpdateOrderInvoiceStatusDto,
-    UpdatePartnerItemsInvoiceDto,
+    AccountingMapping, AccountingTemplate, BatchInvoicePartnerDto, BulkBatchInvoiceDto,
+    DailyInvoicesQueryDto, SaveAccountingConfigDto, UpdateOrderDetailInvoiceStatusDto,
+    UpdateOrderInvoiceStatusDto, UpdatePartnerItemsInvoiceDto,
 };
 
 pub async fn get_accounting_source_fields() -> Result<impl IntoResponse, AppError> {
@@ -127,10 +127,17 @@ pub struct PartnerInvoiceGroup {
     pub partner_id: Option<i64>,
     pub partner_name: String,
     pub partner_phone: String,
+    pub partner_address: String,
+    pub partner_debt: f64,
     pub total_amount: f64,
     pub invoiced_amount: f64,
     pub uninvoiced_amount: f64,
     pub is_fully_invoiced: bool,
+    pub total_orders_count: i64,
+    pub total_items_count: usize,
+    pub pending_items_count: usize,
+    pub invoiced_items_count: usize,
+    pub invoice_numbers: Vec<String>,
     pub orders: Vec<serde_json::Value>,
     pub items: Vec<serde_json::Value>,
 }
@@ -146,12 +153,30 @@ pub async fn get_daily_invoices(
 
     let mut sql = r#"
         SELECT 
-            o.id as order_id, o.display_id, o.date, o.total_amount, o.amount_paid,
-            o.is_invoiced, o.invoice_no, o.invoice_note, o.invoice_date,
-            o.partner_id, p.name as partner_name, p.phone as partner_phone,
-            d.id as detail_id, d.product_id, pr.code as product_code, pr.name as product_name,
-            d.quantity, d.price, d.is_invoiced as detail_is_invoiced,
-            d.invoiced_quantity, d.invoice_no as detail_invoice_no
+            o.id as order_id,
+            COALESCE(NULLIF(o.display_id, ''), 'HD' || o.id) as display_id,
+            o.date,
+            CAST(o.total_amount AS REAL) as total_amount,
+            CAST(o.amount_paid AS REAL) as amount_paid,
+            CAST(COALESCE(o.is_invoiced, 0) AS INTEGER) as is_invoiced,
+            COALESCE(o.invoice_no, '') as invoice_no,
+            COALESCE(o.invoice_note, '') as invoice_note,
+            o.invoice_date,
+            o.partner_id,
+            COALESCE(NULLIF(p.name, ''), 'KHÁCH LẺ') as partner_name,
+            COALESCE(p.phone, '') as partner_phone,
+            COALESCE(p.address, '') as partner_address,
+            CAST(COALESCE(p.debt_balance, 0) AS REAL) as partner_debt,
+            d.id as detail_id,
+            d.product_id,
+            COALESCE(pr.code, '') as product_code,
+            COALESCE(NULLIF(pr.name, ''), NULLIF(d.product_name_override, ''), 'Sản phẩm') as product_name,
+            COALESCE(NULLIF(pr.unit, ''), 'ĐV') as product_unit,
+            CAST(d.quantity AS REAL) as quantity,
+            CAST(d.price AS REAL) as price,
+            CAST(COALESCE(d.is_invoiced, 0) AS INTEGER) as detail_is_invoiced,
+            CAST(COALESCE(d.invoiced_quantity, 0) AS REAL) as invoiced_quantity,
+            COALESCE(d.invoice_no, '') as detail_invoice_no
         FROM "order" o
         LEFT JOIN partner p ON o.partner_id = p.id
         JOIN order_detail d ON o.id = d.order_id
@@ -175,56 +200,157 @@ pub async fn get_daily_invoices(
     let rows = sqlx::query(&sql).fetch_all(&pool).await?;
 
     let mut partners_map: std::collections::HashMap<i64, PartnerInvoiceGroup> = std::collections::HashMap::new();
+    let mut seen_orders: std::collections::HashSet<(i64, i64)> = std::collections::HashSet::new();
 
     for row in rows {
         use sqlx::Row;
         let p_id: Option<i64> = row.try_get("partner_id").ok();
         let key = p_id.unwrap_or(0);
 
+        let p_name: String = row.try_get::<String, _>("partner_name")
+            .or_else(|_| row.try_get::<Option<String>, _>("partner_name").map(|s| s.unwrap_or_default()))
+            .unwrap_or_else(|_| "KHÁCH LẺ".to_string());
+        let p_phone: String = row.try_get::<String, _>("partner_phone")
+            .or_else(|_| row.try_get::<Option<String>, _>("partner_phone").map(|s| s.unwrap_or_default()))
+            .unwrap_or_default();
+        let p_addr: String = row.try_get::<String, _>("partner_address")
+            .or_else(|_| row.try_get::<Option<String>, _>("partner_address").map(|s| s.unwrap_or_default()))
+            .unwrap_or_default();
+        let p_debt: f64 = row.try_get::<f64, _>("partner_debt")
+            .or_else(|_| row.try_get::<i64, _>("partner_debt").map(|v| v as f64))
+            .unwrap_or(0.0);
+
         let entry = partners_map.entry(key).or_insert_with(|| {
-            let p_name: Option<String> = row.try_get("partner_name").ok();
-            let p_phone: Option<String> = row.try_get("partner_phone").ok();
             PartnerInvoiceGroup {
                 partner_id: p_id,
-                partner_name: p_name.unwrap_or_else(|| "KHÁCH LẺ".to_string()),
-                partner_phone: p_phone.unwrap_or_default(),
+                partner_name: p_name.clone(),
+                partner_phone: p_phone.clone(),
+                partner_address: p_addr.clone(),
+                partner_debt: p_debt,
                 total_amount: 0.0,
                 invoiced_amount: 0.0,
                 uninvoiced_amount: 0.0,
                 is_fully_invoiced: true,
+                total_orders_count: 0,
+                total_items_count: 0,
+                pending_items_count: 0,
+                invoiced_items_count: 0,
+                invoice_numbers: Vec::new(),
                 orders: Vec::new(),
                 items: Vec::new(),
             }
         });
 
+        if entry.partner_address.is_empty() && !p_addr.is_empty() {
+            entry.partner_address = p_addr;
+        }
+        if entry.partner_debt == 0.0 && p_debt != 0.0 {
+            entry.partner_debt = p_debt;
+        }
+
+        let ord_id: i64 = row.try_get("order_id").unwrap_or(0);
+        let ord_disp: String = row.try_get::<String, _>("display_id")
+            .or_else(|_| row.try_get::<Option<String>, _>("display_id").map(|s| s.unwrap_or_default()))
+            .unwrap_or_else(|_| format!("Đơn #{}", ord_id));
+
+        let ord_date = row.try_get::<Option<chrono::NaiveDateTime>, _>("date")
+            .ok()
+            .flatten()
+            .map(|dt| dt.to_string())
+            .or_else(|| row.try_get::<Option<String>, _>("date").ok().flatten())
+            .unwrap_or_default();
+        let ord_tot: f64 = row.try_get::<f64, _>("total_amount")
+            .or_else(|_| row.try_get::<i64, _>("total_amount").map(|v| v as f64))
+            .unwrap_or(0.0);
+        let ord_paid: f64 = row.try_get::<f64, _>("amount_paid")
+            .or_else(|_| row.try_get::<i64, _>("amount_paid").map(|v| v as f64))
+            .unwrap_or(0.0);
+        let ord_inv: bool = row.try_get::<i64, _>("is_invoiced")
+            .map(|v| v != 0)
+            .or_else(|_| row.try_get::<bool, _>("is_invoiced"))
+            .unwrap_or(false);
+        let ord_inv_no: String = row.try_get::<String, _>("invoice_no")
+            .or_else(|_| row.try_get::<Option<String>, _>("invoice_no").map(|s| s.unwrap_or_default()))
+            .unwrap_or_default();
+        let ord_inv_note: String = row.try_get::<String, _>("invoice_note")
+            .or_else(|_| row.try_get::<Option<String>, _>("invoice_note").map(|s| s.unwrap_or_default()))
+            .unwrap_or_default();
+        let ord_inv_date: Option<String> = row.try_get::<Option<chrono::NaiveDateTime>, _>("invoice_date")
+            .ok()
+            .flatten()
+            .map(|dt| dt.to_string())
+            .or_else(|| row.try_get::<Option<String>, _>("invoice_date").ok().flatten());
+
+        if ord_id > 0 && !seen_orders.contains(&(key, ord_id)) {
+            seen_orders.insert((key, ord_id));
+            entry.total_orders_count += 1;
+            if !ord_inv_no.is_empty() && !entry.invoice_numbers.contains(&ord_inv_no) {
+                entry.invoice_numbers.push(ord_inv_no.clone());
+            }
+            entry.orders.push(json!({
+                "id": ord_id,
+                "display_id": ord_disp,
+                "date": ord_date,
+                "total_amount": ord_tot,
+                "amount_paid": ord_paid,
+                "is_invoiced": ord_inv,
+                "invoice_no": ord_inv_no,
+                "invoice_note": ord_inv_note,
+                "invoice_date": ord_inv_date
+            }));
+        }
+
         let detail_id: i64 = row.try_get("detail_id").unwrap_or(0);
-        let qty: f64 = row.try_get("quantity").unwrap_or(0.0);
-        let price: f64 = row.try_get("price").unwrap_or(0.0);
+        let qty: f64 = row.try_get::<f64, _>("quantity")
+            .or_else(|_| row.try_get::<i64, _>("quantity").map(|v| v as f64))
+            .unwrap_or(0.0);
+        let price: f64 = row.try_get::<f64, _>("price")
+            .or_else(|_| row.try_get::<i64, _>("price").map(|v| v as f64))
+            .unwrap_or(0.0);
         let item_total = qty * price;
-        let d_inv: bool = row.try_get::<i64, _>("detail_is_invoiced").map(|v| v != 0).unwrap_or(false);
-        let d_inv_qty: f64 = row.try_get("invoiced_quantity").unwrap_or(if d_inv { qty } else { 0.0 });
+        let d_inv: bool = row.try_get::<i64, _>("detail_is_invoiced")
+            .map(|v| v != 0)
+            .or_else(|_| row.try_get::<bool, _>("detail_is_invoiced"))
+            .unwrap_or(false);
+        let d_inv_qty: f64 = row.try_get::<f64, _>("invoiced_quantity")
+            .or_else(|_| row.try_get::<i64, _>("invoiced_quantity").map(|v| v as f64))
+            .unwrap_or(if d_inv { qty } else { 0.0 });
+        let d_inv_no: String = row.try_get::<String, _>("detail_invoice_no")
+            .or_else(|_| row.try_get::<Option<String>, _>("detail_invoice_no").map(|s| s.unwrap_or_default()))
+            .unwrap_or_default();
+        let p_unit: String = row.try_get::<String, _>("product_unit")
+            .or_else(|_| row.try_get::<Option<String>, _>("product_unit").map(|s| s.unwrap_or_default()))
+            .unwrap_or_else(|_| "ĐV".to_string());
+
+        if !d_inv_no.is_empty() && !entry.invoice_numbers.contains(&d_inv_no) {
+            entry.invoice_numbers.push(d_inv_no.clone());
+        }
 
         entry.total_amount += item_total;
         let inv_val = d_inv_qty * price;
         entry.invoiced_amount += inv_val;
         entry.uninvoiced_amount += (item_total - inv_val).max(0.0);
 
-        if !d_inv {
+        if !d_inv || d_inv_qty < qty {
             entry.is_fully_invoiced = false;
         }
 
         entry.items.push(json!({
+            "id": detail_id,
             "detail_id": detail_id,
-            "order_id": row.try_get::<i64, _>("order_id").unwrap_or(0),
+            "order_id": ord_id,
+            "order_display_id": ord_disp,
             "product_id": row.try_get::<Option<i64>, _>("product_id").ok().flatten(),
             "product_code": row.try_get::<Option<String>, _>("product_code").ok().flatten().unwrap_or_default(),
             "product_name": row.try_get::<Option<String>, _>("product_name").ok().flatten().unwrap_or_default(),
+            "unit": p_unit,
             "quantity": qty,
             "price": price,
             "total": item_total,
+            "total_price": item_total,
             "is_invoiced": d_inv,
             "invoiced_quantity": d_inv_qty,
-            "invoice_no": row.try_get::<Option<String>, _>("detail_invoice_no").ok().flatten().unwrap_or_default()
+            "invoice_no": d_inv_no
         }));
     }
 
@@ -233,7 +359,17 @@ pub async fn get_daily_invoices(
     let mut total_inv = 0.0;
     let mut total_uninv = 0.0;
 
-    for (_, p) in partners_map {
+    for (_, mut p) in partners_map {
+        let total_items = p.items.len();
+        let invoiced_items = p.items.iter().filter(|it| {
+            it["is_invoiced"].as_bool().unwrap_or(false)
+                || it["invoiced_quantity"].as_f64().unwrap_or(0.0) >= it["quantity"].as_f64().unwrap_or(1.0)
+        }).count();
+        let pending_items = total_items.saturating_sub(invoiced_items);
+        p.total_items_count = total_items;
+        p.invoiced_items_count = invoiced_items;
+        p.pending_items_count = pending_items;
+
         total_sales += p.total_amount;
         total_inv += p.invoiced_amount;
         total_uninv += p.uninvoiced_amount;
@@ -244,6 +380,7 @@ pub async fn get_daily_invoices(
             let matches_item = p.items.iter().any(|it| {
                 it["product_name"].as_str().unwrap_or("").to_lowercase().contains(&search)
                     || it["product_code"].as_str().unwrap_or("").to_lowercase().contains(&search)
+                    || it["order_display_id"].as_str().unwrap_or("").to_lowercase().contains(&search)
             });
             if !matches_name && !matches_phone && !matches_item {
                 continue;
@@ -268,6 +405,11 @@ pub async fn get_daily_invoices(
 
     let total_count = partners_list.len();
     let invoiced_count = partners_list.iter().filter(|p| p.is_fully_invoiced).count();
+    let total_orders = partners_list.iter().map(|p| p.total_orders_count).sum::<i64>();
+    let invoiced_orders = partners_list.iter().map(|p| {
+        p.orders.iter().filter(|o| o["is_invoiced"].as_bool().unwrap_or(false)).count() as i64
+    }).sum::<i64>();
+    let uninvoiced_orders = total_orders.saturating_sub(invoiced_orders);
 
     Ok(Json(json!({
         "scope": scope,
@@ -279,6 +421,9 @@ pub async fn get_daily_invoices(
             "total_sales_amount": total_sales,
             "invoiced_amount": total_inv,
             "uninvoiced_amount": total_uninv,
+            "total_orders_count": total_orders,
+            "invoiced_orders_count": invoiced_orders,
+            "uninvoiced_orders_count": uninvoiced_orders
         },
         "partners": partners_list
     })))
@@ -383,6 +528,67 @@ pub async fn update_order_detail_invoice_status(
     Ok(Json(json!({ "message": "Cập nhật món thành công!" })))
 }
 
+pub async fn batch_invoice_partner(
+    State(pool): State<SqlitePool>,
+    Path(partner_id): Path<i64>,
+    Json(payload): Json<BatchInvoicePartnerDto>,
+) -> Result<impl IntoResponse, AppError> {
+    let is_inv = payload.is_invoiced.unwrap_or(true);
+    let invoice_no = payload.invoice_no.unwrap_or_default();
+    let invoice_note = payload.invoice_note.unwrap_or_default();
+    let now = Local::now().naive_local();
+
+    let mut tx = pool.begin().await?;
+
+    let partner_filter = if partner_id > 0 {
+        format!("partner_id = {}", partner_id)
+    } else {
+        "partner_id IS NULL".to_string()
+    };
+
+    let date_filter = if let Some(ref d) = payload.date {
+        format!(" AND date(date) = '{}'", d)
+    } else {
+        "".to_string()
+    };
+
+    let order_where = format!("type = 'Sale' AND {} {}", partner_filter, date_filter);
+
+    let sql_ord = format!(
+        "UPDATE \"order\" SET is_invoiced = ?, invoice_no = ?, invoice_note = ?, invoice_date = ? WHERE {}",
+        order_where
+    );
+
+    let res = sqlx::query(&sql_ord)
+        .bind(if is_inv { 1 } else { 0 })
+        .bind(&invoice_no)
+        .bind(&invoice_note)
+        .bind(if is_inv { Some(now) } else { None })
+        .execute(&mut *tx)
+        .await?;
+
+    let updated_count = res.rows_affected();
+
+    let sql_det = format!(
+        "UPDATE order_detail SET is_invoiced = ?, invoiced_quantity = (CASE WHEN ? = 1 THEN quantity ELSE 0.0 END), invoice_no = ? WHERE order_id IN (SELECT id FROM \"order\" WHERE {})",
+        order_where
+    );
+
+    sqlx::query(&sql_det)
+        .bind(if is_inv { 1 } else { 0 })
+        .bind(if is_inv { 1 } else { 0 })
+        .bind(&invoice_no)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(Json(json!({
+        "message": format!("Đã cập nhật hóa đơn cho {} đơn hàng của đối tác!", updated_count),
+        "updated_count": updated_count
+    })))
+}
+
 pub async fn bulk_batch_invoice_partners(
     State(pool): State<SqlitePool>,
     Json(payload): Json<BulkBatchInvoiceDto>,
@@ -401,26 +607,46 @@ pub async fn bulk_batch_invoice_partners(
     let mut updated_count = 0;
 
     for pid_val in partner_ids {
-        let mut sql_ord = "UPDATE \"order\" SET is_invoiced = ?, invoice_no = ?, invoice_note = ?, invoice_date = ? WHERE type = 'Sale'".to_string();
-        if let Some(p_num) = pid_val.as_i64() {
+        let partner_filter = if let Some(p_num) = pid_val.as_i64() {
             if p_num > 0 {
-                sql_ord.push_str(&format!(" AND partner_id = {}", p_num));
+                format!("partner_id = {}", p_num)
             } else {
-                sql_ord.push_str(" AND partner_id IS NULL");
+                "partner_id IS NULL".to_string()
             }
         } else {
-            sql_ord.push_str(" AND partner_id IS NULL");
-        }
+            "partner_id IS NULL".to_string()
+        };
 
-        if let Some(ref d) = payload.date {
-            sql_ord.push_str(&format!(" AND date(date) = '{}'", d));
-        }
+        let date_filter = if let Some(ref d) = payload.date {
+            format!(" AND date(date) = '{}'", d)
+        } else {
+            "".to_string()
+        };
+
+        let order_where = format!("type = 'Sale' AND {} {}", partner_filter, date_filter);
+
+        let sql_ord = format!(
+            "UPDATE \"order\" SET is_invoiced = ?, invoice_no = ?, invoice_note = ?, invoice_date = ? WHERE {}",
+            order_where
+        );
 
         let res = sqlx::query(&sql_ord)
             .bind(if is_inv { 1 } else { 0 })
             .bind(&invoice_no)
             .bind(&invoice_note)
             .bind(if is_inv { Some(now) } else { None })
+            .execute(&mut *tx)
+            .await?;
+
+        let sql_det = format!(
+            "UPDATE order_detail SET is_invoiced = ?, invoiced_quantity = (CASE WHEN ? = 1 THEN quantity ELSE 0.0 END), invoice_no = ? WHERE order_id IN (SELECT id FROM \"order\" WHERE {})",
+            order_where
+        );
+
+        sqlx::query(&sql_det)
+            .bind(if is_inv { 1 } else { 0 })
+            .bind(if is_inv { 1 } else { 0 })
+            .bind(&invoice_no)
             .execute(&mut *tx)
             .await?;
 
@@ -440,12 +666,15 @@ pub async fn update_partner_items_invoice(
     Json(payload): Json<UpdatePartnerItemsInvoiceDto>,
 ) -> Result<impl IntoResponse, AppError> {
     let items = payload.items.unwrap_or_default();
+    let common_inv_no = payload.invoice_no.unwrap_or_default();
     let mut tx = pool.begin().await?;
+
+    let mut affected_order_ids = std::collections::HashSet::new();
 
     for item in items {
         let is_inv = item.is_invoiced.unwrap_or(true);
         let inv_qty = item.invoiced_quantity.unwrap_or(0.0);
-        let inv_no = item.invoice_no.unwrap_or_default();
+        let inv_no = item.invoice_no.unwrap_or_else(|| common_inv_no.clone());
 
         sqlx::query(
             "UPDATE order_detail SET is_invoiced = ?, invoiced_quantity = ?, invoice_no = ? WHERE id = ?"
@@ -456,6 +685,49 @@ pub async fn update_partner_items_invoice(
         .bind(item.detail_id)
         .execute(&mut *tx)
         .await?;
+
+        // Find which order this detail belongs to
+        let order_row = sqlx::query("SELECT order_id FROM order_detail WHERE id = ?")
+            .bind(item.detail_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+        if let Some(r) = order_row {
+            use sqlx::Row;
+            if let Ok(ord_id) = r.try_get::<i64, _>("order_id") {
+                affected_order_ids.insert(ord_id);
+            }
+        }
+    }
+
+    // Now synchronize the parent order is_invoiced status for all affected orders
+    for ord_id in affected_order_ids {
+        use sqlx::Row;
+        let details = sqlx::query("SELECT is_invoiced, quantity, invoiced_quantity FROM order_detail WHERE order_id = ?")
+            .bind(ord_id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        let all_invoiced = !details.is_empty() && details.iter().all(|r| {
+            let inv: bool = r.try_get::<i64, _>("is_invoiced").map(|v| v != 0).unwrap_or(false);
+            let qty: f64 = r.try_get("quantity").unwrap_or(0.0);
+            let inv_qty: f64 = r.try_get("invoiced_quantity").unwrap_or(0.0);
+            inv && inv_qty >= qty
+        });
+
+        if all_invoiced {
+            let now = Local::now().naive_local();
+            sqlx::query("UPDATE \"order\" SET is_invoiced = 1, invoice_date = COALESCE(invoice_date, ?) WHERE id = ?")
+                .bind(now)
+                .bind(ord_id)
+                .execute(&mut *tx)
+                .await?;
+        } else {
+            sqlx::query("UPDATE \"order\" SET is_invoiced = 0 WHERE id = ?")
+                .bind(ord_id)
+                .execute(&mut *tx)
+                .await?;
+        }
     }
 
     tx.commit().await?;

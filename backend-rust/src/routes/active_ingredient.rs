@@ -1414,11 +1414,30 @@ Trả về KẾT QUẢ DUY NHẤT dưới dạng mã JSON (không kèm văn bả
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
 
-    let models = ["gemini-3.5-flash-lite"];
+    let mut models: Vec<String> = Vec::new();
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_selected_model'")
+        .fetch_optional(pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                let m = val.trim_matches('"').trim();
+                if !m.is_empty() && !models.contains(&m.to_string()) {
+                    models.push(m.to_string());
+                }
+            }
+        }
+    }
+    for fallback in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"] {
+        if !models.contains(&fallback.to_string()) {
+            models.push(fallback.to_string());
+        }
+    }
+
     let mut json_result: Option<serde_json::Value> = None;
 
     'outer: for key in &api_keys {
-        for model in models {
+        for model in &models {
             let url = format!(
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
                 model, key

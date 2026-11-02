@@ -143,10 +143,11 @@ export default function IconPickerModal({
         const PADDING = 12;
 
         if (!currentTarget?.anchorRect) {
+            const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+            const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
             return {
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
+                top: `${Math.max(16, (vh - POPOUT_HEIGHT) / 2)}px`,
+                left: `${Math.max(16, (vw - POPOUT_WIDTH) / 2)}px`,
                 placement: 'center'
             };
         }
@@ -330,7 +331,6 @@ export default function IconPickerModal({
                                 position: 'fixed',
                                 top: popoutPosition.top,
                                 left: popoutPosition.left,
-                                transform: popoutPosition.transform || 'none',
                                 width: '430px',
                                 maxHeight: '540px'
                             }}

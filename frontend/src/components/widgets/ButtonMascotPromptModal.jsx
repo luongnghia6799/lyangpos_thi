@@ -55,10 +55,10 @@ export default function ButtonMascotPromptModal({
     const list = [
       {
         id: 'active_pill',
-        name: 'Bé Lyang Chibi (Sidebar)',
+        name: 'Lí An (Sidebar)',
         category: 'human',
         emoji: '🌾',
-        desc: 'Bé Lyang ngồi vẫy tay cute siêu cấp như trên thanh điều hướng',
+        desc: 'Lí An ngồi vẫy tay cute siêu cấp như trên thanh điều hướng',
         isSidebarPill: true,
         imageUrl: '/assets/images/mascot_active_pill.png'
       },
@@ -252,7 +252,7 @@ export default function ButtonMascotPromptModal({
                   <p className="text-[11px] font-medium text-stone-700 dark:text-stone-200 leading-snug">
                     {hasExistingMascot 
                       ? 'Bé Mascot đang ngồi canh gác nút này!' 
-                      : 'Gắn bé Lyang ngồi canh nút này nhé?'}
+                      : 'Gắn Lí An ngồi canh nút này nhé?'}
                   </p>
                 </div>
               </div>
@@ -267,7 +267,7 @@ export default function ButtonMascotPromptModal({
                       className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#3d6b20] hover:from-[#234011] hover:to-[#2d5016] dark:from-emerald-700 dark:to-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5 transition-all transform active:scale-[0.98] cursor-pointer border border-[#2d5016]/40"
                     >
                       <Sparkles size={13} />
-                      Tạo Bé Lyang (Sidebar)
+                      Tạo Lí An (Sidebar)
                     </button>
 
                     <button

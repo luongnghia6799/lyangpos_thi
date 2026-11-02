@@ -34,6 +34,7 @@ export const DEFAULT_NAV_SECTIONS = [
         items: [
             { id: 'dashboard', path: '/', label: 'Tổng quan', icon: Home, roles: ['admin'], desc: 'Bảng tin thống kê doanh thu & lợi nhuận' },
             { id: 'pos', path: '/pos', label: 'Bán hàng (POS)', icon: ShoppingCart, roles: ['admin', 'accountant', 'user'], desc: 'Màn hình thu ngân & tạo hóa đơn bán lẻ' },
+            { id: 'ai_consultant', path: '/ai-consultant', label: 'AI Tư Vấn', icon: Sparkles, roles: ['admin', 'accountant', 'user'], desc: 'Bác sĩ cây trồng BVTV & Cố vấn thông minh' },
         ]
     },
     {

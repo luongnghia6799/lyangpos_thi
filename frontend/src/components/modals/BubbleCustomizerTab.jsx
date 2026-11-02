@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
-    Palette, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
+    Palette, RotateCcw, RotateCw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, SlidersHorizontal, ArrowDown, User, DollarSign,
-    CreditCard, Receipt, Printer, MousePointerClick, ShieldCheck, Type, Truck
+    CreditCard, Receipt, Printer, MousePointerClick, ShieldCheck, Type, Truck,
+    Layout, Package, RefreshCcw, Wallet, ArrowLeftRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -620,6 +621,204 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
 
     return (
         <div className="space-y-6">
+            {/* Bubble Layout Selector (Kiểu Mới Hiện Tại vs Kiểu Cổ Điển Trước Khi Sửa) */}
+            <div className="p-4.5 rounded-2xl bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 space-y-3.5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary dark:bg-emerald-500/20 dark:text-emerald-400 flex items-center justify-center font-black">
+                            <Layout size={16} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 block">
+                                Kiểu Hiển Thị Cụm Bubble Thanh Toán
+                            </span>
+                            <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                                Lựa chọn phong cách hiển thị thanh nổi phía dưới bảng giỏ hàng POS
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Option 1: Modern Layout (Mới sửa hiện tại) */}
+                    <div
+                        onClick={() => onChangeConfig({ ...currentConfig, bubbleLayoutStyle: 'modern' })}
+                        className={cn(
+                            "p-3.5 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden select-none flex flex-col justify-between gap-2",
+                            (currentConfig.bubbleLayoutStyle || 'modern') === 'modern'
+                                ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 shadow-md shadow-emerald-500/10"
+                                : "border-black/10 dark:border-white/10 bg-white/40 dark:bg-white/5 hover:border-black/20 dark:hover:border-white/20"
+                        )}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
+                                        Hiện tại (Mới sửa)
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Tối ưu mượt</span>
+                                </div>
+                                {(currentConfig.bubbleLayoutStyle || 'modern') === 'modern' && (
+                                    <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[3]" />
+                                )}
+                            </div>
+                            <div className="text-xs font-black text-slate-800 dark:text-white uppercase mb-1">
+                                Gọn Gàng & Ghép Đôi Cố Định
+                            </div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Bubble đối tác cố định chiều cao, thẻ công nợ ghép gọn gàng, thanh toán ghép đôi cạnh ô tổng cộng, ẩn Khách đưa, không bị giật lag khung hình.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-600/90 dark:text-emerald-400/90 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-lg">
+                            <span>✨ Khuyên dùng: Tối ưu hiệu năng cao nhất</span>
+                        </div>
+                    </div>
+
+                    {/* Option 2: Classic Layout (Trước khi sửa) */}
+                    <div
+                        onClick={() => onChangeConfig({ ...currentConfig, bubbleLayoutStyle: 'classic' })}
+                        className={cn(
+                            "p-3.5 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden select-none flex flex-col justify-between gap-2",
+                            currentConfig.bubbleLayoutStyle === 'classic'
+                                ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/20 shadow-md shadow-amber-500/10"
+                                : "border-black/10 dark:border-white/10 bg-white/40 dark:bg-white/5 hover:border-black/20 dark:hover:border-white/20"
+                        )}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-amber-600 text-white shadow-xs">
+                                        Trước khi sửa (Cũ)
+                                    </span>
+                                    <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">Đầy đủ nút</span>
+                                </div>
+                                {currentConfig.bubbleLayoutStyle === 'classic' && (
+                                    <Check size={14} className="text-amber-600 dark:text-amber-400 shrink-0 stroke-[3]" />
+                                )}
+                            </div>
+                            <div className="text-xs font-black text-slate-800 dark:text-white uppercase mb-1">
+                                Cổ Điển Đầy Đủ Chi Tiết
+                            </div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Hiển thị ô nhập Khách đưa (F1) tính tiền thối trực tiếp, nút Ghi chú & Giao hàng nổi, thông tin khách hàng mở rộng kèm biến động công nợ chi tiết.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-amber-700/90 dark:text-amber-300/90 bg-amber-500/10 dark:bg-amber-500/20 px-2 py-1 rounded-lg">
+                            <span>📦 Đầy đủ: Có ô Khách đưa & Nút Note, Ship</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Cart Row Animation Selector (Hiệu ứng Thác nước hồi xưa vs Hiện tại - Độc lập với loading overlay) */}
+            <div className="p-4.5 rounded-2xl bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 space-y-3.5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 flex items-center justify-center font-black">
+                            <RotateCw size={16} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 block">
+                                Hiệu Ứng Thác Nước Giỏ Hàng (Cart Waterfall Animation)
+                            </span>
+                            <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                                Hoạt ảnh các dòng sản phẩm xuất hiện trong giỏ hàng (Độc lập với màn hình chờ / loading overlay)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Option 1: Thác Nước Như Hồi Xưa (Waterfall / Cascade) */}
+                    <div
+                        onClick={() => {
+                            const anim = 'waterfall';
+                            localStorage.setItem("pos_cart_row_animation", anim);
+                            onChangeConfig({ ...currentConfig, cartRowAnimation: anim });
+                            try {
+                                const syncChan = new BroadcastChannel("pos_data_sync");
+                                syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_cart_row_animation", value: anim });
+                                syncChan.close();
+                            } catch {}
+                            window.dispatchEvent(new CustomEvent("pos_cart_row_anim_changed", { detail: anim }));
+                        }}
+                        className={cn(
+                            "p-3.5 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden select-none flex flex-col justify-between gap-2",
+                            (currentConfig.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall'
+                                ? "border-blue-500 bg-blue-500/10 dark:bg-blue-500/20 shadow-md shadow-blue-500/10"
+                                : "border-black/10 dark:border-white/10 bg-white/40 dark:bg-white/5 hover:border-black/20 dark:hover:border-white/20"
+                        )}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-blue-600 text-white shadow-xs">
+                                        Thác Nước (Hồi Xưa)
+                                    </span>
+                                    <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400">Đổ từng dòng</span>
+                                </div>
+                                {(currentConfig.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' && (
+                                    <Check size={14} className="text-blue-600 dark:text-blue-400 shrink-0 stroke-[3]" />
+                                )}
+                            </div>
+                            <div className="text-xs font-black text-slate-800 dark:text-white uppercase mb-1">
+                                Thác Nước Giỏ Hàng Cổ Điển
+                            </div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Các dòng sản phẩm tuôn đổ so le nhịp nhàng từ trên xuống như thác nước khi nạp giỏ hàng hoặc quay lại đơn cũ như hồi xưa.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-blue-700/90 dark:text-blue-300/90 bg-blue-500/10 dark:bg-blue-500/20 px-2 py-1 rounded-lg">
+                            <span>🌊 Rơi so le từng dòng giỏ hàng như hồi xưa</span>
+                        </div>
+                    </div>
+
+                    {/* Option 2: Hiện Tại (Mượt mà & Nhẹ) */}
+                    <div
+                        onClick={() => {
+                            const anim = 'modern';
+                            localStorage.setItem("pos_cart_row_animation", anim);
+                            onChangeConfig({ ...currentConfig, cartRowAnimation: anim });
+                            try {
+                                const syncChan = new BroadcastChannel("pos_data_sync");
+                                syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_cart_row_animation", value: anim });
+                                syncChan.close();
+                            } catch {}
+                            window.dispatchEvent(new CustomEvent("pos_cart_row_anim_changed", { detail: anim }));
+                        }}
+                        className={cn(
+                            "p-3.5 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden select-none flex flex-col justify-between gap-2",
+                            (currentConfig.cartRowAnimation || localStorage.getItem('pos_cart_row_animation')) === 'modern'
+                                ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 shadow-md shadow-emerald-500/10"
+                                : "border-black/10 dark:border-white/10 bg-white/40 dark:bg-white/5 hover:border-black/20 dark:hover:border-white/20"
+                        )}
+                    >
+                        <div>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-full text-[8.5px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-xs">
+                                        Hiện Tại (Mới)
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Hiện êm dịu</span>
+                                </div>
+                                {(currentConfig.cartRowAnimation || localStorage.getItem('pos_cart_row_animation')) === 'modern' && (
+                                    <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0 stroke-[3]" />
+                                )}
+                            </div>
+                            <div className="text-xs font-black text-slate-800 dark:text-white uppercase mb-1">
+                                Hiện Tại (Mượt Mà & Nhẹ)
+                            </div>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                                Các dòng sản phẩm nạp hiện nhanh êm dịu, không đổ tầng tầng lớp lớp, giảm tối đa tải render và độ trễ giao diện.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-700/90 dark:text-emerald-300/90 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-lg">
+                            <span>✨ Xuất hiện êm dịu, mượt mà và nhẹ nhàng</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Viewport Constraint Toggle */}
             <div 
                 onClick={() => onChangeConfig({
@@ -678,9 +877,9 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
 
                 <div className="w-full rounded-2xl p-5 bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 relative overflow-hidden transition-all duration-300">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                        {/* Left Side: Partner Bubble & Note/Ship buttons */}
+                        {/* Left Side: Partner Bubble & Note/Ship buttons OR Debt Card */}
                         <div className="flex items-center gap-2.5">
-                            {/* Partner Bubble Preview with Perched Delivery Badge */}
+                            {/* Partner Bubble Preview */}
                             {(() => {
                                 const st = getBubbleComputedStyle(currentConfig, 'partner');
                                 const bg = currentConfig?.badgeDeliveryBg;
@@ -701,18 +900,19 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                                 }
                                 return (
                                     <div className="relative group/partner-preview">
-                                        <div 
-                                            style={deliverySt}
-                                            className="absolute -top-3.5 right-2 z-20 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black border-2 bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white border-emerald-300 dark:border-emerald-400 shadow-sm select-none transition-all"
-                                            title="Badge Nhắc Chở Phân"
-                                        >
-                                            <span className="relative flex h-1.5 w-1.5 mr-0.5">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
-                                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
-                                            </span>
-                                            <Truck size={10} strokeWidth={2.8} style={deliverySt.color ? { color: deliverySt.color } : undefined} />
-                                            <span style={deliverySt.color ? { color: deliverySt.color } : undefined}>Nhắc Chở Phân</span>
-                                        </div>
+                                        {currentConfig.bubbleLayoutStyle === 'classic' && (
+                                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center justify-center">
+                                                <div 
+                                                    style={deliverySt}
+                                                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black border-2 bg-gradient-to-r from-emerald-600 via-[#2d5016] to-[#1d380e] text-white border-emerald-300 dark:border-emerald-400 shadow-sm select-none transition-all whitespace-nowrap"
+                                                    title="Badge Nhắc Chở Phân"
+                                                >
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400 mr-0.5 shrink-0" />
+                                                    <Truck size={10} strokeWidth={2.8} style={deliverySt.color ? { color: deliverySt.color } : undefined} />
+                                                    <span style={deliverySt.color ? { color: deliverySt.color } : undefined}>Nhắc Chở Phân</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div 
                                             style={st}
                                             className="flex items-center gap-3 p-2.5 px-4 rounded-2xl border-2 transition-all duration-300 bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 cursor-pointer shadow-md select-none"
@@ -742,25 +942,49 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                                 );
                             })()}
 
-                            {/* Note & Ship Buttons Preview */}
-                            {(() => {
-                                const btnSt = getButtonComputedStyle(currentConfig, 'buttons');
-                                return (
-                                    <div 
-                                        style={btnSt}
-                                        className="w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-sm cursor-pointer select-none transition-colors"
-                                        title="Ghi chú"
-                                    >
-                                        <Receipt size={15} style={btnSt.color ? { color: btnSt.color } : undefined} />
-                                    </div>
-                                );
-                            })()}
+                            {/* In Classic mode: Show Note & Ship buttons. In Modern mode: Show Debt Delta Card */}
+                            {currentConfig.bubbleLayoutStyle === 'classic' ? (
+                                <>
+                                    {/* Note Button Preview */}
+                                    {(() => {
+                                        const btnSt = getButtonComputedStyle(currentConfig, 'buttons');
+                                        return (
+                                            <div 
+                                                style={btnSt}
+                                                className="w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-sm cursor-pointer select-none transition-colors"
+                                                title="Ghi chú"
+                                            >
+                                                <Package size={15} style={btnSt.color ? { color: btnSt.color } : undefined} />
+                                            </div>
+                                        );
+                                    })()}
+                                    {/* Ship Button Preview */}
+                                    {(() => {
+                                        const btnSt = getButtonComputedStyle(currentConfig, 'buttons');
+                                        return (
+                                            <div 
+                                                style={btnSt}
+                                                className="w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] bg-[#fbf9f4] dark:bg-[#1a1e17] border-[#8b6f47]/40 dark:border-[#d4a574]/35 shadow-sm cursor-pointer select-none transition-colors"
+                                                title="Giao hàng"
+                                            >
+                                                <Truck size={15} style={btnSt.color ? { color: btnSt.color } : undefined} />
+                                            </div>
+                                        );
+                                    })()}
+                                </>
+                            ) : (
+                                /* Modern mode: Debt Card Preview */
+                                <div className="h-10 px-3 rounded-xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#fbf9f4] dark:bg-[#1a1e17] flex items-center gap-2 text-[9px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] shadow-xs select-none">
+                                    <Wallet size={12} className="text-[#8b6f47] dark:text-[#d4a574]" />
+                                    <span>Nợ: 500k ➔ 950k</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Right Side: Cash given, Payment toggle, Total bubble & Save/Print */}
                         <div className="flex items-center gap-2.5 flex-wrap">
-                            {/* Cash Given F1 Preview */}
-                            {(() => {
+                            {/* In Classic mode: Show Cash Given F1 */}
+                            {currentConfig.bubbleLayoutStyle === 'classic' && (() => {
                                 const cashSt = getBubbleComputedStyle(currentConfig, 'cash');
                                 return (
                                     <div 
@@ -782,6 +1006,20 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                                                 500.000đ
                                             </span>
                                         </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* In Modern mode: Show Payment Toggle */}
+                            {(currentConfig.bubbleLayoutStyle || 'modern') === 'modern' && (() => {
+                                const paySt = getBubbleComputedStyle(currentConfig, 'payment');
+                                return (
+                                    <div 
+                                        style={paySt}
+                                        className="h-10 px-2.5 rounded-xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#fbf9f4] dark:bg-[#1a1e17] flex items-center gap-2 text-[9px] font-black uppercase shadow-xs select-none"
+                                    >
+                                        <span className="px-2 py-1 rounded-lg bg-primary text-white">Tiền mặt</span>
+                                        <span className="text-slate-400">Ghi nợ</span>
                                     </div>
                                 );
                             })()}
@@ -1459,7 +1697,7 @@ export default function BubbleCustomizerTab({ config, onChangeConfig }) {
                                             className={cn(
                                                 "w-6 h-6 rounded-lg border-2 transition-all cursor-pointer shadow-xs",
                                                 currentConfig[fieldNames.glow] === col
-                                                    ? "scale-115 border-white ring-2 ring-emerald-500"
+                                                    ? "scale-115 border-transparent ring-2 ring-emerald-500 ring-offset-2 ring-offset-transparent"
                                                     : "border-black/20 hover:scale-110"
                                             )}
                                             style={{ backgroundColor: col }}

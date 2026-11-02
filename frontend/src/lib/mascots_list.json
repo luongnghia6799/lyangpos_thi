@@ -1,10 +1,10 @@
 [
   {
     "id": "lyang",
-    "name": "Bé Lyang Chibi",
+    "name": "Lí An",
     "category": "human",
     "emoji": "🌾",
-    "desc": "Linh vật chính thức của LyangPOS (Cute Chibi)",
+    "desc": "Linh vật chính thức của LyangPOS (Lí An)",
     "directions": "/mascots/lyang-directions.webp",
     "reactions": "/mascots/lyang-reactions.webp"
   },

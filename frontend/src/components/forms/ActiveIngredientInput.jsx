@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { m, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { Sparkles, Plus, X, Tag, Edit2, Edit3, Check, ChevronDown, Trash2, BookmarkCheck } from 'lucide-react';
 import {
     POPULAR_ACTIVE_INGREDIENTS,
@@ -36,6 +37,13 @@ export default function ActiveIngredientInput({
     const [customIngredients, setCustomIngredients] = useState(() => getCustomActiveIngredients());
     const [coords, setCoords] = useState({ top: 0, bottom: 0, left: 0, width: 380 });
 
+    let queryClient = null;
+    try {
+        queryClient = useQueryClient();
+    } catch (e) {
+        // Safe fallback if used outside React Query provider
+    }
+
     const containerRef = useRef(null);
     const inputRef = useRef(null);
     const dropdownRef = useRef(null);
@@ -69,6 +77,8 @@ export default function ActiveIngredientInput({
     useEffect(() => {
         if (isOpen) {
             updateCoords();
+            // Đồng bộ lại danh sách hoạt chất tự gõ đã nhớ mới nhất từ localStorage
+            setCustomIngredients(getCustomActiveIngredients());
         }
     }, [isOpen, direction]);
 
@@ -110,44 +120,89 @@ export default function ActiveIngredientInput({
     // Danh sách tag hiện tại từ props value
     const tags = useMemo(() => parseActiveIngredients(value), [value]);
 
+    // Lấy danh sách sản phẩm thực tế: ưu tiên prop existingProducts, fallback sang React Query cache ['products']
+    const effectiveProducts = useMemo(() => {
+        if (Array.isArray(existingProducts) && existingProducts.length > 0) {
+            return existingProducts;
+        }
+        try {
+            const cached = queryClient?.getQueryData?.(['products']);
+            if (Array.isArray(cached) && cached.length > 0) return cached;
+            if (Array.isArray(cached?.items) && cached.items.length > 0) return cached.items;
+            if (Array.isArray(cached?.data) && cached.data.length > 0) return cached.data;
+        } catch (e) {}
+        return [];
+    }, [existingProducts, queryClient]);
+
     // Trích xuất các hoạt chất đã dùng từ danh sách sản phẩm hiện tại của cửa hàng
     const storeIngredients = useMemo(() => {
-        return extractActiveIngredientsFromProducts(existingProducts);
-    }, [existingProducts]);
+        return extractActiveIngredientsFromProducts(effectiveProducts);
+    }, [effectiveProducts]);
 
     // Tổng hợp toàn bộ danh mục (từ điển chuẩn + hoạt chất tự học từ DB + hoạt chất tự tạo trong máy)
     const fullIngredientList = useMemo(() => {
-        const knownNames = new Set(POPULAR_ACTIVE_INGREDIENTS.map(i => i.name.toLowerCase()));
-        const list = [...POPULAR_ACTIVE_INGREDIENTS];
+        const map = new Map();
 
-        // 1. Gộp hoạt chất tự học từ danh mục sản phẩm hiện có
+        // 1. Gộp hoạt chất thực tế từ các sản phẩm của cửa hàng (tự học từ DB)
         storeIngredients.forEach(name => {
-            if (!knownNames.has(name.toLowerCase())) {
-                list.push({
-                    name,
-                    category: 'custom',
-                    aliases: [name.toLowerCase()],
-                    isCustom: true
-                });
-                knownNames.add(name.toLowerCase());
-            }
+            if (!name) return;
+            const key = name.toLowerCase().trim();
+            const standard = POPULAR_ACTIVE_INGREDIENTS.find(p => p.name.toLowerCase() === key);
+            map.set(key, {
+                name: standard ? standard.name : name,
+                category: standard ? standard.category : 'custom',
+                aliases: standard?.aliases || [key],
+                isCustom: !standard,
+                isFromStore: true
+            });
         });
 
         // 2. Gộp hoạt chất người dùng tự gõ thêm đã lưu trong máy
         customIngredients.forEach(item => {
             const itemName = typeof item === 'string' ? item : item.name;
-            if (itemName && !knownNames.has(itemName.toLowerCase())) {
-                list.push({
-                    name: itemName,
-                    category: 'custom',
-                    aliases: [itemName.toLowerCase()],
-                    isCustom: true
+            if (!itemName) return;
+            const key = itemName.toLowerCase().trim();
+            if (!map.has(key)) {
+                const standard = POPULAR_ACTIVE_INGREDIENTS.find(p => p.name.toLowerCase() === key);
+                map.set(key, {
+                    name: standard ? standard.name : itemName,
+                    category: (typeof item === 'object' && item.category) || (standard ? standard.category : 'custom'),
+                    aliases: standard?.aliases || [key],
+                    isCustom: true,
+                    isFromStore: true
                 });
-                knownNames.add(itemName.toLowerCase());
+            } else {
+                const existing = map.get(key);
+                existing.isCustom = true;
+                existing.isFromStore = true;
             }
         });
 
-        return list;
+        // 3. Toàn bộ từ điển chuẩn
+        POPULAR_ACTIVE_INGREDIENTS.forEach(item => {
+            const key = item.name.toLowerCase().trim();
+            if (!map.has(key)) {
+                map.set(key, {
+                    name: item.name,
+                    category: item.category,
+                    aliases: item.aliases || [],
+                    isCustom: false,
+                    isFromStore: false
+                });
+            }
+        });
+
+        const allList = Array.from(map.values());
+
+        // ƯU TIÊN HOẠT CHẤT CỦA CỬA HÀNG ĐÃ NHỚ (từ DB kho hoặc đã lưu) LÊN ĐẦU TIÊN
+        allList.sort((a, b) => {
+            const aStore = (a.isFromStore || a.isCustom) ? 1 : 0;
+            const bStore = (b.isFromStore || b.isCustom) ? 1 : 0;
+            if (bStore !== aStore) return bStore - aStore;
+            return a.name.localeCompare(b.name, 'vi');
+        });
+
+        return allList;
     }, [storeIngredients, customIngredients]);
 
     // Lọc gợi ý theo từ khóa và nhóm công dụng
@@ -158,7 +213,12 @@ export default function ActiveIngredientInput({
         return fullIngredientList.filter(item => {
             if (selectedNames.has(item.name.toLowerCase())) return false;
 
-            if (selectedCategory !== 'all' && item.category !== selectedCategory) {
+            // Nếu lọc theo nhóm "Cửa hàng (Đã nhớ)" (custom): hiện toàn bộ hoạt chất kho và hoạt chất đã lưu
+            if (selectedCategory === 'custom') {
+                if (!item.isFromStore && !item.isCustom && item.category !== 'custom') {
+                    return false;
+                }
+            } else if (selectedCategory !== 'all' && item.category !== selectedCategory) {
                 return false;
             }
 
@@ -167,7 +227,7 @@ export default function ActiveIngredientInput({
             const nameMatch = item.name.toLowerCase().includes(query);
             const aliasMatch = item.aliases && item.aliases.some(a => a.toLowerCase().includes(query));
             return nameMatch || aliasMatch;
-        }).slice(0, 30);
+        }).slice(0, 40);
     }, [inputValue, selectedCategory, fullIngredientList, tags]);
 
     // Đóng dropdown khi click ra ngoài
@@ -644,6 +704,11 @@ export default function ActiveIngredientInput({
                                                                 </div>
 
                                                                 <div className="flex items-center gap-1.5 shrink-0">
+                                                                    {(item.isFromStore || item.isCustom) && (
+                                                                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#8b6f47]/15 text-[#5c4028] dark:text-[#d4a574] border border-[#8b6f47]/40 flex items-center gap-1">
+                                                                            <BookmarkCheck size={10} /> Đã nhớ
+                                                                        </span>
+                                                                    )}
                                                                     <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${catConfig.color}`}>
                                                                         {catConfig.label}
                                                                     </span>

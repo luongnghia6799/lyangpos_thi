@@ -38,7 +38,7 @@ const OrderSwitchOverlay = ({
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
-                    className={`${positionClass} select-none pointer-events-none overflow-hidden rounded-3xl flex items-center justify-center transform-gpu will-change-transform ${className}`}
+                    className={`${positionClass} select-none pointer-events-none overflow-hidden rounded-3xl flex items-center justify-center ${className}`}
                 >
                     {/* STYLE 1: VÒNG XOAY VỤ MÙA (AGRI RING) - CHUẨN THIẾT KẾ MẪU */}
                     {style === 'ring' && (
@@ -47,7 +47,7 @@ const OrderSwitchOverlay = ({
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="flex flex-col items-center justify-center gap-3.5 bg-black/10 dark:bg-black/25 backdrop-blur-[2px] w-full h-full rounded-3xl transform-gpu"
+                            className="flex flex-col items-center justify-center gap-3.5 bg-black/20 dark:bg-black/40 w-full h-full rounded-3xl transform-gpu"
                         >
                             <div className="relative w-16 h-16 flex items-center justify-center">
                                 {/* Vòng xoay spinner chính */}
@@ -69,7 +69,7 @@ const OrderSwitchOverlay = ({
                                 <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8b6f47] dark:text-[#d4a574]">
                                     Lyang<span className="text-emerald-700 dark:text-emerald-400">POS</span>
                                 </span>
-                                <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card/90 dark:bg-slate-900/90 border border-[#8b6f47]/25 dark:border-white/10 shadow-sm backdrop-blur-sm">
+                                <span className="text-xs font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-widest px-3.5 py-1 rounded-full bg-card dark:bg-slate-900 border border-[#8b6f47]/25 dark:border-white/10 shadow-sm">
                                     {message}
                                 </span>
                             </div>
@@ -83,7 +83,7 @@ const OrderSwitchOverlay = ({
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -16, scale: 0.9 }}
                             transition={{ duration: 0.16, ease: 'easeOut' }}
-                            className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-full border border-emerald-500/40 dark:border-emerald-400/30 shadow-xl pointer-events-auto"
+                            className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-4 py-2 bg-white/95 dark:bg-slate-900/95 rounded-full border border-emerald-500/40 dark:border-emerald-400/30 shadow-xl pointer-events-auto transform-gpu"
                         >
                             <div className="w-4 h-4 rounded-full border-2 border-emerald-500/30 border-t-emerald-600 dark:border-emerald-400/30 dark:border-t-emerald-400 animate-spin" />
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -100,7 +100,7 @@ const OrderSwitchOverlay = ({
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: direction === 'next' ? -24 : 24 }}
                             transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="absolute inset-x-4 top-3.5 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#2d5016]/95 via-emerald-800/95 to-teal-800/95 text-white backdrop-blur-md rounded-2xl shadow-xl border border-emerald-400/30 pointer-events-auto"
+                            className="absolute inset-x-4 top-3.5 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#2d5016]/95 via-emerald-800/95 to-teal-800/95 text-white rounded-2xl shadow-xl border border-emerald-400/30 pointer-events-auto transform-gpu"
                         >
                             <div className="flex items-center gap-2.5">
                                 <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -125,7 +125,7 @@ const OrderSwitchOverlay = ({
 
                     {/* STYLE 4: HÀO QUANG NHỊP THỞ (GLOWING PULSE) - SANG TRỌNG TINH TẾ */}
                     {style === 'pulse' && (
-                        <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                        <div className="absolute inset-0 w-full h-full flex items-center justify-center transform-gpu">
                             {/* Viền hào quang nhịp thở viền ngoài */}
                             <m.div
                                 animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.995, 1, 0.995] }}
@@ -138,7 +138,7 @@ const OrderSwitchOverlay = ({
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.9, opacity: 0 }}
                                 transition={{ duration: 0.15 }}
-                                className="relative px-5 py-2.5 rounded-2xl bg-card/95 dark:bg-slate-900/95 border border-emerald-500/40 shadow-2xl flex items-center gap-3 backdrop-blur-sm"
+                                className="relative px-5 py-2.5 rounded-2xl bg-card dark:bg-slate-900 border border-emerald-500/40 shadow-2xl flex items-center gap-3 transform-gpu"
                             >
                                 <div className="relative flex items-center justify-center">
                                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute" />

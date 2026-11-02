@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use crate::error::AppError;
 use crate::models::category::Category;
 use crate::models::product::{
-    BulkDeleteDto, BulkUpdateDto, ComboItem, ComboItemResponse, CreateProductDto,
+    BulkAccountingUpdateItemDto, BulkDeleteDto, BulkUpdateDto, ComboItem, ComboItemResponse, CreateProductDto,
     LatestStockEntry, Product, ProductQueryDto, ProductResponse, StockBatch, UpdateProductDto,
 };
 use crate::utils::{normalize_date_sqlite, remove_accents};
@@ -673,6 +673,67 @@ pub async fn bulk_delete_products(
 
     Ok(Json(json!({
         "message": format!("Đã xóa {} sản phẩm thành công", payload.ids.len())
+    })))
+}
+
+pub async fn bulk_accounting_update(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<Vec<BulkAccountingUpdateItemDto>>,
+) -> Result<impl IntoResponse, AppError> {
+    let mut tx = pool.begin().await?;
+    let mut count = 0;
+
+    for item in payload {
+        let sale_p = item.sale_price.or(item.price);
+        if let Some(s) = item.stock {
+            sqlx::query("UPDATE product SET stock = ? WHERE id = ?")
+                .bind(s)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if let Some(p) = sale_p {
+            sqlx::query("UPDATE product SET sale_price = ? WHERE id = ?")
+                .bind(p)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if let Some(cp) = item.cost_price {
+            sqlx::query("UPDATE product SET cost_price = ? WHERE id = ?")
+                .bind(cp)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if let Some(ref u) = item.unit {
+            sqlx::query("UPDATE product SET unit = ? WHERE id = ?")
+                .bind(u)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if let Some(ap) = item.accounting_price {
+            sqlx::query("UPDATE product SET accounting_price = ? WHERE id = ?")
+                .bind(ap)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if let Some(ast) = item.accounting_stock {
+            sqlx::query("UPDATE product SET accounting_stock = ? WHERE id = ?")
+                .bind(ast)
+                .bind(item.id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        count += 1;
+    }
+
+    tx.commit().await?;
+    Ok(Json(json!({
+        "message": format!("Đã cập nhật thành công {} mặt hàng!", count),
+        "updated_count": count
     })))
 }
 

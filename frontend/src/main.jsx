@@ -21,6 +21,22 @@ if (typeof window !== 'undefined') {
 
   applyCartThemeToDom();
 
+  // Keep page background and darkmode strictly in sync whenever dark class is toggled
+  try {
+    const themeClassObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'class') {
+          applyCartThemeToDom();
+          break;
+        }
+      }
+    });
+    themeClassObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  } catch (e) {}
+
   try {
     const syncChannel = new BroadcastChannel('pos_data_sync');
     syncChannel.addEventListener('message', (e) => {

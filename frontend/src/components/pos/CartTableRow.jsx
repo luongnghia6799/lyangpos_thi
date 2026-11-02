@@ -47,6 +47,7 @@ const CartTableRow = React.memo(function CartTableRow({
   blockTabPrice = false,
   isSearchFocused = false,
   searchQuery = '',
+  isReadOnly = false,
   // Callbacks
   onUpdateField,
   onRemove,
@@ -288,17 +289,22 @@ const CartTableRow = React.memo(function CartTableRow({
                 item.ai_scanned && "pb-6"
               )}
               value={searchQuery}
-              onFocus={(e) => onFocusSearch?.(e, index, item)}
-              onChange={onChangeSearch}
+              disabled={isReadOnly}
+              readOnly={isReadOnly}
+              onFocus={(e) => !isReadOnly && onFocusSearch?.(e, index, item)}
+              onChange={(e) => !isReadOnly && onChangeSearch?.(e)}
               onBlur={onBlurSearch}
-              onKeyDown={(e) => onKeyDownSearch?.(e, index, item)}
+              onKeyDown={(e) => !isReadOnly && onKeyDownSearch?.(e, index, item)}
               id={`row-name-${index}`}
             />
           ) : (
             <div
-              onClick={() => onFocusSearch?.(null, index, item)}
+              onClick={() => !isReadOnly && onFocusSearch?.(null, index, item)}
               onContextMenu={(e) => onContextMenu?.(e, item, index)}
-              className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"
+              className={cn(
+                "w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 min-h-[44px]",
+                !isReadOnly ? "cursor-pointer group/marquee-wrap" : "cursor-default select-text"
+              )}
             >
               <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -608,10 +614,14 @@ const CartTableRow = React.memo(function CartTableRow({
               value={item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== ""
                 ? (typeof item.secondary_qty === 'number' ? Math.round((item.secondary_qty + Number.EPSILON) * 1000) / 1000 : item.secondary_qty)
                 : ""}
-              onFocus={(e) => e.target.select()}
+              onFocus={(e) => !isReadOnly && e.target.select()}
               autoComplete="off"
-              onChange={(e) => onUpdateField?.(index, "secondary_qty", parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                if (isReadOnly) return;
+                onUpdateField?.(index, "secondary_qty", parseFloat(e.target.value) || 0);
+              }}
               onKeyDown={(e) => {
+                if (isReadOnly) return;
                 if (e.key === "Enter") {
                   e.preventDefault();
                   focusProductSearch();
@@ -626,6 +636,8 @@ const CartTableRow = React.memo(function CartTableRow({
                 }
               }}
               id={`qty-sec-${index}`}
+              disabled={isReadOnly}
+              readOnly={isReadOnly}
             />
             <span className="text-[10px] font-black text-gray-400 uppercase pr-2">
               {normalizeUOM(item.secondary_unit)}
@@ -655,11 +667,17 @@ const CartTableRow = React.memo(function CartTableRow({
                 : "bg-transparent border border-white/20 dark:border-white/10 rounded-2xl focus:bg-transparent focus:border-primary/50 focus:ring-4 focus:ring-primary/10 shadow-none"
             )}
             value={item.quantity}
-            onFocus={(e) => e.target.select()}
+            onFocus={(e) => !isReadOnly && e.target.select()}
             autoComplete="off"
-            onChange={(e) => onUpdateField?.(index, "quantity", parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              if (isReadOnly) return;
+              onUpdateField?.(index, "quantity", parseFloat(e.target.value) || 0);
+            }}
             id={`qty-main-${index}`}
+            disabled={isReadOnly}
+            readOnly={isReadOnly}
             onKeyDown={(e) => {
+              if (isReadOnly) return;
               if (e.key === "Enter") {
                 e.preventDefault();
                 focusProductSearch();
@@ -685,15 +703,17 @@ const CartTableRow = React.memo(function CartTableRow({
               }
             }}
           />
-          <button
-            type="button"
-            tabIndex={-1}
-            className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100 cursor-pointer"
-            onClick={() => onUpdateField?.(index, "quantity", item.quantity * -1)}
-            title="Đổi thành Trả Hàng (Âm)"
-          >
-            <Minus size={10} strokeWidth={3} />
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              tabIndex={-1}
+              className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white/40 dark:bg-black/20 text-[#8b6f47] dark:text-[#d4a574] rounded-full border border-white/50 dark:border-white/10 hover:bg-white/60 active:scale-90 z-[70] transition-all hover:scale-110 opacity-0 group-hover/qty:opacity-100 cursor-pointer"
+              onClick={() => onUpdateField?.(index, "quantity", item.quantity * -1)}
+              title="Đổi thành Trả Hàng (Âm)"
+            >
+              <Minus size={10} strokeWidth={3} />
+            </button>
+          )}
         </div>
       </td>
 
@@ -733,7 +753,9 @@ const CartTableRow = React.memo(function CartTableRow({
           >
             <input
               type="text"
-              tabIndex={blockTabPrice ? -1 : 0}
+              tabIndex={blockTabPrice || isReadOnly ? -1 : 0}
+              disabled={isReadOnly}
+              readOnly={isReadOnly}
               style={{
                 color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default' && item.price > 0 && !isLoss && !(item.latest_cost_price > 0 && item.price < item.latest_cost_price))
                   ? cartColorConfig.cartValuesColor
@@ -741,23 +763,27 @@ const CartTableRow = React.memo(function CartTableRow({
                 ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor)
               }}
               className={cn(
-                "w-full p-2 text-center bg-transparent border-none focus:ring-2 rounded font-black transition-all outline-none",
+                "w-full p-2 text-center bg-transparent border-none rounded font-black transition-all outline-none",
+                !isReadOnly && "focus:ring-2",
+                isReadOnly && "cursor-default select-none pointer-events-none",
                 item.price === 0
                   ? "text-transparent select-none placeholder:text-transparent"
                   : isLoss
                     ? "text-red-600 dark:text-red-400 focus:ring-red-200 dark:focus:ring-red-900"
                     : isBelowNewCost
                       ? "text-orange-600 dark:text-orange-400 focus:ring-orange-200"
-                      : "text-primary dark:text-[#d4a574] focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20"
+                      : "text-primary dark:text-[#d4a574] focus:ring-primary/20 dark:focus:ring-[#4a7c59]/20"
               )}
               value={formatNumber(item.price)}
-              onFocus={(e) => e.target.select()}
+              onFocus={(e) => !isReadOnly && e.target.select()}
               autoComplete="off"
               onChange={(e) => {
+                if (isReadOnly) return;
                 const val = parseFloat(e.target.value.replace(/,/g, "")) || 0;
                 onUpdateField?.(index, "price", val);
               }}
               onKeyDown={(e) => {
+                if (isReadOnly) return;
                 if (e.key === "Enter" || e.key === "Tab") {
                   e.preventDefault();
                   focusProductSearch();
@@ -887,17 +913,19 @@ const CartTableRow = React.memo(function CartTableRow({
 
       {/* 9. Nút xóa dòng (Delete Button) */}
       <td className="py-2 px-2 text-center">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove?.(index);
-          }}
-          className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
-          title="Xóa dòng"
-        >
-          <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove?.(index);
+            }}
+            className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
+            title="Xóa dòng"
+          >
+            <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
+          </button>
+        )}
       </td>
     </m.tr>
   );
@@ -1172,6 +1200,7 @@ function areCartRowPropsEqual(prev, next) {
   if (prev.showLastPurchaseBadge !== next.showLastPurchaseBadge) return false;
   if (prev.cartColorConfig !== next.cartColorConfig) return false;
   if (prev.selectedPartner?.id !== next.selectedPartner?.id) return false;
+  if (prev.isReadOnly !== next.isReadOnly) return false;
 
   const pIt = prev.item;
   const nIt = next.item;

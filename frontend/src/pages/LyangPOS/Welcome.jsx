@@ -1,43 +1,301 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { 
     User, Lock, ArrowRight, Sparkles, UserPlus, LogIn, Sprout, Wheat, Leaf,
     Sun, Moon, ShieldCheck, Network, Wifi, WifiOff, X, Check, 
-    Laptop, Plus, Eye, EyeOff, Clock, Calendar, Zap, Shield, ChevronRight
+    Laptop, Plus, Eye, EyeOff, Clock, Calendar, Zap, Shield, ChevronRight,
+    MonitorPlay, Palette, ChevronDown, CheckCircle2, Flame, KeyRound, 
+    Delete, RefreshCw, Store, CheckCheck, Compass, HelpCircle, Layers
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { cn } from '../../lib/utils';
+import InteractiveMascotAvatar from '../../components/widgets/InteractiveMascotAvatar';
 
-// High-Performance Ambient Background (Pure Static CSS - 0% GPU Overhead)
-const FloatingBackground = ({ isDark }) => {
+// -------------------------------------------------------------
+// THEME CONFIGURATIONS & DESIGN TOKENS
+// -------------------------------------------------------------
+const THEME_OPTIONS = [
+    {
+        id: 'zen',
+        name: 'Zen Botanical',
+        shortName: 'Zen Mộc',
+        icon: Leaf,
+        badgeText: 'Thanh bình',
+        color: '#7D8B6E',
+        secondary: '#DE8C5A',
+        description: 'Xanh xô thơm mộc mạc, đất nung ấm áp & giấy ngà',
+        lightBg: '#FAF7F2',
+        darkBg: '#0b0f0c'
+    },
+    {
+        id: 'agri',
+        name: 'Nông Nghiệp Xanh',
+        shortName: 'Nông Nghiệp',
+        icon: Sprout,
+        badgeText: 'Tươi mới',
+        color: '#2d5016',
+        secondary: '#d4a574',
+        description: 'Xanh ngọc lúa non & màu lúa chín trĩu hạt',
+        lightBg: '#faf8f3',
+        darkBg: '#070b14'
+    },
+    {
+        id: 'luxury',
+        name: 'Luxury Leather',
+        shortName: 'Luxury Gold',
+        icon: Sparkles,
+        badgeText: 'Sang trọng',
+        color: '#8B5A2B',
+        secondary: '#d4a574',
+        description: 'Nâu espresso hoàng gia, da thuộc & ánh kim đồng',
+        lightBg: '#FDFBF7',
+        darkBg: '#0d0a08'
+    },
+    {
+        id: 'red-dragon',
+        name: 'Hồng Phát Đỏ',
+        shortName: 'Hồng Phát',
+        icon: Flame,
+        badgeText: 'Tài lộc',
+        color: '#b91c1c',
+        secondary: '#f59e0b',
+        description: 'Đỏ son may mắn, vượng tài lộc & buôn may bán đắt',
+        lightBg: '#fdf8f6',
+        darkBg: '#120707'
+    }
+];
+
+// 100% GPU-Free Ultra-Clean Luxury Ambient Stage (0% GPU / 0% CPU Idle)
+// Uses static multi-stop CSS radial mesh gradients and pre-computed static layers.
+// Zero requestAnimationFrame, zero blur filter passes, zero JS animation loops!
+const FloatingBackground = memo(({ themeId, isDark }) => {
+    const meshStyle = useMemo(() => {
+        if (isDark) {
+            switch (themeId) {
+                case 'zen':
+                    return {
+                        bg: '#080c09',
+                        mesh: 'radial-gradient(at 15% 15%, rgba(125, 139, 110, 0.22) 0px, transparent 55%), radial-gradient(at 85% 85%, rgba(222, 140, 90, 0.18) 0px, transparent 55%), radial-gradient(at 50% 40%, rgba(94, 109, 80, 0.10) 0px, transparent 65%)',
+                        dotColor: 'rgba(125, 139, 110, 0.14)',
+                        lineGlow: 'rgba(125, 139, 110, 0.28)'
+                    };
+                case 'luxury':
+                    return {
+                        bg: '#0c0907',
+                        mesh: 'radial-gradient(at 15% 15%, rgba(139, 90, 43, 0.25) 0px, transparent 55%), radial-gradient(at 85% 85%, rgba(212, 165, 116, 0.18) 0px, transparent 55%), radial-gradient(at 50% 40%, rgba(61, 37, 20, 0.16) 0px, transparent 65%)',
+                        dotColor: 'rgba(212, 165, 116, 0.14)',
+                        lineGlow: 'rgba(212, 165, 116, 0.28)'
+                    };
+                case 'red-dragon':
+                    return {
+                        bg: '#0e0505',
+                        mesh: 'radial-gradient(at 15% 15%, rgba(185, 28, 28, 0.22) 0px, transparent 55%), radial-gradient(at 85% 85%, rgba(245, 158, 11, 0.18) 0px, transparent 55%), radial-gradient(at 50% 40%, rgba(127, 29, 29, 0.12) 0px, transparent 65%)',
+                        dotColor: 'rgba(248, 113, 113, 0.14)',
+                        lineGlow: 'rgba(248, 113, 113, 0.28)'
+                    };
+                case 'agri':
+                default:
+                    return {
+                        bg: '#040805',
+                        mesh: 'radial-gradient(at 15% 15%, rgba(5, 150, 105, 0.22) 0px, transparent 55%), radial-gradient(at 85% 85%, rgba(217, 119, 6, 0.16) 0px, transparent 55%), radial-gradient(at 50% 40%, rgba(13, 148, 136, 0.12) 0px, transparent 65%)',
+                        dotColor: 'rgba(16, 185, 129, 0.14)',
+                        lineGlow: 'rgba(16, 185, 129, 0.28)'
+                    };
+            }
+        } else {
+            switch (themeId) {
+                case 'zen':
+                    return {
+                        bg: '#FAF7F2',
+                        mesh: 'radial-gradient(at 10% 10%, rgba(125, 139, 110, 0.18) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(222, 140, 90, 0.16) 0px, transparent 50%), radial-gradient(at 50% 30%, rgba(244, 239, 230, 0.8) 0px, transparent 60%)',
+                        dotColor: 'rgba(125, 139, 110, 0.12)',
+                        lineGlow: 'rgba(125, 139, 110, 0.25)'
+                    };
+                case 'luxury':
+                    return {
+                        bg: '#FDFBF7',
+                        mesh: 'radial-gradient(at 10% 10%, rgba(139, 90, 43, 0.16) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(212, 165, 116, 0.20) 0px, transparent 50%), radial-gradient(at 50% 30%, rgba(253, 251, 247, 0.8) 0px, transparent 60%)',
+                        dotColor: 'rgba(139, 90, 43, 0.12)',
+                        lineGlow: 'rgba(212, 165, 116, 0.25)'
+                    };
+                case 'red-dragon':
+                    return {
+                        bg: '#fdf8f6',
+                        mesh: 'radial-gradient(at 10% 10%, rgba(220, 38, 38, 0.14) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(245, 158, 11, 0.16) 0px, transparent 50%), radial-gradient(at 50% 30%, rgba(253, 248, 246, 0.8) 0px, transparent 60%)',
+                        dotColor: 'rgba(185, 28, 28, 0.12)',
+                        lineGlow: 'rgba(220, 38, 38, 0.25)'
+                    };
+                case 'agri':
+                default:
+                    return {
+                        bg: '#faf8f3',
+                        mesh: 'radial-gradient(at 10% 10%, rgba(45, 80, 22, 0.15) 0px, transparent 50%), radial-gradient(at 90% 90%, rgba(212, 165, 116, 0.20) 0px, transparent 50%), radial-gradient(at 50% 30%, rgba(74, 124, 89, 0.10) 0px, transparent 60%)',
+                        dotColor: 'rgba(45, 80, 22, 0.12)',
+                        lineGlow: 'rgba(45, 80, 22, 0.25)'
+                    };
+            }
+        }
+    }, [themeId, isDark]);
+
     return (
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-            {/* Pure CSS Static Radial Ambient Gradients */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 select-none">
+            {/* 1. Base Solid Color Canvas */}
             <div 
-                className="absolute inset-0 transition-opacity duration-700 pointer-events-none"
+                className="absolute inset-0 transition-colors duration-700"
+                style={{ backgroundColor: meshStyle.bg }}
+            />
+
+            {/* 2. Static Multi-Stop Radial Mesh (0% GPU / 0% CPU, painted once, cached by browser) */}
+            <div 
+                className="absolute inset-0 transition-all duration-700 pointer-events-none"
+                style={{ backgroundImage: meshStyle.mesh }}
+            />
+
+            {/* 3. Static Fine Dot Pattern with Smooth Center Vignette */}
+            <div 
+                className="absolute inset-0 pointer-events-none opacity-60"
                 style={{
-                    background: isDark
-                        ? 'radial-gradient(circle at 15% 15%, rgba(5, 150, 105, 0.12) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(13, 148, 136, 0.12) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(217, 119, 6, 0.05) 0%, transparent 60%)'
-                        : 'radial-gradient(circle at 15% 15%, rgba(45, 80, 22, 0.08) 0%, transparent 50%), radial-gradient(circle at 85% 85%, rgba(212, 165, 116, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(74, 124, 89, 0.05) 0%, transparent 60%)'
+                    backgroundImage: `radial-gradient(${meshStyle.dotColor} 1.2px, transparent 1.2px)`,
+                    backgroundSize: '24px 24px',
+                    maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 80%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 80%)'
                 }}
             />
 
-            {/* Subtle Grid Pattern Overlay */}
+            {/* 4. Static Top Accent Beam Line */}
             <div 
-                className={cn(
-                    "absolute inset-0 transition-opacity duration-700 pointer-events-none",
-                    isDark ? "opacity-[0.03]" : "opacity-[0.02]"
-                )}
+                className="absolute -top-px left-1/2 -translate-x-1/2 w-2/3 max-w-3xl h-px pointer-events-none"
                 style={{
-                    backgroundImage: `radial-gradient(${isDark ? '#4ade80' : '#2d5016'} 1px, transparent 1px)`,
-                    backgroundSize: '36px 36px'
+                    background: `linear-gradient(90deg, transparent 0%, ${meshStyle.lineGlow} 50%, transparent 100%)`
                 }}
             />
         </div>
     );
-};
+});
+
+// Isolated Live Clock (Ensures 0% CPU re-renders for the rest of Welcome page)
+const LiveClock = memo(() => {
+    const [currentTime, setCurrentTime] = useState(() => new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    return (
+        <span className="text-xs font-mono font-bold tracking-wider opacity-75">
+            {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+    );
+});
+
+// Bouncy Micro-Spring Character Typing Input Field with larger typography & focus halo
+const AnimatedTypingField = memo(({
+    value = '',
+    onChange,
+    type = 'text',
+    placeholder = '',
+    isDark = false,
+    activeStyles,
+    rightElement = null,
+    autoFocus = false,
+    required = false,
+    className = '',
+    inputClassName = ''
+}) => {
+    const inputRef = useRef(null);
+    const containerRef = useRef(null);
+    const [isFocused, setIsFocused] = useState(false);
+
+    const syncScroll = () => {
+        if (containerRef.current && inputRef.current) {
+            containerRef.current.scrollLeft = inputRef.current.scrollLeft;
+        }
+    };
+
+    const isPassword = type === 'password';
+    const chars = value ? String(value).split('') : [];
+
+    return (
+        <div className={cn("relative group w-full", className)}>
+            {/* Ambient Focus Glow Halo */}
+            <div 
+                className={cn(
+                    "absolute -inset-0.5 rounded-2xl blur-md transition-opacity duration-300 pointer-events-none",
+                    isFocused ? "opacity-40" : "opacity-0"
+                )}
+                style={{ background: activeStyles?.primaryColor || '#10b981' }}
+            />
+
+            <div className="relative flex items-center w-full">
+                {/* Visual Animated Bouncy Typing Layer */}
+                <div
+                    ref={containerRef}
+                    className={cn(
+                        "absolute inset-y-0 left-0 flex items-center pointer-events-none select-none overflow-hidden whitespace-pre pl-5 font-black text-lg sm:text-xl tracking-tight leading-none",
+                        rightElement ? "pr-14" : "pr-5",
+                        isDark ? "text-slate-100" : "text-slate-900"
+                    )}
+                    style={{ scrollbarWidth: 'none' }}
+                >
+                    <AnimatePresence initial={false}>
+                        {chars.map((char, index) => (
+                            <m.span
+                                key={`char-${index}-${char}`}
+                                initial={{ opacity: 0, y: 5, scale: 0.6 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ duration: 0.14, ease: [0.175, 0.885, 0.32, 1.275] }}
+                                className="inline-block shrink-0"
+                            >
+                                {isPassword ? '●' : (char === ' ' ? '\u00A0' : char)}
+                            </m.span>
+                        ))}
+                    </AnimatePresence>
+                </div>
+
+                {/* Underlying Native Input */}
+                <input
+                    ref={inputRef}
+                    type={type}
+                    value={value}
+                    onChange={(e) => {
+                        onChange(e);
+                        syncScroll();
+                    }}
+                    onScroll={syncScroll}
+                    onKeyUp={syncScroll}
+                    onKeyDown={syncScroll}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder={placeholder}
+                    autoFocus={autoFocus}
+                    required={required}
+                    className={cn(
+                        "w-full h-14 pl-5 rounded-2xl border-2 font-black text-lg sm:text-xl outline-none transition-all duration-200 tracking-tight",
+                        value ? "text-transparent" : (isDark ? "placeholder:text-slate-500" : "placeholder:text-slate-400"),
+                        isDark 
+                            ? "bg-slate-950/60 hover:bg-slate-950/80 border-slate-800/80" 
+                            : "bg-white/70 hover:bg-white/90 border-slate-200/80",
+                        rightElement ? "pr-14" : "pr-5",
+                        inputClassName
+                    )}
+                    style={{
+                        caretColor: isDark ? '#fff' : (activeStyles?.primaryColor || '#10b981'),
+                        borderColor: isFocused ? (activeStyles?.primaryColor || '#10b981') : undefined
+                    }}
+                />
+
+                {rightElement && (
+                    <div className="absolute right-0 pr-4 flex items-center z-30">
+                        {rightElement}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
 
 // Preset avatar illustrations
 const USER_AVATAR_PRESETS = [
@@ -106,11 +364,106 @@ export default function Welcome() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
-    const [showLoginForm, setShowLoginForm] = useState(false);
+    
+    // NEW MODERN INTERACTION MODES:
+    // 'accounts' (chọn tài khoản nhanh dạng danh thiếp sang trọng)
+    // 'pinpad' (nhập PIN/mật khẩu nhanh cho user đã chọn kèm Touch Numpad)
+    // 'form' (form đăng nhập / đăng ký tài khoản đầy đủ)
+    const [activeTab, setActiveTab] = useState('accounts'); 
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [quickPinInput, setQuickPinInput] = useState('');
+    const [showNumpad, setShowNumpad] = useState(false);
     const [selectedUserLoading, setSelectedUserLoading] = useState(null);
+    const [shopInfo, setShopInfo] = useState({ shop_name: 'Lyang Nghĩa' });
 
-    // Dark Mode state with immediate listener sync
+    // ---------------------------------------------------------
+    // LYANG MASCOT STATE (Dynamic Sync with configured mascot)
+    // ---------------------------------------------------------
+    const [mascotAvatar, setMascotAvatar] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_mascot_config');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.characterId) {
+                    return `/mascots/avatar-${parsed.characterId}.webp`;
+                }
+            }
+        } catch (e) {}
+        return '/mascots/avatar-lyang.webp';
+    });
+
+    useEffect(() => {
+        const handleMascotSync = () => {
+            try {
+                const saved = localStorage.getItem('lyang_mascot_config');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.characterId) {
+                        setMascotAvatar(`/mascots/avatar-${parsed.characterId}.webp`);
+                        return;
+                    }
+                }
+            } catch (e) {}
+            setMascotAvatar('/mascots/avatar-lyang.webp');
+        };
+
+        window.addEventListener('lyang_mascot_config_updated', handleMascotSync);
+        window.addEventListener('storage', handleMascotSync);
+        return () => {
+            window.removeEventListener('lyang_mascot_config_updated', handleMascotSync);
+            window.removeEventListener('storage', handleMascotSync);
+        };
+    }, []);
+
+    // ---------------------------------------------------------
+    // THEME STATE & DYNAMIC ADAPTATION
+    // ---------------------------------------------------------
+    const [currentTheme, setCurrentTheme] = useState(() => {
+        return localStorage.getItem('app_theme') || 'agri';
+    });
+
     const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+    const [showThemePicker, setShowThemePicker] = useState(false);
+
+    // Apply theme settings globally
+    const applyTheme = useCallback(async (themeId) => {
+        setCurrentTheme(themeId);
+        
+        if (themeId === 'zen') {
+            localStorage.setItem('ui_theme_zen_botanical', 'true');
+            localStorage.setItem('app_theme', 'agri');
+            document.documentElement.setAttribute('data-theme', 'agri');
+        } else {
+            localStorage.setItem('ui_theme_zen_botanical', 'false');
+            localStorage.setItem('app_theme', themeId);
+            document.documentElement.setAttribute('data-theme', themeId);
+        }
+
+        window.dispatchEvent(new Event('theme_changed'));
+        window.dispatchEvent(new Event('zen_theme_changed'));
+        window.dispatchEvent(new Event('storage'));
+
+        try {
+            const syncChan = new BroadcastChannel('pos_data_sync');
+            syncChan.postMessage({ 
+                type: 'UI_SETTING_UPDATED', 
+                key: 'app_theme', 
+                value: themeId === 'zen' ? 'agri' : themeId 
+            });
+            syncChan.postMessage({ 
+                type: 'UI_SETTING_UPDATED', 
+                key: 'ui_theme_zen_botanical', 
+                value: themeId === 'zen' ? 'true' : 'false' 
+            });
+            syncChan.close();
+        } catch (e) {}
+
+        try {
+            await axios.post('/api/settings', {
+                ui_theme_zen_botanical: themeId === 'zen' ? 'true' : 'false'
+            });
+        } catch (err) {}
+    }, []);
 
     const toggleDarkMode = () => {
         const root = document.documentElement;
@@ -126,42 +479,153 @@ export default function Welcome() {
         window.dispatchEvent(new Event('theme_changed'));
     };
 
-    // Live Clock & VN Date (Minute-based to optimize GPU/CPU performance)
-    const [time, setTime] = useState(new Date());
+    const themeConfig = useMemo(() => {
+        return THEME_OPTIONS.find(t => t.id === currentTheme) || THEME_OPTIONS[0];
+    }, [currentTheme]);
+
+    const activeStyles = useMemo(() => {
+        switch (currentTheme) {
+            case 'zen':
+                return {
+                    primaryColor: '#7D8B6E',
+                    secondaryColor: '#DE8C5A',
+                    bgColor: isDark ? '#0b0f0c' : '#FAF7F2',
+                    textColor: isDark ? '#FAF7F2' : '#2D382E',
+                    textMuted: isDark ? '#A3B394' : '#68775B',
+                    borderClass: isDark ? 'border-[#7D8B6E]/30' : 'border-[#7D8B6E]/30',
+                    hoverBorderClass: 'hover:border-[#7D8B6E]',
+                    buttonGradient: 'bg-gradient-to-r from-[#7D8B6E] via-[#6F7D60] to-[#DE8C5A]',
+                    brandGradient: isDark 
+                        ? 'from-[#A3B394] via-[#F4EFE6] to-[#DE8C5A]' 
+                        : 'from-[#5E6D50] via-[#7D8B6E] to-[#C97746]',
+                    cardBg: isDark ? 'bg-[#121814]/90' : 'bg-white/85',
+                    heroCardBg: isDark ? 'bg-[#131b15]/75 border-[#7D8B6E]/20' : 'bg-white/70 border-[#7D8B6E]/25',
+                    pillActive: 'bg-[#7D8B6E] text-white border-[#7D8B6E]',
+                    accentHighlight: '#DE8C5A'
+                };
+            case 'luxury':
+                return {
+                    primaryColor: '#8B5A2B',
+                    secondaryColor: '#d4a574',
+                    bgColor: isDark ? '#0d0a08' : '#FDFBF7',
+                    textColor: isDark ? '#FDFBF7' : '#3E2723',
+                    textMuted: isDark ? '#d4a574' : '#8D6E63',
+                    borderClass: isDark ? 'border-[#d4a574]/25' : 'border-[#8B5A2B]/20',
+                    hoverBorderClass: 'hover:border-[#d4a574]',
+                    buttonGradient: 'bg-gradient-to-r from-[#8B5A2B] via-[#9E6938] to-[#d4a574]',
+                    brandGradient: isDark 
+                        ? 'from-[#d4a574] via-[#FDFBF7] to-[#d4a574]' 
+                        : 'from-[#3E2723] via-[#8B5A2B] to-[#b3824b]',
+                    cardBg: isDark ? 'bg-[#181410]/90' : 'bg-white/85',
+                    heroCardBg: isDark ? 'bg-[#1a1410]/75 border-[#d4a574]/20' : 'bg-white/70 border-[#8B5A2B]/20',
+                    pillActive: 'bg-[#8B5A2B] text-white border-[#8B5A2B]',
+                    accentHighlight: '#d4a574'
+                };
+            case 'red-dragon':
+                return {
+                    primaryColor: '#b91c1c',
+                    secondaryColor: '#f59e0b',
+                    bgColor: isDark ? '#120707' : '#fdf8f6',
+                    textColor: isDark ? '#fef2f2' : '#1f2937',
+                    textMuted: isDark ? '#fca5a5' : '#991b1b',
+                    borderClass: isDark ? 'border-rose-500/25' : 'border-rose-500/20',
+                    hoverBorderClass: 'hover:border-rose-500',
+                    buttonGradient: 'bg-gradient-to-r from-[#b91c1c] via-[#dc2626] to-[#f59e0b]',
+                    brandGradient: isDark 
+                        ? 'from-[#f87171] via-[#fef2f2] to-[#f59e0b]' 
+                        : 'from-[#991b1b] via-[#dc2626] to-[#d97706]',
+                    cardBg: isDark ? 'bg-[#1c0e0e]/90' : 'bg-white/85',
+                    heroCardBg: isDark ? 'bg-[#1f0d0d]/75 border-rose-500/20' : 'bg-white/70 border-rose-500/20',
+                    pillActive: 'bg-[#b91c1c] text-white border-[#b91c1c]',
+                    accentHighlight: '#f59e0b'
+                };
+            case 'agri':
+            default:
+                return {
+                    primaryColor: '#2d5016',
+                    secondaryColor: '#d4a574',
+                    bgColor: isDark ? '#070b14' : '#faf8f3',
+                    textColor: isDark ? '#f8fafc' : '#2d5016',
+                    textMuted: isDark ? '#4ade80' : '#8b6f47',
+                    borderClass: isDark ? 'border-emerald-500/25' : 'border-[#d4a574]/30',
+                    hoverBorderClass: 'hover:border-emerald-500',
+                    buttonGradient: 'bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600',
+                    brandGradient: isDark 
+                        ? 'from-emerald-300 via-teal-200 to-emerald-400' 
+                        : 'from-[#2d5016] via-[#3e6b20] to-[#2d5016]',
+                    cardBg: isDark ? 'bg-slate-900/90' : 'bg-white/85',
+                    heroCardBg: isDark ? 'bg-slate-900/75 border-emerald-500/20' : 'bg-white/70 border-[#2d5016]/20',
+                    pillActive: 'bg-[#2d5016] text-white border-[#2d5016]',
+                    accentHighlight: '#d4a574'
+                };
+        }
+    }, [currentTheme, isDark]);
+
+
+
+    // ---------------------------------------------------------
+    // VN GREETING (Updated once per minute, 0% CPU)
+    // ---------------------------------------------------------
+    const [greetingHour, setGreetingHour] = useState(() => new Date().getHours());
 
     useEffect(() => {
-        // Update clock every 15 seconds instead of every second
-        const timer = setInterval(() => setTime(new Date()), 15000);
+        const timer = setInterval(() => setGreetingHour(new Date().getHours()), 60000);
         return () => clearInterval(timer);
     }, []);
 
-    const [avatarKey, setAvatarKey] = useState(0);
+    const timeGreeting = useMemo(() => {
+        const hr = greetingHour;
+        if (hr >= 5 && hr < 11) {
+            return {
+                title: "Chào buổi sáng rạng rỡ",
+                sub: "Khởi đầu ca làm việc tràn đầy năng lượng & đắc tài đắc lộc!",
+                icon: Sun
+            };
+        } else if (hr >= 11 && hr < 14) {
+            return {
+                title: "Chào buổi trưa hanh thông",
+                sub: "Đơn hàng tấp nập, quản lý kho bãi chính xác & nhẹ nhàng!",
+                icon: Sparkles
+            };
+        } else if (hr >= 14 && hr < 18) {
+            return {
+                title: "Chào buổi chiều bội thu",
+                sub: "Đẩy nhanh tiến độ xuất nhập hàng, kiểm soát doanh số vững vàng!",
+                icon: Wheat
+            };
+        } else {
+            return {
+                title: "Chào buổi tối ấm áp",
+                sub: "Tổng kết số liệu chính xác, an tâm chốt ca và nâng cao doanh thu!",
+                icon: Moon
+            };
+        }
+    }, [greetingHour]);
 
+    // ---------------------------------------------------------
+    // FETCH INITIAL DATA
+    // ---------------------------------------------------------
     useEffect(() => {
-        const handleAvatarUpdate = () => {
-            setAvatarKey(k => k + 1);
-        };
-        window.addEventListener('user_avatar_updated', handleAvatarUpdate);
-        window.addEventListener('storage', handleAvatarUpdate);
-        return () => {
-            window.removeEventListener('user_avatar_updated', handleAvatarUpdate);
-            window.removeEventListener('storage', handleAvatarUpdate);
-        };
-    }, []);
+        const fetchInitialData = async () => {
+            try {
+                const sRes = await axios.get('/api/settings');
+                if (sRes.data?.shop_name) {
+                    setShopInfo({ shop_name: sRes.data.shop_name });
+                    localStorage.setItem('lyang_store_name', sRes.data.shop_name);
+                }
+            } catch (sErr) {}
 
-    // Fetch users & Auto-login if default landing page is dashboard
-    useEffect(() => {
-        const fetchUsersAndAutoLogin = async () => {
             try {
                 const res = await axios.get('/api/users');
                 if (Array.isArray(res.data)) {
                     setUsers(res.data);
                     if (res.data.length === 0) {
-                        setShowLoginForm(true);
+                        setActiveTab('form');
+                        setIsLogin(false);
                         return;
                     }
 
-                    // Check if user enabled auto-open Dashboard (skip login / quick enter)
+                    // Check if auto-login is active
                     const isAutoDashboard = localStorage.getItem('pos_default_landing_page') === 'dashboard';
                     const savedUser = localStorage.getItem('saved_username');
                     if (isAutoDashboard && savedUser) {
@@ -180,7 +644,7 @@ export default function Welcome() {
                                 navigate('/');
                                 return;
                             } catch (autoErr) {
-                                console.warn("Auto-login on startup failed:", autoErr);
+                                console.warn("Auto-login failed:", autoErr);
                             } finally {
                                 setLoading(false);
                                 setSelectedUserLoading(null);
@@ -189,179 +653,134 @@ export default function Welcome() {
                     }
                 }
             } catch (err) {
-                console.warn("Failed to fetch users in welcome screen", err);
-                setShowLoginForm(true);
+                console.warn("Failed to fetch users", err);
+                setActiveTab('form');
             }
         };
-        fetchUsersAndAutoLogin();
-    }, []);
+        fetchInitialData();
+    }, [navigate]);
 
+    // Fast Card Selection & Auto-login if password saved
     const handleSelectUser = async (user) => {
+        setSelectedUser(user);
+        setError('');
+
         const savedPassword = localStorage.getItem(`saved_pwd_${user.username}`) || (localStorage.getItem('saved_username') === user.username ? localStorage.getItem('saved_password') : '');
         
         if (savedPassword) {
             setLoading(true);
             setSelectedUserLoading(user.username);
-            setError('');
             try {
                 const res = await axios.post('/api/login', {
                     username: user.username,
                     password: savedPassword
                 });
-                const userData = JSON.stringify(res.data.user);
-                sessionStorage.setItem('user', userData);
-                
+                sessionStorage.setItem('user', JSON.stringify(res.data.user));
                 localStorage.setItem('saved_username', user.username);
                 localStorage.setItem('saved_password', savedPassword);
                 localStorage.setItem(`saved_pwd_${user.username}`, savedPassword);
-                
                 navigate('/');
             } catch (err) {
-                console.error("Auto login failed, showing login form:", err);
-                setError(err.response?.data?.error || 'Vui lòng nhập mật khẩu để đăng nhập');
-                setFormData({
-                    username: user.username,
-                    password: '',
-                    display_name: ''
-                });
-                setIsLogin(true);
-                setShowLoginForm(true);
+                console.warn("Auto login with saved password failed:", err);
+                // Switch to PIN pad to enter password
+                setActiveTab('pinpad');
+                setQuickPinInput('');
+                setTimeout(() => {
+                    document.getElementById('quick-pin-input')?.focus();
+                }, 100);
             } finally {
                 setLoading(false);
                 setSelectedUserLoading(null);
             }
         } else {
-            setFormData({
-                username: user.username,
-                password: '',
-                display_name: ''
-            });
-            setIsLogin(true);
-            setShowLoginForm(true);
+            // Need password -> Switch to quick PIN Pad
+            setActiveTab('pinpad');
+            setQuickPinInput('');
             setTimeout(() => {
-                document.getElementById('welcome-password-input')?.focus();
+                document.getElementById('quick-pin-input')?.focus();
             }, 100);
         }
     };
 
-    // Lunar & Solar Date Formatting
-    const formatDateVN = (date) => {
-        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const dayName = days[date.getDay()];
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${dayName}, ${day}/${month}/${year}`;
-    };
+    // Quick PIN Pad Submit
+    const handleQuickPinSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!selectedUser || !quickPinInput || loading) return;
 
-    const getLunarDate = (date) => {
-        const y = date.getFullYear();
-        const data = {
-            2024: { lny: new Date(2024, 1, 10), months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 30, 29], leap: 0, stemBranch: "Giáp Thìn" },
-            2025: { lny: new Date(2025, 0, 29), months: [30, 29, 30, 29, 29, 30, 30, 29, 29, 30, 30, 29, 30], leap: 6, stemBranch: "Ất Tỵ" },
-            2026: { lny: new Date(2026, 1, 17), months: [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 30], leap: 0, stemBranch: "Bính Ngọ" },
-            2027: { lny: new Date(2027, 1, 6), months: [30, 29, 30, 29, 30, 29, 29, 30, 29, 30, 30, 29], leap: 0, stemBranch: "Đinh Mùi" }
-        };
+        setLoading(true);
+        setError('');
 
-        const yearData = data[y] || data[2026];
-        let diffDays = Math.floor((date.getTime() - yearData.lny.getTime()) / (24 * 60 * 60 * 1000));
-
-        if (diffDays < 0) {
-            const prevYearData = data[y - 1] || data[2025];
-            diffDays = Math.floor((date.getTime() - prevYearData.lny.getTime()) / (24 * 60 * 60 * 1000));
-            let lunarMonth = 1;
-            let day = diffDays + 1;
-            for (let i = 0; i < prevYearData.months.length; i++) {
-                const daysInMonth = prevYearData.months[i];
-                if (day <= daysInMonth) {
-                    lunarMonth = i + 1;
-                    break;
-                }
-                day -= daysInMonth;
-            }
-            let displayMonth = lunarMonth;
-            let isLeap = false;
-            if (prevYearData.leap > 0) {
-                if (lunarMonth === prevYearData.leap + 1) {
-                    displayMonth = prevYearData.leap;
-                    isLeap = true;
-                } else if (lunarMonth > prevYearData.leap + 1) {
-                    displayMonth = lunarMonth - 1;
-                }
-            }
-            return { day, month: displayMonth, isLeap, year: prevYearData.stemBranch };
-        } else {
-            let lunarMonth = 1;
-            let day = diffDays + 1;
-            for (let i = 0; i < yearData.months.length; i++) {
-                const daysInMonth = yearData.months[i];
-                if (day <= daysInMonth) {
-                    lunarMonth = i + 1;
-                    break;
-                }
-                day -= daysInMonth;
-            }
-            let displayMonth = lunarMonth;
-            let isLeap = false;
-            if (yearData.leap > 0) {
-                if (lunarMonth === yearData.leap + 1) {
-                    displayMonth = yearData.leap;
-                    isLeap = true;
-                } else if (lunarMonth > yearData.leap + 1) {
-                    displayMonth = lunarMonth - 1;
-                }
-            }
-            return { day, month: displayMonth, isLeap, year: yearData.stemBranch };
+        try {
+            const res = await axios.post('/api/login', {
+                username: selectedUser.username,
+                password: quickPinInput
+            });
+            sessionStorage.setItem('user', JSON.stringify(res.data.user));
+            
+            localStorage.setItem('saved_username', selectedUser.username);
+            localStorage.setItem('saved_password', quickPinInput);
+            localStorage.setItem(`saved_pwd_${selectedUser.username}`, quickPinInput);
+            navigate('/');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Mật khẩu / mã PIN không chính xác');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const getAuspiciousHours = (date) => {
-        const d = date.getDate();
-        const m = date.getMonth() + 1;
-        const y = date.getFullYear();
-        
-        let a = Math.floor((14 - m) / 12);
-        let y_calc = y + 4800 - a;
-        let m_calc = m + 12 * a - 3;
-        let jd = d + Math.floor((153 * m_calc + 2) / 5) + 365 * y_calc + Math.floor(y_calc / 4) - Math.floor(y_calc / 100) + Math.floor(y_calc / 400) - 32045;
-        
-        const dayChiIndex = (Math.floor(jd + 1.5) + 11) % 12;
-        
-        const mapping = {
-            0: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
-            6: ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"],
-            1: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
-            7: ["Dần", "Mão", "Tỵ", "Thân", "Tuất", "Hợi"],
-            2: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
-            8: ["Tý", "Sửu", "Thìn", "Tỵ", "Mùi", "Tuất"],
-            3: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
-            9: ["Tý", "Dần", "Mão", "Ngọ", "Mùi", "Dậu"],
-            4: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
-            10: ["Dần", "Thìn", "Tỵ", "Thân", "Dậu", "Hợi"],
-            5: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"],
-            11: ["Sửu", "Thìn", "Ngọ", "Mùi", "Tuất", "Hợi"]
-        };
-        
-        return mapping[dayChiIndex] || ["Tý", "Sửu", "Dần", "Mão", "Mùi", "Dậu"];
+    // Standard Form Submit (Login / Register)
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            if (isLogin) {
+                const res = await axios.post('/api/login', {
+                    username: formData.username,
+                    password: formData.password
+                });
+                sessionStorage.setItem('user', JSON.stringify(res.data.user));
+
+                if (rememberMe) {
+                    localStorage.setItem('saved_username', formData.username);
+                    localStorage.setItem('saved_password', formData.password);
+                    localStorage.setItem(`saved_pwd_${formData.username}`, formData.password);
+                } else {
+                    localStorage.removeItem('saved_username');
+                    localStorage.removeItem('saved_password');
+                    localStorage.removeItem(`saved_pwd_${formData.username}`);
+                }
+                navigate('/');
+            } else {
+                const res = await axios.post('/api/register', {
+                    username: formData.username,
+                    password: formData.password,
+                    display_name: formData.display_name,
+                    admin_secret: isSecretAdminMode ? formData.admin_secret : ''
+                });
+                sessionStorage.setItem('user', JSON.stringify(res.data.user));
+                navigate('/');
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || 'Thông tin đăng nhập không chính xác');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const lunarInfo = useMemo(() => getLunarDate(time), [time]);
-    const auspiciousHours = useMemo(() => getAuspiciousHours(time), [time]);
+    // Numpad button click handler
+    const handleNumpadPress = (digit) => {
+        if (digit === 'backspace') {
+            setQuickPinInput(prev => prev.slice(0, -1));
+        } else if (digit === 'clear') {
+            setQuickPinInput('');
+        } else {
+            setQuickPinInput(prev => prev + digit);
+        }
+    };
 
-    // Global Enter key handler
-    useEffect(() => {
-        const handleGlobalEnter = (e) => {
-            if (e.key === 'Enter' && isLogin && formData.username && formData.password && !loading) {
-                 if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'BUTTON') {
-                     document.getElementById('login-form-submit-btn')?.click();
-                 }
-            }
-        };
-        window.addEventListener('keydown', handleGlobalEnter);
-        return () => window.removeEventListener('keydown', handleGlobalEnter);
-    }, [isLogin, formData, loading]);
-
-    // LAN Configuration
+    // LAN Configuration modal
     const [showLanModal, setShowLanModal] = useState(false);
     const [lanIp, setLanIp] = useState(localStorage.getItem('server_ip') || '');
     const [testingConnection, setTestingConnection] = useState(false);
@@ -408,7 +827,7 @@ export default function Welcome() {
                     const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http');
                     fetchFn = tauriFetch;
                 } catch (e) {
-                    console.warn('Khong the nap Tauri HTTP plugin, su dung fetch mac dinh', e);
+                    console.warn('Tauri fetch load failed', e);
                 }
             }
             
@@ -435,14 +854,15 @@ export default function Welcome() {
         } catch (err) {
             setConnectionStatus('failed');
             const targetUrl = resolveApiUrl(cleanedIp);
+            let errorMsg = '';
             if (window.location.protocol === 'https:') {
-                errorMsg = `Safari trên iOS chặn kết nối HTTP nội bộ khi truy cập qua HTTPS. Vui lòng mở đường dẫn: ${targetUrl}`;
+                errorMsg = `Safari trên iOS chặn kết nối HTTP nội bộ khi truy cập qua HTTPS. Vui lòng mở: ${targetUrl}`;
             } else if (err && err.name === 'AbortError') {
-                errorMsg = 'Hết thời gian chờ kết nối (Timeout 3.5s). Vui lòng kiểm tra IP và kết nối WiFi.';
+                errorMsg = 'Hết thời gian chờ kết nối (Timeout 3.5s). Vui lòng kiểm tra IP và WiFi.';
             } else if (err && (err.name === 'TypeError' || String(err).includes('Fetch') || String(err).includes('Load failed'))) {
-                errorMsg = `Không thể kết nối tới ${targetUrl}. Đảm bảo cùng kết nối chung một mạng LAN/WiFi.`;
+                errorMsg = `Không thể kết nối tới ${targetUrl}. Hãy cùng mạng LAN.`;
             } else {
-                errorMsg = typeof err === 'string' ? err : (err && err.message ? err.message : String(err));
+                errorMsg = typeof err === 'string' ? err : (err?.message || String(err));
             }
             setPingError(errorMsg);
         } finally {
@@ -465,732 +885,771 @@ export default function Welcome() {
         window.location.reload();
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            if (isLogin) {
-                const res = await axios.post('/api/login', {
-                    username: formData.username,
-                    password: formData.password
-                });
-                const userData = JSON.stringify(res.data.user);
-                sessionStorage.setItem('user', userData);
-
-                if (rememberMe) {
-                    localStorage.setItem('saved_username', formData.username);
-                    localStorage.setItem('saved_password', formData.password);
-                    localStorage.setItem(`saved_pwd_${formData.username}`, formData.password);
-                } else {
-                    localStorage.removeItem('saved_username');
-                    localStorage.removeItem('saved_password');
-                    localStorage.removeItem(`saved_pwd_${formData.username}`);
-                }
-                navigate('/');
-            } else {
-                const res = await axios.post('/api/register', {
-                    username: formData.username,
-                    password: formData.password,
-                    display_name: formData.display_name,
-                    admin_secret: isSecretAdminMode ? formData.admin_secret : ''
-                });
-                sessionStorage.setItem('user', JSON.stringify(res.data.user));
-                navigate('/');
-            }
-        } catch (err) {
-            setError(err.response?.data?.error || 'Thông tin đăng nhập không chính xác');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const serverIp = localStorage.getItem('server_ip');
+    const GreetingIcon = timeGreeting.icon;
 
     return (
-        <div className={cn(
-            "h-[100dvh] w-full flex flex-col justify-between items-center relative overflow-hidden select-none transition-colors duration-700",
-            isDark ? "bg-[#070b14] text-slate-100" : "bg-[#faf8f3] text-[#2d5016]"
-        )}>
-            {/* Dynamic Animated Atmospheric Background */}
-            <FloatingBackground isDark={isDark} />
+        <div 
+            className="h-[100dvh] w-full flex flex-col justify-between items-center relative overflow-hidden select-none transition-colors duration-700"
+            style={{
+                backgroundColor: activeStyles.bgColor,
+                color: activeStyles.textColor
+            }}
+        >
+            {/* Dynamic Animated Atmospheric Background Tailored to Active Theme */}
+            <FloatingBackground themeId={currentTheme} isDark={isDark} />
 
-            {/* Top Navigation Bar: Date & Clock Widget (Left) + Theme & LAN Badges (Right) */}
-            <header className="w-full shrink-0 z-40 px-4 sm:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 max-w-7xl mx-auto">
-                {/* Left: Vietnamese Lunar & Real-time Clock Widget */}
-                <m.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className={cn(
-                        "hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-2xl border backdrop-blur-xl shadow-xs group transition-all duration-300",
-                        isDark 
-                            ? "bg-slate-900/60 border-slate-800/80 hover:border-emerald-500/40 text-slate-300" 
-                            : "bg-white/70 border-[#d4a574]/25 hover:border-[#2d5016]/40 text-[#2d5016]"
-                    )}
-                >
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
-                        <span className="text-xs font-mono font-bold tracking-tight">
-                            {time.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                    </div>
-
-                    <div className="h-3 w-px bg-current opacity-20" />
-
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold">
-                        <Calendar size={13} className={isDark ? "text-emerald-400" : "text-[#8b6f47]"} />
-                        <span>{formatDateVN(time)}</span>
-                    </div>
-
-                    <div className="h-3 w-px bg-current opacity-20" />
-
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-tight text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                        <Wheat size={11} />
-                        <span>Âm lịch: {String(lunarInfo.day).padStart(2, '0')}/{String(lunarInfo.month).padStart(2, '0')} {lunarInfo.year}</span>
-                    </div>
-                </m.div>
-
-                {/* Right: Theme Toggle & LAN Modal Button */}
-                <m.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="flex items-center gap-2 ml-auto"
-                >
-                    {/* Dark/Light Mode Switcher */}
-                    <m.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={toggleDarkMode}
-                        title={isDark ? "Chuyển giao diện sáng" : "Chuyển giao diện tối"}
-                        className={cn(
-                            "p-2 sm:px-3 sm:py-1.5 rounded-2xl border backdrop-blur-xl shadow-xs flex items-center gap-1.5 text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-300",
-                            isDark
-                                ? "bg-slate-900/70 border-slate-800 text-amber-400 hover:border-amber-400/50 hover:bg-slate-800/80 shadow-amber-400/5"
-                                : "bg-white/70 border-[#d4a574]/25 text-[#8b6f47] hover:text-[#2d5016] hover:border-[#2d5016]/40 hover:bg-white/90"
-                        )}
-                    >
-                        {isDark ? (
-                            <>
-                                <Sun size={14} className="text-amber-400" />
-                                <span className="hidden sm:inline">Chế độ sáng</span>
-                            </>
-                        ) : (
-                            <>
-                                <Moon size={14} className="text-slate-700" />
-                                <span className="hidden sm:inline">Chế độ tối</span>
-                            </>
-                        )}
-                    </m.button>
-
-                    {/* LAN Configuration Button */}
-                    <m.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowLanModal(true)}
-                        className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 border rounded-2xl backdrop-blur-xl shadow-xs transition-all duration-300 text-[11px] font-black uppercase tracking-wider cursor-pointer",
-                            serverIp
-                                ? (isDark 
-                                    ? "bg-blue-950/40 border-blue-500/30 text-blue-400 hover:border-blue-400" 
-                                    : "bg-blue-50/80 border-blue-200 text-blue-800 hover:border-blue-500")
-                                : (isDark 
-                                    ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400 hover:border-emerald-400" 
-                                    : "bg-emerald-50/80 border-emerald-200 text-[#2d5016] hover:border-[#2d5016]")
-                        )}
-                    >
-                        {serverIp ? (
-                            <>
-                                <span className="w-2 h-2 rounded-full bg-blue-500 shadow-sm" />
-                                <Network size={14} />
-                                <span className="max-w-[120px] sm:max-w-none truncate">LAN: {serverIp}</span>
-                            </>
-                        ) : (
-                            <>
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
-                                <Wifi size={14} />
-                                <span>Cục bộ</span>
-                            </>
-                        )}
-                    </m.button>
-                </m.div>
-            </header>
-
-            {/* Main Interactive Hub Container */}
-            <main className="w-full flex-1 min-h-0 flex flex-col items-center justify-center relative z-20 px-4 sm:px-6 py-2 max-w-6xl mx-auto overflow-hidden">
-                {/* Brand / Hero Logo Section */}
-                <div className="text-center mb-3 sm:mb-4 shrink-0 flex flex-col items-center">
-                    {/* Glowing Animated Logo Aura */}
-                    <m.div
-                        initial={{ scale: 0.7, opacity: 0, y: -15 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 140,
-                            damping: 18
-                        }}
-                        className="relative mb-2 group cursor-pointer"
-                        whileHover={{ scale: 1.05 }}
-                    >
-                        {/* Shimmering Halo Backdrop */}
-                        <div className={cn(
-                            "absolute inset-0 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition-all duration-700",
-                            isDark 
-                                ? "bg-gradient-to-tr from-emerald-600/40 via-teal-500/40 to-amber-500/30" 
-                                : "bg-gradient-to-tr from-[#2d5016]/30 via-emerald-500/20 to-[#d4a574]/40"
-                        )} />
-
-                        <div className={cn(
-                            "relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full p-1.5 border backdrop-blur-2xl shadow-2xl flex items-center justify-center transition-all duration-500",
-                            isDark 
-                                ? "bg-slate-900/80 border-slate-800/90 shadow-emerald-950/50" 
-                                : "bg-white/80 border-[#d4a574]/30 shadow-[#2d5016]/10"
-                        )}>
-                            <img
-                                src={logo}
-                                alt="LyangPOS Logo"
-                                className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(45,80,22,0.25)] group-hover:rotate-3 transition-transform duration-500"
-                            />
-                        </div>
-                    </m.div>
-
-                    {/* Brand Title & Glowing Tagline */}
-                    <m.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.6 }}
-                        className="space-y-0.5"
-                    >
-                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight flex items-center justify-center gap-1 py-1 leading-normal overflow-visible">
-                            <span className={cn(
-                                "inline-block py-1 pl-1 pr-2 bg-gradient-to-r bg-clip-text text-transparent font-extrabold italic leading-normal overflow-visible",
-                                isDark 
-                                    ? "from-emerald-300 via-teal-200 to-emerald-400" 
-                                    : "from-[#2d5016] via-[#3e6b20] to-[#2d5016]"
-                            )}>
-                                Lyang
-                            </span>
-                            <span className="inline-block py-1 text-[#d4a574] not-italic drop-shadow-sm font-black leading-normal overflow-visible">
-                                POS
-                            </span>
-                        </h1>
-
-                        <p className={cn(
-                            "font-bold uppercase tracking-[0.25em] text-[8px] sm:text-[9px]",
-                            isDark ? "text-emerald-400/80" : "text-[#8b6f47]"
-                        )}>
-                            Hệ thống quản lý bán hàng nông nghiệp thông minh
-                        </p>
-
-                        {/* Slogan */}
-                        <div className="flex items-center justify-center pt-0.5">
-                            <div className={cn(
-                                "text-[11px] sm:text-xs font-semibold italic flex items-center gap-1.5",
-                                isDark ? "text-slate-400" : "text-emerald-900/70"
-                            )}>
-                                <Sparkles size={12} className="text-amber-500 shrink-0" />
-                                <span>“Quản lý thông minh - Tương lai thịnh vượng”</span>
+            {/* TOP BAR: Cohesive Unified Luxury Dynamic Island Stage */}
+            <header className="w-full shrink-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 max-w-7xl mx-auto">
+                {/* Left: Store Identity Transparent Glass Capsule */}
+                <div className={cn(
+                    "h-11 sm:h-12 flex items-center gap-2.5 px-3 rounded-full border backdrop-blur-xl shadow-xs transition-all group",
+                    activeStyles.borderClass,
+                    isDark ? "bg-black/25 hover:bg-black/35" : "bg-black/[0.03] hover:bg-black/[0.05]"
+                )}>
+                    {/* Mascot Avatar with theme aura ring */}
+                    <div className="relative shrink-0 flex items-center justify-center">
+                        <div 
+                            className="w-8 h-8 rounded-full p-[2px] shadow-xs transition-transform duration-300 group-hover:scale-105 flex items-center justify-center"
+                            style={{
+                                background: `linear-gradient(135deg, ${activeStyles.primaryColor} 0%, ${activeStyles.secondaryColor} 100%)`
+                            }}
+                        >
+                            <div className="w-full h-full rounded-full overflow-hidden bg-white/90 dark:bg-slate-900 flex items-center justify-center">
+                                <InteractiveMascotAvatar size="w-full h-full" shape="circle" scale={1.25} />
                             </div>
                         </div>
-                    </m.div>
+                    </div>
+
+                    {/* Store Name */}
+                    <span className="text-xs sm:text-sm font-black tracking-tight text-slate-800 dark:text-slate-100">
+                        {shopInfo.shop_name || "LyangPOS"}
+                    </span>
+
+                    {/* Gradient Divider */}
+                    <div className="hidden md:block h-4 w-px bg-gradient-to-b from-transparent via-black/15 dark:via-white/20 to-transparent mx-0.5 my-auto" />
+
+                    {/* Live Ecosystem Indicator */}
+                    <div className="hidden md:flex items-center gap-1.5 pr-1 text-slate-600 dark:text-slate-300">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-xs" />
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">Hệ Sinh Thái Bán Hàng</span>
+                    </div>
                 </div>
 
-                {/* Content Switcher: Accounts Grid or Dedicated Login/Register Form */}
-                <AnimatePresence mode="wait">
-                    {showLoginForm ? (
-                        /* Premium Login / Register Glassmorphism Card */
-                        <m.div
-                            key="login-form-card"
-                            initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -15 }}
-                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                {/* Right: Unified Segmented Action Island (Transparent Glass & Icon-Only) */}
+                <div className={cn(
+                    "h-11 sm:h-12 flex items-center gap-0.5 px-1.5 rounded-full border backdrop-blur-xl shadow-xs transition-all relative",
+                    activeStyles.borderClass,
+                    isDark ? "bg-black/25 hover:bg-black/35" : "bg-black/[0.03] hover:bg-black/[0.05]"
+                )}>
+                    {/* 1. Theme Switcher (Icon Only) */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowThemePicker(!showThemePicker)}
                             className={cn(
-                                "w-full max-w-sm sm:max-w-[470px] min-h-[500px] sm:min-h-[560px] max-h-[76vh] overflow-y-auto no-scrollbar rounded-[2.5rem] sm:rounded-[3rem] border backdrop-blur-2xl p-6 sm:p-9 shadow-2xl relative flex flex-col justify-between group transition-all duration-500",
-                                isDark 
-                                    ? "bg-slate-900/90 border-slate-800/90 shadow-black/80" 
-                                    : "bg-white/90 border-[#d4a574]/30 shadow-[#2d5016]/15"
+                                "w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 group relative",
+                                showThemePicker 
+                                    ? "bg-black/10 dark:bg-white/15 scale-95" 
+                                    : "hover:bg-black/5 dark:hover:bg-white/10 active:scale-90"
                             )}
+                            title={`Chủ đề hiện tại: ${themeConfig.name} (Bấm để đổi giao diện)`}
                         >
-                            {/* Card Ambient Glow Line */}
-                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-80" />
-
-                            {/* Back to Accounts Button */}
-                            {users.length > 0 && (
-                                <m.button 
-                                    whileHover={{ x: -3 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="button"
-                                    onClick={() => setShowLoginForm(false)}
-                                    className={cn(
-                                        "w-full py-2.5 sm:py-3 px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all mb-4 sm:mb-5 flex items-center justify-center gap-2 border border-dashed cursor-pointer",
-                                        isDark 
-                                            ? "bg-slate-800/50 hover:bg-slate-800 border-slate-700 text-emerald-400" 
-                                            : "bg-[#faf8f3]/80 hover:bg-white border-[#d4a574]/40 text-[#8b6f47] hover:text-[#2d5016]"
-                                    )}
-                                >
-                                    <ArrowRight size={14} className="rotate-180" />
-                                    <span>Quay lại danh sách tài khoản</span>
-                                </m.button>
-                            )}
-
-                            {/* Login / Register Toggle Tabs */}
-                            <div className={cn(
-                                "flex p-1.5 rounded-2xl mb-4 sm:mb-6 relative border transition-colors",
-                                isDark 
-                                    ? "bg-slate-950/60 border-slate-800" 
-                                    : "bg-[#faf8f3] border-[#d4a574]/20"
-                            )}>
-                                <m.div
-                                    className="absolute inset-y-1.5 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] dark:from-emerald-700 dark:to-teal-600 shadow-md"
-                                    initial={false}
-                                    animate={{
-                                        left: isLogin ? '6px' : '50%',
-                                        width: 'calc(50% - 6px)'
-                                    }}
-                                    transition={{ type: "spring", stiffness: 350, damping: 32 }}
+                            <span className="relative flex h-3 w-3 items-center justify-center">
+                                <span 
+                                    className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
+                                    style={{ backgroundColor: themeConfig.color }}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => { setIsLogin(true); setIsSecretAdminMode(false); setError(''); }}
-                                    className={cn(
-                                        "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
-                                        isLogin 
-                                            ? "text-white" 
-                                            : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
-                                    )}
-                                >
-                                    <LogIn size={15} /> Đăng nhập
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { 
-                                        setIsLogin(false); 
-                                        setIsSecretAdminMode(!isSecretAdminMode);
-                                        setError(''); 
+                                <span 
+                                    className="relative inline-flex rounded-full h-3 w-3 shadow-xs ring-1 ring-white/60 dark:ring-black/40"
+                                    style={{ backgroundColor: themeConfig.color }}
+                                />
+                            </span>
+                        </button>
+
+                        <AnimatePresence>
+                            {showThemePicker && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowThemePicker(false)} />
+                                    <m.div
+                                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                        className={cn(
+                                            "absolute right-0 mt-3 w-64 p-2 rounded-3xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden",
+                                            activeStyles.borderClass,
+                                            isDark ? "bg-slate-900/95" : "bg-white/95"
+                                        )}
+                                    >
+                                        <div className="px-3 py-2 border-b border-black/5 dark:border-white/10 mb-1 flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Chọn Giao Diện (Theme)</span>
+                                            <Palette size={12} className="text-slate-400" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            {THEME_OPTIONS.map((opt) => {
+                                                const IconComp = opt.icon;
+                                                const isSelected = currentTheme === opt.id;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            applyTheme(opt.id);
+                                                            setShowThemePicker(false);
+                                                        }}
+                                                        className={cn(
+                                                            "w-full text-left p-2.5 rounded-2xl flex items-center gap-3 transition-all cursor-pointer group",
+                                                            isSelected 
+                                                                ? (isDark ? "bg-white/10 text-white font-bold" : "bg-black/5 font-bold")
+                                                                : (isDark ? "hover:bg-slate-800 text-slate-300" : "hover:bg-black/[0.03] text-slate-700")
+                                                        )}
+                                                    >
+                                                        <div 
+                                                            className="w-7 h-7 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                                                            style={{ backgroundColor: opt.color }}
+                                                        >
+                                                            <IconComp size={15} />
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-xs font-black truncate">{opt.name}</span>
+                                                                <span 
+                                                                    className="text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase"
+                                                                    style={{ 
+                                                                        backgroundColor: `${opt.color}25`, 
+                                                                        color: isDark ? '#f8fafc' : opt.color 
+                                                                    }}
+                                                                >
+                                                                    {opt.badgeText}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate leading-snug">
+                                                                {opt.description}
+                                                            </p>
+                                                        </div>
+                                                        {isSelected && <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </m.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Gradient Divider */}
+                    <div className="h-4 w-px bg-gradient-to-b from-transparent via-black/15 dark:via-white/20 to-transparent mx-0.5 my-auto" />
+
+                    {/* 2. Standby Screensaver Button (Icon Only) */}
+                    <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('pos_open_screensaver'))}
+                        title="Bật Màn hình chờ ngay (Phím tắt: F7)"
+                        className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all text-slate-700 dark:text-slate-200"
+                    >
+                        <MonitorPlay size={16} style={{ color: activeStyles.primaryColor }} />
+                    </button>
+
+                    {/* Gradient Divider */}
+                    <div className="h-4 w-px bg-gradient-to-b from-transparent via-black/15 dark:via-white/20 to-transparent mx-0.5 my-auto" />
+
+                    {/* 3. Dark/Light Mode Button (Icon Only) */}
+                    <button
+                        type="button"
+                        onClick={toggleDarkMode}
+                        title={isDark ? "Chuyển giao diện sáng" : "Chuyển giao diện tối"}
+                        className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all group"
+                    >
+                        {isDark ? (
+                            <Sun size={16} className="text-amber-400 group-hover:rotate-45 transition-transform duration-300" />
+                        ) : (
+                            <Moon size={16} className="text-slate-600 group-hover:-rotate-12 transition-transform duration-300" />
+                        )}
+                    </button>
+
+                    {/* Gradient Divider */}
+                    <div className="h-4 w-px bg-gradient-to-b from-transparent via-black/15 dark:via-white/20 to-transparent mx-0.5 my-auto" />
+
+                    {/* 4. LAN Configuration Button (Icon Only) */}
+                    <button
+                        type="button"
+                        onClick={() => setShowLanModal(true)}
+                        title={serverIp ? `Mạng LAN: ${serverIp}` : "Cấu hình mạng nội bộ / Cục bộ"}
+                        className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 active:scale-90 transition-all text-slate-700 dark:text-slate-200 relative"
+                    >
+                        <span className="relative flex items-center justify-center">
+                            <Wifi size={15} className="opacity-80" />
+                            <span className={cn(
+                                "absolute -top-1 -right-1 w-2 h-2 rounded-full ring-1 ring-white dark:ring-slate-900 shadow-xs",
+                                serverIp ? "bg-blue-500" : "bg-emerald-500"
+                            )} />
+                        </span>
+                    </button>
+                </div>
+            </header>
+
+            {/* MAIN STAGE: Futuristic Split Screen / Two Column Command Hub */}
+            <main className="w-full flex-1 min-h-0 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl mx-auto z-20">
+                <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+                    
+                    {/* LEFT COLUMN: Hero Stage Showcase */}
+                    <m.div 
+                        initial={{ opacity: 0, x: -30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.7, ease: "easeOut" }}
+                        className="lg:col-span-6 flex flex-col justify-center space-y-4"
+                    >
+                        {/* 1. Brand Showcase Hero Card */}
+                        <div className={cn(
+                            "p-7 sm:p-9 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl relative overflow-hidden transition-all flex flex-col justify-between space-y-6",
+                            activeStyles.heroCardBg
+                        )}>
+                            {/* Ambient subtle card glow */}
+                            <div 
+                                className="absolute -top-24 -left-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors"
+                                style={{ background: activeStyles.primaryColor }}
+                            />
+
+                            {/* Top Row: Greeting & Live Clock */}
+                            <div className="flex items-center justify-between gap-3 relative z-10">
+                                <span 
+                                    className="px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider flex items-center gap-2 border shadow-xs"
+                                    style={{
+                                        backgroundColor: `${activeStyles.primaryColor}15`,
+                                        borderColor: `${activeStyles.primaryColor}30`,
+                                        color: isDark ? '#fff' : activeStyles.primaryColor
                                     }}
-                                    className={cn(
-                                        "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
-                                        !isLogin 
-                                            ? "text-white" 
-                                            : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
-                                    )}
                                 >
-                                    <ShieldCheck size={15} /> {isSecretAdminMode ? 'ĐK Quản Trị' : 'Đăng ký'}
-                                </button>
+                                    <GreetingIcon size={14} />
+                                    <span>{timeGreeting.title}</span>
+                                </span>
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/10">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <LiveClock />
+                                </div>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 flex-1 flex flex-col justify-between">
-                                <div className="space-y-4 sm:space-y-4.5">
-                                    {/* Mobile / Desktop Quick User Pills */}
-                                    {users.length > 0 && (
-                                        <div className="pb-1">
-                                            <p className={cn(
-                                                "text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5",
-                                                isDark ? "text-emerald-400/80" : "text-[#8b6f47]"
-                                            )}>
-                                                <Zap size={12} className="text-amber-500" />
-                                                <span>Chọn nhanh:</span>
-                                            </p>
-                                            <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
-                                                {users.map((u, uIdx) => {
-                                                    const isSelected = formData.username === u.username;
-                                                    const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
-                                                    const avatarSrc = getUserAvatar(u, uIdx);
+                            {/* Mascot & Brand Identity Stage */}
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 py-2">
+                                <div className="relative group shrink-0">
+                                    {/* Glowing pedestal under mascot */}
+                                    <div 
+                                        className="absolute -inset-2 rounded-3xl blur-xl opacity-50 group-hover:opacity-80 transition-opacity"
+                                        style={{ background: `linear-gradient(135deg, ${activeStyles.primaryColor} 0%, ${activeStyles.secondaryColor} 100%)` }}
+                                    />
+                                    <div 
+                                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-1.5 border-2 backdrop-blur-md shadow-xl shrink-0 flex items-center justify-center overflow-hidden relative z-10 bg-white/10 dark:bg-black/20"
+                                        style={{ borderColor: `${activeStyles.primaryColor}40` }}
+                                    >
+                                        <InteractiveMascotAvatar size="w-full h-full" shape="rounded" scale={1.22} />
+                                    </div>
+                                </div>
 
-                                                    return (
-                                                        <button
-                                                            key={u.id || u.username}
-                                                            type="button"
-                                                            onClick={() => handleSelectUser(u)}
-                                                            className={cn(
-                                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider shrink-0 transition-all cursor-pointer",
-                                                                isSelected
-                                                                    ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm"
-                                                                    : (isDark 
-                                                                        ? "bg-slate-800/60 border-slate-700 text-slate-300 hover:border-emerald-500/60 hover:text-emerald-300" 
-                                                                        : "bg-white/80 border-[#d4a574]/30 text-[#8b6f47] hover:border-[#2d5016] hover:text-[#2d5016]")
-                                                            )}
-                                                        >
-                                                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[8px] font-black overflow-hidden shrink-0">
-                                                                {avatarSrc ? (
-                                                                    <img src={avatarSrc} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                                                ) : (
-                                                                    initial
-                                                                )}
-                                                            </div>
-                                                            <span>{u.display_name?.split(' ')[0] || u.username}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
+                                <div className="text-center sm:text-left min-w-0 flex-1">
+                                    <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-none">
+                                        <span className={cn("bg-gradient-to-r bg-clip-text text-transparent font-black", activeStyles.brandGradient)}>
+                                            LyangPOS
+                                        </span>
+                                    </h1>
+                                    <h2 className="text-lg sm:text-xl font-black tracking-tight mt-1 opacity-90 truncate">
+                                        {shopInfo.shop_name}
+                                    </h2>
+                                    <p className="text-xs sm:text-sm font-medium opacity-75 mt-2 leading-relaxed">
+                                        {timeGreeting.sub}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Feature Highlights Pills */}
+                            <div className="grid grid-cols-3 gap-2.5 pt-2 border-t border-black/5 dark:border-white/10 relative z-10">
+                                <div className="p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center group hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-all">
+                                    <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                                        <Zap size={13} className="fill-emerald-500/25 shrink-0 group-hover:scale-110 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Tức Thì</span>
+                                    </div>
+                                    <p className="text-[11px] font-bold opacity-75 mt-0.5 truncate">SQLite WAL POS</p>
+                                </div>
+                                <div className="p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center group hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-all">
+                                    <div className="flex items-center justify-center gap-1.5 text-blue-600 dark:text-blue-400">
+                                        <ShieldCheck size={13} className="fill-blue-500/25 shrink-0 group-hover:scale-110 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">An Toàn</span>
+                                    </div>
+                                    <p className="text-[11px] font-bold opacity-75 mt-0.5 truncate">Bảo mật nội bộ</p>
+                                </div>
+                                <div className="p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-center flex flex-col items-center justify-center group hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-all">
+                                    <div className="flex items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400">
+                                        <Sprout size={13} className="fill-amber-500/25 shrink-0 group-hover:scale-110 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">Nông Nghiệp</span>
+                                    </div>
+                                    <p className="text-[11px] font-bold opacity-75 mt-0.5 truncate">Tối ưu vật tư</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Quick Mode Navigation Switcher */}
+                        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/10">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('accounts')}
+                                className={cn(
+                                    "flex-1 py-3 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+                                    activeTab === 'accounts' || activeTab === 'pinpad'
+                                        ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                                        : "opacity-60 hover:opacity-100"
+                                )}
+                            >
+                                <User size={15} />
+                                <span>Chọn ca nhanh ({users.length})</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('form')}
+                                className={cn(
+                                    "flex-1 py-3 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+                                    activeTab === 'form'
+                                        ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm"
+                                        : "opacity-60 hover:opacity-100"
+                                )}
+                            >
+                                <KeyRound size={15} />
+                                <span>Đăng nhập khác</span>
+                            </button>
+                        </div>
+                    </m.div>
+
+                    {/* RIGHT COLUMN: Interactive Authentication Hub */}
+                    <m.div
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+                        className="lg:col-span-6 flex flex-col justify-center"
+                    >
+                        <AnimatePresence mode="wait">
+                            {/* 1. ACCOUNTS LIST (Fast Touch Switcher) */}
+                            {activeTab === 'accounts' && (
+                                <m.div
+                                    key="tab-accounts"
+                                    initial={{ opacity: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.96 }}
+                                    transition={{ duration: 0.3 }}
+                                    className={cn(
+                                        "p-6 sm:p-7 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl space-y-4 relative overflow-hidden transition-all",
+                                        activeStyles.borderClass,
+                                        activeStyles.heroCardBg
                                     )}
+                                >
+                                    {/* Ambient subtle card glow matching theme */}
+                                    <div 
+                                        className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors"
+                                        style={{ background: activeStyles.secondaryColor }}
+                                    />
 
-                                    {/* Register Display Name */}
-                                    <AnimatePresence mode="wait">
-                                        {!isLogin && (
-                                            <m.div
-                                                key="displayName"
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                className="space-y-1.5 overflow-hidden"
-                                            >
-                                                <label className={cn(
-                                                    "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
-                                                    isDark ? "text-slate-400" : "text-[#8b6f47]"
-                                                )}>
-                                                    Tên hiển thị / Họ tên
-                                                </label>
-                                                <div className="relative group">
-                                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
-                                                        <Sparkles size={18} />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        className={cn(
-                                                            "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 font-bold text-sm sm:text-base outline-none transition-all",
-                                                            isDark 
-                                                                ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
-                                                                : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
-                                                        )}
-                                                        placeholder="Ví dụ: Nguyễn Văn A"
-                                                        value={formData.display_name}
-                                                        onChange={e => setFormData({ ...formData, display_name: e.target.value })}
-                                                        required={!isLogin}
-                                                    />
-                                                </div>
-
-                                                {isSecretAdminMode && (
-                                                    <m.div
-                                                        initial={{ opacity: 0, y: -10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        className="space-y-1.5 pt-2"
-                                                    >
-                                                        <label className="text-[10px] sm:text-[11px] font-black text-rose-500 uppercase ml-3 flex items-center gap-1.5">
-                                                            <Shield size={13} /> Mã bảo mật cấp quyền Quản Trị
-                                                        </label>
-                                                        <div className="relative group">
-                                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-rose-500">
-                                                                <ShieldCheck size={18} />
-                                                            </div>
-                                                            <input
-                                                                type="password"
-                                                                className="w-full bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-200 dark:border-rose-900/50 focus:border-rose-500 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 text-rose-700 dark:text-rose-300 placeholder-rose-300 dark:placeholder-rose-700 outline-none font-bold text-sm sm:text-base"
-                                                                placeholder="Nhập mã bí mật Admin..."
-                                                                value={formData.admin_secret}
-                                                                onChange={e => setFormData({ ...formData, admin_secret: e.target.value })}
-                                                                required={isSecretAdminMode}
-                                                            />
-                                                        </div>
-                                                    </m.div>
-                                                )}
-                                            </m.div>
-                                        )}
-                                    </AnimatePresence>
-
-                                    {/* Username Field */}
-                                    <div className="space-y-1.5">
-                                        <label className={cn(
-                                            "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
-                                            isDark ? "text-slate-400" : "text-[#8b6f47]"
-                                        )}>
-                                            Tên đăng nhập
-                                        </label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
-                                                <User size={18} />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                className={cn(
-                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-4 font-bold text-sm sm:text-base outline-none transition-all",
-                                                    isDark 
-                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
-                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
-                                                )}
-                                                placeholder="Tên tài khoản (username)"
-                                                value={formData.username}
-                                                onChange={e => setFormData({ ...formData, username: e.target.value })}
-                                                required
-                                            />
+                                    <div className="flex items-center justify-between relative z-10">
+                                        <div>
+                                            <h2 className="text-base sm:text-lg font-black uppercase tracking-tight">Chọn tài khoản vào ca</h2>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Chạm thẻ nhân viên để đăng nhập ngay</p>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('form')}
+                                            className="px-3.5 py-1.5 rounded-xl border text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                            style={{
+                                                borderColor: `${activeStyles.primaryColor}40`,
+                                                color: isDark ? '#fff' : activeStyles.primaryColor,
+                                                backgroundColor: `${activeStyles.primaryColor}12`
+                                            }}
+                                        >
+                                            + Đăng nhập khác
+                                        </button>
                                     </div>
 
-                                    {/* Password Field with Eye Toggle */}
-                                    <div className="space-y-1.5">
-                                        <label className={cn(
-                                            "text-[10px] sm:text-[11px] font-black uppercase ml-3 tracking-wider",
-                                            isDark ? "text-slate-400" : "text-[#8b6f47]"
-                                        )}>
-                                            Mật khẩu
-                                        </label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-600 dark:text-emerald-400">
-                                                <Lock size={18} />
-                                            </div>
+                                    {/* Users Grid */}
+                                    <div className="grid grid-cols-2 gap-3 max-h-[380px] overflow-y-auto no-scrollbar p-0.5">
+                                        {users.map((u, uIdx) => {
+                                            const avatarSrc = getUserAvatar(u, uIdx);
+                                            const isCurrentSelected = selectedUserLoading === u.username;
+
+                                            return (
+                                                <m.div
+                                                    key={u.id || u.username}
+                                                    whileHover={{ y: -3, scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => handleSelectUser(u)}
+                                                    className={cn(
+                                                        "p-3.5 sm:p-4 rounded-3xl border backdrop-blur-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 relative group overflow-hidden shadow-xs hover:shadow-lg",
+                                                        activeStyles.borderClass,
+                                                        isDark ? "bg-white/[0.04] hover:bg-white/[0.08]" : "bg-white/60 hover:bg-white/95"
+                                                    )}
+                                                    style={{
+                                                        borderColor: `${activeStyles.primaryColor}30`
+                                                    }}
+                                                >
+                                                    {/* Top accent glow on hover */}
+                                                    <div 
+                                                        className="absolute top-0 inset-x-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        style={{ background: `linear-gradient(90deg, transparent, ${activeStyles.primaryColor}, transparent)` }}
+                                                    />
+
+                                                    {/* Avatar */}
+                                                    <div className="relative mb-2">
+                                                        <div 
+                                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 shadow-sm transition-transform duration-300 group-hover:scale-105"
+                                                            style={{
+                                                                background: `linear-gradient(135deg, ${activeStyles.primaryColor} 0%, ${activeStyles.secondaryColor} 100%)`
+                                                            }}
+                                                        >
+                                                            <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-slate-900 flex items-center justify-center font-black text-xl">
+                                                                {isCurrentSelected ? (
+                                                                    <div 
+                                                                        className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+                                                                        style={{ borderColor: activeStyles.primaryColor, borderTopColor: 'transparent' }}
+                                                                    />
+                                                                ) : avatarSrc ? (
+                                                                    <img src={avatarSrc} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    (u.display_name || u.username || "?").charAt(0).toUpperCase()
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <h3 className="text-xs sm:text-sm font-black truncate max-w-full">
+                                                        {u.display_name || u.username}
+                                                    </h3>
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-0.5 truncate max-w-full">
+                                                        @{u.username}
+                                                    </p>
+
+                                                    {/* Quick Enter Action Badge - Theme colored */}
+                                                    <div 
+                                                        className="mt-2.5 w-full py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all group-hover:scale-[1.02] shadow-2xs"
+                                                        style={{
+                                                            backgroundColor: `${activeStyles.primaryColor}18`,
+                                                            color: isDark ? '#fff' : activeStyles.primaryColor
+                                                        }}
+                                                    >
+                                                        <span>Vào ca</span>
+                                                        <ChevronRight size={11} className="group-hover:translate-x-1 transition-transform" />
+                                                    </div>
+                                                </m.div>
+                                            );
+                                        })}
+                                    </div>
+                                </m.div>
+                            )}
+
+                            {/* 2. PIN PAD / QUICK PASSWORD ENTRY (Touch Numpad Compatible) */}
+                            {activeTab === 'pinpad' && selectedUser && (
+                                <m.div
+                                    key="tab-pinpad"
+                                    initial={{ opacity: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.96 }}
+                                    transition={{ duration: 0.3 }}
+                                    className={cn(
+                                        "p-6 sm:p-7 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl space-y-4 relative overflow-hidden transition-all",
+                                        activeStyles.borderClass,
+                                        activeStyles.heroCardBg
+                                    )}
+                                >
+                                    {/* Ambient subtle card glow matching theme */}
+                                    <div 
+                                        className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors"
+                                        style={{ background: activeStyles.secondaryColor }}
+                                    />
+
+                                    {/* Back Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setActiveTab('accounts'); setError(''); }}
+                                        className="text-xs font-bold uppercase tracking-wider opacity-70 hover:opacity-100 flex items-center gap-1 cursor-pointer transition-opacity relative z-10"
+                                    >
+                                        <ArrowRight size={14} className="rotate-180" /> Quay lại chọn tài khoản
+                                    </button>
+
+                                    {/* Selected User Badge */}
+                                    <div className="flex items-center gap-3 p-3 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/5 dark:border-white/5">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2" style={{ borderColor: activeStyles.primaryColor }}>
+                                            <img src={getUserAvatar(selectedUser)} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="text-sm font-black truncate">{selectedUser.display_name || selectedUser.username}</h3>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">@{selectedUser.username}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNumpad(!showNumpad)}
+                                            className={cn(
+                                                "p-2 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all cursor-pointer",
+                                                showNumpad ? "bg-black/10 dark:bg-white/15" : "bg-transparent opacity-60"
+                                            )}
+                                        >
+                                            <KeyRound size={14} />
+                                            <span>{showNumpad ? 'Ẩn phím số' : 'Bàn phím số'}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Password Input Form */}
+                                    <form onSubmit={handleQuickPinSubmit} className="space-y-3">
+                                        <div className="relative">
                                             <input
-                                                id="welcome-password-input"
+                                                id="quick-pin-input"
                                                 type={showPassword ? "text" : "password"}
+                                                value={quickPinInput}
+                                                onChange={e => setQuickPinInput(e.target.value)}
+                                                placeholder="Nhập mật khẩu hoặc mã PIN..."
                                                 className={cn(
-                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 pl-12 pr-12 font-bold text-sm sm:text-base outline-none transition-all",
-                                                    isDark 
-                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-slate-100 placeholder-slate-600" 
-                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40 shadow-inner"
+                                                    "w-full py-4 pl-4 pr-12 rounded-2xl border-2 font-bold text-center text-lg outline-none tracking-widest transition-all",
+                                                    isDark ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500" : "bg-black/[0.03] border-transparent focus:border-black/20 focus:bg-white"
                                                 )}
-                                                placeholder="••••••••"
-                                                value={formData.password}
-                                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                                required
+                                                autoFocus
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                                                className="absolute inset-y-0 right-0 pr-4 flex items-center opacity-50 hover:opacity-100 cursor-pointer"
                                             >
                                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
-                                    </div>
 
-                                    {/* Remember Me Checkbox */}
-                                    {isLogin && (
-                                        <div className="flex items-center justify-between pt-1 ml-1">
-                                            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
-                                                <div className={cn(
-                                                    "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all",
-                                                    rememberMe 
-                                                        ? "bg-[#2d5016] dark:bg-emerald-600 border-[#2d5016] dark:border-emerald-600 text-white shadow-sm" 
-                                                        : (isDark ? "border-slate-700 bg-slate-900" : "border-[#d4a574]/40 bg-white")
-                                                )}>
-                                                    {rememberMe && <Check size={13} strokeWidth={3} />}
-                                                </div>
-                                                <input
-                                                    type="checkbox"
-                                                    className="hidden"
-                                                    checked={rememberMe}
-                                                    onChange={e => setRememberMe(e.target.checked)}
-                                                />
-                                                <span className={cn(
-                                                    "text-xs font-bold",
-                                                    isDark ? "text-slate-300" : "text-[#8b6f47]"
-                                                )}>
-                                                    Ghi nhớ tài khoản này
-                                                </span>
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
+                                        {/* Error Alert */}
+                                        {error && (
+                                            <p className="text-xs text-rose-500 font-bold text-center bg-rose-500/10 p-2 rounded-xl">
+                                                {error}
+                                            </p>
+                                        )}
 
-                                {/* Error Alert */}
-                                <AnimatePresence>
-                                    {error && (
-                                        <m.div
-                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center gap-2.5 text-rose-600 dark:text-rose-400 text-xs font-bold"
-                                        >
-                                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                                            <span>{error}</span>
-                                        </m.div>
-                                    )}
-                                </AnimatePresence>
+                                        {/* Touch Numpad */}
+                                        {showNumpad && (
+                                            <div className="grid grid-cols-3 gap-2 pt-1">
+                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                                                    <button
+                                                        key={num}
+                                                        type="button"
+                                                        onClick={() => handleNumpadPress(String(num))}
+                                                        className="py-3 rounded-2xl text-lg font-black bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/10 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer"
+                                                    >
+                                                        {num}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleNumpadPress('clear')}
+                                                    className="py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 active:scale-95 transition-all cursor-pointer"
+                                                >
+                                                    Xóa hết
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleNumpadPress('0')}
+                                                    className="py-3 rounded-2xl text-lg font-black bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/10 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer"
+                                                >
+                                                    0
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleNumpadPress('backspace')}
+                                                    className="py-3 rounded-2xl text-xs font-black uppercase tracking-wider bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/10 dark:hover:bg-white/15 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                                                >
+                                                    <Delete size={18} />
+                                                </button>
+                                            </div>
+                                        )}
 
-                                {/* Action Submit Button */}
-                                <m.button
-                                    id="login-form-submit-btn"
-                                    type="submit"
-                                    disabled={loading}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    className="w-full mt-4 sm:mt-5 bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-[0.15em] py-4 sm:py-4.5 rounded-2xl shadow-xl shadow-[#2d5016]/20 hover:shadow-[#2d5016]/40 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer disabled:opacity-60"
-                                >
-                                    {loading ? (
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <>
-                                            <span>{isLogin ? 'Bắt đầu làm việc' : 'Tạo tài khoản mới'}</span>
-                                            <ArrowRight size={16} />
-                                        </>
-                                    )}
-                                </m.button>
-                            </form>
-                        </m.div>
-                    ) : (
-                        /* Horizontal Accounts Flow Row (Glassmorphic Cards) */
-                        <m.div
-                            key="accounts-row"
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.35 }}
-                            className="w-full flex flex-col items-center shrink-0 my-auto"
-                        >
-                            <div className="text-center mb-2 sm:mb-3">
-                                <span className={cn(
-                                    "px-3 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest border shadow-xs inline-flex items-center gap-1.5",
-                                    isDark 
-                                        ? "bg-slate-900/60 border-slate-800 text-emerald-400" 
-                                        : "bg-white/70 border-[#d4a574]/30 text-[#8b6f47]"
-                                )}>
-                                    <Sparkles size={11} className="text-amber-500" />
-                                    <span>Chọn tài khoản để bắt đầu ca làm việc</span>
-                                </span>
-                            </div>
-
-                            <div className="flex gap-3 sm:gap-5 overflow-x-auto w-full max-w-full py-2 px-2 no-scrollbar scroll-smooth items-center justify-center flex-wrap">
-                                {/* Recent Accounts Cards */}
-                                {users.map((u, uIdx) => {
-                                    const initial = (u.display_name || u.username || "?").charAt(0).toUpperCase();
-                                    const isCurrentSelected = selectedUserLoading === u.username;
-                                    const avatarSrc = getUserAvatar(u, uIdx);
-
-                                    return (
-                                        <m.div
-                                            key={u.id || u.username}
-                                            whileHover={{ y: -5, scale: 1.03 }}
-                                            whileTap={{ scale: 0.97 }}
-                                            onClick={() => handleSelectUser(u)}
+                                        <button
+                                            type="submit"
+                                            disabled={loading || !quickPinInput}
                                             className={cn(
-                                                "w-36 sm:w-44 md:w-48 rounded-[1.8rem] sm:rounded-[2.2rem] border backdrop-blur-2xl p-4 sm:p-5 flex flex-col items-center justify-between min-h-[160px] sm:min-h-[190px] shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group cursor-pointer text-center",
-                                                isDark 
-                                                    ? "bg-slate-900/80 border-slate-800 hover:border-emerald-500/60 hover:shadow-emerald-950/40" 
-                                                    : "bg-white/80 border-[#d4a574]/30 hover:border-[#2d5016]/60 hover:shadow-[#2d5016]/10"
+                                                "w-full py-4 rounded-2xl text-white font-black uppercase tracking-wider text-sm shadow-xl active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2",
+                                                activeStyles.buttonGradient
                                             )}
                                         >
-                                            {/* Top Subtle Ambient Light */}
-                                            <div className="absolute -top-10 -right-10 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/25 transition-all duration-500" />
+                                            {loading ? (
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <span>Xác nhận vào ca</span>
+                                                    <ArrowRight size={16} />
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
+                                </m.div>
+                            )}
 
-                                            {/* Avatar with Glowing Halo */}
-                                            <div className="relative mb-2 mt-1">
-                                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-1 bg-gradient-to-tr from-emerald-500 via-teal-400 to-[#d4a574] shadow-md group-hover:rotate-6 group-hover:scale-105 transition-all duration-500">
-                                                    <div className={cn(
-                                                        "w-full h-full rounded-full flex items-center justify-center font-black text-xl sm:text-2xl shadow-inner overflow-hidden relative",
-                                                        isDark ? "bg-slate-900 text-emerald-300" : "bg-white text-[#2d5016]"
-                                                    )}>
-                                                        {isCurrentSelected ? (
-                                                            <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                                                        ) : avatarSrc ? (
-                                                            <img 
-                                                                src={avatarSrc} 
-                                                                alt={u.display_name || u.username}
-                                                                className="w-full h-full object-cover select-none filter drop-shadow-xs transition-transform duration-300 group-hover:scale-110"
-                                                                onError={(e) => {
-                                                                    e.currentTarget.style.display = 'none';
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            initial
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* User Details */}
-                                            <div className="w-full space-y-0.5">
-                                                <h3 className={cn(
-                                                    "text-xs sm:text-sm font-black truncate tracking-tight transition-colors",
-                                                    isDark 
-                                                        ? "text-slate-100 group-hover:text-emerald-400" 
-                                                        : "text-[#2d5016] group-hover:text-[#1e3a0f]"
-                                                )}>
-                                                    {u.display_name || u.username}
-                                                </h3>
-                                                <p className={cn(
-                                                    "text-[9px] font-bold uppercase tracking-wider",
-                                                    isDark ? "text-slate-400" : "text-[#8b6f47]"
-                                                )}>
-                                                    @{u.username}
-                                                </p>
-                                            </div>
-
-                                            {/* Quick Enter Action Badge */}
-                                            <div className={cn(
-                                                "mt-2 w-full py-1 px-2.5 rounded-xl border text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all",
-                                                isDark 
-                                                    ? "bg-slate-800/60 border-slate-700/80 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-500 text-slate-300" 
-                                                    : "bg-[#faf8f3] border-[#d4a574]/20 group-hover:bg-[#2d5016] group-hover:text-white group-hover:border-[#2d5016] text-[#8b6f47]"
-                                            )}>
-                                                <span>Vào ca</span>
-                                                <ChevronRight size={11} className="group-hover:translate-x-1 transition-transform" />
-                                            </div>
-                                        </m.div>
-                                    );
-                                })}
-
-                                {/* Other Account / Add New Card */}
+                            {/* 3. DEDICATED LOGIN / REGISTER FORM */}
+                            {activeTab === 'form' && (
                                 <m.div
-                                    whileHover={{ y: -5, scale: 1.03 }}
-                                    whileTap={{ scale: 0.97 }}
-                                    onClick={() => {
-                                        setShowLoginForm(true);
-                                        setFormData({ username: '', password: '', display_name: '', admin_secret: '' });
-                                    }}
+                                    key="tab-form"
+                                    initial={{ opacity: 0, scale: 0.96 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.96 }}
+                                    transition={{ duration: 0.3 }}
                                     className={cn(
-                                        "w-36 sm:w-44 md:w-48 rounded-[1.8rem] sm:rounded-[2.2rem] border-2 border-dashed backdrop-blur-2xl p-4 sm:p-5 flex flex-col items-center justify-center min-h-[160px] sm:min-h-[190px] shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer text-center group",
-                                        isDark 
-                                            ? "bg-slate-900/40 border-slate-800 hover:border-emerald-500/80 hover:bg-slate-900/80" 
-                                            : "bg-white/50 border-[#d4a574]/40 hover:border-[#2d5016] hover:bg-white/80"
+                                        "p-6 sm:p-7 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl space-y-4 relative overflow-hidden transition-all",
+                                        activeStyles.borderClass,
+                                        activeStyles.heroCardBg
                                     )}
                                 >
-                                    <div className={cn(
-                                        "w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-dashed flex items-center justify-center mb-2.5 transition-all duration-300 group-hover:scale-110",
-                                        isDark 
-                                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950" 
-                                            : "border-[#2d5016]/30 bg-[#2d5016]/10 text-[#2d5016] group-hover:bg-[#2d5016] group-hover:text-white"
-                                    )}>
-                                        <Plus size={22} />
+                                    {/* Ambient subtle card glow matching theme */}
+                                    <div 
+                                        className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors"
+                                        style={{ background: activeStyles.secondaryColor }}
+                                    />
+                                    {/* Tabs */}
+                                    <div className="flex p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/10">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsLogin(true); setError(''); }}
+                                            className={cn(
+                                                "flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                                                isLogin ? cn("text-white shadow-sm", activeStyles.buttonGradient) : "opacity-60"
+                                            )}
+                                        >
+                                            <LogIn size={14} /> Đăng nhập
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setIsLogin(false); setError(''); }}
+                                            className={cn(
+                                                "flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5",
+                                                !isLogin ? cn("text-white shadow-sm", activeStyles.buttonGradient) : "opacity-60"
+                                            )}
+                                        >
+                                            <ShieldCheck size={14} /> {isSecretAdminMode ? 'ĐK Quản Trị' : 'Đăng ký'}
+                                        </button>
                                     </div>
-                                    <span className={cn(
-                                        "text-[11px] sm:text-xs font-black uppercase tracking-wider",
-                                        isDark ? "text-emerald-400" : "text-[#2d5016]"
-                                    )}>
-                                        Đăng nhập khác
-                                    </span>
-                                    <p className="text-[8px] sm:text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                                        Tạo hoặc đổi tài khoản
-                                    </p>
+
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        {!isLogin && (
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black uppercase tracking-wider opacity-75 ml-2">Họ tên / Tên hiển thị</label>
+                                                <AnimatedTypingField
+                                                    type="text"
+                                                    value={formData.display_name}
+                                                    onChange={e => setFormData({ ...formData, display_name: e.target.value })}
+                                                    placeholder="Ví dụ: Nguyễn Văn A"
+                                                    isDark={isDark}
+                                                    activeStyles={activeStyles}
+                                                    required={!isLogin}
+                                                />
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-black uppercase tracking-wider opacity-75 ml-2">Tên tài khoản (Username)</label>
+                                            <AnimatedTypingField
+                                                type="text"
+                                                value={formData.username}
+                                                onChange={e => setFormData({ ...formData, username: e.target.value })}
+                                                placeholder="Nhập tên đăng nhập..."
+                                                isDark={isDark}
+                                                activeStyles={activeStyles}
+                                                required
+                                                autoFocus
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[11px] font-black uppercase tracking-wider opacity-75 ml-2">Mật khẩu</label>
+                                            <AnimatedTypingField
+                                                type={showPassword ? "text" : "password"}
+                                                value={formData.password}
+                                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                                placeholder="••••••••"
+                                                isDark={isDark}
+                                                activeStyles={activeStyles}
+                                                required
+                                                rightElement={
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="opacity-50 hover:opacity-100 transition-opacity cursor-pointer p-1"
+                                                        title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                                                    >
+                                                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                                    </button>
+                                                }
+                                            />
+                                        </div>
+
+                                        {/* Secret Admin Code for register */}
+                                        {!isLogin && (
+                                            <div className="pt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsSecretAdminMode(!isSecretAdminMode)}
+                                                    className="text-[11px] font-bold text-amber-500 hover:underline flex items-center gap-1"
+                                                >
+                                                    <Shield size={13} /> {isSecretAdminMode ? 'Ẩn mã Admin' : 'Đăng ký cấp quyền Admin?'}
+                                                </button>
+                                                {isSecretAdminMode && (
+                                                    <input
+                                                        type="password"
+                                                        value={formData.admin_secret}
+                                                        onChange={e => setFormData({ ...formData, admin_secret: e.target.value })}
+                                                        placeholder="Nhập mã bí mật Admin..."
+                                                        className="w-full mt-2 py-3 px-4 rounded-2xl border-2 border-rose-300 dark:border-rose-900 bg-rose-50/50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300 text-xs font-bold outline-none"
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {isLogin && (
+                                            <div className="flex items-center gap-2 pt-1 ml-1 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    id="rem-cb"
+                                                    checked={rememberMe}
+                                                    onChange={e => setRememberMe(e.target.checked)}
+                                                    className="rounded cursor-pointer"
+                                                />
+                                                <label htmlFor="rem-cb" className="text-xs font-bold opacity-75 cursor-pointer">Ghi nhớ đăng nhập trên máy này</label>
+                                            </div>
+                                        )}
+
+                                        {error && (
+                                            <p className="text-xs text-rose-500 font-bold text-center bg-rose-500/10 p-2 rounded-xl">
+                                                {error}
+                                            </p>
+                                        )}
+
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className={cn(
+                                                "w-full py-4 mt-2 rounded-2xl text-white font-black uppercase tracking-wider text-sm shadow-xl active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2",
+                                                activeStyles.buttonGradient
+                                            )}
+                                        >
+                                            {loading ? (
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <span>{isLogin ? 'Đăng nhập vào ca' : 'Tạo tài khoản mới'}</span>
+                                                    <ArrowRight size={16} />
+                                                </>
+                                            )}
+                                        </button>
+                                    </form>
                                 </m.div>
-                            </div>
-                        </m.div>
-                    )}
-                </AnimatePresence>
+                            )}
+                        </AnimatePresence>
+                    </m.div>
+                </div>
             </main>
 
-            {/* Footer Status Bar & Auspicious Hours Tip */}
-            <footer className="w-full shrink-0 z-30 px-4 py-2 sm:py-2.5 border-t backdrop-blur-xl transition-colors duration-500 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center">
-                {/* Auspicious Hours Daily Tip */}
-                <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-semibold opacity-85">
-                    <span className={cn(
-                        "px-2 py-0.5 rounded-lg border font-bold uppercase tracking-wider text-[8px] sm:text-[9px]",
-                        isDark ? "bg-emerald-950/60 border-emerald-800/80 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-[#2d5016]"
-                    )}>
-                        🌾 Giờ Hoàng Đạo
-                    </span>
-                    <span className={isDark ? "text-slate-400" : "text-emerald-900/80"}>
-                        {auspiciousHours.join(", ")}
-                    </span>
-                </div>
-
-                {/* System Credit */}
-                <p className={cn(
-                    "text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-1.5",
-                    isDark ? "text-slate-500" : "text-[#8b6f47]/60"
-                )}>
-                    <Leaf size={11} className="text-emerald-500" />
-                    <span>LyangPOS Intelligent Agri Ecosystem • {new Date().getFullYear()}</span>
-                </p>
-            </footer>
 
             {/* Modal LAN Configuration */}
             <AnimatePresence>
                 {showLanModal && (
                     <div className="fixed inset-0 w-full h-full flex items-center justify-center z-[100] p-4">
-                        {/* Overlay backdrop */}
                         <m.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -1198,208 +1657,74 @@ export default function Welcome() {
                             onClick={() => setShowLanModal(false)}
                             className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
                         />
-
-                        {/* Modal Body */}
                         <m.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className={cn(
                                 "border-2 p-6 sm:p-8 rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden transition-all duration-300",
-                                isDark 
-                                    ? "bg-slate-900/95 border-emerald-500/20 text-slate-100 shadow-black/80" 
-                                    : "bg-white/95 border-[#d4a574]/40 text-[#2d5016] shadow-[#2d5016]/15"
+                                activeStyles.borderClass,
+                                activeStyles.cardBg
                             )}
                         >
-                            {/* Card Ambient Glow Line */}
-                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2d5016] via-[#d4a574] to-[#2d5016] dark:from-emerald-600 dark:via-teal-400 dark:to-emerald-600 opacity-90" />
-
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-6 pt-1">
-                                <div className="flex items-center gap-3.5">
-                                    <div className="p-3 bg-gradient-to-br from-[#2d5016]/10 to-[#d4a574]/20 dark:from-emerald-500/20 dark:to-teal-500/10 rounded-2xl text-[#2d5016] dark:text-emerald-400 border border-[#2d5016]/10 dark:border-emerald-400/20 shadow-xs">
-                                        <Network size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight text-[#2d5016] dark:text-white">Cấu hình kết nối mạng</h3>
-                                        <p className="text-[10px] font-black text-[#8b6f47] dark:text-emerald-400/80 uppercase tracking-widest mt-0.5">Liên kết dữ liệu giữa các máy POS</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShowLanModal(false)}
-                                    className="p-2.5 rounded-xl border border-transparent hover:border-[#d4a574]/30 hover:bg-[#faf8f3] dark:hover:bg-slate-800 text-slate-400 hover:text-[#2d5016] dark:hover:text-emerald-400 transition-all cursor-pointer"
-                                >
+                            <div className="flex items-center justify-between mb-5">
+                                <h3 className="text-lg font-black uppercase tracking-tight">Cấu hình kết nối mạng LAN</h3>
+                                <button onClick={() => setShowLanModal(false)} className="p-2 rounded-xl opacity-60 hover:opacity-100 cursor-pointer">
                                     <X size={18} />
                                 </button>
                             </div>
 
-                            <div className="space-y-5">
-                                {/* Mode Selection Switcher with animated pill */}
-                                <div className={cn(
-                                    "flex p-1.5 rounded-2xl relative border transition-colors",
-                                    isDark 
-                                        ? "bg-slate-950/70 border-slate-800" 
-                                        : "bg-[#faf8f3] border-[#d4a574]/30"
-                                )}>
-                                    <m.div
-                                        className="absolute inset-y-1.5 rounded-xl bg-gradient-to-r from-[#2d5016] to-[#4a7c59] dark:from-emerald-700 dark:to-teal-600 shadow-md"
-                                        initial={false}
-                                        animate={{
-                                            left: !isClientMode ? '6px' : '50%',
-                                            width: 'calc(50% - 6px)'
-                                        }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 32 }}
-                                    />
+                            <div className="space-y-4">
+                                <div className="flex p-1 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/10">
                                     <button
                                         type="button"
-                                        onClick={() => { setIsClientMode(false); setConnectionStatus(null); }}
-                                        className={cn(
-                                            "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
-                                            !isClientMode 
-                                                ? "text-white" 
-                                                : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
-                                        )}
+                                        onClick={() => setIsClientMode(false)}
+                                        className={cn("flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer", !isClientMode ? "bg-white dark:bg-slate-800 shadow-sm" : "opacity-60")}
                                     >
-                                        <Laptop size={15} /> Chạy cục bộ
+                                        Chạy cục bộ
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setIsClientMode(true)}
-                                        className={cn(
-                                            "flex-1 relative z-10 py-3 text-xs font-black uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer",
-                                            isClientMode 
-                                                ? "text-white" 
-                                                : (isDark ? "text-slate-400 hover:text-slate-200" : "text-[#8b6f47] hover:text-[#2d5016]")
-                                        )}
+                                        className={cn("flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer", isClientMode ? "bg-white dark:bg-slate-800 shadow-sm" : "opacity-60")}
                                     >
-                                        <Network size={15} /> Máy khách LAN
+                                        Máy khách LAN
                                     </button>
                                 </div>
 
-                                {isClientMode ? (
-                                    <m.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="space-y-4 overflow-hidden"
-                                    >
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] sm:text-[11px] font-black text-[#8b6f47] dark:text-emerald-400 uppercase ml-2 tracking-wider">
-                                                Địa chỉ IP Máy Chủ chính
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="Ví dụ: 192.168.1.15"
-                                                value={lanIp}
-                                                onChange={(e) => { setLanIp(e.target.value); setConnectionStatus(null); }}
-                                                className={cn(
-                                                    "w-full border-2 rounded-2xl py-3.5 sm:py-4 px-4 font-mono font-bold text-sm outline-none transition-all shadow-inner",
-                                                    isDark 
-                                                        ? "bg-slate-950/60 border-slate-800 focus:border-emerald-500 text-emerald-300 placeholder-slate-600" 
-                                                        : "bg-[#faf8f3] border-transparent focus:border-[#d4a574]/50 focus:bg-white text-[#2d5016] placeholder-[#8b6f47]/40"
-                                                )}
-                                            />
-                                        </div>
-
-                                        {/* Status Message */}
-                                        {connectionStatus === 'success' && (
-                                            <m.div
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="p-3.5 bg-emerald-500/15 border border-emerald-500/40 rounded-2xl text-emerald-700 dark:text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center gap-2 justify-center shadow-xs"
-                                            >
-                                                <Check size={16} strokeWidth={2.5} /> 
-                                                <span>Kết nối Máy Chủ thành công!</span>
-                                            </m.div>
-                                        )}
-                                        {connectionStatus === 'failed' && (
-                                            <m.div
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-black uppercase tracking-wider flex flex-col items-center gap-1.5 justify-center shadow-xs"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <WifiOff size={16} /> 
-                                                    <span>Lỗi kết nối! Kiểm tra lại IP hoặc WiFi.</span>
-                                                </div>
-                                                {pingError && (
-                                                    <div className="text-[10px] text-rose-500/80 font-mono text-center normal-case border-t border-rose-500/15 pt-1 w-full">
-                                                        {pingError}
-                                                    </div>
-                                                )}
-                                            </m.div>
-                                        )}
-
+                                {isClientMode && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-wider opacity-70">IP Máy Chủ Chính</label>
+                                        <input
+                                            type="text"
+                                            value={lanIp}
+                                            onChange={e => setLanIp(e.target.value)}
+                                            placeholder="Ví dụ: 192.168.1.15"
+                                            className={cn("w-full py-3 px-4 rounded-2xl border-2 font-mono text-sm outline-none", isDark ? "bg-slate-950/60 border-slate-800" : "bg-black/[0.03] border-transparent")}
+                                        />
                                         <button
                                             type="button"
                                             onClick={handleTestConnection}
-                                            disabled={testingConnection || !lanIp.trim()}
-                                            className={cn(
-                                                "w-full py-4 border-2 rounded-2xl font-black uppercase tracking-wider text-xs shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer",
-                                                isDark 
-                                                    ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-950/40" 
-                                                    : "border-[#2d5016]/20 bg-emerald-50/70 text-[#2d5016] hover:bg-emerald-100/70 hover:border-[#2d5016]/40"
-                                            )}
+                                            disabled={testingConnection || !lanIp}
+                                            className="w-full py-2.5 rounded-xl border text-xs font-bold uppercase tracking-wider hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
                                         >
-                                            {testingConnection ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-                                                    <span>ĐANG KIỂM TRA KẾT NỐI...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Wifi size={16} /> 
-                                                    <span>Kiểm tra kết nối mạng</span>
-                                                </>
-                                            )}
+                                            {testingConnection ? 'Đang kiểm tra...' : 'Kiểm tra kết nối'}
                                         </button>
-                                    </m.div>
-                                ) : (
-                                    <div className={cn(
-                                        "p-5 rounded-2xl border flex items-start gap-3.5 shadow-sm transition-colors",
-                                        isDark 
-                                            ? "bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-teal-950/20 border-emerald-500/20 text-emerald-200" 
-                                            : "bg-gradient-to-br from-emerald-500/[0.07] via-[#faf8f3] to-amber-500/[0.05] border-[#2d5016]/15 text-[#2d5016]"
-                                    )}>
-                                        <div className="p-2.5 bg-[#2d5016]/10 dark:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-400 rounded-xl shrink-0">
-                                            <Laptop size={20} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h4 className="text-xs font-black uppercase tracking-wider">Chế độ Máy Độc Lập</h4>
-                                            <p className="text-xs font-medium leading-relaxed opacity-90">
-                                                Ứng dụng sẽ hoạt động cục bộ, sử dụng cơ sở dữ liệu nội bộ trực tiếp trên máy tính này.
-                                            </p>
-                                        </div>
+                                        {connectionStatus === 'success' && <p className="text-xs text-emerald-500 font-bold text-center">Kết nối thành công!</p>}
+                                        {connectionStatus === 'failed' && <p className="text-xs text-rose-500 font-bold text-center">{pingError || 'Lỗi kết nối'}</p>}
                                     </div>
                                 )}
 
-                                {/* Modal Footer buttons */}
-                                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#d4a574]/20 dark:border-slate-800">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowLanModal(false)}
-                                        className={cn(
-                                            "py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98] cursor-pointer border",
-                                            isDark 
-                                                ? "bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800" 
-                                                : "bg-[#faf8f3] border-[#d4a574]/40 text-[#8b6f47] hover:bg-white hover:text-[#2d5016]"
-                                        )}
-                                    >
-                                        HỦY BỎ
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSaveLanConfig}
-                                        className="py-4 bg-gradient-to-r from-[#2d5016] via-[#3a651d] to-[#4a7c59] dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:opacity-95 transition-all shadow-xl shadow-[#2d5016]/20 active:scale-[0.98] cursor-pointer"
-                                    >
-                                        LƯU CẤU HÌNH
-                                    </button>
+                                <div className="grid grid-cols-2 gap-2 pt-2">
+                                    <button type="button" onClick={() => setShowLanModal(false)} className="py-3 rounded-xl border text-xs font-black uppercase cursor-pointer">Hủy</button>
+                                    <button type="button" onClick={handleSaveLanConfig} className={cn("py-3 rounded-xl text-white text-xs font-black uppercase shadow-lg cursor-pointer", activeStyles.buttonGradient)}>Lưu cấu hình</button>
                                 </div>
                             </div>
                         </m.div>
                     </div>
                 )}
             </AnimatePresence>
+
         </div>
     );
 }

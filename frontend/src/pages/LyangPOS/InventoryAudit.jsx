@@ -1246,6 +1246,7 @@ export default function InventoryAudit() {
             <ProductEditModal
                 isOpen={isProductModalOpen}
                 product={editingProduct}
+                existingProducts={allProducts}
                 onClose={() => {
                     setIsProductModalOpen(false);
                     setEditingProduct(null);

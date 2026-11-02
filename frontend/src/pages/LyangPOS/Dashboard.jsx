@@ -73,10 +73,10 @@ import {
     Droplet
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDebt, cn } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 import Toast from '../../components/widgets/Toast';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
-import ZenBotanicalDashboard from '../../components/dashboard/ZenBotanicalDashboard';
 
 
 ChartJS.register(
@@ -199,46 +199,18 @@ const ClockWidget = memo(() => {
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const [hideStats, setHideStats] = useState(() => localStorage.getItem('hide_dashboard_stats') === 'true');
-    const [isZenTheme, setIsZenTheme] = useState(() => localStorage.getItem('ui_theme_zen_botanical') === 'true');
-
-    useEffect(() => {
-        const handleZenThemeChange = () => {
-            setIsZenTheme(localStorage.getItem('ui_theme_zen_botanical') === 'true');
-        };
-        window.addEventListener('zen_theme_changed', handleZenThemeChange);
-        window.addEventListener('storage', handleZenThemeChange);
-        let syncChan;
+    const currentUser = React.useMemo(() => {
         try {
-            syncChan = new BroadcastChannel('pos_data_sync');
-            syncChan.onmessage = (e) => {
-                if (e.data?.type === 'UI_SETTING_UPDATED' && e.data?.key === 'ui_theme_zen_botanical') {
-                    setIsZenTheme(e.data.value === 'true');
-                }
-            };
-        } catch (err) {}
-        return () => {
-            window.removeEventListener('zen_theme_changed', handleZenThemeChange);
-            window.removeEventListener('storage', handleZenThemeChange);
-            if (syncChan) syncChan.close();
-        };
+            return JSON.parse(sessionStorage.getItem('user') || '{}');
+        } catch (e) {
+            return {};
+        }
     }, []);
-
-    const toggleZenTheme = () => {
-        const nextVal = !isZenTheme;
-        setIsZenTheme(nextVal);
-        localStorage.setItem('ui_theme_zen_botanical', String(nextVal));
-        window.dispatchEvent(new Event('zen_theme_changed'));
-        window.dispatchEvent(new Event('storage'));
-        try {
-            const syncChan = new BroadcastChannel('pos_data_sync');
-            syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'ui_theme_zen_botanical', value: String(nextVal) });
-            syncChan.close();
-        } catch (err) {}
-        try {
-            axios.post('/api/settings', { ui_theme_zen_botanical: String(nextVal) });
-        } catch (err) {}
-    };
+    const isAdmin = checkIsAdmin(currentUser?.role);
+    const [hideStats, setHideStats] = useState(() => localStorage.getItem('hide_dashboard_stats') === 'true');
+    useEffect(() => {
+        localStorage.removeItem('ui_theme_zen_botanical');
+    }, []);
 
     const [stats, setStats] = useState({
         revenue: 0, cash_revenue: 0, debt_revenue: 0, profit: 0, customer_debt: 0, supplier_debt: 0,
@@ -812,7 +784,7 @@ export default function Dashboard() {
                 barThickness: 24,
                 order: 2,
             },
-            {
+            ...(isAdmin ? [{
                 type: 'line',
                 label: 'Lợi nhuận',
                 data: stats.chart?.profit_data || [],
@@ -827,7 +799,7 @@ export default function Dashboard() {
                 tension: 0.4,
                 fill: true,
                 order: 1,
-            }
+            }] : [])
         ],
     };
 
@@ -1043,17 +1015,7 @@ export default function Dashboard() {
                 return null;
             })()}
 
-            {isZenTheme ? (
-                <ZenBotanicalDashboard
-                    stats={stats}
-                    filters={filters}
-                    setFilters={setFilters}
-                    weather={weather}
-                    shopInfo={shopInfo}
-                    onToggleZen={toggleZenTheme}
-                />
-            ) : (
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 w-full">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 w-full">
                 {/* 1. Header Hero - Span 7 (60% on desktop) */}
                 <m.div 
                     variants={itemVariants} 
@@ -1152,15 +1114,6 @@ export default function Dashboard() {
 
                             {/* Action Buttons Row */}
                             <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
-                                {/* Zen Botanical Style Switch Button */}
-                                <button
-                                    type="button"
-                                    onClick={toggleZenTheme}
-                                    className="w-8 h-8 rounded-full border border-[#7D8B6E]/40 bg-[#7D8B6E]/15 text-[#4D603E] dark:text-[#C5D5B8] hover:bg-[#7D8B6E] hover:text-white hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs group/zen-btn"
-                                    title="Chuyển sang giao diện Zen Botanical"
-                                >
-                                    <Leaf size={14} className="text-[#6D835A] group-hover/zen-btn:text-white transition-colors" />
-                                </button>
 
                                 {/* Appearance Customizer Button */}
                                 <button
@@ -1376,7 +1329,10 @@ export default function Dashboard() {
                         style={getCardGlassStyle()}
                     >
                         {/* 4 Primary Key Indicators Row */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                        <div className={cn(
+                            "grid divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10",
+                            isAdmin ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-3"
+                        )}>
                             
                             {/* 1. Doanh thu */}
                             <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
@@ -1430,47 +1386,49 @@ export default function Dashboard() {
                             </div>
 
                             {/* 2. Lợi nhuận */}
-                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
-                                <div className="absolute -right-4 -bottom-4 text-[#8b6f47]/[0.09] dark:text-[#d4a574]/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
-                                    <Coins size={120} strokeWidth={1.8} />
-                                </div>
-                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
-                                            Lợi nhuận
-                                        </span>
-                                        {stats.profit_trend !== undefined && (
-                                            <span className={cn(
-                                                "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight",
-                                                stats.profit_trend >= 0 
-                                                    ? "bg-[#2d5016]/10 text-[#2d5016] border border-[#2d5016]/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" 
-                                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                                            )}>
-                                                {stats.profit_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-                                                {Math.abs(stats.profit_trend)}%
+                            {isAdmin && (
+                                <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                    <div className="absolute -right-4 -bottom-4 text-[#8b6f47]/[0.09] dark:text-[#d4a574]/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                                        <Coins size={120} strokeWidth={1.8} />
+                                    </div>
+                                    <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em]">
+                                                Lợi nhuận
                                             </span>
-                                        )}
-                                    </div>
-                                    <div className="my-2 min-h-[40px] flex items-center">
-                                        <AnimatePresence mode="wait">
-                                            <m.h3 
-                                                key={hideStats ? "hidden-prof" : "visible-prof"}
-                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
-                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
-                                                transition={{ duration: 0.25, ease: 'easeOut' }}
-                                                className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none"
-                                            >
-                                                {hideStats ? "••••••••" : formatCurrency(stats.profit)}
-                                            </m.h3>
-                                        </AnimatePresence>
-                                    </div>
-                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" />
-                                        <span>Sau khi trừ vốn nhập</span>
+                                            {stats.profit_trend !== undefined && (
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight",
+                                                    stats.profit_trend >= 0 
+                                                        ? "bg-[#2d5016]/10 text-[#2d5016] border border-[#2d5016]/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30" 
+                                                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                                )}>
+                                                    {stats.profit_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                                    {Math.abs(stats.profit_trend)}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="my-2 min-h-[40px] flex items-center">
+                                            <AnimatePresence mode="wait">
+                                                <m.h3 
+                                                    key={hideStats ? "hidden-prof" : "visible-prof"}
+                                                    initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                    exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                    className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none"
+                                                >
+                                                    {hideStats ? "••••••••" : formatCurrency(stats.profit)}
+                                                </m.h3>
+                                            </AnimatePresence>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 pt-2 border-t border-[#8b6f47]/10 dark:border-white/5 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" />
+                                            <span>Sau khi trừ vốn nhập</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* 3. Tổng nợ thu */}
                             <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
@@ -1539,7 +1497,10 @@ export default function Dashboard() {
                         </div>
 
                         {/* Secondary Indicators Strip with Watermark Details */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.04] dark:bg-white/[0.02] divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10">
+                        <div className={cn(
+                            "divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10 border-t border-[#8b6f47]/20 dark:border-white/10 bg-[#8b6f47]/[0.04] dark:bg-white/[0.02]",
+                            isAdmin ? "grid grid-cols-2 lg:grid-cols-4" : "grid grid-cols-1 sm:grid-cols-3"
+                        )}>
                             
                             <div 
                                 onClick={() => navigate('/products?filter=near_expiry')}
@@ -1580,17 +1541,19 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="relative px-6 py-4 flex items-center justify-between group overflow-hidden">
-                                <div className="absolute -right-2 -bottom-2 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
-                                    <Target size={54} strokeWidth={1.5} />
+                            {isAdmin && (
+                                <div className="relative px-6 py-4 flex items-center justify-between group overflow-hidden">
+                                    <div className="absolute -right-2 -bottom-2 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                        <Target size={54} strokeWidth={1.5} />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Tỷ suất LN</p>
+                                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-tight">
+                                            {stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="relative z-10">
-                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">Tỷ suất LN</p>
-                                    <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-tight">
-                                        {stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'}
-                                    </p>
-                                </div>
-                            </div>
+                            )}
 
                         </div>
                     </div>
@@ -1619,16 +1582,18 @@ export default function Dashboard() {
                                         Hiệu suất 7 ngày qua
                                     </h3>
                                     <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
-                                        Doanh thu & Lợi nhuận
+                                        {isAdmin ? 'Doanh thu & Lợi nhuận' : 'Doanh thu'}
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
                                      <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-full border border-[#2d5016]/20 text-[9px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400" /> Doanh thu
                                      </div>
-                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-[#8b6f47]/15 rounded-full border border-[#8b6f47]/25 text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" /> Lợi nhuận
-                                     </div>
+                                     {isAdmin && (
+                                         <div className="flex items-center gap-1.5 px-3 py-1 bg-[#8b6f47]/15 rounded-full border border-[#8b6f47]/25 text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" /> Lợi nhuận
+                                         </div>
+                                     )}
                                 </div>
                             </div>
                             
@@ -1785,7 +1750,6 @@ export default function Dashboard() {
                     </div>
                 </m.div>
             </div>
-            )}
             {/* Toast Notifications */}
             <AnimatePresence>
                 {toast && (

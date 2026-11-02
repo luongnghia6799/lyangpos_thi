@@ -760,12 +760,12 @@ export default function AccountingInventory() {
     return (
         <div className="pt-2 px-3 md:px-6 pb-20 w-full min-h-screen transition-colors">
             <div className="max-w-[1800px] mx-auto space-y-6 pb-32">
-                {/* Master Header Card */}
-                <div className="relative overflow-hidden rounded-3xl bg-transparent p-6 md:p-8 border border-slate-300 dark:border-slate-800 shadow-sm">
+                {/* Master Header (Theme: No White Box, No Outer Border) */}
+                <div className="relative overflow-hidden rounded-3xl bg-transparent p-2 md:p-4 border-0">
                     <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                                <Scale size={32} />
+                            <div className="w-13 h-13 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                <Scale size={28} />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
@@ -790,7 +790,7 @@ export default function AccountingInventory() {
                                 whileHover={{ scale: 1.02, y: -1 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setShowGuideModal(true)}
-                                className="px-4 py-3 bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                                className="px-4 py-2.5 bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-300/80 dark:border-emerald-500/40 font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-xs"
                                 title="Xem hướng dẫn sử dụng sổ kế toán & đối soát kho"
                             >
                                 <HelpCircle size={16} />
@@ -803,7 +803,7 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={handleExportDashboardData}
-                                        className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+                                        className="px-4.5 py-2.5 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
                                     >
                                         <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                         <span>Xuất Sổ Excel</span>
@@ -813,7 +813,7 @@ export default function AccountingInventory() {
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => { setView('import'); setStep(1); }}
-                                        className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl shadow-emerald-500/25 border border-emerald-400/20 transition-all cursor-pointer"
+                                        className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-emerald-600/25 border border-emerald-500/30 transition-all cursor-pointer"
                                     >
                                         <Upload size={16} />
                                         <span>Đối Soát Excel Mới</span>
@@ -829,7 +829,7 @@ export default function AccountingInventory() {
                                                 whileHover={{ scale: 1.02, y: -1 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={handleExportImportData}
-                                                className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+                                                className="px-5 py-2.5 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
                                             >
                                                 <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
                                                 <span>Xuất Báo Cáo</span>
@@ -841,10 +841,10 @@ export default function AccountingInventory() {
                                                 onClick={handleUpdate}
                                                 disabled={updating || isUpdateSuccess}
                                                 className={cn(
-                                                    "px-5 py-3 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-xl transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer border",
+                                                    "px-5 py-2.5 text-white rounded-2xl font-black flex items-center gap-2.5 shadow-md transition-all disabled:opacity-50 text-xs uppercase tracking-wider cursor-pointer border",
                                                     isUpdateSuccess
                                                         ? "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700"
-                                                        : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 shadow-emerald-500/25 border-emerald-400/20"
+                                                        : "bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 shadow-emerald-600/25 border-emerald-500/30"
                                                 )}
                                             >
                                                 <CheckCircle size={16} />
@@ -866,7 +866,7 @@ export default function AccountingInventory() {
                                                 setView('list');
                                             }
                                         }}
-                                        className="px-5 py-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700"
+                                        className="px-5 py-2.5 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black transition-all text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer border border-slate-300 dark:border-slate-700 shadow-xs"
                                     >
                                         <ArrowLeft size={16} />
                                         <span>{isUpdateSuccess ? 'Đóng đối soát' : (step === 1 ? 'Hủy bỏ' : 'Quay lại')}</span>
@@ -876,16 +876,16 @@ export default function AccountingInventory() {
                         </div>
                     </div>
 
-                    {/* Navigation Tabs Bar inside Master Header (POS Theme) */}
-                    <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
+                    {/* Navigation Tabs Bar inside Master Header (Seamless) */}
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-1.5 p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl border border-slate-300/40 dark:border-slate-700/40 shadow-xs">
                             <button
                                 onClick={() => setView('list')}
                                 className={cn(
-                                    "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                                    "px-4.5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                                     (view === 'list' || view === 'import')
-                                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                        ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm ring-1 ring-white/10"
+                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 )}
                             >
                                 <Scale size={15} />
@@ -894,14 +894,14 @@ export default function AccountingInventory() {
                             <button
                                 onClick={() => setView('invoices')}
                                 className={cn(
-                                    "px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                                    "px-4.5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
                                     view === 'invoices'
-                                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                        ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm ring-1 ring-white/10"
+                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                 )}
                             >
                                 <Receipt size={15} />
-                                <span>Theo Dõi Xuất Hóa Đơn Trong Ngày</span>
+                                <span>Theo Dõi Xuất Hóa Đơn Khách Hàng</span>
                             </button>
                         </div>
                     </div>
@@ -914,19 +914,19 @@ export default function AccountingInventory() {
 
                 {/* VIEW 1: DASHBOARD / SỔ SÁCH HIỆN TẠI */}
                 {view === 'list' && (
-                    <div className="space-y-6">
-                        {/* KPI Cards (Compact & Sleek) */}
+                    <div className="space-y-5">
+                        {/* KPI Cards (Viền cùng màu, icon in vào card) */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
                             {/* Tổng danh mục */}
-                            <div className="bg-transparent p-3.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                            <div className="p-3.5 rounded-2xl border border-cyan-400/40 bg-cyan-50/30 dark:bg-cyan-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-400 rounded-xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 shrink-0">
+                                    <div className="w-9 h-9 bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 rounded-xl flex items-center justify-center shrink-0">
                                         <Package size={18} />
                                     </div>
                                     <div className="truncate">
-                                        <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Tổng Danh Mục</p>
-                                        <div className="h-1 w-16 bg-slate-200 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
-                                            <div className="h-full bg-slate-500 w-full" />
+                                        <p className="text-[10px] font-black text-cyan-800 dark:text-cyan-300 uppercase tracking-wider truncate">Tổng Danh Mục</p>
+                                        <div className="h-1 w-16 bg-cyan-200 dark:bg-cyan-900 rounded-full mt-1 overflow-hidden">
+                                            <div className="h-full bg-cyan-600 dark:bg-cyan-400 w-full" />
                                         </div>
                                     </div>
                                 </div>
@@ -934,14 +934,14 @@ export default function AccountingInventory() {
                             </div>
 
                             {/* Có tồn kho */}
-                            <div className="bg-transparent p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                            <div className="p-3.5 rounded-2xl border border-emerald-400/40 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 shrink-0">
+                                    <div className="w-9 h-9 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                                         <Database size={18} />
                                     </div>
                                     <div className="truncate">
-                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider truncate">Có Tồn Kho</p>
-                                        <div className="h-1 w-16 bg-emerald-100 dark:bg-emerald-950 rounded-full mt-1 overflow-hidden">
+                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider truncate">Có Tồn Kho</p>
+                                        <div className="h-1 w-16 bg-emerald-200 dark:bg-emerald-900 rounded-full mt-1 overflow-hidden">
                                             <div className="h-full bg-emerald-600 dark:bg-emerald-500" style={{ width: `${globalStats.total ? (globalStats.withStock / globalStats.total) * 100 : 0}%` }} />
                                         </div>
                                     </div>
@@ -950,65 +950,59 @@ export default function AccountingInventory() {
                             </div>
 
                             {/* Lệch tồn */}
-                            <div className={cn(
-                                "p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5 bg-transparent",
-                                globalStats.discrepancy > 0 ? "border-rose-300 dark:border-rose-500/50" : "border-slate-300 dark:border-slate-800"
-                            )}>
+                            <div className="p-3.5 rounded-2xl border border-rose-400/40 bg-rose-50/30 dark:bg-rose-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className={cn(
-                                        "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",
-                                        globalStats.discrepancy > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
-                                    )}>
+                                    <div className="w-9 h-9 bg-rose-500/15 text-rose-700 dark:text-rose-400 rounded-xl flex items-center justify-center shrink-0">
                                         <AlertTriangle size={18} className={cn(globalStats.discrepancy > 0 && "animate-pulse")} />
                                     </div>
                                     <div className="truncate">
-                                        <p className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider truncate">Lệch Tồn Kho</p>
-                                        <div className="h-1 w-16 bg-rose-100 dark:bg-rose-950 rounded-full mt-1 overflow-hidden">
+                                        <p className="text-[10px] font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider truncate">Lệch Tồn Kho</p>
+                                        <div className="h-1 w-16 bg-rose-200 dark:bg-rose-900 rounded-full mt-1 overflow-hidden">
                                             <div className="h-full bg-rose-600 dark:bg-rose-500" style={{ width: `${globalStats.total ? (globalStats.discrepancy / globalStats.total) * 100 : 0}%` }} />
                                         </div>
                                     </div>
                                 </div>
-                                <p className={cn("text-xl md:text-2xl font-black tabular-nums shrink-0", globalStats.discrepancy > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
+                                <p className="text-xl md:text-2xl font-black text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
                                     {globalStats.discrepancy}
                                 </p>
                             </div>
 
                             {/* Tổng trị giá */}
-                            <div className="bg-transparent p-3.5 rounded-2xl border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                            <div className="p-3.5 rounded-2xl border border-amber-400/40 bg-amber-50/30 dark:bg-amber-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 rounded-xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 shrink-0">
+                                    <div className="w-9 h-9 bg-amber-500/15 text-amber-700 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0">
                                         <Calculator size={18} />
                                     </div>
                                     <div className="truncate">
-                                        <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">Trị Giá Sổ Sách</p>
-                                        <div className="h-1 w-16 bg-amber-100 dark:bg-amber-950/40 rounded-full mt-1 overflow-hidden">
+                                        <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider truncate">Trị Giá Sổ Sách</p>
+                                        <div className="h-1 w-16 bg-amber-200 dark:bg-amber-900/60 rounded-full mt-1 overflow-hidden">
                                             <div className="h-full bg-amber-600 dark:bg-amber-500 animate-pulse" style={{ width: '100%' }} />
                                         </div>
                                     </div>
                                 </div>
-                                <p className="text-lg md:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight shrink-0">{globalStats.totalValue.toLocaleString()}đ</p>
+                                <p className="text-lg md:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight shrink-0">{(globalStats.totalValue || 0).toLocaleString()}đ</p>
                             </div>
                         </div>
 
-                        {/* Search & Filter bar */}
-                        <div className="bg-transparent p-4 rounded-[2rem] border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-center gap-4">
+                        {/* Search & Filter bar (No outer box border) */}
+                        <div className="flex flex-col xl:flex-row items-center gap-3">
                             <div className="relative flex-1 group w-full">
-                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
+                                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                                 <input
                                     type="text"
                                     placeholder="Tìm kiếm theo mã hàng hoặc tên sản phẩm..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-3 bg-transparent border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500"
+                                    className="w-full pl-11 pr-4 py-2.5 bg-transparent border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-400"
                                 />
                             </div>
-                            <div className="flex flex-wrap items-center gap-3 shrink-0">
+                            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                                 <button
                                     onClick={() => setShowDiscrepancyOnly(!showDiscrepancyOnly)}
                                     className={cn(
-                                        "flex items-center gap-2.5 px-4 py-3 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        "flex items-center gap-2 px-4 py-2.5 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
                                         showDiscrepancyOnly
-                                            ? "bg-rose-500 border-rose-600 text-white shadow-md shadow-rose-500/20"
+                                            ? "bg-rose-500 border-rose-500 text-white shadow-sm"
                                             : "bg-transparent border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-rose-400"
                                     )}
                                 >
@@ -1019,9 +1013,9 @@ export default function AccountingInventory() {
                                 <button
                                     onClick={() => setShowOnlyCoded(!showOnlyCoded)}
                                     className={cn(
-                                        "flex items-center gap-2.5 px-4 py-3 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
+                                        "flex items-center gap-2 px-4 py-2.5 rounded-2xl cursor-pointer select-none border font-black text-xs uppercase tracking-wider transition-all",
                                         showOnlyCoded
-                                            ? "bg-emerald-600 border-emerald-700 text-white shadow-md shadow-emerald-600/20"
+                                            ? "bg-emerald-600 border-emerald-600 text-white shadow-sm"
                                             : "bg-transparent border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400"
                                     )}
                                 >
@@ -1031,10 +1025,10 @@ export default function AccountingInventory() {
 
                                 <button
                                     onClick={() => fetchProducts()}
-                                    className="p-3 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl hover:text-emerald-600 hover:border-emerald-500 transition-all cursor-pointer"
+                                    className="p-2.5 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl hover:text-emerald-600 hover:border-emerald-500 transition-all cursor-pointer"
                                     title="Tải lại danh sách"
                                 >
-                                    <RefreshCw size={18} />
+                                    <RefreshCw size={17} />
                                 </button>
                             </div>
                         </div>
@@ -1536,7 +1530,7 @@ export default function AccountingInventory() {
                                             <div>
                                                 <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lệch Trị Giá</p>
                                                 <p className={cn("text-base font-black tabular-nums", stats.discrepancyValue >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400")}>
-                                                    {stats.discrepancyValue > 0 ? '+' : ''}{stats.discrepancyValue.toLocaleString()}đ
+                                                    {stats.discrepancyValue > 0 ? '+' : ''}{(stats.discrepancyValue || 0).toLocaleString()}đ
                                                 </p>
                                             </div>
                                         </div>
@@ -1626,7 +1620,7 @@ export default function AccountingInventory() {
                                                                         </span>
                                                                         {item.excelPrice > 0 && (
                                                                             <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
-                                                                                Giá: {item.excelPrice.toLocaleString()}đ
+                                                                                Giá: {(item.excelPrice || 0).toLocaleString()}đ
                                                                             </span>
                                                                         )}
                                                                     </div>

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { AnimatePresence, m } from 'framer-motion';
 import CustomSelect from '../../components/forms/CustomSelect';
 import { 
-    Save, Building, Cloud, Download, RefreshCcw, Info, Settings as SettingsIcon, 
+    Save, Building, Cloud, Download, RefreshCcw, RefreshCw, Check, Info, Settings as SettingsIcon, 
     Database, Keyboard, Monitor, Layout, Tractor, Wheat, Droplets, Leaf, Bot, 
     Sparkles, Trash2, CreditCard, ArrowRight, Activity, Calculator as CalculatorIcon, 
-    Copy, ShieldAlert, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3,
+    Copy, ShieldAlert, Shield, Wifi, Laptop, Key, CheckCircle, Smartphone, Layers, Volume2, Type, Edit3,
     Loader2, Zap, Eye, RotateCw, RotateCcw, ChevronLeft, ChevronRight, Archive
 } from 'lucide-react';
 import YearEndArchiveModal from '../../components/modals/YearEndArchiveModal';
@@ -21,6 +21,7 @@ import PasswordConfirmModal from '../../components/modals/PasswordConfirmModal';
 import CategoryManager from '../../components/panels/CategoryManager';
 import SidebarManager from '../../components/layout/SidebarManager';
 import GoogleFontPickerModal from '../../components/modals/GoogleFontPickerModal';
+import IconPickerModal from '../../components/modals/IconPickerModal';
 import { applyGlobalAppFont } from '../../lib/googleFonts';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { queryClient } from '../../lib/queryClient';
@@ -43,6 +44,8 @@ export default function Settings() {
         gemini_api_key: '',
         gemini_api_key_2: '',
         gemini_api_key_3: '',
+        gemini_selected_model: localStorage.getItem('lyang_ai_selected_model') || 'gemini-2.5-flash',
+        gemini_available_models: '[]',
         brands_directory: '',
         ui_theme_zen_botanical: localStorage.getItem('ui_theme_zen_botanical') || DEFAULT_SETTINGS.ui_theme_zen_botanical || 'false',
         ui_loading_style: localStorage.getItem('ui_loading_style') || DEFAULT_SETTINGS.ui_loading_style || 'ring',
@@ -50,6 +53,10 @@ export default function Settings() {
         ui_show_doraemon: localStorage.getItem('ui_show_doraemon') || DEFAULT_SETTINGS.ui_show_doraemon,
         ui_custom_cursor_enabled: localStorage.getItem('pos_cursor_disabled') !== 'true' ? 'true' : 'false',
         ui_custom_cursor_color: localStorage.getItem('pos_cursor_color') || '#10b981',
+        ui_custom_cursor_icon: localStorage.getItem('pos_cursor_icon') || '',
+        ui_custom_cursor_icon_size: localStorage.getItem('pos_cursor_icon_size') || '24',
+        ui_custom_cursor_ring_enabled: localStorage.getItem('pos_cursor_ring_disabled') !== 'true' ? 'true' : 'false',
+        ui_custom_cursor_glow_enabled: localStorage.getItem('pos_cursor_glow_disabled') !== 'true' ? 'true' : 'false',
         feature_accounting_enabled: localStorage.getItem('feature_accounting_enabled') || DEFAULT_SETTINGS.feature_accounting_enabled,
         pos_default_landing_page: localStorage.getItem('pos_default_landing_page') || DEFAULT_SETTINGS.pos_default_landing_page || 'dashboard',
         pos_typing_sound_enabled: localStorage.getItem('pos_typing_sound_enabled') || DEFAULT_SETTINGS.pos_typing_sound_enabled || 'true',
@@ -62,6 +69,183 @@ export default function Settings() {
     const [previewLoading, setPreviewLoading] = useState(null); // { style, message }
     const [previewOrderSwitch, setPreviewOrderSwitch] = useState(null); // { style, title }
     const [showAppFontModal, setShowAppFontModal] = useState(false);
+    const [cursorPickerTarget, setCursorPickerTarget] = useState(null);
+    const [isFetchingGeminiModels, setIsFetchingGeminiModels] = useState(false);
+    const [availableGeminiModels, setAvailableGeminiModels] = useState(() => {
+        try {
+            const saved = localStorage.getItem('lyang_ai_available_models');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {}
+        return [
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Thế hệ 2.5 mới nhất - Tốc độ cực nhanh & tối ưu nhất (Khuyên dùng)' },
+            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', desc: 'Tốc độ cao, đa phương thức vượt trội' },
+            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Hoạt động ổn định, phản hồi tức thì' },
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Suy luận cao cấp nhất, độ chính xác tối đa' },
+            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Suy luận chuyên sâu & ngữ cảnh lớn' }
+        ];
+    });
+
+    useEffect(() => {
+        const handleModelChanged = (e) => {
+            if (e.detail?.model) {
+                setSettings(prev => ({ ...prev, gemini_selected_model: e.detail.model }));
+            }
+            if (e.detail?.models && Array.isArray(e.detail.models)) {
+                setAvailableGeminiModels(e.detail.models);
+            }
+        };
+        window.addEventListener('gemini_model_changed', handleModelChanged);
+        return () => window.removeEventListener('gemini_model_changed', handleModelChanged);
+    }, []);
+
+        const geminiModelOptions = useMemo(() => {
+        return (availableGeminiModels || []).map(m => {
+            const id = m.id || m.value;
+            const name = m.name || m.label || id;
+            const label = (name && name !== id) ? `${name} (${id})` : id;
+            return {
+                value: id,
+                label: label,
+                desc: m.desc
+            };
+        });
+    }, [availableGeminiModels]);
+
+    const handleSelectGeminiModel = async (modelId) => {
+        setSettings(prev => ({ ...prev, gemini_selected_model: modelId }));
+        try {
+            localStorage.setItem('lyang_ai_selected_model', modelId);
+            await axios.post('/api/settings', { gemini_selected_model: modelId });
+            window.dispatchEvent(new CustomEvent('gemini_model_changed', { detail: { model: modelId } }));
+            setToast({ message: `Đã chọn mô hình ${modelId} áp dụng cho toàn bộ hệ thống!`, type: 'success' });
+        } catch (err) {
+            console.error('Lỗi khi lưu model:', err);
+        }
+    };
+
+    const handleFetchGeminiModels = async () => {
+        setIsFetchingGeminiModels(true);
+        try {
+            let apiKeys = [];
+            [settings.gemini_api_key, settings.gemini_api_key_2, settings.gemini_api_key_3].forEach(k => {
+                if (k && typeof k === 'string') {
+                    k.split(/[,;\n]/).forEach(p => {
+                        const trimmed = p.trim();
+                        if (trimmed && !apiKeys.includes(trimmed)) apiKeys.push(trimmed);
+                    });
+                }
+            });
+            const localKey = (localStorage.getItem('gemini_api_key') || '').trim();
+            if (localKey && !apiKeys.includes(localKey)) apiKeys.push(localKey);
+
+            let foundModels = [];
+            let lastError = '';
+
+            // 1. Thử gọi qua endpoint backend
+            try {
+                const bRes = await axios.post('/api/ai/models', { api_key: apiKeys[0] || undefined }, { timeout: 15000 });
+                if (bRes.data?.models && Array.isArray(bRes.data.models) && bRes.data.models.length > 0) {
+                    foundModels = bRes.data.models;
+                }
+            } catch (bErr) {
+                console.warn('Backend fetch models failed, trying direct Google API...', bErr);
+            }
+
+            // 2. Dự phòng: gọi trực tiếp Google Generative Language API nếu backend chưa fetch được
+            if (foundModels.length === 0) {
+                if (apiKeys.length === 0) {
+                    setToast({ message: 'Vui lòng nhập ít nhất một Gemini API Key để lấy danh sách mô hình!', type: 'error' });
+                    setIsFetchingGeminiModels(false);
+                    return;
+                }
+                for (let i = 0; i < apiKeys.length; i++) {
+                    const key = apiKeys[i];
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
+                        const res = await axios.get(url, { timeout: 12000 });
+                        if (res.data?.models && Array.isArray(res.data.models)) {
+                            const filtered = res.data.models
+                                .filter(m => {
+                                    const methods = m.supportedGenerationMethods || [];
+                                    return methods.includes('generateContent');
+                                })
+                                .map(m => {
+                                    const cleanId = (m.name || '').replace(/^models\//, '');
+                                    return {
+                                        id: cleanId,
+                                        name: m.displayName || cleanId,
+                                        desc: m.description ? (m.description.length > 90 ? m.description.substring(0, 90) + '...' : m.description) : `Tokens: ${m.inputTokenLimit?.toLocaleString() || '1M'}`,
+                                        inputTokenLimit: m.inputTokenLimit
+                                    };
+                                })
+                                .filter(m => m.id && !m.id.includes('embedding') && !m.id.includes('aqa') && !m.id.includes('imagen') && !m.id.includes('text-embedding'));
+
+                            if (filtered.length > 0) {
+                                filtered.sort((a, b) => {
+                                    const getRank = (id) => {
+                                        if (id.includes('2.5-flash')) return 100;
+                                        if (id.includes('2.0-flash')) return 90;
+                                        if (id.includes('1.5-flash')) return 80;
+                                        if (id.includes('3.5-flash')) return 75;
+                                        if (id.includes('2.5-pro')) return 70;
+                                        if (id.includes('2.0-pro')) return 60;
+                                        if (id.includes('1.5-pro')) return 50;
+                                        return 10;
+                                    };
+                                    return getRank(b.id) - getRank(a.id);
+                                });
+                                foundModels = filtered;
+                                break;
+                            }
+                        }
+                    } catch (err) {
+                        lastError = err.response?.data?.error?.message || err.message;
+                    }
+                }
+            }
+
+            if (foundModels.length > 0) {
+                setAvailableGeminiModels(foundModels);
+                const currentSelected = settings.gemini_selected_model;
+                const chosenModel = foundModels.some(m => m.id === currentSelected) ? currentSelected : foundModels[0].id;
+                
+                setSettings(prev => ({
+                    ...prev,
+                    gemini_selected_model: chosenModel,
+                    gemini_available_models: JSON.stringify(foundModels)
+                }));
+
+                localStorage.setItem('lyang_ai_available_models', JSON.stringify(foundModels));
+                localStorage.setItem('lyang_ai_selected_model', chosenModel);
+
+                await axios.post('/api/settings', {
+                    gemini_available_models: JSON.stringify(foundModels),
+                    gemini_selected_model: chosenModel
+                });
+
+                window.dispatchEvent(new CustomEvent('gemini_model_changed', {
+                    detail: { model: chosenModel, models: foundModels }
+                }));
+
+                setToast({
+                    message: `Đã cập nhật ${foundModels.length} mô hình chính thức từ Google AI! Áp dụng: ${chosenModel}`,
+                    type: 'success'
+                });
+            } else {
+                setToast({
+                    message: `Không thể lấy danh sách mô hình: ${lastError || 'Kiểm tra lại kết nối và API Key'}`,
+                    type: 'error'
+                });
+            }
+        } catch (e) {
+            setToast({ message: `Lỗi fetch models: ${e.message}`, type: 'error' });
+        } finally {
+            setIsFetchingGeminiModels(false);
+        }
+    };
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [dbStats, setDbStats] = useState(null);
@@ -343,7 +527,7 @@ export default function Settings() {
                     // 1. Xóa toàn bộ React Query cache & LocalStorage state cũ để nạp mới 100%
                     queryClient.clear();
                     try {
-                        const keysToKeep = ['server_ip', 'user', 'theme', 'app_font_family', 'ui_show_doraemon', 'pos_cursor_disabled', 'pos_cursor_color', 'pos_default_landing_page', 'pos_typing_sound_enabled', 'ui_loading_style', 'pos_order_switch_animation'];
+                        const keysToKeep = ['server_ip', 'user', 'theme', 'app_font_family', 'ui_show_doraemon', 'pos_cursor_disabled', 'pos_cursor_color', 'pos_cursor_icon', 'pos_cursor_icon_size', 'pos_cursor_ring_disabled', 'pos_cursor_glow_disabled', 'pos_default_landing_page', 'pos_typing_sound_enabled', 'ui_loading_style', 'pos_order_switch_animation'];
                         Object.keys(localStorage).forEach(k => {
                             if (!keysToKeep.includes(k) && !k.startsWith('tauri')) {
                                 localStorage.removeItem(k);
@@ -381,6 +565,21 @@ export default function Settings() {
                 const localCursor = localStorage.getItem('pos_cursor_disabled');
                 if (localCursor !== null) combined.ui_custom_cursor_enabled = localCursor === 'true' ? 'false' : 'true';
 
+                const localCursorColor = localStorage.getItem('pos_cursor_color');
+                if (localCursorColor !== null) combined.ui_custom_cursor_color = localCursorColor;
+
+                const localCursorIcon = localStorage.getItem('pos_cursor_icon');
+                if (localCursorIcon !== null) combined.ui_custom_cursor_icon = localCursorIcon;
+
+                const localCursorIconSize = localStorage.getItem('pos_cursor_icon_size');
+                if (localCursorIconSize !== null) combined.ui_custom_cursor_icon_size = localCursorIconSize;
+
+                const localCursorRing = localStorage.getItem('pos_cursor_ring_disabled');
+                if (localCursorRing !== null) combined.ui_custom_cursor_ring_enabled = localCursorRing === 'true' ? 'false' : 'true';
+
+                const localCursorGlow = localStorage.getItem('pos_cursor_glow_disabled');
+                if (localCursorGlow !== null) combined.ui_custom_cursor_glow_enabled = localCursorGlow === 'true' ? 'false' : 'true';
+
                 const localHidden = localStorage.getItem('sidebar_hidden_items');
                 if (localHidden !== null) {
                     combined.sidebar_hidden_items = localHidden;
@@ -404,6 +603,24 @@ export default function Settings() {
                 } else if (combined.app_font_family) {
                     localStorage.setItem('app_font_family', combined.app_font_family);
                     applyGlobalAppFont(combined.app_font_family);
+                }
+
+                                if (combined.gemini_selected_model) {
+                    localStorage.setItem('lyang_ai_selected_model', combined.gemini_selected_model);
+                } else {
+                    combined.gemini_selected_model = localStorage.getItem('lyang_ai_selected_model') || 'gemini-2.5-flash';
+                }
+
+                if (combined.gemini_available_models) {
+                    try {
+                        const parsed = typeof combined.gemini_available_models === 'string'
+                            ? JSON.parse(combined.gemini_available_models)
+                            : combined.gemini_available_models;
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            setAvailableGeminiModels(parsed);
+                            localStorage.setItem('lyang_ai_available_models', JSON.stringify(parsed));
+                        }
+                    } catch (e) {}
                 }
 
                 const localLoadingStyle = localStorage.getItem('ui_loading_style');
@@ -593,8 +810,11 @@ export default function Settings() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start relative z-10 flex-1 overflow-hidden">
                 
                 {/* Left Side Tab Navigation List */}
-                <div className="lg:col-span-1 flex flex-col gap-1.5 bg-[#fbf8f2]/90 dark:bg-slate-900/80 backdrop-blur-md p-2.5 rounded-[1.5rem] border border-[#8b6f47]/20 dark:border-white/10 shadow-sm">
-                    <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8b6f47]/70 dark:text-emerald-400/60 px-3.5 py-1.5 border-b border-[#8b6f47]/15 dark:border-white/10 mb-1">DANH MỤC CẤU HÌNH</p>
+                <div className="lg:col-span-1 flex flex-col gap-2 bg-[#fbf9f5] dark:bg-stone-900/90 backdrop-blur-md p-2.5 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs">
+                    <div className="px-3.5 py-2 border-b border-stone-200/60 dark:border-stone-800 mb-0.5 flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-emerald-400">Danh Mục Cài Đặt</span>
+                        <span className="text-[9px] font-bold text-stone-400 dark:text-stone-500 font-mono">5 mục</span>
+                    </div>
                     {TABS.map((tab) => {
                         const Icon = tab.icon;
                         const isSelected = activeTab === tab.id;
@@ -603,29 +823,41 @@ export default function Settings() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "relative flex items-center gap-4 p-3.5 rounded-2xl text-left transition-colors duration-150 group overflow-hidden cursor-pointer",
+                                    "flex items-center gap-3.5 p-3 rounded-2xl text-left transition-all duration-150 group cursor-pointer border",
                                     isSelected 
-                                        ? "bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#2d5016]/25 dark:border-emerald-500/30 shadow-xs" 
-                                        : "border border-transparent hover:bg-[#2d5016]/5 dark:hover:bg-emerald-500/10"
+                                        ? "bg-white dark:bg-emerald-950/30 border-emerald-500/35 dark:border-emerald-500/40 shadow-xs" 
+                                        : "border-transparent hover:bg-stone-200/40 dark:hover:bg-stone-800/40"
                                 )}
                             >
-                                {isSelected && (
-                                    <span
-                                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-7 bg-[#2d5016] dark:bg-emerald-400 rounded-r-full z-10 transition-all duration-150"
-                                    />
-                                )}
                                 <div className={cn(
-                                    "p-2.5 rounded-xl z-10 transition-colors duration-150 flex items-center justify-center shrink-0 shadow-sm",
+                                    "w-10 h-10 rounded-xl transition-all duration-150 flex items-center justify-center shrink-0 shadow-xs",
                                     isSelected 
-                                        ? "bg-[#2d5016] dark:bg-emerald-500 text-white" 
-                                        : "bg-[#2d5016]/5 dark:bg-emerald-900/30 text-[#2d5016]/70 dark:text-emerald-400 group-hover:bg-[#2d5016]/10"
+                                        ? "bg-[#2d5016] dark:bg-emerald-600 text-white" 
+                                        : "bg-stone-200/50 dark:bg-stone-800/60 text-stone-500 dark:text-stone-400 group-hover:bg-[#2d5016]/10 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400"
                                 )}>
                                     <Icon size={18} />
                                 </div>
-                                <div className="z-10 min-w-0">
-                                    <p className={cn("text-xs font-black uppercase tracking-wider leading-none mb-1.5 transition-colors duration-150", isSelected ? "text-[#2d5016] dark:text-emerald-400" : "text-[#2d5016]/80 dark:text-emerald-100/60 group-hover:text-[#2d5016]")}>{tab.label}</p>
-                                    <p className={cn("text-[9px] font-bold truncate uppercase tracking-widest leading-none transition-colors duration-150", isSelected ? "text-[#2d5016]/60 dark:text-emerald-400/60" : "text-[#2d5016]/40 dark:text-emerald-100/40")}>{tab.desc}</p>
+                                <div className="min-w-0 flex-1">
+                                    <p className={cn(
+                                        "text-xs font-black uppercase tracking-wider leading-tight mb-1 transition-colors duration-150",
+                                        isSelected 
+                                            ? "text-[#2d5016] dark:text-emerald-300" 
+                                            : "text-stone-700 dark:text-stone-300 group-hover:text-[#2d5016] dark:group-hover:text-white"
+                                    )}>
+                                        {tab.label}
+                                    </p>
+                                    <p className={cn(
+                                        "text-[10px] font-medium line-clamp-1 leading-snug transition-colors duration-150",
+                                        isSelected 
+                                            ? "text-[#2d5016]/75 dark:text-emerald-400/80" 
+                                            : "text-stone-400 dark:text-stone-500 group-hover:text-stone-600 dark:group-hover:text-stone-400"
+                                    )}>
+                                        {tab.desc}
+                                    </p>
                                 </div>
+                                {isSelected && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0 mr-1" />
+                                )}
                             </button>
                         );
                     })}
@@ -645,195 +877,309 @@ export default function Settings() {
                             {/* TAB CONTENT: GENERAL (Cửa hàng & Ngân quỹ) */}
                             {activeTab === 'general' && (
                                 <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-                                    <div className="flex items-center gap-3.5 pb-3 border-b border-[#d4a574]/10">
-                                        <div className="p-2.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl text-[#2d5016] dark:text-emerald-400">
-                                            <Building size={20} />
+                                    {/* Header: Clean & Themed */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-800">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-11 h-11 bg-emerald-500/15 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
+                                                <Building size={22} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base md:text-lg font-black text-slate-800 dark:text-emerald-50 uppercase tracking-tight">Hồ sơ Trang trại & Ngân quỹ</h2>
+                                                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">Thông tin nhận diện chứng từ hóa đơn, tài khoản QR Pay và Trí tuệ nhân tạo</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h2 className="text-lg font-black text-gray-800 dark:text-emerald-50 uppercase tracking-tight">Hồ sơ Trang trại & Ngân quỹ</h2>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Thông tin nhận dạng hóa đơn và tài khoản thanh toán QR Pay</p>
+                                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                                            <span className="px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                                Phiên bản Agri Edition
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                        {/* Store information form */}
-                                        <div className="space-y-4">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <Building size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Thông tin cơ bản
-                                            </h3>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Tên Trang Trại / Đại lý</label>
-                                                <input
-                                                    name="shop_name"
-                                                    value={settings.shop_name}
-                                                    onChange={handleChange}
-                                                    placeholder="Ví dụ: Lyang Nghĩa"
-                                                    className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-[#4a7c59] outline-none shadow-inner transition-all"
-                                                />
+                                    {/* TOP ROW: 2 Balanced Cards (Store Profile & Bank QR Pay) */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+                                        {/* CARD 1: Store Information */}
+                                        <div className="p-5 md:p-6 rounded-3xl border border-stone-300/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 shadow-xs flex flex-col justify-between space-y-4">
+                                            <div>
+                                                <div className="flex items-center justify-between pb-3 border-b border-stone-200/70 dark:border-slate-800/80 mb-4">
+                                                    <h3 className="text-xs font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400 flex items-center gap-2">
+                                                        <div className="w-7 h-7 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+                                                            <Building size={14} />
+                                                        </div>
+                                                        <span>Thông Tin Cửa Hàng / Trang Trại</span>
+                                                    </h3>
+                                                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-stone-200/60 dark:bg-slate-800 text-stone-600 dark:text-slate-400">
+                                                        In trên hóa đơn
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-3.5">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Tên Trang Trại / Đại lý</label>
+                                                            <input
+                                                                name="shop_name"
+                                                                value={settings.shop_name}
+                                                                onChange={handleChange}
+                                                                placeholder="Ví dụ: Lyang Nghĩa"
+                                                                className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Đường dây nóng (Hotline)</label>
+                                                            <input
+                                                                name="shop_phone"
+                                                                value={settings.shop_phone}
+                                                                onChange={handleChange}
+                                                                placeholder="0xxx.xxx.xxx"
+                                                                className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs font-mono text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Địa chỉ Canh Tác / Trụ sở</label>
+                                                        <textarea
+                                                            name="shop_address"
+                                                            value={settings.shop_address}
+                                                            onChange={handleChange}
+                                                            rows="2"
+                                                            placeholder="Địa chỉ giao dịch đầy đủ..."
+                                                            className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-semibold text-xs text-stone-900 dark:text-emerald-50 resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400 leading-relaxed"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Danh mục Hãng / Thương hiệu (Cách nhau bằng dấu phẩy)</label>
+                                                        <textarea
+                                                            name="brands_directory"
+                                                            value={settings.brands_directory || ''}
+                                                            onChange={handleChange}
+                                                            rows="2"
+                                                            placeholder="Ví dụ: SYNGENTA, HỢP TRÍ, BAYER, VFC, SALA..."
+                                                            className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-semibold text-xs text-stone-900 dark:text-emerald-50 resize-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400 leading-relaxed"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Đường dây nóng (Hotline)</label>
-                                                <input
-                                                    name="shop_phone"
-                                                    value={settings.shop_phone}
-                                                    onChange={handleChange}
-                                                    placeholder="0xxx.xxx.xxx"
-                                                    className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs font-mono text-gray-800 dark:text-emerald-50 focus:border-[#4a7c59] outline-none shadow-inner transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Địa chỉ Canh Tác / Trụ sở</label>
-                                                <textarea
-                                                    name="shop_address"
-                                                    value={settings.shop_address}
-                                                    onChange={handleChange}
-                                                    rows="2"
-                                                    placeholder="Địa chỉ giao dịch..."
-                                                    className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-bold text-xs text-gray-800 dark:text-emerald-50 resize-none focus:border-[#4a7c59] outline-none shadow-inner transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Danh mục Hãng / Thương hiệu (Cách nhau bằng dấu phẩy)</label>
-                                                <textarea
-                                                    name="brands_directory"
-                                                    value={settings.brands_directory || ''}
-                                                    onChange={handleChange}
-                                                    rows="2"
-                                                    placeholder="Ví dụ: Hợp Trí, Syngenta, Bayer, Lộc Trời..."
-                                                    className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-bold text-xs text-gray-800 dark:text-emerald-50 resize-none focus:border-[#4a7c59] outline-none shadow-inner transition-all"
-                                                />
+
+                                            <div className="pt-2 text-[10px] text-stone-500 dark:text-slate-400 font-medium italic border-t border-stone-200/50 dark:border-slate-800">
+                                                💡 Thông tin này sẽ tự động xuất hiện ở đầu hóa đơn in nhiệt / hóa đơn A4 và chứng từ kho.
                                             </div>
                                         </div>
 
-                                        {/* Premium real-time Virtual Credit Card mock and Bank forms */}
-                                        <div className="space-y-4">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <CreditCard size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Cấu hình chuyển khoản (QR Pay)
-                                            </h3>
-                                            
-                                            {/* Virtual ATM Card Mock - Optimized Padding & Height */}
-                                            <div className="relative h-36 w-full bg-gradient-to-br from-[#1b3b14] via-[#2d5016] to-[#0d2208] rounded-2xl p-4.5 text-white shadow-md shadow-emerald-950/30 overflow-hidden border border-white/10 flex flex-col justify-between group">
-                                                <div className="absolute -right-16 -top-16 w-36 h-36 bg-emerald-500/10 rounded-full blur-xl group-hover:scale-110 transition-transform" />
-                                                
-                                                <div className="flex justify-between items-start relative z-10">
-                                                    <div>
-                                                        <p className="text-[7px] font-black tracking-[0.25em] uppercase text-emerald-400/80">HỒ SƠ THANH TOÁN QR</p>
-                                                        <p className="text-xs font-black tracking-wider uppercase mt-1 leading-none">{settings.shop_bank || 'CHƯA CHỌN NGÂN HÀNG'}</p>
+                                        {/* CARD 2: Bank Account & QR Pay */}
+                                        <div className="p-5 md:p-6 rounded-3xl border border-stone-300/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 shadow-xs flex flex-col justify-between space-y-4">
+                                            <div>
+                                                <div className="flex items-center justify-between pb-3 border-b border-stone-200/70 dark:border-slate-800/80 mb-4">
+                                                    <h3 className="text-xs font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400 flex items-center gap-2">
+                                                        <div className="w-7 h-7 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+                                                            <CreditCard size={14} />
+                                                        </div>
+                                                        <span>Cấu hình Chuyển Khoản & QR Pay</span>
+                                                    </h3>
+                                                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                                        Quét mã thanh toán POS
+                                                    </span>
+                                                </div>
+
+                                                {/* Virtual ATM Card Mock */}
+                                                <div className="relative h-34 w-full bg-gradient-to-br from-[#173812] via-[#244b1c] to-[#0e250b] rounded-2xl p-4 text-white shadow-md shadow-emerald-950/20 overflow-hidden border border-white/10 flex flex-col justify-between mb-4 group">
+                                                    <div className="absolute -right-12 -top-12 w-32 h-32 bg-emerald-400/15 rounded-full blur-xl group-hover:scale-110 transition-transform pointer-events-none" />
+                                                    
+                                                    <div className="flex justify-between items-start relative z-10">
+                                                        <div>
+                                                            <p className="text-[7.5px] font-black tracking-[0.25em] uppercase text-emerald-400/80">HỒ SƠ THANH TOÁN QR</p>
+                                                            <p className="text-sm font-black tracking-wider uppercase mt-0.5 leading-none">{settings.shop_bank || 'CHƯA CHỌN NGÂN HÀNG'}</p>
+                                                        </div>
+                                                        <CreditCard size={18} className="text-emerald-300/80" />
                                                     </div>
-                                                    <CreditCard size={20} className="text-emerald-300 opacity-80" />
-                                                </div>
 
-                                                <div className="relative z-10 my-0.5">
-                                                    <p className="text-[7.5px] font-black uppercase text-emerald-300/40 tracking-wider">SỐ TÀI KHOẢN</p>
-                                                    <p className="text-lg font-black font-mono tracking-[0.1em] text-emerald-100 leading-none mt-0.5">{settings.shop_bank_account || '•••• •••• ••••'}</p>
-                                                </div>
-
-                                                <div className="flex justify-between items-end relative z-10">
-                                                    <div>
-                                                        <p className="text-[6.5px] font-black text-emerald-300/40 tracking-widest">CHỦ THỤ HƯỞNG</p>
-                                                        <p className="text-[10px] font-black uppercase tracking-wider leading-none mt-0.5">{settings.shop_bank_user || 'TEN CHU TAI KHOAN'}</p>
+                                                    <div className="relative z-10 my-0.5">
+                                                        <p className="text-[7.5px] font-black uppercase text-emerald-300/50 tracking-wider">SỐ TÀI KHOẢN</p>
+                                                        <p className="text-base md:text-lg font-black font-mono tracking-[0.12em] text-emerald-100 leading-none mt-0.5">{settings.shop_bank_account || '•••• •••• ••••'}</p>
                                                     </div>
-                                                    <div className="px-2 py-0.5 bg-transparent backdrop-blur-md rounded border border-white/10 text-[7px] font-black uppercase tracking-widest text-emerald-300">MB BANK QR</div>
-                                                </div>
-                                            </div>
 
-                                            <div className="space-y-3">
-                                                <div className="space-y-1.5">
-                                                    <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Tên Ngân Hàng (Viết tắt)</label>
-                                                    <input
-                                                        name="shop_bank"
-                                                        value={settings.shop_bank}
-                                                        onChange={handleChange}
-                                                        placeholder="Ví dụ: MB Bank, Vietcombank..."
-                                                        className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-amber-500 outline-none shadow-inner transition-all"
-                                                    />
+                                                    <div className="flex justify-between items-end relative z-10">
+                                                        <div>
+                                                            <p className="text-[7px] font-black text-emerald-300/50 tracking-widest uppercase">CHỦ THỤ HƯỞNG</p>
+                                                            <p className="text-[11px] font-black uppercase tracking-wider leading-none mt-0.5">{settings.shop_bank_user || 'TEN CHU TAI KHOAN'}</p>
+                                                        </div>
+                                                        <div className="px-2 py-0.5 bg-white/10 backdrop-blur-md rounded-md border border-white/15 text-[8px] font-black uppercase tracking-widest text-emerald-300">VIETQR PAY</div>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Số Tài Khoản</label>
+
+                                                {/* Bank Input fields */}
+                                                <div className="space-y-3">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Tên Ngân Hàng (Viết tắt)</label>
                                                         <input
-                                                            name="shop_bank_account"
-                                                            value={settings.shop_bank_account}
+                                                            name="shop_bank"
+                                                            value={settings.shop_bank}
                                                             onChange={handleChange}
-                                                            placeholder="Nhập số TK..."
-                                                            className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs font-mono text-gray-800 dark:text-emerald-50 focus:border-amber-500 outline-none shadow-inner transition-all"
+                                                            placeholder="Ví dụ: VietinBank, MB Bank, Vietcombank..."
+                                                            className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400"
                                                         />
                                                     </div>
-                                                    <div className="grid grid-cols-1">
-                                                        <div className="space-y-1.5">
-                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">Chủ Tài Khoản (Không dấu)</label>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Số Tài Khoản</label>
+                                                            <input
+                                                                name="shop_bank_account"
+                                                                value={settings.shop_bank_account}
+                                                                onChange={handleChange}
+                                                                placeholder="Nhập số TK..."
+                                                                className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs font-mono text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">Chủ Tài Khoản (Không dấu)</label>
                                                             <input
                                                                 name="shop_bank_user"
                                                                 value={settings.shop_bank_user}
                                                                 onChange={handleChange}
                                                                 placeholder="NGUYEN VAN A"
-                                                                className="w-full p-3.5 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs uppercase text-gray-800 dark:text-emerald-50 focus:border-amber-500 outline-none shadow-inner transition-all"
+                                                                className="w-full px-3.5 py-2.5 bg-white/80 dark:bg-slate-950/60 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs uppercase text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs placeholder:text-stone-400"
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* AI Integration - Gemini API Key */}
-                                            <div className="pt-4 border-t border-[#d4a574]/10 space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                        <Bot size={13} className="text-emerald-500" /> Tích hợp AI (Gemini 3.5 Flash Lite)
+                                            <div className="pt-2 text-[10px] text-stone-500 dark:text-slate-400 font-medium italic border-t border-stone-200/50 dark:border-slate-800">
+                                                💡 Mã VietQR tạo ra từ tài khoản này sẽ hiển thị ở màn hình POS để khách quét chuyển tiền trực tiếp.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* BOTTOM ROW: Dedicated AI Intelligence Center (Full Width, 2 Columns) */}
+                                    <div className="p-5 md:p-6 rounded-3xl border border-emerald-500/25 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.04] via-white/70 to-teal-500/[0.04] dark:from-slate-900/80 dark:via-slate-900/60 dark:to-emerald-950/30 shadow-xs space-y-4">
+                                        {/* AI Header */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-emerald-500/15 dark:border-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-sm shadow-emerald-700/25 shrink-0">
+                                                    <Bot size={20} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-emerald-300 flex items-center gap-2">
+                                                        <span>Trung Tâm Trí Tuệ Nhân Tạo (Google Gemini AI)</span>
                                                     </h3>
-                                                    <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                                                        Xoay vòng & Fallback 3 Key
+                                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                                        Cấu hình mô hình thông minh & khóa API áp dụng đồng bộ cho toàn bộ hệ thống LyangPOS
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                                                <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                                    ● Đang hoạt động toàn hệ thống
+                                                </span>
+                                                <span className="text-[10px] font-black px-2.5 py-1 rounded-xl bg-stone-200/60 dark:bg-slate-800 text-stone-700 dark:text-slate-300 border border-stone-300/60 dark:border-slate-700">
+                                                    Xoay vòng 3 Key tự động
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* 2-Column AI Grid: Left = Model Selector, Right = API Keys */}
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                                            {/* Left: Model Selector & Fetch */}
+                                            <div className="space-y-3 p-4 bg-white/70 dark:bg-slate-950/40 rounded-2xl border border-stone-200/80 dark:border-slate-800 shadow-2xs">
+                                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                    <label className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                                        <span>Mô hình đang áp dụng:</span>
+                                                    </label>
+                                                    <span className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">
+                                                        ({availableGeminiModels.length} models sẵn sàng)
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-black text-emerald-800 dark:text-emerald-300 font-mono bg-emerald-500/15 px-3 py-1 rounded-xl border border-emerald-500/30 shadow-2xs">
+                                                        {settings.gemini_selected_model || 'gemini-2.5-flash'}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleFetchGeminiModels}
+                                                        disabled={isFetchingGeminiModels}
+                                                        className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 disabled:opacity-60 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-700/20 transition-all cursor-pointer whitespace-nowrap active:scale-95 ml-auto"
+                                                    >
+                                                        <RefreshCw size={13} className={cn(isFetchingGeminiModels && "animate-spin")} />
+                                                        <span>{isFetchingGeminiModels ? 'Đang lấy từ Google...' : 'Lấy Danh Sách Model Mới Nhất'}</span>
+                                                    </button>
+                                                </div>
+
+                                                {/* CustomSelect */}
+                                                <div className="pt-1">
+                                                    <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Chọn mô hình hoạt động:</label>
+                                                    <CustomSelect
+                                                        value={settings.gemini_selected_model || 'gemini-2.5-flash'}
+                                                        onChange={(val) => {
+                                                            const selectedVal = (val && typeof val === 'object' && val.target) ? val.target.value : val;
+                                                            handleSelectGeminiModel(selectedVal);
+                                                        }}
+                                                        options={geminiModelOptions}
+                                                        placeholder="Chọn mô hình Gemini..."
+                                                        searchable={true}
+                                                        searchPlaceholder="Tìm kiếm mô hình Gemini trong danh sách..."
+                                                        className="w-full"
+                                                        buttonClassName="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-900 dark:text-white focus:border-emerald-500 shadow-2xs"
+                                                    />
+                                                </div>
+
+                                                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium italic pt-1 leading-relaxed">
+                                                    💡 Khi chọn tại đây, toàn bộ hệ thống (Trợ lý AI, Quét HĐ nhập hàng, Tra cứu hoạt chất) sẽ tự động sử dụng mô hình này.
+                                                </p>
+                                            </div>
+
+                                            {/* Right: 3 API Keys Inputs */}
+                                            <div className="space-y-3 p-4 bg-white/70 dark:bg-slate-950/40 rounded-2xl border border-stone-200/80 dark:border-slate-800 shadow-2xs">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">
+                                                            🔑 Gemini API Key Chính (Key #1)
+                                                        </label>
+                                                        <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">Ưu tiên 1</span>
+                                                    </div>
+                                                    <input
+                                                        name="gemini_api_key"
+                                                        type="password"
+                                                        value={settings.gemini_api_key}
+                                                        onChange={handleChange}
+                                                        placeholder="Nhập Gemini API Key chính..."
+                                                        className="w-full px-3.5 py-2.5 bg-white/90 dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs font-mono"
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     <div className="space-y-1">
-                                                        <div className="flex items-center justify-between">
-                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
-                                                                🔑 Gemini API Key Chính (Key #1)
-                                                            </label>
-                                                            <span className="text-[8px] font-bold text-emerald-600">Ưu tiên 1</span>
-                                                        </div>
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">
+                                                            🔑 Key Dự phòng 2 (Key #2)
+                                                        </label>
                                                         <input
-                                                            name="gemini_api_key"
+                                                            name="gemini_api_key_2"
                                                             type="password"
-                                                            value={settings.gemini_api_key}
+                                                            value={settings.gemini_api_key_2 || ''}
                                                             onChange={handleChange}
-                                                            placeholder="Nhập Gemini API Key chính..."
-                                                            className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
+                                                            placeholder="Nhập Key dự phòng 2..."
+                                                            className="w-full px-3.5 py-2.5 bg-white/90 dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs font-mono"
                                                         />
                                                     </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
-                                                                🔑 Gemini API Key Dự phòng 2 (Key #2)
-                                                            </label>
-                                                            <input
-                                                                name="gemini_api_key_2"
-                                                                type="password"
-                                                                value={settings.gemini_api_key_2 || ''}
-                                                                onChange={handleChange}
-                                                                placeholder="Nhập Key dự phòng 2..."
-                                                                className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <label className="text-[8.5px] font-black text-gray-400 dark:text-emerald-100/40 uppercase tracking-widest ml-1">
-                                                                🔑 Gemini API Key Dự phòng 3 (Key #3)
-                                                            </label>
-                                                            <input
-                                                                name="gemini_api_key_3"
-                                                                type="password"
-                                                                value={settings.gemini_api_key_3 || ''}
-                                                                onChange={handleChange}
-                                                                placeholder="Nhập Key dự phòng 3..."
-                                                                className="w-full p-3 bg-emerald-50/20 dark:bg-slate-800/40 border border-emerald-900/5 dark:border-slate-700 rounded-xl font-black text-xs text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-inner transition-all font-mono"
-                                                            />
-                                                        </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-stone-600 dark:text-stone-400 uppercase tracking-wider ml-0.5">
+                                                            🔑 Key Dự phòng 3 (Key #3)
+                                                        </label>
+                                                        <input
+                                                            name="gemini_api_key_3"
+                                                            type="password"
+                                                            value={settings.gemini_api_key_3 || ''}
+                                                            onChange={handleChange}
+                                                            placeholder="Nhập Key dự phòng 3..."
+                                                            className="w-full px-3.5 py-2.5 bg-white/90 dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700 rounded-xl font-bold text-xs text-stone-900 dark:text-emerald-50 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 outline-none transition-all shadow-2xs font-mono"
+                                                        />
                                                     </div>
                                                 </div>
-                                                <p className="text-[8px] text-gray-400 dark:text-gray-500 italic ml-1 leading-relaxed">
-                                                    💡 Hệ thống tự động <strong>xoay vòng và kích hoạt key dự phòng</strong> nếu key chính hết hạn ngạch (Rate Limit/Quota), đảm bảo Trợ lý Cố vấn AI và tính năng quét hóa đơn luôn hoạt động liên tục 24/7.
+
+                                                <p className="text-[10px] text-stone-500 dark:text-slate-400 font-medium italic pt-1 leading-relaxed">
+                                                    💡 Hệ thống tự động <strong>xoay vòng và kích hoạt key dự phòng</strong> nếu key chính hết hạn ngạch (Rate Limit/Quota), đảm bảo hoạt động liên tục 24/7.
                                                 </p>
                                             </div>
                                         </div>
@@ -844,46 +1190,55 @@ export default function Settings() {
                             {/* TAB CONTENT: NETWORK (Mạng & Đồng bộ LAN) */}
                             {activeTab === 'network' && (
                                 <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-                                    <div className="flex items-center gap-3.5 pb-3 border-b border-[#d4a574]/10">
-                                        <div className="p-2.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 shadow-inner">
-                                            <Wifi size={20} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-black text-gray-800 dark:text-emerald-50 uppercase tracking-tight">Quản lý mạng nội bộ LAN</h2>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Kết nối nhiều thiết bị sử dụng chung cơ sở dữ liệu qua mạng LAN/Wifi</p>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-800">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-11 h-11 bg-emerald-500/15 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
+                                                <Wifi size={22} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base font-black text-stone-800 dark:text-stone-100 uppercase tracking-wide">Quản lý mạng nội bộ LAN</h2>
+                                                <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mt-0.5">Kết nối nhiều thiết bị sử dụng chung cơ sở dữ liệu qua mạng LAN/Wifi</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Connectivity topology graphics - Optimized Padding */}
-                                    <div className="p-4 bg-transparent dark:bg-slate-950/40 rounded-[2rem] border border-emerald-900/5 dark:border-emerald-500/10 relative overflow-hidden">
+                                    {/* Connectivity topology graphics - Themed Card */}
+                                    <div className="p-5 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-3xl border border-stone-200/80 dark:border-stone-800 relative overflow-hidden shadow-xs">
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center relative z-10">
-                                            <div className="p-3 bg-transparent dark:bg-slate-900 rounded-xl border border-emerald-500/10 flex flex-col items-center gap-1.5">
-                                                <Laptop size={24} className="text-emerald-500" />
-                                                <p className="text-[9px] font-black uppercase text-gray-400">Thiết bị A (Máy Chủ)</p>
+                                            <div className="p-3.5 bg-white dark:bg-stone-800/80 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 flex flex-col items-center gap-1.5 shadow-2xs">
+                                                <Laptop size={24} className="text-[#2d5016] dark:text-emerald-400" />
+                                                <p className="text-[10px] font-black uppercase tracking-wider text-stone-500">Thiết bị A (Máy Chủ)</p>
                                                 <p className="text-xs font-black font-mono text-[#2d5016] dark:text-emerald-400 leading-none">{localIpInfo.ip}:3579</p>
                                             </div>
-                                            <div className="flex flex-col items-center justify-center text-emerald-500/40 py-1">
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500/40 mb-0.5">MẠNG LAN / WIFI</span>
-                                                <ArrowRight className="hidden md:block text-emerald-500/30" size={16} />
+                                            <div className="flex flex-col items-center justify-center text-[#2d5016]/50 dark:text-emerald-400/50 py-1">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-[#2d5016]/60 dark:text-emerald-400/60 mb-1">MẠNG LAN / WIFI</span>
+                                                <ArrowRight className="hidden md:block text-[#2d5016]/40 dark:text-emerald-400/40" size={18} />
                                             </div>
-                                            <div className="p-3 bg-transparent dark:bg-slate-900 rounded-xl border border-blue-500/10 flex flex-col items-center gap-1.5">
-                                                <Smartphone size={24} className="text-blue-500" />
-                                                <p className="text-[9px] font-black uppercase text-gray-400">Thiết bị B (Máy Trạm)</p>
-                                                <p className="text-xs font-black text-blue-500 uppercase tracking-wider leading-none">{localStorage.getItem('server_ip') ? 'Đã kết nối' : 'Có thể kết nối'}</p>
+                                            <div className="p-3.5 bg-white dark:bg-stone-800/80 rounded-2xl border border-stone-200/60 dark:border-stone-700/60 flex flex-col items-center gap-1.5 shadow-2xs">
+                                                <Smartphone size={24} className="text-[#2d5016] dark:text-emerald-400" />
+                                                <p className="text-[10px] font-black uppercase tracking-wider text-stone-500">Thiết bị B (Máy Trạm)</p>
+                                                <p className="text-xs font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-wider leading-none">{localStorage.getItem('server_ip') ? 'Đã kết nối' : 'Có thể kết nối'}</p>
                                             </div>
                                         </div>
                                     </div>
 
+                                    {/* 2-Column Balanced Setup Cards */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                                        <div className="space-y-3">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <SettingsIcon size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Thiết lập Vai trò
-                                            </h3>
+                                        {/* Card 1: Role Configuration */}
+                                        <div className="p-6 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs space-y-4">
+                                            <div className="flex items-center gap-2.5 pb-3 border-b border-stone-200/60 dark:border-stone-800">
+                                                <SettingsIcon size={16} className="text-[#2d5016] dark:text-emerald-400" />
+                                                <h3 className="text-xs font-black uppercase tracking-wider text-stone-800 dark:text-stone-100">
+                                                    Thiết lập Vai trò Thiết bị
+                                                </h3>
+                                            </div>
                                             
-                                            <div className="space-y-1.5">
-                                                <label className="text-[8.5px] font-black text-gray-400 uppercase tracking-wider ml-1">Vai trò thiết bị hiện tại</label>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider ml-0.5">
+                                                    Vai trò thiết bị hiện tại
+                                                </label>
                                                 <CustomSelect
-                                                    className="w-full border border-emerald-900/5 dark:border-slate-700 rounded-xl bg-emerald-50/20 dark:bg-slate-800/40"
+                                                    className="w-full"
                                                     value={localStorage.getItem('server_ip') ? 'client' : 'standalone'}
                                                     onChange={(e) => {
                                                         if (e.target.value === 'standalone') {
@@ -903,9 +1258,11 @@ export default function Settings() {
                                                 />
                                             </div>
 
-                                            {localStorage.getItem('server_ip') !== null && (
-                                                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-4 duration-300">
-                                                    <label className="text-[8.5px] font-black text-gray-400 uppercase tracking-wider ml-1">Địa chỉ IP Máy Chủ chính</label>
+                                            {localStorage.getItem('server_ip') !== null ? (
+                                                <div className="space-y-2 pt-1 animate-in fade-in slide-in-from-top-4 duration-300">
+                                                    <label className="text-[10px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider ml-0.5">
+                                                        Địa chỉ IP Máy Chủ chính
+                                                    </label>
                                                     <input
                                                         type="text"
                                                         placeholder="Ví dụ: 192.168.1.12"
@@ -918,143 +1275,171 @@ export default function Settings() {
                                                                 setTimeout(() => window.location.reload(), 1500);
                                                             }
                                                         }}
-                                                        className="w-full p-3.5 bg-transparent dark:bg-slate-900 border border-emerald-500/20 rounded-xl font-black text-xs font-mono text-gray-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-sm"
+                                                        className="w-full px-4 py-3 bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 rounded-2xl font-black text-xs font-mono text-stone-800 dark:text-emerald-50 focus:border-emerald-500 outline-none shadow-2xs"
                                                     />
+                                                    <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-relaxed">
+                                                        Nhập địa chỉ IP của máy chủ LyangPOS trong mạng LAN để máy này kết nối và đồng bộ hóa đơn.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-500/20 text-stone-600 dark:text-stone-400 text-xs leading-relaxed space-y-1.5">
+                                                    <p className="font-bold text-[#2d5016] dark:text-emerald-400 flex items-center gap-1.5">
+                                                        <Laptop size={14} /> Chế độ Máy Chủ Độc Lập
+                                                    </p>
+                                                    <p className="text-[11px] text-stone-500 dark:text-stone-400 leading-normal">
+                                                        Máy này giữ cơ sở dữ liệu chính. Các máy trạm, điện thoại hoặc máy tính bảng kết nối qua địa chỉ IP LAN để bán hàng cùng lúc.
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-3">
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5">
-                                                <Activity size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Trạng thái kết nối
-                                            </h3>
-                                            
-                                            {!localStorage.getItem('server_ip') ? (
-                                                <div className="p-4 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-2xl border border-emerald-500/20 shadow-inner text-left">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                        <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest leading-none">MÁY CHỦ CHÍNH (HOST)</span>
-                                                    </div>
-                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 leading-relaxed mb-3">
-                                                        Máy trạm kết nối tới máy này qua địa chỉ LAN:
+                                        {/* Card 2: Connection Status & Quick Actions */}
+                                        <div className="p-6 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs space-y-4">
+                                            <div className="flex items-center justify-between pb-3 border-b border-stone-200/60 dark:border-stone-800">
+                                                <div className="flex items-center gap-2.5">
+                                                    <Activity size={16} className="text-[#2d5016] dark:text-emerald-400" />
+                                                    <h3 className="text-xs font-black uppercase tracking-wider text-stone-800 dark:text-stone-100">
+                                                        Trạng thái Kết nối
+                                                    </h3>
+                                                </div>
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/20">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                                    {localStorage.getItem('server_ip') === null ? "Máy Chủ Chính (Host)" : "Máy Trạm (Client)"}
+                                                </span>
+                                            </div>
+
+                                            {localStorage.getItem('server_ip') === null ? (
+                                                <div className="space-y-3.5">
+                                                    <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
+                                                        Máy trạm kết nối tới máy này qua địa chỉ LAN nội bộ:
                                                     </p>
-                                                    <div className="p-2.5 bg-transparent dark:bg-slate-900/60 rounded-xl border border-emerald-500/10 mb-3 text-center">
-                                                        <p className="text-sm font-black font-mono text-gray-800 dark:text-emerald-300">http://{localIpInfo.ip || '127.0.0.1'}:3579</p>
+
+                                                    {/* IP Display Box */}
+                                                    <div className="p-3.5 bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/80 dark:border-stone-700 flex items-center justify-between shadow-2xs">
+                                                        <span className="text-sm font-black font-mono text-[#2d5016] dark:text-emerald-300 tracking-tight">
+                                                            http://{localIpInfo.ip}:3579
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(`http://${localIpInfo.ip}:3579`);
+                                                                setToast({ message: 'Đã sao chép link kết nối!', type: 'success' });
+                                                            }}
+                                                            className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-[#2d5016] dark:text-emerald-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                                        >
+                                                            <Copy size={13} />
+                                                            <span>Sao chép IP</span>
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            const connectUrl = `http://${localIpInfo.ip || '127.0.0.1'}:3579`;
-                                                            navigator.clipboard.writeText(connectUrl);
-                                                            setToast({ message: 'Đã sao chép địa chỉ IP Máy Chủ!', type: 'success' });
-                                                        }}
-                                                        className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-transparent dark:bg-slate-900 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 rounded-lg font-black text-[9px] uppercase tracking-widest border border-emerald-500/20 shadow-sm transition-all"
-                                                    >
-                                                        <Copy size={10} /> SAO CHÉP LIÊN KẾT IP
-                                                    </button>
-                                                    
-                                                    <button
-                                                        onClick={handleUnlockFirewall}
-                                                        disabled={unlockingFirewall}
-                                                        className={cn(
-                                                            "w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest border shadow-sm transition-all outline-none",
-                                                            unlockingFirewall
-                                                                ? "bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed"
-                                                                : "bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-700 text-emerald-700 dark:text-emerald-350 border-emerald-500/30 dark:border-emerald-500/25"
-                                                        )}
-                                                    >
-                                                        <ShieldAlert size={10} className={cn(unlockingFirewall && "")} /> 
-                                                        {unlockingFirewall ? "ĐANG GỬI YÊU CẦU..." : "MỞ KHÓA TƯỜNG LỬA (WINDOWS)"}
-                                                     </button>
-                                                     <button
-                                                         onClick={() => {
-                                                             const port = localIpInfo.port || 3579;
-                                                             const cmd = `Remove-NetFirewallRule -DisplayName "LyangPOS LAN Access (${port})" -ErrorAction SilentlyContinue; New-NetFirewallRule -DisplayName "LyangPOS LAN Access (${port})" -Direction Inbound -Action Allow -Protocol TCP -LocalPort ${port}`;
-                                                             navigator.clipboard.writeText(cmd);
-                                                             setToast({ message: 'Đã sao chép lệnh mở khóa Tường lửa vào Clipboard!', type: 'success' });
-                                                         }}
-                                                         className="w-full mt-2 flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-black text-[9px] uppercase tracking-widest border border-amber-500/30 dark:border-amber-500/25 bg-amber-50/50 dark:bg-amber-950/30 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-700 text-amber-700 dark:text-amber-350 shadow-sm transition-all outline-none"
-                                                     >
-                                                         <Copy size={10} /> SAO CHÉP LỆNH POWERSHELL
-                                                     </button>
+
+                                                    {/* Action Buttons */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleUnlockFirewall}
+                                                            disabled={unlockingFirewall}
+                                                            className={cn(
+                                                                "flex items-center justify-center gap-2 py-3 px-4 rounded-2xl font-bold text-xs shadow-xs transition-all cursor-pointer",
+                                                                unlockingFirewall 
+                                                                    ? "bg-emerald-500/20 text-emerald-600 cursor-wait" 
+                                                                    : "bg-[#2d5016] hover:bg-[#3d6b20] text-white"
+                                                            )}
+                                                        >
+                                                            <ShieldAlert size={14} />
+                                                            <span>{unlockingFirewall ? "Đang mở..." : "Mở khóa tường lửa"}</span>
+                                                        </button>
+                                                        
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const cmd = `New-NetFirewallRule -DisplayName "LyangPOS Server" -Direction Inbound -LocalPort 3579 -Protocol TCP -Action Allow -Profile Any -Force`;
+                                                                navigator.clipboard.writeText(cmd);
+                                                                setToast({ message: 'Đã sao chép lệnh PowerShell mở cổng 3579!', type: 'info' });
+                                                            }}
+                                                            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700/60 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 font-bold text-xs transition-all cursor-pointer shadow-2xs"
+                                                        >
+                                                            <Copy size={13} />
+                                                            <span>Sao chép PowerShell</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ) : (
-                                                <div className="p-4 bg-blue-500/10 dark:bg-blue-500/5 rounded-2xl border border-blue-500/20 shadow-inner">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                                        <span className="text-[9px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest leading-none">MÁY TRẠM (CLIENT)</span>
-                                                    </div>
-                                                    <p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 leading-relaxed mb-3">
+                                                <div className="space-y-3.5">
+                                                    <p className="text-xs font-medium text-stone-600 dark:text-stone-400">
                                                         Đang đồng bộ dữ liệu từ máy chủ chính:
                                                     </p>
-                                                    <div className="p-2.5 bg-transparent dark:bg-slate-900/60 rounded-xl border border-blue-500/10 text-center">
-                                                        <p className="text-sm font-black font-mono text-blue-600 dark:text-blue-400 leading-none">{localStorage.getItem('server_ip')}</p>
+                                                    <div className="p-3.5 bg-white dark:bg-stone-800 rounded-2xl border border-stone-200/80 dark:border-stone-700 text-center shadow-2xs">
+                                                        <p className="text-sm font-black font-mono text-[#2d5016] dark:text-emerald-400">{localStorage.getItem('server_ip')}</p>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Connected Devices LAN Table */}
-                                    <div className="p-5 bg-transparent dark:bg-slate-950/40 rounded-2xl border border-emerald-900/5 dark:border-slate-800/60 text-left animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-emerald-500/10">
-                                            <Activity size={16} className="text-emerald-500" />
-                                            <div>
-                                                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8b6f47] dark:text-[#d4a574] flex items-center gap-1.5 leading-none">
-                                                    <Laptop size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Các thiết bị đang kết nối mạng LAN
-                                                </h3>
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">Cập nhật trực tiếp các máy trạm đang đồng bộ dữ liệu vào máy chủ này</p>
+                                    {/* Connected Devices LAN Table - Full Width Card */}
+                                    <div className="p-6 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs space-y-4 text-left">
+                                        <div className="flex items-center justify-between pb-3 border-b border-stone-200/60 dark:border-stone-800">
+                                            <div className="flex items-center gap-2.5">
+                                                <Laptop size={16} className="text-[#2d5016] dark:text-emerald-400" />
+                                                <div>
+                                                    <h3 className="text-xs font-black uppercase tracking-wider text-stone-800 dark:text-stone-100">
+                                                        Các thiết bị đang kết nối mạng LAN
+                                                    </h3>
+                                                    <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mt-0.5">
+                                                        Tự động đồng bộ hóa đơn & tồn kho giữa máy chủ và các máy trạm bán hàng
+                                                    </p>
+                                                </div>
                                             </div>
+                                            <span className="px-3 py-1 rounded-full bg-stone-200/60 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-mono text-[10px] font-bold">
+                                                {activeDevices?.length || 0} thiết bị
+                                            </span>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[240px] overflow-y-auto pr-1 no-scrollbar">
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                                             {(!activeDevices || !Array.isArray(activeDevices) || activeDevices.length === 0) ? (
-                                                <div className="col-span-full py-6 text-center text-gray-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wider">
+                                                <div className="col-span-full py-8 text-center text-stone-400 dark:text-stone-500 font-bold text-xs uppercase tracking-wider">
                                                     Đang quét thiết bị mạng LAN...
                                                 </div>
                                             ) : (
                                                 activeDevices.map((device, idx) => (
                                                     <div 
                                                         key={device.ip + idx}
-                                                        className={cn(
-                                                            "flex items-center justify-between p-3.5 rounded-xl border transition-all",
-                                                            device.is_host 
-                                                                ? "bg-emerald-500/10 dark:bg-emerald-500/5 border-emerald-500/20" 
-                                                                : "bg-transparent dark:bg-slate-900/60 border-emerald-950/5 dark:border-slate-800"
-                                                        )}
+                                                        className="flex items-center justify-between p-4 rounded-2xl border bg-white dark:bg-stone-800/80 border-stone-200/70 dark:border-stone-700 shadow-2xs hover:border-emerald-500/30 transition-all"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <div className={cn(
-                                                                "w-9 h-9 rounded-xl flex items-center justify-center border transition-colors",
+                                                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs",
                                                                 device.is_host
-                                                                    ? "bg-emerald-500/20 border-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                                                                    : "bg-blue-500/20 border-blue-500/20 text-blue-600 dark:text-blue-400"
+                                                                    ? "bg-emerald-500/15 text-[#2d5016] dark:text-emerald-400 border border-emerald-500/20"
+                                                                    : "bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/20"
                                                             )}>
-                                                                {device.is_host ? <Laptop size={16} /> : <Smartphone size={16} />}
+                                                                {device.is_host ? <Laptop size={18} /> : <Smartphone size={18} />}
                                                             </div>
                                                             <div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <p className="text-xs font-black text-gray-800 dark:text-white leading-none">{device.label}</p>
+                                                                    <p className="text-xs font-black text-stone-800 dark:text-stone-100 leading-none">{device.label}</p>
                                                                     <span className={cn(
-                                                                        "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider leading-none",
+                                                                        "px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider leading-none",
                                                                         device.is_host 
-                                                                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20" 
-                                                                            : "bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-500/20"
+                                                                            ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20" 
+                                                                            : "bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-500/20"
                                                                     )}>
                                                                         {device.is_host ? "Máy chủ" : "Máy trạm"}
                                                                     </span>
                                                                 </div>
-                                                                <p className="text-[10px] font-black font-mono text-gray-400 mt-1.5">{device.ip}</p>
+                                                                <p className="text-[11px] font-bold font-mono text-stone-400 mt-1">{device.ip}</p>
                                                             </div>
                                                         </div>
                                                         
-                                                        <div className="text-right flex flex-col items-end gap-1.5">
-                                                            <div className="flex items-center gap-1.5">
+                                                        <div className="text-right flex flex-col items-end gap-1">
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
                                                                 <span className="relative flex h-2 w-2">
                                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                                 </span>
-                                                                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none">Online</span>
-                                                            </div>
-                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-wider leading-none">
+                                                                Online
+                                                            </span>
+                                                            <p className="text-[10px] font-medium text-stone-400 font-mono">
                                                                 {new Date(device.last_seen).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                                             </p>
                                                         </div>
@@ -1070,33 +1455,35 @@ export default function Settings() {
                             {activeTab === 'database' && (
                                 <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
                                     {/* Header Section */}
-                                    <div className="flex items-center gap-3.5 pb-3.5 border-b border-[#d4a574]/15">
-                                        <div className="p-3 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-2xl text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
-                                            <Database size={22} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-black text-[#2d5016] dark:text-emerald-300 uppercase tracking-tight">Quản trị Cơ sở dữ liệu</h2>
-                                            <p className="text-[10px] font-bold text-gray-400 dark:text-emerald-300/40 uppercase tracking-widest mt-0.5">Tải tệp sao lưu, phục hồi dữ liệu, tối ưu hóa và dọn dẹp hệ thống</p>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-800">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-11 h-11 bg-emerald-500/15 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
+                                                <Database size={22} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base font-black text-stone-800 dark:text-stone-100 uppercase tracking-wide">Quản trị Cơ sở dữ liệu</h2>
+                                                <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mt-0.5">Tải tệp sao lưu, phục hồi dữ liệu, tối ưu hóa và dọn dẹp hệ thống</p>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {/* Live Stats Cards Grid */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div className="p-4.5 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-950/5 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[90px]">
-                                            <span className="text-[9px] font-black text-gray-400 dark:text-emerald-300/40 uppercase tracking-wider">Dung lượng Cơ sở dữ liệu</span>
+                                        <div className="p-4.5 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex flex-col justify-between min-h-[90px]">
+                                            <span className="text-[10px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-wider">Dung lượng Cơ sở dữ liệu</span>
                                             <div className="flex items-baseline gap-1 mt-2">
                                                 <span className="text-2xl font-black text-[#2d5016] dark:text-emerald-400 tracking-tight">{dbStats?.db_size_mb || 0}</span>
                                                 <span className="text-[10px] font-black text-[#2d5016]/60 dark:text-emerald-500 uppercase">MB</span>
                                             </div>
                                         </div>
-                                        <div className="p-4.5 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-950/5 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[90px]">
-                                            <span className="text-[9px] font-black text-gray-400 dark:text-emerald-300/40 uppercase tracking-wider">Tổng số đơn hàng đã bán</span>
+                                        <div className="p-4.5 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex flex-col justify-between min-h-[90px]">
+                                            <span className="text-[10px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-wider">Tổng số đơn hàng đã bán</span>
                                             <span className="text-2xl font-black text-[#2d5016] dark:text-emerald-400 tracking-tight mt-2">{dbStats?.orders || 0}</span>
                                         </div>
-                                        <div className="p-4.5 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-950/5 dark:border-slate-800 shadow-sm flex flex-col justify-between min-h-[90px]">
-                                            <span className="text-[9px] font-black text-gray-400 dark:text-emerald-300/40 uppercase tracking-wider">Máy chủ dịch vụ</span>
+                                        <div className="p-4.5 bg-[#fbf9f5] dark:bg-stone-900/60 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-xs flex flex-col justify-between min-h-[90px]">
+                                            <span className="text-[10px] font-black text-stone-500 dark:text-stone-400 uppercase tracking-wider">Máy chủ dịch vụ</span>
                                             <div className="mt-2 flex">
-                                                <span className="px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[9px] font-black rounded-lg uppercase tracking-wider border border-emerald-500/20 shadow-sm">
+                                                <span className="px-3 py-1 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded-lg uppercase tracking-wider border border-emerald-500/20 shadow-2xs">
                                                     Đang hoạt động (OK)
                                                 </span>
                                             </div>
@@ -1301,7 +1688,7 @@ export default function Settings() {
                                         </div>
 
                                         {/* Subtab Navigation Pill Switcher */}
-                                        <div className="flex items-center gap-1.5 p-1 bg-emerald-50/20 dark:bg-slate-900/60 rounded-2xl border border-emerald-900/10 dark:border-slate-800 self-start sm:self-auto overflow-x-auto no-scrollbar">
+                                        <div className="flex items-center gap-1.5 p-1.5 bg-stone-200/60 dark:bg-stone-900/80 rounded-2xl border border-stone-300/40 dark:border-stone-800 self-start sm:self-auto overflow-x-auto no-scrollbar">
                                             {[
                                                 { id: 'sidebar', label: 'Menu Sidebar', icon: Layers, desc: 'Ẩn/hiện các trang' },
                                                 { id: 'icons', label: 'Tùy biến Icon', icon: Edit3, desc: 'Đổi icon toàn app' },
@@ -1316,10 +1703,10 @@ export default function Settings() {
                                                         type="button"
                                                         onClick={() => setUiSubTab(sub.id)}
                                                         className={cn(
-                                                            "flex items-center gap-2 px-3.5 py-2 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all shrink-0",
+                                                            "flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shrink-0 cursor-pointer",
                                                             isActive
-                                                                ? "bg-[#2d5016] text-white dark:bg-emerald-600 shadow-md shadow-emerald-950/20 border border-white/10"
-                                                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                                                                ? "bg-[#2d5016] text-white dark:bg-emerald-600 shadow-xs"
+                                                                : "text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
                                                         )}
                                                     >
                                                         <Icon size={14} />
@@ -1458,84 +1845,6 @@ export default function Settings() {
                                                         <Monitor size={13} className="text-[#8b6f47] dark:text-[#d4a574]" /> Tùy chọn Mascot, Con trỏ & Hệ thống
                                                     </h3>
                                                     
-                                                    {/* ZEN BOTANICAL THEME TOGGLE */}
-                                                    <div className="p-4 bg-gradient-to-r from-[#7D8B6E]/15 via-[#F4EFE6]/30 to-[#DE8C5A]/10 dark:from-[#7D8B6E]/20 dark:via-slate-800/40 dark:to-[#DE8C5A]/15 rounded-2xl border-2 border-[#7D8B6E]/30 dark:border-[#7D8B6E]/40 group hover:border-[#7D8B6E] transition-all shadow-xs">
-                                                        <div className="flex items-center justify-between gap-3">
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="w-10 h-10 bg-[#7D8B6E] text-[#FAF7F2] rounded-xl flex items-center justify-center shrink-0 shadow-sm shadow-[#7D8B6E]/30">
-                                                                    <Leaf size={20} />
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">
-                                                                            Giao diện Zen Botanical (Thanh bình & Tự nhiên)
-                                                                        </span>
-                                                                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-[#7D8B6E] text-white uppercase tracking-wider">
-                                                                            Mới
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="text-[8.5px] font-medium text-gray-500 dark:text-slate-400 mt-1 leading-snug">
-                                                                        Phong cách mộc mạc tối giản: Núi đồi xanh xô thơm (Sage Green), nắng ấm đất nung (Terracotta) và nền giấy ấm. Bắt đầu với tab <strong>Bảng tin (Dashboard)</strong>.
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    const isCurrentOn = settings.ui_theme_zen_botanical === 'true';
-                                                                    const newVal = isCurrentOn ? 'false' : 'true';
-                                                                    updateSetting('ui_theme_zen_botanical', newVal);
-                                                                    localStorage.setItem('ui_theme_zen_botanical', newVal);
-                                                                    window.dispatchEvent(new Event('zen_theme_changed'));
-                                                                    window.dispatchEvent(new Event('storage'));
-                                                                    try {
-                                                                        const syncChan = new BroadcastChannel('pos_data_sync');
-                                                                        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'ui_theme_zen_botanical', value: newVal });
-                                                                        syncChan.close();
-                                                                    } catch (err) {}
-                                                                    try {
-                                                                        await axios.post('/api/settings', { ui_theme_zen_botanical: newVal });
-                                                                    } catch (err) {
-                                                                        console.error('Lỗi khi lưu cài đặt Zen theme:', err);
-                                                                    }
-                                                                    setToast({ 
-                                                                        message: newVal === 'true' ? "Đã bật giao diện Zen Botanical cho Bảng tin Dashboard" : "Đã chuyển về giao diện Dashboard mặc định", 
-                                                                        type: "success" 
-                                                                    });
-                                                                }}
-                                                                className={cn(
-                                                                    "relative w-12 h-6.5 rounded-full transition-all duration-300 outline-none shrink-0 border cursor-pointer",
-                                                                    settings.ui_theme_zen_botanical === 'true' 
-                                                                        ? "bg-[#7D8B6E] border-[#6E7C5D] shadow-sm shadow-[#7D8B6E]/30" 
-                                                                        : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
-                                                                )}
-                                                            >
-                                                                <div className={cn(
-                                                                    "absolute top-[3px] left-[3px] w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-md flex items-center justify-center text-[9px] font-black",
-                                                                    settings.ui_theme_zen_botanical === 'true' ? "translate-x-[22px] text-[#7D8B6E]" : "translate-x-0 text-slate-400"
-                                                                )}>
-                                                                    {settings.ui_theme_zen_botanical === 'true' ? '✓' : ''}
-                                                                </div>
-                                                            </button>
-                                                        </div>
-
-                                                        {/* Color Palette Preview Strip */}
-                                                        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-[#7D8B6E]/20 dark:border-slate-700/60">
-                                                            <span className="text-[8.5px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bảng màu đặc trưng:</span>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#7D8B6E] text-white">
-                                                                    Sage Green
-                                                                </span>
-                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#F4EFE6] text-[#3D372E] border border-[#E2D8C7]">
-                                                                    Warm Cream
-                                                                </span>
-                                                                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[8px] font-bold bg-[#DE8C5A] text-white">
-                                                                    Terracotta
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
                                                     <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
@@ -1589,58 +1898,258 @@ export default function Settings() {
                                                         </button>
                                                     </div>
                                                     {settings.ui_custom_cursor_enabled === 'true' && (
-                                                        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 mt-2 bg-white/60 dark:bg-slate-900/60 rounded-xl border border-emerald-900/10 dark:border-slate-700/80">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }} />
-                                                                <span className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
-                                                                    Màu sắc con trỏ chuột
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 flex-wrap">
-                                                                {[
-                                                                    { name: 'Xanh ngọc', color: '#10b981' },
-                                                                    { name: 'Vàng đất', color: '#8b6f47' },
-                                                                    { name: 'Xanh dương', color: '#3b82f6' },
-                                                                    { name: 'Đỏ tươi', color: '#ef4444' },
-                                                                    { name: 'Vàng rực', color: '#f59e0b' },
-                                                                    { name: 'Tím', color: '#8b5cf6' },
-                                                                    { name: 'Hồng', color: '#ec4899' },
-                                                                ].map(c => (
-                                                                    <button
-                                                                        key={c.color}
-                                                                        type="button"
-                                                                        title={c.name}
-                                                                        onClick={() => {
-                                                                            updateSetting('ui_custom_cursor_color', c.color);
-                                                                            localStorage.setItem('pos_cursor_color', c.color);
-                                                                            window.dispatchEvent(new Event('storage'));
-                                                                            window.dispatchEvent(new Event('cursor_color_changed'));
-                                                                        }}
-                                                                        className={cn(
-                                                                            "w-6 h-6 rounded-full transition-all duration-200 border-2 relative hover:scale-110 shadow-sm",
-                                                                            (settings.ui_custom_cursor_color || '#10b981') === c.color ? "border-white dark:border-slate-900 ring-2 ring-emerald-500 scale-110" : "border-transparent"
-                                                                        )}
-                                                                        style={{ backgroundColor: c.color }}
-                                                                    />
-                                                                ))}
-                                                                <div className="relative flex items-center justify-center cursor-pointer group" title="Màu tùy chỉnh">
-                                                                    <input
-                                                                        type="color"
-                                                                        value={settings.ui_custom_cursor_color || '#10b981'}
-                                                                        onChange={(e) => {
-                                                                            const newColor = e.target.value;
-                                                                            updateSetting('ui_custom_cursor_color', newColor);
-                                                                            localStorage.setItem('pos_cursor_color', newColor);
-                                                                            window.dispatchEvent(new Event('storage'));
-                                                                            window.dispatchEvent(new Event('cursor_color_changed'));
-                                                                        }}
-                                                                        className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
-                                                                    />
+                                                        <div className="space-y-3 p-3.5 mt-2 bg-white/70 dark:bg-slate-900/70 rounded-xl border border-emerald-900/10 dark:border-slate-700/80">
+                                                            {/* Chọn Icon con trỏ chuột từ Icon Picker */}
+                                                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-stone-200/60 dark:border-slate-800">
+                                                                <div className="flex items-center gap-3">
                                                                     <div 
-                                                                        className="w-6 h-6 rounded-full border-2 border-dashed border-gray-400 dark:border-slate-500 flex items-center justify-center text-[10px] font-black text-gray-700 dark:text-gray-200 group-hover:scale-110 transition-all overflow-hidden shadow-sm"
-                                                                        style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }}
+                                                                        className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-slate-800 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-xs relative"
+                                                                        style={{ color: settings.ui_custom_cursor_color || '#10b981' }}
                                                                     >
-                                                                        +
+                                                                        {settings.ui_custom_cursor_icon ? (
+                                                                            (() => {
+                                                                                const CursorIconComp = getLucideIconComponent(settings.ui_custom_cursor_icon);
+                                                                                return CursorIconComp ? (
+                                                                                    <CursorIconComp size={Math.min(26, Math.max(16, parseInt(settings.ui_custom_cursor_icon_size || '24', 10)))} strokeWidth={2.2} />
+                                                                                ) : (
+                                                                                    <Sparkles size={20} />
+                                                                                );
+                                                                            })()
+                                                                        ) : (
+                                                                            <div 
+                                                                                className="w-3.5 h-3.5 rounded-full"
+                                                                                style={{ 
+                                                                                    backgroundColor: settings.ui_custom_cursor_color || '#10b981',
+                                                                                    boxShadow: settings.ui_custom_cursor_glow_enabled !== 'false' ? '0 0 10px currentColor' : 'none'
+                                                                                }}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-[11px] font-black uppercase text-gray-800 dark:text-slate-100 tracking-wider">
+                                                                            {settings.ui_custom_cursor_icon ? `Icon: ${settings.ui_custom_cursor_icon}` : 'Chấm tròn phát sáng (Mặc định)'}
+                                                                        </div>
+                                                                        <div className="text-[9.5px] text-gray-400 font-medium">
+                                                                            {settings.ui_custom_cursor_icon 
+                                                                                ? 'Con trỏ hiển thị theo icon đã chọn từ kho icon của ứng dụng'
+                                                                                : 'Chấm tròn laser di chuyển mượt mà cùng vòng sáng'}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            setCursorPickerTarget({
+                                                                                id: 'pos_cursor_icon',
+                                                                                label: 'Con trỏ chuột tùy biến (Custom Cursor)',
+                                                                                currentIconName: settings.ui_custom_cursor_icon || localStorage.getItem('pos_cursor_icon') || '',
+                                                                                currentStrokeWidth: 2,
+                                                                                anchorRect: {
+                                                                                    top: rect.top,
+                                                                                    bottom: rect.bottom,
+                                                                                    left: rect.left,
+                                                                                    right: rect.right,
+                                                                                    width: rect.width,
+                                                                                    height: rect.height
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="px-3 py-1.5 rounded-xl bg-[#2d5016] hover:bg-[#3a6320] active:scale-95 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                                                    >
+                                                                        <Sparkles size={13} />
+                                                                        <span>{settings.ui_custom_cursor_icon ? 'Đổi icon khác' : 'Chọn icon từ thư viện'}</span>
+                                                                    </button>
+
+                                                                    {settings.ui_custom_cursor_icon && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                updateSetting('ui_custom_cursor_icon', '');
+                                                                                localStorage.removeItem('pos_cursor_icon');
+                                                                                window.dispatchEvent(new Event('storage'));
+                                                                                window.dispatchEvent(new Event('cursor_icon_changed'));
+                                                                                setToast({ message: 'Đã đặt lại con trỏ chấm tròn mặc định', type: 'info' });
+                                                                            }}
+                                                                            className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 dark:bg-white/10 dark:hover:bg-white/15 text-stone-600 dark:text-slate-300 active:scale-95 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                                                                            title="Về lại chấm tròn mặc định"
+                                                                        >
+                                                                            <RotateCcw size={12} />
+                                                                            <span>Mặc định</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Kích thước Icon con trỏ chuột (khi có chọn icon) */}
+                                                            {settings.ui_custom_cursor_icon && (
+                                                                <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-stone-200/60 dark:border-slate-800">
+                                                                    <span className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
+                                                                        Kích thước Icon con trỏ
+                                                                    </span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        {[
+                                                                            { size: '18', label: '18px (Nhỏ)' },
+                                                                            { size: '22', label: '22px (Vừa)' },
+                                                                            { size: '26', label: '26px (Lớn)' },
+                                                                            { size: '32', label: '32px (Rất lớn)' }
+                                                                        ].map(s => {
+                                                                            const isChosen = (settings.ui_custom_cursor_icon_size || '24') === s.size;
+                                                                            return (
+                                                                                <button
+                                                                                    key={s.size}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        updateSetting('ui_custom_cursor_icon_size', s.size);
+                                                                                        localStorage.setItem('pos_cursor_icon_size', s.size);
+                                                                                        window.dispatchEvent(new Event('storage'));
+                                                                                        window.dispatchEvent(new Event('cursor_icon_changed'));
+                                                                                    }}
+                                                                                    className={cn(
+                                                                                        "px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer",
+                                                                                        isChosen
+                                                                                            ? "bg-[#2d5016] text-white shadow-xs"
+                                                                                            : "bg-stone-100 hover:bg-stone-200 dark:bg-white/5 dark:hover:bg-white/10 text-stone-700 dark:text-slate-300"
+                                                                                    )}
+                                                                                >
+                                                                                    {s.label}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Bật / Tắt vòng tròn hào quang bên ngoài (Follower Ring) */}
+                                                            <div className="flex items-center justify-between pb-3 border-b border-stone-200/60 dark:border-slate-800">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-5 h-5 rounded-full border-2 border-emerald-500/60 dark:border-emerald-400/60 flex items-center justify-center shrink-0">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
+                                                                            Vòng tròn hào quang bên ngoài (Follower Ring)
+                                                                        </div>
+                                                                        <div className="text-[9.5px] text-gray-400 font-medium">
+                                                                            Vòng sáng lướt bám theo sau con trỏ (có thể tắt để chỉ giữ icon/chấm)
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const currentEnabled = settings.ui_custom_cursor_ring_enabled !== 'false';
+                                                                        const newVal = currentEnabled ? 'false' : 'true';
+                                                                        updateSetting('ui_custom_cursor_ring_enabled', newVal);
+                                                                        localStorage.setItem('pos_cursor_ring_disabled', newVal === 'true' ? 'false' : 'true');
+                                                                        window.dispatchEvent(new Event('storage'));
+                                                                        window.dispatchEvent(new Event('cursor_ring_changed'));
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0",
+                                                                        settings.ui_custom_cursor_ring_enabled !== 'false' ? "bg-[#2d5016]" : "bg-gray-300 dark:bg-slate-700"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "w-5 h-5 rounded-full bg-white transition-transform shadow-xs",
+                                                                        settings.ui_custom_cursor_ring_enabled !== 'false' ? "translate-x-[20px]" : "translate-x-0"
+                                                                    )} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Bật / Tắt hiệu ứng phát sáng neon (Cursor Glow) */}
+                                                            <div className="flex items-center justify-between pb-3 border-b border-stone-200/60 dark:border-slate-800">
+                                                                <div className="flex items-center gap-2.5">
+                                                                    <div className="w-5 h-5 rounded-full bg-emerald-500/20 dark:bg-emerald-400/20 flex items-center justify-center shrink-0">
+                                                                        <Sparkles size={12} className="text-emerald-600 dark:text-emerald-400" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
+                                                                            Hiệu ứng phát sáng & bóng mờ (Cursor Glow)
+                                                                        </div>
+                                                                        <div className="text-[9.5px] text-gray-400 font-medium">
+                                                                            Tắt để con trỏ sắc nét, gọn gàng và không tỏa quầng sáng neon
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const currentEnabled = settings.ui_custom_cursor_glow_enabled !== 'false';
+                                                                        const newVal = currentEnabled ? 'false' : 'true';
+                                                                        updateSetting('ui_custom_cursor_glow_enabled', newVal);
+                                                                        localStorage.setItem('pos_cursor_glow_disabled', newVal === 'true' ? 'false' : 'true');
+                                                                        window.dispatchEvent(new Event('storage'));
+                                                                        window.dispatchEvent(new Event('cursor_glow_changed'));
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-11 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer shrink-0",
+                                                                        settings.ui_custom_cursor_glow_enabled !== 'false' ? "bg-[#2d5016]" : "bg-gray-300 dark:bg-slate-700"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "w-5 h-5 rounded-full bg-white transition-transform shadow-xs",
+                                                                        settings.ui_custom_cursor_glow_enabled !== 'false' ? "translate-x-[20px]" : "translate-x-0"
+                                                                    )} />
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Màu sắc con trỏ chuột */}
+                                                            <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-3 h-3 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }} />
+                                                                    <span className="text-[11px] font-black uppercase text-gray-700 dark:text-slate-200 tracking-wider">
+                                                                        Màu sắc con trỏ chuột
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    {[
+                                                                        { name: 'Xanh ngọc', color: '#10b981' },
+                                                                        { name: 'Vàng đất', color: '#8b6f47' },
+                                                                        { name: 'Xanh dương', color: '#3b82f6' },
+                                                                        { name: 'Đỏ tươi', color: '#ef4444' },
+                                                                        { name: 'Vàng rực', color: '#f59e0b' },
+                                                                        { name: 'Tím', color: '#8b5cf6' },
+                                                                        { name: 'Hồng', color: '#ec4899' },
+                                                                    ].map(c => (
+                                                                        <button
+                                                                            key={c.color}
+                                                                            type="button"
+                                                                            title={c.name}
+                                                                            onClick={() => {
+                                                                                updateSetting('ui_custom_cursor_color', c.color);
+                                                                                localStorage.setItem('pos_cursor_color', c.color);
+                                                                                window.dispatchEvent(new Event('storage'));
+                                                                                window.dispatchEvent(new Event('cursor_color_changed'));
+                                                                            }}
+                                                                            className={cn(
+                                                                                "w-6 h-6 rounded-full transition-all duration-200 border-2 relative hover:scale-110 shadow-sm cursor-color-btn",
+                                                                                (settings.ui_custom_cursor_color || '#10b981') === c.color ? "border-transparent ring-2 ring-emerald-500 ring-offset-2 ring-offset-transparent scale-110" : "border-transparent"
+                                                                            )}
+                                                                            style={{ backgroundColor: c.color }}
+                                                                        />
+                                                                    ))}
+                                                                    <div className="relative flex items-center justify-center cursor-pointer group" title="Màu tùy chỉnh">
+                                                                        <input
+                                                                            type="color"
+                                                                            value={settings.ui_custom_cursor_color || '#10b981'}
+                                                                            onChange={(e) => {
+                                                                                const newColor = e.target.value;
+                                                                                updateSetting('ui_custom_cursor_color', newColor);
+                                                                                localStorage.setItem('pos_cursor_color', newColor);
+                                                                                window.dispatchEvent(new Event('storage'));
+                                                                                window.dispatchEvent(new Event('cursor_color_changed'));
+                                                                            }}
+                                                                            className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
+                                                                        />
+                                                                        <div 
+                                                                            className="w-6 h-6 rounded-full border-2 border-dashed border-gray-400 dark:border-slate-500 flex items-center justify-center text-[10px] font-black text-gray-700 dark:text-gray-200 group-hover:scale-110 transition-all overflow-hidden shadow-sm"
+                                                                            style={{ backgroundColor: settings.ui_custom_cursor_color || '#10b981' }}
+                                                                        >
+                                                                            +
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1719,6 +2228,39 @@ export default function Settings() {
                                                             <div className={cn(
                                                                 "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
                                                                 (settings.feature_accounting_enabled === 'true' || (settings.feature_accounting_enabled === undefined && localStorage.getItem('feature_accounting_enabled') !== 'false')) ? "translate-x-[18px]" : "translate-x-0"
+                                                            )} />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-emerald-50/20 dark:bg-slate-800/40 rounded-xl border border-emerald-900/5 dark:border-slate-700 group hover:border-[#4a7c59]/20 transition-all">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className="w-9 h-9 bg-transparent dark:bg-slate-900 rounded-lg flex items-center justify-center text-[#2d5016] dark:text-emerald-400 shrink-0">
+                                                                <Shield size={18} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-xs font-black text-gray-800 dark:text-slate-100 uppercase tracking-wide leading-none">Bảo vệ đơn cũ (Khóa sửa POS)</div>
+                                                                <div className="text-[8px] font-bold text-gray-400 uppercase tracking-widest truncate mt-1">Khi xem lại đơn cũ sẽ khóa chỉnh sửa, yêu cầu bấm nút 'Sửa đơn'</div>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const isCurrentOn = localStorage.getItem('pos_protect_past_orders') !== 'false';
+                                                                const newVal = isCurrentOn ? 'false' : 'true';
+                                                                localStorage.setItem('pos_protect_past_orders', newVal);
+                                                                window.dispatchEvent(new Event('storage'));
+                                                                setToast({
+                                                                    message: newVal === 'true' ? "Đã BẬT bảo vệ đơn cũ (cần bấm Sửa đơn)" : "Đã TẮT bảo vệ đơn cũ (cho phép sửa trực tiếp)",
+                                                                    type: "success"
+                                                                });
+                                                            }}
+                                                            className={cn(
+                                                                "relative w-10 h-5.5 rounded-full transition-all duration-300 outline-none shrink-0 border border-emerald-900/10 dark:border-slate-600",
+                                                                (localStorage.getItem('pos_protect_past_orders') !== 'false') ? "bg-[#2d5016]" : "bg-slate-200 dark:bg-slate-700"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-[2px] left-[2px] w-4 h-4 bg-white dark:bg-emerald-100 rounded-full transition-all duration-300 shadow-md",
+                                                                (localStorage.getItem('pos_protect_past_orders') !== 'false') ? "translate-x-[18px]" : "translate-x-0"
                                                             )} />
                                                         </button>
                                                     </div>
@@ -2200,13 +2742,15 @@ export default function Settings() {
                             {/* TAB CONTENT: KEYBOARD SHORTCUTS (Phím tắt) */}
                             {activeTab === 'shortcuts' && (
                                 <div className="space-y-6 animate-[fadeIn_0.2s_ease-out]">
-                                    <div className="flex items-center gap-3.5 pb-3 border-b border-[#d4a574]/10">
-                                        <div className="p-2.5 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl text-[#2d5016] dark:text-emerald-400">
-                                            <Keyboard size={20} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-black text-gray-800 dark:text-emerald-50 uppercase tracking-tight">Cấu hình phím tắt thao tác nhanh</h2>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Tự do thay đổi các phím nóng để thực hiện giao dịch nhanh tại màn hình bán hàng (POS)</p>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80 dark:border-stone-800">
+                                        <div className="flex items-center gap-3.5">
+                                            <div className="w-11 h-11 bg-emerald-500/15 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center text-[#2d5016] dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
+                                                <Keyboard size={22} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-base font-black text-stone-800 dark:text-stone-100 uppercase tracking-wide">Cấu hình phím tắt thao tác nhanh</h2>
+                                                <p className="text-[11px] font-medium text-stone-500 dark:text-stone-400 mt-0.5">Tự do thay đổi các phím nóng để thực hiện giao dịch nhanh tại màn hình bán hàng (POS)</p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -2480,6 +3024,33 @@ export default function Settings() {
                         message: data?.message || "Đã chốt sổ và lưu trữ năm thành công!",
                         type: "success"
                     });
+                }}
+            />
+
+            {/* Custom Cursor Icon Picker Modal */}
+            <IconPickerModal
+                isOpen={Boolean(cursorPickerTarget)}
+                onClose={() => setCursorPickerTarget(null)}
+                target={cursorPickerTarget || {
+                    id: 'pos_cursor_icon',
+                    label: 'Con trỏ chuột tùy biến (Custom Cursor)',
+                    currentIconName: settings.ui_custom_cursor_icon || localStorage.getItem('pos_cursor_icon') || '',
+                    currentStrokeWidth: 2
+                }}
+                onSelectIcon={(_, iconData) => {
+                    const iconName = iconData?.name || '';
+                    updateSetting('ui_custom_cursor_icon', iconName);
+                    localStorage.setItem('pos_cursor_icon', iconName);
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('cursor_icon_changed'));
+                    setToast({ message: `Đã chọn icon con trỏ chuột: ${iconName}`, type: 'success' });
+                }}
+                onResetIcon={() => {
+                    updateSetting('ui_custom_cursor_icon', '');
+                    localStorage.removeItem('pos_cursor_icon');
+                    window.dispatchEvent(new Event('storage'));
+                    window.dispatchEvent(new Event('cursor_icon_changed'));
+                    setToast({ message: 'Đã đặt lại con trỏ chấm tròn mặc định', type: 'info' });
                 }}
             />
             </div>

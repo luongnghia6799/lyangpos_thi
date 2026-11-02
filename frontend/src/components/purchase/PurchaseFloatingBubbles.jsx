@@ -39,60 +39,7 @@ function PurchaseFloatingBubbles({
   onScrollDownCart,
   cartScrollContainerRef
 }) {
-  const partnerBubbleRef = useRef(null);
-  const totalBubbleRef = useRef(null);
-  const lastAppliedHRef = useRef(-1);
 
-  // High-performance ResizeObserver & target calculation isolated to this component
-  useEffect(() => {
-    if (!cartScrollContainerRef?.current) return;
-    if (cartColorConfig?.constrainCartAboveBubbles === false) {
-      cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
-      return;
-    }
-
-    let rafId = null;
-
-    const measureAndApply = () => {
-      if (!cartScrollContainerRef?.current) return;
-      const pEl = partnerBubbleRef.current;
-      const tEl = totalBubbleRef.current;
-      const pH = pEl ? Math.round(pEl.getBoundingClientRect?.().height || pEl.offsetHeight || 0) : 0;
-      const tH = tEl ? Math.round(tEl.getBoundingClientRect?.().height || tEl.offsetHeight || 0) : 0;
-      const maxH = Math.max(pH, tH);
-      const fallback = selectedPartner ? 100 : 85;
-      const targetH = maxH > 30 ? Math.round(maxH + 20) : fallback;
-
-      // Only update if height changed by at least 2px to prevent sub-pixel animation fighting
-      if (Math.abs(lastAppliedHRef.current - targetH) >= 2) {
-        lastAppliedHRef.current = targetH;
-        cartScrollContainerRef.current.style.setProperty('--cart-bubble-bottom', `${targetH}px`);
-      }
-    };
-
-    let debounceTimer = null;
-    const scheduleMeasure = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(measureAndApply);
-      }, 50);
-    };
-
-    const ro = new ResizeObserver(scheduleMeasure);
-    if (partnerBubbleRef.current) ro.observe(partnerBubbleRef.current);
-    if (totalBubbleRef.current) ro.observe(totalBubbleRef.current);
-
-    scheduleMeasure();
-    window.addEventListener('resize', scheduleMeasure, { passive: true });
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      if (rafId) cancelAnimationFrame(rafId);
-      ro.disconnect();
-      window.removeEventListener('resize', scheduleMeasure);
-    };
-  }, [cartColorConfig?.constrainCartAboveBubbles, selectedPartner?.id]);
 
   const partnerStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'partner'), [cartColorConfig]);
   const cashStyle = useMemo(() => getBubbleComputedStyle(cartColorConfig, 'cash'), [cartColorConfig]);
@@ -107,7 +54,6 @@ function PurchaseFloatingBubbles({
         key="partner-bubble"
         id="supplier-bubble"
         data-bubble="supplier"
-        ref={partnerBubbleRef}
         layout
         initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -377,7 +323,6 @@ function PurchaseFloatingBubbles({
         key="total-bubble"
         id="purchase-total-bubble"
         data-bubble="total-container"
-        ref={totalBubbleRef}
         layout
         initial={false}
         animate={{ opacity: 1, scale: 1, y: 0 }}

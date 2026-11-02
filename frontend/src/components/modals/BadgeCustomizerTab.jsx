@@ -269,20 +269,20 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
     return (
         <div className="space-y-6">
             {/* Header / Intro */}
-            <div className="flex items-center justify-between pb-4 border-b border-black/5 dark:border-white/10">
-                <div>
-                    <h3 className="text-base font-black text-slate-800 dark:text-emerald-400 flex items-center gap-2">
-                        <Bookmark size={18} className="text-amber-600 dark:text-amber-400" />
-                        Tùy Chỉnh Màu Sắc & Viền Các Badge (Nhãn Dòng & Nhắc Chở Phân)
+            <div className="flex items-center justify-between pb-3.5 border-b border-black/5 dark:border-white/10 gap-3">
+                <div className="min-w-0">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-emerald-400 flex items-center gap-2">
+                        <Bookmark size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>Màu Sắc & Viền Badge Dòng Hàng</span>
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Tự do chỉnh màu nền, viền và chữ cho nhãn Tồn kho, Lần mua gần nhất, Giá thấp, Lỗ vốn và nút Nhắc Chở Phân theo đúng gu thẩm mỹ của bạn.
+                        Tùy chỉnh màu nền, viền và chữ cho toàn bộ nhãn badge trong giỏ hàng.
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={handleResetBadges}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-black transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-black transition-colors cursor-pointer shrink-0"
                 >
                     <RotateCcw size={13} />
                     <span>Mặc định</span>
@@ -382,10 +382,7 @@ export default function BadgeCustomizerTab({ config, onChangeConfig }) {
                         )}
                         title="Bấm để tùy chỉnh màu & viền cho Badge Nhắc Chở Phân"
                     >
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-90" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-                        </span>
+                        <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0 shadow-xs" />
                         <Truck size={12} strokeWidth={2.8} />
                         <span>Nhắc Chở Phân (2)</span>
                     </div>

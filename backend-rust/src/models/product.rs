@@ -202,3 +202,15 @@ pub struct BulkUpdateDto {
 pub struct BulkDeleteDto {
     pub ids: Vec<i64>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BulkAccountingUpdateItemDto {
+    pub id: i64,
+    pub stock: Option<f64>,
+    pub price: Option<f64>,
+    pub sale_price: Option<f64>,
+    pub cost_price: Option<f64>,
+    pub unit: Option<String>,
+    pub accounting_price: Option<f64>,
+    pub accounting_stock: Option<f64>,
+}

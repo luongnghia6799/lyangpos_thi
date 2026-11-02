@@ -41,6 +41,7 @@ import CartColorCustomizerModal, {
     getButtonComputedStyle,
     getBubbleBadgeStyle
 } from '../../components/modals/CartColorCustomizerModal';
+import SearchTypingOverlay from '../../components/widgets/SearchTypingOverlay';
 import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import PurchaseFloatingBubbles from '../../components/purchase/PurchaseFloatingBubbles';
 import LyangLogo from '../../assets/logo.png';
@@ -846,14 +847,6 @@ export default function Purchase() {
     };
 
     useEffect(() => {
-        if (summaryLayoutMode !== 'sidebar' || isSidebarExpanded || cartColorConfig?.constrainCartAboveBubbles === false) {
-            if (cartScrollContainerRef.current) {
-                cartScrollContainerRef.current.style.removeProperty('--cart-bubble-bottom');
-            }
-        }
-    }, [summaryLayoutMode, isSidebarExpanded, cartColorConfig?.constrainCartAboveBubbles]);
-
-    useEffect(() => {
         const syncChan = new BroadcastChannel('pos_data_sync');
         const handleSync = async (e) => {
             const data = e.data || e.detail || {};
@@ -1227,13 +1220,13 @@ export default function Purchase() {
         setEditOrderId(orderObj.id);
         setEditingOriginalOrder(orderObj);
         const detailsList = orderObj.details || orderObj.items || [];
-        setCart(detailsList.map((d, idx) => {
-            const matchedProd = d.product || (d.product_id ? products.find(p => p.id === d.product_id) : null);
+        setCart(detailsList.map(d => {
+            const matchedProd = products.find(p => p.id === d.product_id);
             const multiplier = d.multiplier || matchedProd?.multiplier || 1;
             const qty = d.quantity !== undefined ? d.quantity : 1;
             const price = d.price !== undefined ? d.price : (d.unit_price !== undefined ? d.unit_price : (matchedProd?.cost_price || 0));
             return {
-                cartId: `purchase-${orderObj.id || 'curr'}-item-${d.id || d.product_id || idx}-${idx}`,
+                cartId: Math.random().toString(36).substr(2, 9),
                 product_id: d.product_id,
                 name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
                 product_name: d.product_name || d.name || d.product?.name || matchedProd?.name || 'Sản phẩm',
@@ -1715,13 +1708,24 @@ export default function Purchase() {
         if (direction === 'prev') nextStep = historyStep + 1;
         else nextStep = Math.max(0, historyStep - 1);
         if (nextStep === 0) {
+            setHistoryLoading(true);
+            const switchStart = Date.now();
+            if (cart && cart.length > 0) {
+                setCart([]);
+                await new Promise(res => setTimeout(res, 150));
+            }
             playPopSound();
             if (!loadDraft()) resetForm();
+            const elapsed = Date.now() - switchStart;
+            const delay = Math.max(0, 320 - elapsed);
+            setTimeout(() => {
+                setHistoryLoading(false);
+            }, delay);
             return;
         }
-        const startTime = Date.now();
+        setHistoryLoading(true);
+        const switchStart = Date.now();
         try {
-            setHistoryLoading(true);
             const res = await axios.get(`/api/orders?type=Purchase&limit=1&page=${nextStep}`);
             const items = res.data.items || res.data;
             if (items && items.length > 0) {
@@ -1734,6 +1738,10 @@ export default function Purchase() {
                         console.error("Error fetching full order details", e);
                     }
                 }
+                if (cart && cart.length > 0) {
+                    setCart([]);
+                    await new Promise(res => setTimeout(res, 150));
+                }
                 loadOrder(order);
                 const partner = partners.find(p => p.id === order.partner_id);
                 const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
@@ -1741,11 +1749,6 @@ export default function Purchase() {
                 setSelectedPartner(partner ? { ...partner, debt_balance: resolvedOldDebt } : (order.partner || null));
                 setHistoryStep(nextStep);
                 playPopSound();
-                const elapsed = Date.now() - startTime;
-                const minOverlayDuration = 260;
-                if (elapsed < minOverlayDuration) {
-                    await new Promise(resolve => setTimeout(resolve, minOverlayDuration - elapsed));
-                }
             } else {
                 if (direction === 'prev') setToast({ message: "Không còn đơn nhập hàng cũ hơn.", type: "error" });
                 else if (!loadDraft()) resetForm();
@@ -1754,7 +1757,11 @@ export default function Purchase() {
             console.error(err);
             setToast({ message: "Lỗi khi tải lịch sử đơn nhập hàng", type: "error" });
         } finally {
-            setHistoryLoading(false);
+            const elapsed = Date.now() - switchStart;
+            const delay = Math.max(0, 340 - elapsed);
+            setTimeout(() => {
+                setHistoryLoading(false);
+            }, delay);
         }
     };
 
@@ -1835,14 +1842,31 @@ export default function Purchase() {
                 }
 
                 return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
-            })
-            .slice(0, 50);
+            });
     }, [products, searchTerm]);
 
     const filteredPartners = useMemo(() => {
-        const s = partnerSearch.toLowerCase();
+        const s = (partnerSearch || "").toLowerCase().trim();
+        if (!s) return partners.slice(0, 50);
         const searchId = parseInt(s);
         const sNoAccent = removeAccents(s);
+        const spaceS = ' ' + s;
+        const spaceNoAccent = ' ' + sNoAccent;
+
+        const getPartnerScore = (name, norm, p) => {
+            if (name === s) return -40;
+            if (name.startsWith(s)) return -30;
+            if (name.includes(spaceS)) return -20;
+            if (name.includes(s)) return -10;
+            if (norm === sNoAccent) return 10;
+            if (norm.startsWith(sNoAccent)) return 20;
+            if (norm.includes(spaceNoAccent)) return 30;
+            if (norm.includes(sNoAccent)) return 40;
+            if (p.phone && p.phone.startsWith(s)) return 50;
+            if (p.phone && p.phone.includes(s)) return 60;
+            return 99;
+        };
+
         return partners
             .filter(p => {
                 const matchesId = !isNaN(searchId) && p.id === searchId;
@@ -1859,11 +1883,13 @@ export default function Purchase() {
                 }
                 const aName = (a.name || "").toLowerCase();
                 const bName = (b.name || "").toLowerCase();
-                const aStarts = aName.startsWith(s);
-                const bStarts = bName.startsWith(s);
-                if (aStarts && !bStarts) return -1;
-                if (!aStarts && bStarts) return 1;
-                return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
+                const aNorm = removeAccents(aName);
+                const bNorm = removeAccents(bName);
+                const scoreA = getPartnerScore(aName, aNorm, a);
+                const scoreB = getPartnerScore(bName, bNorm, b);
+                if (scoreA !== scoreB) return scoreA - scoreB;
+                if (aName.length !== bName.length) return aName.length - bName.length;
+                return aName.localeCompare(bName, 'vi');
             })
             .slice(0, 50);
     }, [partners, partnerSearch]);
@@ -1919,7 +1945,7 @@ export default function Purchase() {
           reducedMotion={gpuDisabled ? "always" : "no-preference"} 
           transition={gpuDisabled ? { type: "just" } : undefined}
         >
-            <div className={cn("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
+            <div id="purchase-root-container" className={cn("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
             <div className="flex-1 flex flex-col overflow-hidden no-print">
                 {/* Top Bar: Search & Supplier */}
                 <div className="p-3.5 px-5 flex gap-5 items-center print:hidden transition-colors relative z-[2500] bg-transparent">
@@ -1991,14 +2017,6 @@ export default function Purchase() {
                                                     "w-2 h-2 rounded-full shrink-0",
                                                     isDateModified 
                                                     ? "bg-amber-600 dark:bg-amber-400" 
-                                                    : editOrderId 
-                                                        ? "bg-[#8b6f47] dark:bg-[#d4a574]" 
-                                                        : "bg-[#2d5016] dark:bg-emerald-400"
-                                                )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
-                                                <span className={cn(
-                                                    "absolute w-2 h-2 rounded-full animate-ping opacity-40",
-                                                    isDateModified 
-                                                    ? "bg-amber-500" 
                                                     : editOrderId 
                                                         ? "bg-[#8b6f47] dark:bg-[#d4a574]" 
                                                         : "bg-[#2d5016] dark:bg-emerald-400"
@@ -2249,10 +2267,7 @@ export default function Purchase() {
                                             transition={{ type: "spring", stiffness: 450, damping: 28 }}
                                             className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"
                                         >
-                                            <span className={cn(
-                                                "font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm",
-                                                (selectedPartner.name || "").length > 12 && "partner-pill-marquee-text"
-                                            )}>
+                                            <span className="font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm truncate">
                                                 {selectedPartner.name}
                                             </span>
                                         </m.div>
@@ -2774,8 +2789,8 @@ export default function Purchase() {
                                 message="Đang đồng bộ dữ liệu..."
                             />
                             <div className="w-full h-full relative bg-transparent">
-                                <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "var(--cart-bubble-bottom, 100px)" : 0 }}>
-                                    <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded && cartColorConfig?.constrainCartAboveBubbles !== false) ? "pb-4" : (summaryLayoutMode === 'sidebar' && !isSidebarExpanded ? "pb-[400px]" : "pb-6"))}>
+                                <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? (cartColorConfig?.bubbleLayoutStyle === 'classic' ? "128px" : "98px") : 0 }}>
+                                    <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? "pb-4" : "pb-6")}>
                                         {/* Background Decoration Layer */}
                                         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
                                             <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">
@@ -2840,10 +2855,10 @@ export default function Purchase() {
                                             <tbody className="divide-none">
                                                 {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
                                                 <tr
-                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row cursor-pointer bg-transparent", cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/20 dark:border-white/10" : "border-b-0")}
+                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row cursor-pointer bg-transparent border-b-0")}
                                                     style={{ 
                                                         backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent',
-                                                        borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? `${cartColorConfig.borderColor}40` : undefined) 
+                                                        borderBottom: 'none'
                                                     }}
                                                     onContextMenu={(e) => {
                                                         if (workingItem.product) {
@@ -2868,12 +2883,24 @@ export default function Purchase() {
                                                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors">
                                                                     <Search size={18} strokeWidth={2.5} />
                                                                 </div>
+                                                                <SearchTypingOverlay
+                                                                    text={searchTerm}
+                                                                    enabled={cartColorConfig?.enableSearchTypingAnimation !== false}
+                                                                    inputRef={searchInputRef}
+                                                                    className="left-0 right-14 pl-11 pr-2 font-extrabold font-sans text-[13.5px] tracking-normal"
+                                                                    style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
+                                                                />
                                                                 <input
                                                                     id="pos-quick-product-search"
                                                                     type="text"
                                                                     placeholder="Tên sản phẩm (F2)..."
                                                                     style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
-                                                                    className={cn("w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px]", (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white")}
+                                                                    className={cn(
+                                                                        "w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px] caret-primary dark:caret-[#d4a574]",
+                                                                        (cartColorConfig?.enableSearchTypingAnimation !== false && searchTerm)
+                                                                            ? "text-transparent"
+                                                                            : (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white"
+                                                                    )}
                                                                     autoComplete="off"
                                                                     value={searchTerm}
                                                                     onChange={(e) => {
@@ -2990,7 +3017,7 @@ export default function Purchase() {
                                                                             }}
                                                                         >
                                                                             {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
-                                                                            <DropdownMascot title="Bé Lyang - Trợ lý nhập hàng thông minh" />
+                                                                            <DropdownMascot title="Lí An - Trợ lý nhập hàng thông minh" />
 
                                                                             <div className="rounded-2xl overflow-hidden w-full divide-y divide-[#8b6f47]/10 dark:divide-white/5">
                                                                                 {filteredProducts.length > 0 && (
@@ -3342,31 +3369,43 @@ export default function Purchase() {
                                                     {cart.length > 0 && cart.map((item, idx) => (
                                                         <m.tr
                                                             key={item.cartId || `purchase-item-${item.product_id || 'prod'}-${idx}`}
-                                                            initial={{
+                                                            layout={historyLoading ? false : "position"}
+                                                            initial={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
                                                                 opacity: 0,
-                                                                y: 8,
-                                                                x: -8
+                                                                y: -14,
+                                                                x: -6
+                                                            } : {
+                                                                opacity: 0,
+                                                                x: -20
                                                             }}
-                                                            animate={{
+                                                            animate={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
                                                                 opacity: 1,
                                                                 y: 0,
+                                                                x: 0
+                                                            } : {
+                                                                opacity: 1,
                                                                 x: 0
                                                             }}
                                                             exit={{
                                                                 opacity: 0,
-                                                                x: 20,
+                                                                x: 50,
+                                                                scale: 0.95,
+                                                                backgroundColor: "rgba(0,0,0,0)",
                                                                 transition: {
-                                                                    duration: 0.12,
+                                                                    duration: 0.2,
                                                                     ease: "easeIn"
                                                                 }
                                                             }}
-                                                            transition={{
+                                                            transition={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
+                                                                duration: 0.28,
+                                                                delay: Math.min(idx * 0.035, 0.45),
+                                                                ease: [0.25, 1, 0.5, 1]
+                                                            } : {
                                                                 duration: 0.22,
-                                                                delay: Math.min(idx * 0.016, 0.22),
-                                                                ease: [0.22, 1, 0.36, 1]
+                                                                ease: "easeOut"
                                                             }}
-                                                            className={cn(
-                                                                "relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0 transform-gpu",
+                                                                className={cn(
+                                                                    "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
                                                                     rowSearchIdx === idx
                                                                         ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]"
@@ -4739,7 +4778,6 @@ export default function Purchase() {
                                                             <div className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal">
                                                                 <MarqueeText 
                                                                     text={selectedPartner ? selectedPartner.name : "NHÀ CUNG CẤP LẺ"} 
-                                                                    isActive={true} 
                                                                     className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal" 
                                                                 />
                                                             </div>
@@ -4749,7 +4787,7 @@ export default function Purchase() {
                                                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
                                                                             <Phone size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
                                                                             <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                <MarqueeText text={selectedPartner.phone} isActive={true} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
+                                                                                <MarqueeText text={selectedPartner.phone} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -4757,7 +4795,7 @@ export default function Purchase() {
                                                                         <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
                                                                             <MapPin size={11} strokeWidth={3} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
                                                                             <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                <MarqueeText text={selectedPartner.address} isActive={true} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
+                                                                                <MarqueeText text={selectedPartner.address} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
                                                                             </div>
                                                                         </div>
                                                                     )}
@@ -5237,6 +5275,7 @@ export default function Purchase() {
                     isOpen={showQuickAddProduct}
                     product={{ name: quickAddName }}
                     onClose={() => setShowQuickAddProduct(false)}
+                    existingProducts={products}
                     onSave={() => {
                         fetchProducts();
                         setShowQuickAddProduct(false);
@@ -5932,6 +5971,7 @@ export default function Purchase() {
                     <ProductEditModal
                         isOpen={isEditModalOpen}
                         product={editingProduct}
+                        existingProducts={products}
                         onClose={() => {
                             setIsEditModalOpen(false);
                             setEditingProduct(null);

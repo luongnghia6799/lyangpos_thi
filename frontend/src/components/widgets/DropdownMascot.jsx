@@ -8,7 +8,7 @@ export const DEFAULT_DROPDOWN_MASCOT_CONFIG = {
     visible: true
 };
 
-const DropdownMascot = ({ title = "Bé Lyang - Trợ lý bán hàng thông minh" }) => {
+const DropdownMascot = ({ title = "Lí An - Trợ lý bán hàng thông minh" }) => {
     const mascotRef = useRef(null);
     const tooltipRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -195,7 +195,7 @@ const DropdownMascot = ({ title = "Bé Lyang - Trợ lý bán hàng thông minh"
         >
             <img
                 src="/assets/images/mascot_active_pill.png"
-                alt="Bé Lyang"
+                alt="Lí An"
                 className="w-full h-full object-contain pointer-events-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.18)]"
                 draggable="false"
                 loading="eager"

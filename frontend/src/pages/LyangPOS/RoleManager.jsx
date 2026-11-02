@@ -13,7 +13,7 @@ import { cn } from '../../lib/utils';
 import Toast from '../../components/widgets/Toast';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 export const USER_AVATAR_PRESETS = [
-    { id: 'lyang', name: 'Bé Lyang', url: '/mascots/avatar-lyang.webp' },
+    { id: 'lyang', name: 'Lí An', url: '/mascots/avatar-lyang.webp' },
     { id: 'fox', name: 'Cáo Foxy', url: '/mascots/avatar-fox.webp' },
     { id: 'fox-ink', name: 'Cáo Mực', url: '/mascots/avatar-fox-ink.webp' },
     { id: 'fox-paper', name: 'Cáo Giấy', url: '/mascots/avatar-fox-paper.webp' },

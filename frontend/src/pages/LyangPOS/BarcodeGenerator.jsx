@@ -718,7 +718,7 @@ const BarcodeGenerator = () => {
                                 <span className="px-2 py-0.5 bg-primary/10 text-primary dark:bg-emerald-500/10 dark:text-emerald-400 text-[9px] font-black uppercase rounded-lg tracking-wider border border-primary/10">LyangPOS Premium</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                    {mainSubTab === 'barcodes' ? 'Quản lý, tạo và in tem nhãn sản phẩm theo chuẩn chất lượng cao' : 'Tạo mã QR dẫn tới Bác Sĩ Cây Trồng Sáu Quý, Màn hình soạn hàng, POS hoặc link tuỳ ý'}
+                                    {mainSubTab === 'barcodes' ? 'Quản lý, tạo và in tem nhãn sản phẩm theo chuẩn chất lượng cao' : 'Tạo mã QR dẫn tới Bác Sĩ Cây Trồng Lí An, Màn hình soạn hàng, POS hoặc link tuỳ ý'}
                                 </p>
                             </div>
                         </div>

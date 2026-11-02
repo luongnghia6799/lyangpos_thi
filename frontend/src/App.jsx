@@ -22,6 +22,7 @@ import axios from 'axios';
 import { wsService } from './lib/websocket';
 import { IconProvider } from './context/IconContext';
 import GlobalIconPickerContainer from './components/widgets/GlobalIconPickerContainer';
+import GlobalScreensaver from './components/widgets/GlobalScreensaver';
 
 const DEFAULT_PORT = import.meta.env.VITE_BACKEND_PORT || '3579';
 
@@ -273,6 +274,7 @@ const LedgerLite = lazy(() => import('./pages/LyangPOS_lite/ledgerlite'));
 const SettingsLite = lazy(() => import('./pages/LyangPOS_lite/settingslite'));
 const PrintOnly = lazy(() => import('./pages/LyangPOS/PrintOnly'));
 const BacSiSauQuy = lazy(() => import('./pages/LyangPOS/BacSiSauQuy'));
+const AiConsultant = lazy(() => import('./pages/LyangPOS/AiConsultant'));
 
 
 const ProtectedRoute = ({ children }) => {
@@ -306,6 +308,7 @@ const LiteKeepAlive = () => {
   const liteTabs = [
     { path: '/' },
     { path: '/pos' },
+    { path: '/ai-consultant' },
     { path: '/purchase' },
     { path: '/history' },
     { path: '/summary' },
@@ -358,6 +361,9 @@ const LiteKeepAlive = () => {
       </div>
       <div style={{ display: location.pathname === '/pos' ? 'block' : 'none', height: '100%', width: '100%' }}>
         <PageWrapper><POSLite /></PageWrapper>
+      </div>
+      <div style={{ display: location.pathname === '/ai-consultant' ? 'block' : 'none', height: '100%', width: '100%' }}>
+        <PageWrapper><AiConsultant /></PageWrapper>
       </div>
       <div style={{ display: location.pathname === '/purchase' ? 'block' : 'none', height: '100%', width: '100%' }}>
         <PageWrapper><PurchaseLite /></PageWrapper>
@@ -506,6 +512,7 @@ const AppLayout = () => {
                 <Route path="/roles" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><RoleManager /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/gaming" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><Gaming /></PageWrapper></RoleProtectedRoute>} />
                 <Route path="/typing" element={<RoleProtectedRoute allowedRoles={['admin', 'accountant', 'user']}><PageWrapper><TypingPractice /></PageWrapper></RoleProtectedRoute>} />
+                <Route path="/ai-consultant" element={<PageWrapper><AiConsultant /></PageWrapper>} />
               </Routes>
             </AnimatePresence>
             )}
@@ -809,11 +816,70 @@ function App() {
           />
           <Router>
             <TitleBarColorSync />
-            <Toaster position="top-center" reverseOrder={false} />
+            <Toaster 
+              position="top-center" 
+              reverseOrder={false} 
+              gutter={12}
+              containerStyle={{
+                top: 24,
+                zIndex: 99999999,
+              }}
+              toastOptions={{
+                className: 'lyang-hot-toast',
+                duration: 3500,
+                style: {
+                  background: 'rgba(11, 20, 26, 0.94)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                  color: '#f8fafc',
+                  padding: '11px 20px',
+                  borderRadius: '16px',
+                  fontSize: '13.5px',
+                  fontWeight: '600',
+                  letterSpacing: '0.01em',
+                },
+                success: {
+                  duration: 3200,
+                  iconTheme: {
+                    primary: '#10b981',
+                    secondary: '#022c22',
+                  },
+                  style: {
+                    border: '1px solid rgba(16, 185, 129, 0.45)',
+                    boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                  },
+                },
+                error: {
+                  duration: 4000,
+                  iconTheme: {
+                    primary: '#f43f5e',
+                    secondary: '#4c0519',
+                  },
+                  style: {
+                    border: '1px solid rgba(244, 63, 94, 0.45)',
+                    boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 63, 94, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                  },
+                },
+                loading: {
+                  duration: Infinity,
+                  iconTheme: {
+                    primary: '#38bdf8',
+                    secondary: '#082f49',
+                  },
+                  style: {
+                    border: '1px solid rgba(56, 189, 248, 0.45)',
+                    boxShadow: '0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                  },
+                },
+              }}
+            />
             <Heartbeat />
             <AutoOptimizeDb />
             <FontLoader />
             <AppWallpaper />
+            <GlobalScreensaver />
 
             {/* Global Reminder Banner & Sound Alert across all tabs */}
             <GlobalReminderAlert onOpenManager={() => setShowReminderModal(true)} />
@@ -832,9 +898,9 @@ function App() {
                 <Route path="/packing-display" element={<PackingDisplay />} />
                 <Route path="/print-only/:orderId" element={<PrintOnly />} />
                 <Route path="/bacsisauquy" element={<BacSiSauQuy />} />
-                <Route path="/bac-si-sau-quy" element={<Navigate to="/bacsisauquy" replace />} />
-                <Route path="/ai-consult" element={<Navigate to="/bacsisauquy" replace />} />
-                <Route path="/ai-chat" element={<Navigate to="/bacsisauquy" replace />} />
+                <Route path="/bac-si-sau-quy" element={<Navigate to="/ai-consultant" replace />} />
+                <Route path="/ai-consult" element={<Navigate to="/ai-consultant" replace />} />
+                <Route path="/ai-chat" element={<Navigate to="/ai-consultant" replace />} />
                 <Route path="/*" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
               </Routes>
             </Suspense>

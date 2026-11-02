@@ -1,28 +1,28 @@
 import React from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import { 
-  Wallet, 
-  Coins, 
-  Banknote, 
-  CreditCard, 
-  Sparkles, 
-  ArrowRight, 
-  Pause, 
-  Save, 
-  Printer, 
-  ChevronLeft, 
-  ChevronRight, 
-  Truck, 
-  BookOpen, 
-  ReceiptText, 
-  ArrowLeftRight, 
-  HandCoins, 
-  RotateCw, 
-  Leaf, 
-  Users, 
-  Phone, 
-  MapPin, 
-  Package, 
+import {
+  Wallet,
+  Coins,
+  Banknote,
+  CreditCard,
+  Sparkles,
+  ArrowRight,
+  Pause,
+  Save,
+  Printer,
+  ChevronLeft,
+  ChevronRight,
+  Truck,
+  BookOpen,
+  ReceiptText,
+  ArrowLeftRight,
+  HandCoins,
+  RotateCw,
+  Leaf,
+  Users,
+  Phone,
+  MapPin,
+  Package,
   History,
   Activity,
   ShoppingBag
@@ -32,6 +32,7 @@ import MarqueeText from '@/components/widgets/MarqueeText';
 import DynamicIcon from '@/components/widgets/DynamicIcon';
 import CustomSelect from '@/components/forms/CustomSelect';
 import { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, getBadgeComputedStyle } from '@/components/modals/CartColorCustomizerModal';
+import { checkIsAdmin } from '../../lib/auth';
 
 /**
  * POSSummaryPanel - Standalone High-Performance Summary & Payment Sidebar / Bottom Panel
@@ -67,6 +68,7 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
   cart = [],
   totalAmount = 0,
   isProfitRevealed = false,
+  isAdmin: propIsAdmin,
   orderProfit = 0,
   onMouseDownProfit,
   onMouseUpProfit,
@@ -130,6 +132,15 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
   const effectiveTotal = isRemoteInspect
     ? remoteState?.total_amount || (remoteState?.cart || []).reduce((acc, it) => acc + (Number(it.price || it.sale_price) || 0) * (Number(it.quantity) || 1), 0)
     : totalAmount;
+
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : (() => {
+    try {
+      const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+      return checkIsAdmin(u?.role);
+    } catch (e) {
+      return false;
+    }
+  })();
 
   const effectivePartner = isRemoteInspect ? remoteState?.partner : partner;
   const effectivePartnerName = isRemoteInspect
@@ -195,17 +206,17 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 effectiveDebt > 0
                   ? "bg-gradient-to-br from-[#7f1d1d] via-[#991b1b] to-[#881337] dark:from-[#4c0519] dark:via-[#881337] dark:to-[#4c0519] text-white border-rose-400/50 shadow-[0_0_18px_rgba(244,63,94,0.35)] hover:shadow-[0_0_25px_rgba(244,63,94,0.55)]"
                   : effectiveDebt < 0
-                  ? "bg-gradient-to-br from-[#14532d] via-[#166534] to-[#14532d] text-white border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)]"
-                  : "bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] dark:from-[#0d281e] dark:via-[#164230] dark:to-[#0d281e] text-white border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]"
+                    ? "bg-gradient-to-br from-[#14532d] via-[#166534] to-[#14532d] text-white border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.35)] hover:shadow-[0_0_25px_rgba(16,185,129,0.55)]"
+                    : "bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] dark:from-[#0d281e] dark:via-[#164230] dark:to-[#0d281e] text-white border-emerald-400/40 shadow-[0_0_18px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.45)]"
               )}
               style={{
                 ...getBubbleComputedStyle(cartColorConfig, 'partner'),
                 ...(effectiveDebt <= 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default'
                   ? {
-                      background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
-                      borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                      boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined
-                    }
+                    background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined
+                  }
                   : {})
               }}
               title={effectivePartner ? `Xem lịch sử nợ của ${effectivePartnerName}` : "Chưa chọn đối tác"}
@@ -225,23 +236,20 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                   {hasFertilizer && (() => {
                     const deliverySt = getBadgeComputedStyle(cartColorConfig, 'delivery');
                     return (
-                      <m.button
+                      <button
+                        key="summary-delivery-reminder-badge"
                         type="button"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenDeliveryReminder?.();
                         }}
                         style={deliverySt}
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white text-[8px] font-black uppercase tracking-wider shadow-sm transition-[background-color,border-color,box-shadow] duration-150 border border-emerald-300/40 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-white text-[8px] font-black uppercase tracking-wider shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-150 hover:scale-105 active:scale-95 border border-emerald-300/40 cursor-pointer"
                         title={`Có mua phân bón (${fertilizerItems.length} loại)! Bấm để tạo nhắc chở phân`}
                       >
                         <Truck size={10} strokeWidth={2.6} style={deliverySt?.color ? { color: deliverySt.color } : undefined} />
                         <span style={deliverySt?.color ? { color: deliverySt.color } : undefined}>Chở phân ({fertilizerItems.length})</span>
-                      </m.button>
+                      </button>
                     );
                   })()}
                 </div>
@@ -325,10 +333,10 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 )}
                 style={effectivePayMethod === 'Cash' && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default'
                   ? {
-                      background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`,
-                      borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                      boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined
-                    }
+                    background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`,
+                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined
+                  }
                   : undefined}
               >
                 <div className={cn("absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none", effectivePayMethod === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current")}>
@@ -453,8 +461,8 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     effectiveDebtAfter > effectiveDebtBefore
                       ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
                       : effectiveDebtAfter < effectiveDebtBefore
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                      : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                        : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
                   )}
                 >
                   {effectiveDebtAfter > effectiveDebtBefore ? "+ Tăng nợ" : effectiveDebtAfter < effectiveDebtBefore ? "- Giảm nợ" : "Không đổi"}
@@ -529,10 +537,10 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     effectiveCashGiven > effectiveTotal
                       ? "text-amber-700 dark:text-amber-400"
                       : effectiveDebtAfter > 0
-                      ? "text-rose-600 dark:text-rose-400"
-                      : effectiveDebtAfter < 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-foreground"
+                        ? "text-rose-600 dark:text-rose-400"
+                        : effectiveDebtAfter < 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-foreground"
                   )}
                 >
                   {formatNumber(effectiveCashGiven > effectiveTotal ? Math.max(0, effectiveCashGiven - effectiveTotal) : Math.abs(effectiveDebtAfter))}
@@ -551,10 +559,10 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
           >
             {/* Main Total Bubble */}
             <div
-              onMouseDown={onMouseDownProfit}
+              onMouseDown={isAdmin ? onMouseDownProfit : undefined}
               onMouseUp={onMouseUpProfit}
               onMouseLeave={onMouseUpProfit}
-              onTouchStart={onMouseDownProfit}
+              onTouchStart={isAdmin ? onMouseDownProfit : undefined}
               onTouchEnd={onMouseUpProfit}
               onClick={() => effectivePartner ? onOpenPartnerHistory?.(effectivePartner) : null}
               className="flex-1 h-full p-1.5 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main"
@@ -562,13 +570,13 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 ...getBubbleComputedStyle(cartColorConfig, 'total'),
                 ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default'
                   ? {
-                      background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
-                      borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                      boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined
-                    }
+                    background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined
+                  }
                   : {})
               }}
-              title="Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn"
+              title={isAdmin ? "Bấm để xem lịch sử, bấm giữ để xem lợi nhuận đơn" : "Bấm để xem lịch sử đơn hàng"}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" />
               <div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none">
@@ -579,9 +587,9 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                   className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200"
                   style={getBubbleComputedStyle(cartColorConfig, "total")?.color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}
                 >
-                  {isProfitRevealed ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}
+                  {(isAdmin && isProfitRevealed) ? "LỢI NHUẬN ĐƠN" : "TỔNG CỘNG ĐƠN HÀNG"}
                 </span>
-                {isProfitRevealed ? (
+                {(isAdmin && isProfitRevealed) ? (
                   <span className="px-1.5 py-0.2 bg-white/20 rounded-lg text-[7px] font-black tracking-widest">BÍ MẬT</span>
                 ) : (
                   <m.span
@@ -596,14 +604,14 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                 )}
               </div>
               <m.div
-                key={isProfitRevealed ? orderProfit : effectiveTotal}
+                key={(isAdmin && isProfitRevealed) ? orderProfit : effectiveTotal}
                 initial={{ opacity: 0, y: -4, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: "spring", stiffness: 450, damping: 25 }}
                 style={getBubbleComputedStyle(cartColorConfig, "total")?.color ? { color: getBubbleComputedStyle(cartColorConfig, "total").color } : undefined}
                 className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
               >
-                {formatNumber(isProfitRevealed ? orderProfit : effectiveTotal)}
+                {formatNumber((isAdmin && isProfitRevealed) ? orderProfit : effectiveTotal)}
                 <span className="text-xs font-normal ml-0.5 opacity-90">đ</span>
               </m.div>
             </div>
@@ -860,27 +868,128 @@ const POSSummaryPanel = React.memo(function POSSummaryPanel({
                     </div>
                   </div>
 
-                  {/* Debt Summary Row */}
+                  {/* Debt Delta / Change Bubble in Sidebar */}
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
-                      <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">
-                        NỢ TRƯỚC ĐƠN:
-                      </span>
-                      <span className="font-black text-sm text-rose-600 dark:text-rose-400 tabular-nums">
-                        {formatNumber(debtBeforeOrder)}
-                      </span>
-                    </div>
-
-                    {partner && (
-                      <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
-                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">
-                          NỢ HIỆN TẠI:
-                        </span>
-                        <span className="font-black text-sm text-amber-600 dark:text-amber-400 tabular-nums">
-                          {formatNumber(partner.debt_balance || 0)}
-                        </span>
+                    <m.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      className="p-2.5 px-3.5 rounded-2xl bg-card/40 border border-[#8b6f47]/25 dark:border-[#d4a574]/25 hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_rgba(45,80,22,0.15)] transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
+                    >
+                      <div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none">
+                        <ArrowLeftRight size={44} strokeWidth={1.5} />
                       </div>
-                    )}
+                      <div className="flex items-center justify-between relative z-10 pt-0.5 mb-2">
+                        <span className="text-[9.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider leading-normal flex items-center gap-1.5">
+                          <Wallet size={12} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
+                          <span>{effectiveCashGiven > effectiveTotal ? "Tiền thừa" : "Biến động nợ"}</span>
+                        </span>
+                        {effectiveCashGiven > effectiveTotal ? (
+                          <m.span
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.2)] leading-normal"
+                          >
+                            Thối lại
+                          </m.span>
+                        ) : (
+                          <m.span
+                            key={effectiveDebtAfter > effectiveDebtBefore ? "up" : effectiveDebtAfter < effectiveDebtBefore ? "down" : "same"}
+                            initial={{ opacity: 0, scale: 0.85 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className={cn(
+                              "text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full transition-all duration-300 leading-normal",
+                              effectiveDebtAfter > effectiveDebtBefore
+                                ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
+                                : effectiveDebtAfter < effectiveDebtBefore
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                  : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
+                            )}
+                          >
+                            {effectiveDebtAfter > effectiveDebtBefore ? "+ Tăng nợ" : effectiveDebtAfter < effectiveDebtBefore ? "- Giảm nợ" : "Không đổi"}
+                          </m.span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-1.5 mt-auto relative z-10">
+                        {/* Before */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1 leading-normal mb-0.5">
+                            <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>
+                            {effectiveDebtBefore !== 0 ? (
+                              <span className={cn(
+                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
+                                effectiveDebtBefore > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
+                              )}>
+                                {effectiveDebtBefore > 0 ? "Khách nợ" : "Mình nợ"}
+                              </span>
+                            ) : (
+                              <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>
+                            )}
+                          </div>
+                          <m.div
+                            key={Math.abs(effectiveDebtBefore)}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.25 }}
+                            className={cn(
+                              "text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300",
+                              effectiveDebtBefore > 0 ? "text-rose-500" : effectiveDebtBefore < 0 ? "text-emerald-500" : "text-muted-foreground"
+                            )}
+                          >
+                            {formatNumber(Math.abs(effectiveDebtBefore))}
+                            <span className="text-[9px] font-normal ml-0.5">đ</span>
+                          </m.div>
+                        </div>
+
+                        {/* Arrow */}
+                        <div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0">
+                          <ArrowRight size={11} strokeWidth={2.5} />
+                        </div>
+
+                        {/* After */}
+                        <div className="flex-1 min-w-0 text-right">
+                          <div className="flex items-center justify-end gap-1 leading-normal mb-0.5">
+                            {effectiveCashGiven > effectiveTotal ? (
+                              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300 leading-normal shrink-0">
+                                Thối lại
+                              </span>
+                            ) : effectiveDebtAfter !== 0 ? (
+                              <span className={cn(
+                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
+                                effectiveDebtAfter > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
+                              )}>
+                                {effectiveDebtAfter > 0 ? "Khách nợ" : "Mình nợ"}
+                              </span>
+                            ) : (
+                              <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">
+                                Hết nợ
+                              </span>
+                            )}
+                            <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span>
+                          </div>
+                          <m.div
+                            key={effectiveCashGiven > effectiveTotal ? Math.max(0, effectiveCashGiven - effectiveTotal) : Math.abs(effectiveDebtAfter)}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.25 }}
+                            className={cn(
+                              "text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300",
+                              effectiveCashGiven > effectiveTotal
+                                ? "text-amber-700 dark:text-amber-400"
+                                : effectiveDebtAfter > 0
+                                  ? "text-rose-600 dark:text-rose-400"
+                                  : effectiveDebtAfter < 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : "text-foreground"
+                            )}
+                          >
+                            {formatNumber(effectiveCashGiven > effectiveTotal ? Math.max(0, effectiveCashGiven - effectiveTotal) : Math.abs(effectiveDebtAfter))}
+                            <span className="text-[9px] font-normal ml-0.5">đ</span>
+                          </m.div>
+                        </div>
+                      </div>
+                    </m.div>
 
                     {/* Shipping Row */}
                     <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">

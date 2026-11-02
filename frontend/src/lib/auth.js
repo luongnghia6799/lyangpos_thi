@@ -5,3 +5,18 @@ export const checkIsAdmin = (role) => {
     const cleanRole = role.toString().trim().toLowerCase();
     return ADMIN_ROLES.includes(cleanRole);
 };
+
+export const getSessionUser = () => {
+    try {
+        const saved = sessionStorage.getItem('user');
+        if (!saved || saved === 'undefined') return null;
+        return JSON.parse(saved);
+    } catch (e) {
+        return null;
+    }
+};
+
+export const isCurrentUserAdmin = () => {
+    const user = getSessionUser();
+    return checkIsAdmin(user?.role);
+};

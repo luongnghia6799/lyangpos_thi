@@ -205,6 +205,7 @@ export default function MobileProductEditModal({ product, isOpen, onClose, onSav
                                                             value={formData.active_ingredient || ''}
                                                             onChange={val => setFormData({ ...formData, active_ingredient: val })}
                                                             existingProducts={allProducts}
+                                                            direction="auto"
                                                         />
                                                     </div>
                                                 </div>

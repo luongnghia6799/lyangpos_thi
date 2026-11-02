@@ -43,7 +43,7 @@ const NumberInput = ({ value, onChange, placeholder, className, ...props }) => {
     )
 }
 
-export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
+export default function ProductEditModal({ product, isOpen, onClose, onSave, existingProducts }) {
     const queryClient = useQueryClient();
     const DEFAULT_PRODUCT = {
         name: '', code: '', unit: 'Cái', secondary_unit: '', multiplier: 1,
@@ -61,7 +61,14 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
 
     const [formData, setFormData] = useState(DEFAULT_PRODUCT);
     const [toast, setToast] = useState(null);
-    const [allProducts, setAllProducts] = useState([]);
+    const [allProducts, setAllProducts] = useState(existingProducts || []);
+
+    useEffect(() => {
+        if (existingProducts && existingProducts.length > 0) {
+            setAllProducts(existingProducts);
+        }
+    }, [existingProducts]);
+
     const [categories, setCategories] = useState([]);
     const [brandsList, setBrandsList] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -164,9 +171,9 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
         if (isOpen) {
             fetchCategories();
             fetchBrandsDirectory();
-            if (formData.is_combo) fetchProducts();
+            fetchProducts();
         }
-    }, [isOpen, formData.is_combo]);
+    }, [isOpen]);
 
     useEffect(() => {
         const handleEsc = (e) => {
@@ -213,11 +220,13 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get('/api/products');
+            const res = await axios.get('/api/products?limit=5000');
             // Handle both array and paginated object response
             let data = res.data;
             if (data.items && Array.isArray(data.items)) {
                 data = data.items;
+            } else if (data.data && Array.isArray(data.data)) {
+                data = data.data;
             }
 
             if (Array.isArray(data)) {
@@ -225,7 +234,9 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                 setAllProducts(sorted);
             } else {
                 console.error("Invalid products data format", data);
-                setAllProducts([]);
+                if (!existingProducts || existingProducts.length === 0) {
+                    setAllProducts([]);
+                }
             }
         } catch (err) { console.error(err); }
     };
@@ -481,6 +492,7 @@ export default function ProductEditModal({ product, isOpen, onClose, onSave }) {
                                                             value={formData.active_ingredient || ''}
                                                             onChange={val => setFormData({ ...formData, active_ingredient: val })}
                                                             existingProducts={allProducts}
+                                                            direction="auto"
                                                         />
                                                     </div>
                                                 </div>

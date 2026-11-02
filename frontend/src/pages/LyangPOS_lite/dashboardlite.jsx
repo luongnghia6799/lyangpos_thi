@@ -17,6 +17,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate, cn } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function DashboardLite() {
@@ -36,6 +37,16 @@ export default function DashboardLite() {
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  const currentUser = useMemo(() => {
+    try {
+      const saved = sessionStorage.getItem('user');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  }, []);
+  const isAdmin = checkIsAdmin(currentUser?.role);
 
   const { bgColor } = useLiteThemeSync();
   const theme = useMemo(() => getLiteTheme(bgColor), [bgColor]);
@@ -108,32 +119,32 @@ export default function DashboardLite() {
     const width = 600;
     const height = 180;
     const padding = { top: 20, right: 15, bottom: 25, left: 15 };
-    
+
     const maxVal = Math.max(...chartData.map(d => d.revenue), 100000);
-    
+
     const points = chartData.map((d, index) => {
       const x = padding.left + (index / (chartData.length - 1)) * (width - padding.left - padding.right);
       const y = height - padding.bottom - (d.revenue / maxVal) * (height - padding.top - padding.bottom);
       return { x, y, data: d };
     });
-    
+
     let linePath = "";
     if (points.length > 0) {
       linePath = `M ${points[0].x} ${points[0].y}`;
       for (let i = 1; i < points.length; i++) {
-        const cpX1 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
-        const cpY1 = points[i-1].y;
-        const cpX2 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
+        const cpX1 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
+        const cpY1 = points[i - 1].y;
+        const cpX2 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
         const cpY2 = points[i].y;
         linePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${points[i].x} ${points[i].y}`;
       }
     }
-    
+
     let areaPath = "";
     if (points.length > 0) {
       areaPath = `${linePath} L ${points[points.length - 1].x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`;
     }
-    
+
     return { width, height, points, linePath, areaPath, padding };
   }, [chartData]);
 
@@ -250,7 +261,7 @@ export default function DashboardLite() {
       `}</style>
 
       <div className="bento-grid">
-        
+
         {/* HERO SECTION */}
         <div className="bento-cell cell-hero">
           <div className="hero-header">
@@ -263,12 +274,21 @@ export default function DashboardLite() {
               {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
-          <div className="hero-stats">
-            <div className="hero-stat-block">
-              <div className="hero-stat-label">Lợi Nhuận Hôm Nay</div>
-              <div className="hero-stat-value">{formatNumber(stats.profit)}</div>
+          {isAdmin ? (
+            <div className="hero-stats">
+              <div className="hero-stat-block">
+                <div className="hero-stat-label">Lợi Nhuận Hôm Nay</div>
+                <div className="hero-stat-value">{formatNumber(stats.profit)}</div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="hero-stats">
+              <div className="hero-stat-block">
+                <div className="hero-stat-label">Trạng Thái</div>
+                <div className="hero-stat-value" style={{ fontSize: '1.05rem', color: '#10b981', fontWeight: 800 }}>Sẵn Sàng Bán Hàng</div>
+              </div>
+            </div>
+          )}
           {/* Decorative bg-transparent elements */}
           <div style={{ position: 'absolute', right: '-10%', bottom: '-20%', width: '300px', height: '300px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(40px)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', right: '15%', top: '-10%', width: '150px', height: '150px', background: 'rgba(255,255,255,0.15)', borderRadius: '50%', filter: 'blur(20px)', pointerEvents: 'none' }} />
@@ -276,21 +296,21 @@ export default function DashboardLite() {
 
         {/* KPI: REVENUE */}
         <div className="bento-cell cell-kpi">
-          <div className="bento-title"><ShoppingCart size={16}/> Doanh Thu</div>
+          <div className="bento-title"><ShoppingCart size={16} /> Doanh Thu</div>
           <div className="bento-value" style={{ color: theme.accent }}>{formatNumber(stats.revenue)}</div>
           <div className="bento-sub">Tiền mặt: {formatNumber(stats.cash_revenue || 0)}</div>
         </div>
 
         {/* KPI: PURCHASES */}
         <div className="bento-cell cell-kpi">
-          <div className="bento-title" style={{ color: '#ef4444' }}><Truck size={16}/> Chi Phí Nhập</div>
+          <div className="bento-title" style={{ color: '#ef4444' }}><Truck size={16} /> Chi Phí Nhập</div>
           <div className="bento-value" style={{ color: '#ef4444' }}>{formatNumber(todayPurchases)}</div>
           <div className="bento-sub">Dư nợ NCC: {formatNumber(stats.supplier_debt || 0)}</div>
         </div>
 
         {/* CHART SECTION */}
         <div className="bento-cell cell-chart">
-          <div className="bento-title" style={{ marginBottom: '1rem' }}><TrendingUp size={16}/> Doanh Thu 7 Ngày Qua</div>
+          <div className="bento-title" style={{ marginBottom: '1rem' }}><TrendingUp size={16} /> Doanh Thu 7 Ngày Qua</div>
           <div style={{ flex: 1, position: 'relative' }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.5, fontWeight: 900 }}>ĐANG TẢI...</div>
@@ -304,7 +324,7 @@ export default function DashboardLite() {
                     <stop offset="100%" stopColor={theme.accent} stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                
+
                 {/* Horizontal Grid */}
                 {[0, 0.5, 1].map((ratio, idx) => {
                   const y = svgChart.padding.top + ratio * (svgChart.height - svgChart.padding.top - svgChart.padding.bottom);
@@ -339,7 +359,7 @@ export default function DashboardLite() {
                 ))}
               </svg>
             )}
-            
+
             {/* Tooltip */}
             {hoveredPoint && (
               <div style={{
@@ -378,30 +398,30 @@ export default function DashboardLite() {
         {/* RECENT ORDERS LIST */}
         <div className="bento-cell cell-list-orders">
           <div className="bento-title" style={{ marginBottom: '1.5rem', justifyContent: 'space-between' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><HistoryIcon size={16}/> Giao dịch gần đây</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><HistoryIcon size={16} /> Giao dịch gần đây</span>
             <Link to="/ledger" style={{ opacity: 0.6, color: theme.text, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-              Tất cả <ArrowRight size={12}/>
+              Tất cả <ArrowRight size={12} />
             </Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {loading ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem' }}>ĐANG TẢI...</div> : 
-             recentOrders.length === 0 ? <div style={{ opacity: 0.5, fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>Chưa có giao dịch.</div> :
-             recentOrders.map(order => (
-               <div key={order.id} className="bento-list-item">
-                 <div>
-                   <div className="bento-list-title">{order.partner_name || "Khách lẻ"}</div>
-                   <div className="bento-list-sub">#{order.display_id || order.id} • {order.created_by || "Hệ thống"}</div>
-                 </div>
-                 <div className="bento-list-right">
-                   <div className="bento-list-value" style={{ color: order.type === 'Sale' ? theme.accent : "#ef4444" }}>
-                     {order.type === 'Sale' ? "+" : "-"}{formatNumber(order.total_amount)}
-                   </div>
-                   <div className={`bento-badge ${order.type === 'Sale' ? 'badge-sale' : 'badge-purchase'}`}>
-                     {order.type === 'Sale' ? "BÁN" : "NHẬP"}
-                   </div>
-                 </div>
-               </div>
-             ))
+            {loading ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem' }}>ĐANG TẢI...</div> :
+              recentOrders.length === 0 ? <div style={{ opacity: 0.5, fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>Chưa có giao dịch.</div> :
+                recentOrders.map(order => (
+                  <div key={order.id} className="bento-list-item">
+                    <div>
+                      <div className="bento-list-title">{order.partner_name || "Khách lẻ"}</div>
+                      <div className="bento-list-sub">#{order.display_id || order.id} • {order.created_by || "Hệ thống"}</div>
+                    </div>
+                    <div className="bento-list-right">
+                      <div className="bento-list-value" style={{ color: order.type === 'Sale' ? theme.accent : "#ef4444" }}>
+                        {order.type === 'Sale' ? "+" : "-"}{formatNumber(order.total_amount)}
+                      </div>
+                      <div className={`bento-badge ${order.type === 'Sale' ? 'badge-sale' : 'badge-purchase'}`}>
+                        {order.type === 'Sale' ? "BÁN" : "NHẬP"}
+                      </div>
+                    </div>
+                  </div>
+                ))
             }
           </div>
         </div>
@@ -409,25 +429,25 @@ export default function DashboardLite() {
         {/* LOW STOCK WARNINGS */}
         <div className="bento-cell cell-list-warnings">
           <div className="bento-title" style={{ color: '#f59e0b', marginBottom: '1.5rem' }}>
-            <AlertTriangle size={16}/> Cảnh báo sắp hết hàng
+            <AlertTriangle size={16} /> Cảnh báo sắp hết hàng
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {loading ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem' }}>ĐANG TẢI...</div> : 
-             lowStockProducts.length === 0 ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem', color: '#10b981' }}>Kho hàng an toàn.</div> :
-             lowStockProducts.map(product => (
-               <div key={product.id} className="bento-list-item">
-                 <div>
-                   <div className="bento-list-title">{product.name}</div>
-                   <div className="bento-list-sub">Mã: {product.sku}</div>
-                 </div>
-                 <div className="bento-list-right">
-                   <div className="bento-list-value" style={{ color: product.stock <= 0 ? "#ef4444" : "#f59e0b" }}>
-                     {product.stock} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{product.unit}</span>
-                   </div>
-                   <div className="bento-list-sub" style={{ marginTop: '0.2rem' }}>Cần nhập thêm</div>
-                 </div>
-               </div>
-             ))
+            {loading ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem' }}>ĐANG TẢI...</div> :
+              lowStockProducts.length === 0 ? <div style={{ opacity: 0.5, fontWeight: 900, textAlign: 'center', padding: '2rem', color: '#10b981' }}>Kho hàng an toàn.</div> :
+                lowStockProducts.map(product => (
+                  <div key={product.id} className="bento-list-item">
+                    <div>
+                      <div className="bento-list-title">{product.name}</div>
+                      <div className="bento-list-sub">Mã: {product.sku}</div>
+                    </div>
+                    <div className="bento-list-right">
+                      <div className="bento-list-value" style={{ color: product.stock <= 0 ? "#ef4444" : "#f59e0b" }}>
+                        {product.stock} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{product.unit}</span>
+                      </div>
+                      <div className="bento-list-sub" style={{ marginTop: '0.2rem' }}>Cần nhập thêm</div>
+                    </div>
+                  </div>
+                ))
             }
           </div>
         </div>

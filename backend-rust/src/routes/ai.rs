@@ -22,6 +22,7 @@ pub struct AiConsultRequest {
     pub images: Option<Vec<String>>,
     pub api_key: Option<String>,
     pub mode: Option<String>, // "crop_doctor" | "app_analytics" | "general_assistant"
+    pub model: Option<String>, // Model do người dùng chọn hoặc hệ thống fetch từ Google
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -795,9 +796,9 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
                 };
 
                 current_user_parts.push(json!({
-                    "inline_data": {
-                        "mime_type": mime_type,
-                        "data": base64_data
+                    "inlineData": {
+                        "mimeType": mime_type,
+                        "data": base64_data.replace(|c: char| c.is_whitespace(), "")
                     }
                 }));
             }
@@ -827,15 +828,72 @@ Nếu không có sản phẩm phù hợp trong kho hoặc câu hỏi về số l
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
 
-    let models = [
-        "gemini-3.5-flash-lite",
-    ];
+    // Nạp danh sách models động từ người dùng chọn và từ lần fetch Google server gần nhất
+    let mut models: Vec<String> = Vec::new();
+
+    // 1. Ưu tiên model do người dùng chọn hoặc client gửi lên
+    if let Some(ref m) = payload.model {
+        let trimmed = m.trim();
+        if !trimmed.is_empty() && !models.contains(&trimmed.to_string()) {
+            models.push(trimmed.to_string());
+        }
+    }
+
+    // 2. Model được lưu gần nhất trong app_setting
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_selected_model'")
+        .fetch_optional(&pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                let m = val.trim_matches('"').trim();
+                if !m.is_empty() && !models.contains(&m.to_string()) {
+                    models.push(m.to_string());
+                }
+            }
+        }
+    }
+
+    // 3. Danh sách model chính thức đã fetch từ Google server được lưu trong app_setting
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_available_models'")
+        .fetch_optional(&pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                let cleaned = val.trim_matches('"').trim();
+                if let Ok(parsed) = serde_json::from_str::<Vec<serde_json::Value>>(cleaned) {
+                    for item in parsed {
+                        let id_str = if let Some(s) = item.as_str() {
+                            s.to_string()
+                        } else if let Some(id) = item.get("id").and_then(|v| v.as_str()) {
+                            id.to_string()
+                        } else {
+                            String::new()
+                        };
+                        let id_clean = id_str.trim().to_string();
+                        if !id_clean.is_empty() && !models.contains(&id_clean) {
+                            models.push(id_clean);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Fallback chỉ khi DB hoàn toàn chưa từng fetch model nào từ Google
+    if models.is_empty() {
+        models.push("gemini-2.5-flash".to_string());
+        models.push("gemini-2.0-flash".to_string());
+        models.push("gemini-1.5-flash".to_string());
+    }
+
     let mut reply_text = String::new();
     let mut error_msg = String::new();
 
     // Vòng lặp xoay vòng fallback qua từng API Key và từng Model
     'key_loop: for (k_idx, key) in api_keys.iter().enumerate() {
-        for model in models {
+        for model in &models {
             let url = format!(
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
                 model, key
@@ -1065,12 +1123,31 @@ QUY TẮC BẮT BUỘC:
         .build()
         .unwrap_or_else(|_| reqwest::Client::new());
 
-    let models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"];
+    let mut models: Vec<String> = Vec::new();
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_selected_model'")
+        .fetch_optional(&pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                let m = val.trim_matches('"').trim();
+                if !m.is_empty() && !models.contains(&m.to_string()) {
+                    models.push(m.to_string());
+                }
+            }
+        }
+    }
+    for fallback in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"] {
+        if !models.contains(&fallback.to_string()) {
+            models.push(fallback.to_string());
+        }
+    }
+
     let mut transcript = String::new();
     let mut error_msg = String::new();
 
     'key_loop: for key in &api_keys {
-        for model in models {
+        for model in &models {
             let url = format!(
                 "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
                 model, key
@@ -1126,5 +1203,174 @@ QUY TẮC BẮT BUỘC:
         "transcript": transcript,
         "error": serde_json::Value::Null
     })))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FetchModelsPayload {
+    pub api_key: Option<String>,
+}
+
+pub async fn fetch_gemini_models_internal(
+    pool: &SqlitePool,
+    api_key_override: Option<String>,
+) -> Result<impl IntoResponse, AppError> {
+    let mut api_keys: Vec<String> = Vec::new();
+    if let Some(k) = api_key_override {
+        let trimmed = k.trim().to_string();
+        if !trimmed.is_empty() {
+            api_keys.push(trimmed);
+        }
+    }
+
+    let setting_keys = ["gemini_api_key", "gemini_api_key_2", "gemini_api_key_3"];
+    for s_key in setting_keys {
+        if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = ?")
+            .bind(s_key)
+            .fetch_optional(pool)
+            .await
+        {
+            if let Some(r) = row {
+                if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                    let cleaned = val.trim_matches('"').trim();
+                    if !cleaned.is_empty() && !api_keys.contains(&cleaned.to_string()) {
+                        api_keys.push(cleaned.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    if api_keys.is_empty() {
+        return Err(AppError::BadRequest("Chưa cấu hình Gemini API Key trong hệ thống".to_string()));
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .unwrap_or_else(|_| reqwest::Client::new());
+
+    let mut found_models = Vec::new();
+    let mut last_error = String::new();
+
+    for key in &api_keys {
+        let url = format!("https://generativelanguage.googleapis.com/v1beta/models?key={}", key);
+        match client.get(&url).send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        if let Some(models_arr) = data.get("models").and_then(|v| v.as_array()) {
+                            for m in models_arr {
+                                let methods = m.get("supportedGenerationMethods")
+                                    .and_then(|v| v.as_array())
+                                    .map(|arr| arr.iter().filter_map(|x| x.as_str()).collect::<Vec<_>>())
+                                    .unwrap_or_default();
+
+                                if methods.contains(&"generateContent") {
+                                    let raw_id = m.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                                    let id = raw_id.trim_start_matches("models/").to_string();
+                                    if !id.is_empty()
+                                        && !id.contains("embedding")
+                                        && !id.contains("aqa")
+                                        && !id.contains("imagen")
+                                        && !id.contains("text-embedding")
+                                    {
+                                        let name = m.get("displayName").and_then(|v| v.as_str()).unwrap_or(&id).to_string();
+                                        let desc = m.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                                        let input_token_limit = m.get("inputTokenLimit").and_then(|v| v.as_i64());
+                                        found_models.push(json!({
+                                            "id": id,
+                                            "name": name,
+                                            "desc": desc,
+                                            "inputTokenLimit": input_token_limit
+                                        }));
+                                    }
+                                }
+                            }
+                            if !found_models.is_empty() {
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    last_error = format!("Google API error: status {}", resp.status());
+                }
+            }
+            Err(e) => {
+                last_error = format!("Connection error: {}", e);
+            }
+        }
+    }
+
+    if found_models.is_empty() {
+        return Err(AppError::Internal(anyhow::anyhow!("Không thể lấy danh sách model: {}", last_error)));
+    }
+
+    // Sort models by preference
+    found_models.sort_by(|a, b| {
+        let rank = |id: &str| -> i32 {
+            if id.contains("2.5-flash") { 100 }
+            else if id.contains("2.0-flash") { 90 }
+            else if id.contains("1.5-flash") { 80 }
+            else if id.contains("3.5-flash") { 75 }
+            else if id.contains("2.5-pro") { 70 }
+            else if id.contains("2.0-pro") { 60 }
+            else if id.contains("1.5-pro") { 50 }
+            else { 10 }
+        };
+        let id_a = a.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        let id_b = b.get("id").and_then(|v| v.as_str()).unwrap_or("");
+        rank(id_b).cmp(&rank(id_a))
+    });
+
+    // Save available models to app_setting
+    let models_json = serde_json::to_string(&found_models).unwrap_or_default();
+    let _ = sqlx::query("INSERT OR REPLACE INTO app_setting (setting_key, setting_value) VALUES ('gemini_available_models', ?)")
+        .bind(&models_json)
+        .execute(pool)
+        .await;
+
+    // Get current selected model
+    let mut selected_model = String::new();
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_selected_model'")
+        .fetch_optional(pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                selected_model = val.trim_matches('"').trim().to_string();
+            }
+        }
+    }
+
+    if selected_model.is_empty() || !found_models.iter().any(|m| m.get("id").and_then(|v| v.as_str()) == Some(&selected_model)) {
+        if let Some(first) = found_models.first() {
+            if let Some(id) = first.get("id").and_then(|v| v.as_str()) {
+                selected_model = id.to_string();
+                let _ = sqlx::query("INSERT OR REPLACE INTO app_setting (setting_key, setting_value) VALUES ('gemini_selected_model', ?)")
+                    .bind(&selected_model)
+                    .execute(pool)
+                    .await;
+            }
+        }
+    }
+
+    Ok(Json(json!({
+        "success": true,
+        "models": found_models,
+        "selected_model": selected_model
+    })))
+}
+
+pub async fn get_gemini_models(
+    State(pool): State<SqlitePool>,
+) -> Result<impl IntoResponse, AppError> {
+    fetch_gemini_models_internal(&pool, None).await
+}
+
+pub async fn post_fetch_gemini_models(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<Option<FetchModelsPayload>>,
+) -> Result<impl IntoResponse, AppError> {
+    fetch_gemini_models_internal(&pool, payload.and_then(|p| p.api_key)).await
 }
 

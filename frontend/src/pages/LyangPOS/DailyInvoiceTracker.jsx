@@ -20,6 +20,10 @@ import {
     Sparkles,
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
     ExternalLink,
     Filter,
     Layers,
@@ -78,6 +82,28 @@ export default function DailyInvoiceTracker() {
 
     const summary = (data && data.summary) ? data.summary : defaultSummary;
     const partners = (data && Array.isArray(data.partners)) ? data.partners : [];
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+
+    // Reset pagination when filters, scope or search query changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [scope, selectedDate, statusFilter, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(partners.length / pageSize));
+    const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, partners.length);
+    const paginatedPartners = partners.slice(startIndex, endIndex);
+
+    const getPageNumbers = (current, total) => {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+        if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+        return [1, '...', current - 1, current, current + 1, '...', total];
+    };
 
     // Modal state for viewing & tracking items of a partner
     const [partnerItemsModal, setPartnerItemsModal] = useState({
@@ -305,7 +331,7 @@ export default function DailyInvoiceTracker() {
         const { partner, items, commonInvoiceNo } = partnerItemsModal;
         try {
             const payloadItems = items.map(it => ({
-                detail_id: it.id,
+                detail_id: it.id || it.detail_id,
                 is_invoiced: Boolean(it.temp_is_invoiced),
                 invoiced_quantity: Number(it.temp_invoiced_quantity || 0),
                 invoice_no: it.temp_invoice_no || commonInvoiceNo || ''
@@ -339,7 +365,7 @@ export default function DailyInvoiceTracker() {
                 invoiced_quantity: Number(item.temp_invoiced_quantity || 0),
                 invoice_no: item.temp_invoice_no || partnerItemsModal.commonInvoiceNo || ''
             };
-            await axios.post(`/api/accounting/order-details/${item.id}/invoice-status`, payload);
+            await axios.post(`/api/accounting/order-details/${item.id || item.detail_id}/invoice-status`, payload);
             toast.success(`Đã lưu riêng món "${item.product_name}" thành công!`);
             fetchInvoiceData(scope, selectedDate, true);
         } catch (err) {
@@ -351,7 +377,7 @@ export default function DailyInvoiceTracker() {
     // Quick toggle single item line from the main list
     const handleQuickToggleItem = async (item, targetStatus) => {
         try {
-            await axios.post(`/api/accounting/order-details/${item.id}/invoice-status`, {
+            await axios.post(`/api/accounting/order-details/${item.id || item.detail_id}/invoice-status`, {
                 is_invoiced: targetStatus,
                 invoiced_quantity: targetStatus ? Number(item.quantity) : 0,
                 invoice_no: targetStatus ? (item.invoice_no || '') : ''
@@ -489,78 +515,104 @@ export default function DailyInvoiceTracker() {
     };
 
     return (
-        <div className="space-y-6 text-slate-900 dark:text-white">
-            {/* SUB-TABS (DAILY vs PENDING NEED MORE vs COMPLETED) */}
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-transparent p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm">
-                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
+        <div className="space-y-5 text-slate-900 dark:text-white font-sans">
+            {/* SUB-TABS NAVIGATION & ACTIONS (No Outer Box, No White Background) */}
+            <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+                {/* Sub-tabs pills */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl border border-slate-300/40 dark:border-slate-700/40 shadow-xs overflow-x-auto">
+                    {/* Tab 1: Theo Ngày */}
                     <button
                         onClick={() => setScope('daily')}
                         className={cn(
-                            "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                            "px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap",
                             scope === 'daily'
-                                ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm ring-1 ring-white/10"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                         )}
                     >
                         <Calendar size={15} />
                         <span>Theo Ngày</span>
+                        {scope === 'daily' && summary.total_partners_count > 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/20 text-white ml-0.5">
+                                {summary.total_partners_count}
+                            </span>
+                        )}
                     </button>
 
+                    {/* Tab 2: Cần Xuất Thêm / Nợ HĐ */}
                     <button
                         onClick={() => setScope('pending')}
                         className={cn(
-                            "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer relative",
+                            "px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap relative",
                             scope === 'pending'
-                                ? "bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                ? "bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-sm ring-1 ring-white/10"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                         )}
                     >
-                        <Hourglass size={15} className="text-rose-500 animate-pulse" />
+                        <Hourglass size={15} className={cn(scope === 'pending' ? "text-white" : "text-rose-500 animate-pulse")} />
                         <span>Cần Xuất Thêm / Nợ HĐ</span>
-                        {scope === 'daily' && summary.uninvoiced_partners_count > 0 && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 absolute top-1.5 right-1.5 ring-4 ring-rose-500/20" />
+                        {summary.uninvoiced_partners_count > 0 && (
+                            <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-black ml-0.5",
+                                scope === 'pending'
+                                    ? "bg-white/25 text-white"
+                                    : "bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/50"
+                            )}>
+                                {summary.uninvoiced_partners_count}
+                            </span>
                         )}
                     </button>
 
+                    {/* Tab 3: Đã Hoàn Tất */}
                     <button
                         onClick={() => setScope('completed')}
                         className={cn(
-                            "px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                            "px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap",
                             scope === 'completed'
-                                ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-white/10"
-                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm ring-1 ring-white/10"
+                                : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                         )}
                     >
-                        <CheckCheck size={15} />
+                        <CheckCheck size={15} className={cn(scope === 'completed' ? "text-white" : "text-emerald-500")} />
                         <span>Đã Hoàn Tất</span>
+                        {summary.invoiced_partners_count > 0 && (
+                            <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-black ml-0.5",
+                                scope === 'completed'
+                                    ? "bg-white/25 text-white"
+                                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/50"
+                            )}>
+                                {summary.invoiced_partners_count}
+                            </span>
+                        )}
                     </button>
                 </div>
 
-                {/* Date Controls (for daily and completed scope) */}
-                <div className="flex flex-wrap items-center gap-3">
+                {/* Right controls: Date Picker & Excel Export */}
+                <div className="flex flex-wrap items-center gap-2.5 justify-end">
                     {(scope === 'daily' || scope === 'completed') && (
-                        <div className="flex items-center gap-2 bg-transparent p-1.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
-                            <Calendar size={16} className="text-emerald-600 dark:text-emerald-400 ml-2" />
+                        <div className="flex items-center gap-1.5 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-2xl border border-slate-300/40 dark:border-slate-700/40">
+                            <Calendar size={15} className="text-emerald-600 dark:text-emerald-400 ml-2" />
                             <input
                                 type="date"
                                 value={selectedDate}
                                 onChange={(e) => setSelectedDate(e.target.value)}
-                                className="bg-transparent font-black text-slate-900 dark:text-slate-100 text-xs outline-none px-2 py-1 cursor-pointer"
+                                className="bg-transparent font-bold text-slate-800 dark:text-slate-200 text-xs outline-none px-2 py-1 cursor-pointer"
                             />
                             <button
                                 onClick={() => handleQuickDate(0)}
                                 className={cn(
-                                    "px-3 py-1 rounded-xl font-black text-[11px] transition-all cursor-pointer",
+                                    "px-3 py-1 rounded-xl font-bold text-[11px] transition-all cursor-pointer",
                                     selectedDate === todayStr
-                                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
-                                        : "bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+                                        ? "bg-emerald-600 text-white shadow-xs"
+                                        : "text-slate-700 dark:text-slate-300 hover:text-slate-900"
                                 )}
                             >
                                 Hôm nay
                             </button>
                             <button
                                 onClick={() => handleQuickDate(-1)}
-                                className="px-3 py-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-[11px] transition-all cursor-pointer border border-slate-300 dark:border-slate-700"
+                                className="px-3 py-1 rounded-xl font-bold text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-all cursor-pointer"
                             >
                                 Hôm qua
                             </button>
@@ -571,28 +623,17 @@ export default function DailyInvoiceTracker() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => fetchInvoiceData(scope, selectedDate)}
-                        className="p-3 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+                        className="p-2.5 bg-transparent border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all cursor-pointer shadow-xs"
                         title="Làm mới dữ liệu"
                     >
-                        <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-600 dark:text-emerald-400")} />
-                    </motion.button>
-
-                    <motion.button
-                        whileHover={{ scale: 1.02, y: -1 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowGuideModal(true)}
-                        className="px-4 py-3 bg-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-                        title="Xem hướng dẫn sử dụng"
-                    >
-                        <HelpCircle size={16} />
-                        <span>Hướng Dẫn</span>
+                        <RefreshCw size={16} className={cn(isFetching && "animate-spin text-emerald-600 dark:text-emerald-400")} />
                     </motion.button>
 
                     <motion.button
                         whileHover={{ scale: 1.02, y: -1 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleExportExcel}
-                        className="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl shadow-emerald-500/25 border border-emerald-400/20 transition-all cursor-pointer"
+                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-emerald-600/20 border border-emerald-500/30 transition-all cursor-pointer"
                     >
                         <FileSpreadsheet size={16} />
                         <span>Xuất Báo Cáo Excel</span>
@@ -600,17 +641,17 @@ export default function DailyInvoiceTracker() {
                 </div>
             </div>
 
-            {/* KPI Summary Cards (Compact & Sleek) */}
+            {/* KPI Summary Cards (Viền cùng màu, icon in vào card) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
                 {/* Tổng đối tác */}
-                <div className="bg-transparent p-3.5 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                <div className="p-3.5 rounded-2xl border border-cyan-400/40 bg-cyan-50/30 dark:bg-cyan-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 bg-cyan-100 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-400 rounded-xl flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30 shrink-0">
+                        <div className="w-9 h-9 bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 rounded-xl flex items-center justify-center shrink-0">
                             <Users size={18} />
                         </div>
                         <div className="truncate">
-                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                                {scope === 'pending' ? 'Cần Xuất Thêm' : 'Tổng Đối Tác'}
+                            <p className="text-[10px] font-black text-cyan-800 dark:text-cyan-300 uppercase tracking-wider truncate">
+                                {scope === 'pending' ? 'Khách Cần Xuất Thêm' : scope === 'completed' ? 'Khách Đã Xong' : 'Tổng Đối Tác'}
                             </p>
                             <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{summary.total_orders_count} đơn</span>
                         </div>
@@ -619,36 +660,38 @@ export default function DailyInvoiceTracker() {
                 </div>
 
                 {/* Đã xuất đủ */}
-                <div className="bg-transparent p-3.5 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                <div className="p-3.5 rounded-2xl border border-emerald-400/40 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400 rounded-xl flex items-center justify-center border border-emerald-300 dark:border-emerald-500/40 shrink-0">
+                        <div className="w-9 h-9 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                             <CheckCircle2 size={18} />
                         </div>
                         <div className="truncate">
-                            <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-wider truncate">
+                            <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wider truncate">
                                 Đã Xuất Đủ ({summary.total_partners_count ? Math.round((summary.invoiced_partners_count / summary.total_partners_count) * 100) : 0}%)
                             </p>
-                            <span className="text-[11px] font-bold text-emerald-800/80 dark:text-emerald-400/80">{summary.invoiced_amount.toLocaleString()}đ</span>
+                            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">{(summary.invoiced_amount || 0).toLocaleString()}đ</span>
                         </div>
                     </div>
                     <p className="text-xl md:text-2xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">{summary.invoiced_partners_count}</p>
                 </div>
 
-                {/* Chưa xuất đủ / Cần xuất thêm */}
+                {/* Nợ HĐ / Chưa Đủ */}
                 <div className={cn(
-                    "p-3.5 rounded-2xl border shadow-sm flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5 bg-transparent",
-                    summary.uninvoiced_partners_count > 0 ? "border-rose-300 dark:border-rose-500/50" : "border-slate-300 dark:border-slate-800"
+                    "p-3.5 rounded-2xl border shadow-xs flex items-center justify-between gap-3 transition-all hover:-translate-y-0.5",
+                    summary.uninvoiced_partners_count > 0 ? "border-rose-400/50 bg-rose-50/30 dark:bg-rose-950/20" : "border-slate-300 dark:border-slate-800 bg-transparent"
                 )}>
                     <div className="flex items-center gap-2.5 min-w-0">
                         <div className={cn(
-                            "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0",
-                            summary.uninvoiced_partners_count > 0 ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/50" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-300 dark:border-slate-700"
+                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                            summary.uninvoiced_partners_count > 0
+                                ? "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                                : "bg-slate-200/60 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         )}>
                             <AlertCircle size={18} className={cn(summary.uninvoiced_partners_count > 0 && "animate-pulse")} />
                         </div>
                         <div className="truncate">
-                            <p className="text-[10px] font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider truncate">Nợ HĐ / Chưa Đủ</p>
-                            <span className="text-[11px] font-bold text-rose-800/80 dark:text-rose-400/80">{summary.uninvoiced_amount.toLocaleString()}đ</span>
+                            <p className="text-[10px] font-black text-rose-800 dark:text-rose-300 uppercase tracking-wider truncate">Nợ HĐ / Chưa Đủ</p>
+                            <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400">{(summary.uninvoiced_amount || 0).toLocaleString()}đ</span>
                         </div>
                     </div>
                     <p className={cn("text-xl md:text-2xl font-black tabular-nums shrink-0", summary.uninvoiced_partners_count > 0 ? "text-rose-700 dark:text-rose-400" : "text-slate-900 dark:text-white")}>
@@ -656,73 +699,80 @@ export default function DailyInvoiceTracker() {
                     </p>
                 </div>
 
-                {/* Tổng Giá Trị Đơn Hàng */}
-                <div className="bg-transparent p-3.5 rounded-2xl border border-amber-300 dark:border-amber-500/40 shadow-sm flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
+                {/* Tổng Doanh Thu */}
+                <div className="p-3.5 rounded-2xl border border-amber-400/40 bg-amber-50/30 dark:bg-amber-950/20 shadow-xs flex items-center justify-between gap-3 hover:-translate-y-0.5 transition-all">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-400 rounded-xl flex items-center justify-center border border-amber-300 dark:border-amber-500/30 shrink-0">
+                        <div className="w-9 h-9 bg-amber-500/15 text-amber-700 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0">
                             <DollarSign size={18} />
                         </div>
                         <div className="truncate">
-                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Tổng Doanh Thu</p>
-                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{summary.total_orders_count} đơn hàng</span>
+                            <p className="text-[10px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-wider truncate">Tổng Doanh Thu</p>
+                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">{summary.total_orders_count} đơn hàng</span>
                         </div>
                     </div>
                     <p className="text-lg md:text-xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight shrink-0">
-                        {summary.total_sales_amount.toLocaleString()}đ
+                        {(summary.total_sales_amount || 0).toLocaleString()}đ
                     </p>
                 </div>
             </div>
 
-            {/* Search & Filter Bar */}
-            <div className="bg-transparent p-4 md:p-5 rounded-3xl border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Search & Status Filter Bar (No outer box border) */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                 <div className="relative flex-1 w-full group">
-                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
+                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors" />
                     <input
                         type="text"
                         placeholder="Tìm kiếm đối tác, SĐT, tên sản phẩm, mã đơn (HD...)..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-transparent border border-slate-300 dark:border-slate-800 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-500"
+                        className="w-full pl-10 pr-9 py-2.5 bg-transparent border border-slate-300 dark:border-slate-700 focus:border-emerald-500 rounded-2xl outline-none font-bold text-sm text-slate-900 dark:text-white transition-all placeholder:text-slate-400 placeholder:font-normal"
                     />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <X size={15} />
+                        </button>
+                    )}
                 </div>
 
-                <div className="flex items-center gap-1.5 p-1.5 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800 w-full md:w-auto shadow-sm">
-                    {[
-                        { id: 'all', label: `Tất cả (${summary.total_partners_count})` },
-                        { id: 'uninvoiced', label: `🔴 Chưa đủ (${summary.uninvoiced_partners_count})` },
-                        { id: 'invoiced', label: `🟢 Xuất đủ (${summary.invoiced_partners_count})` }
-                    ].map(f => (
-                        <button
-                            key={f.id}
-                            onClick={() => setStatusFilter(f.id)}
-                            className={cn(
-                                "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
-                                statusFilter === f.id
-                                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
-                                    : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/40"
-                            )}
-                        >
-                            {f.label}
-                        </button>
-                    ))}
-                </div>
+                {scope === 'daily' && (
+                    <div className="flex items-center gap-1.5 p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-2xl border border-slate-300/40 dark:border-slate-700/40 w-full md:w-auto shrink-0 shadow-xs">
+                        {[
+                            { id: 'all', label: `Tất cả (${summary.total_partners_count})` },
+                            { id: 'uninvoiced', label: `🔴 Chưa đủ (${summary.uninvoiced_partners_count})` },
+                            { id: 'invoiced', label: `🟢 Xuất đủ (${summary.invoiced_partners_count})` }
+                        ].map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setStatusFilter(f.id)}
+                                className={cn(
+                                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap",
+                                    statusFilter === f.id
+                                        ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xs"
+                                        : "text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                                )}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Multi-Select & Batch Action Toolbar */}
             {partners.length > 0 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-2 py-1 bg-transparent">
+                <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={toggleSelectAll}
-                            className="px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 font-black text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                            className="px-3.5 py-2 rounded-xl bg-transparent border border-slate-300 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-2 cursor-pointer shadow-xs"
                         >
                             <div className={cn(
-                                "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
+                                "w-4 h-4 rounded-[5px] border flex items-center justify-center transition-all",
                                 selectedPartnerIds.length === partners.length && partners.length > 0
                                     ? "bg-emerald-600 border-emerald-600 text-white"
-                                    : "border-slate-400"
+                                    : "border-slate-300 dark:border-slate-600 bg-transparent"
                             )}>
-                                {selectedPartnerIds.length === partners.length && partners.length > 0 && <Check size={12} className="stroke-[3]" />}
+                                {selectedPartnerIds.length === partners.length && partners.length > 0 && <Check size={12} strokeWidth={3} />}
                             </div>
                             <span>{selectedPartnerIds.length === partners.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'} ({partners.length} khách)</span>
                         </button>
@@ -736,30 +786,30 @@ export default function DailyInvoiceTracker() {
 
                     {selectedPartnerIds.length > 0 && (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 dark:bg-slate-900/90 rounded-2xl border border-slate-300 dark:border-slate-700 shadow-md"
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-wrap items-center gap-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 shadow-lg ring-1 ring-emerald-500/20"
                         >
                             <input
                                 type="text"
                                 placeholder="Số HĐ chung (tùy chọn)..."
                                 value={bulkInvoiceNo}
                                 onChange={(e) => setBulkInvoiceNo(e.target.value)}
-                                className="px-3 py-1.5 bg-transparent border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 w-44 placeholder:text-slate-500"
+                                className="px-3 py-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 w-44 placeholder:text-slate-400"
                             />
                             <button
                                 onClick={() => handleBulkBatchInvoice(true)}
                                 disabled={isBulkUpdating}
-                                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50"
                             >
-                                <Check size={14} className="stroke-[3]" />
+                                <Check size={14} strokeWidth={3} />
                                 <span>{isBulkUpdating ? 'Đang xuất...' : `Xuất Đủ (${selectedPartnerIds.length} khách)`}</span>
                             </button>
                             <button
                                 onClick={() => setSelectedPartnerIds([])}
-                                className="px-3 py-2 bg-transparent border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-200/60 dark:hover:bg-slate-800 cursor-pointer"
+                                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
                             >
-                                Hủy chọn
+                                Hủy
                             </button>
                         </motion.div>
                     )}
@@ -791,29 +841,38 @@ export default function DailyInvoiceTracker() {
                     </p>
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {partners.map((partner) => {
-                        const isExpanded = !!expandedPartners[partner.partner_id];
-                        const isFullyInvoiced = partner.is_fully_invoiced;
-                        const pendingItemsCount = partner.pending_items_count || 0;
-                        const totalItemsCount = partner.total_items_count || 0;
+                <>
+                    <div className="space-y-3">
+                    {paginatedPartners.map((partner) => {
+                        const itemsList = partner.items || [];
+                        const totalItemsCount = (partner.total_items_count != null && partner.total_items_count > 0)
+                            ? partner.total_items_count
+                            : itemsList.length;
+                        const invoicedItemsCount = (partner.invoiced_items_count != null)
+                            ? partner.invoiced_items_count
+                            : itemsList.filter(it => it.is_invoiced || (it.invoiced_quantity != null && Number(it.invoiced_quantity) >= Number(it.quantity))).length;
+                        const pendingItemsCount = (partner.pending_items_count != null)
+                            ? partner.pending_items_count
+                            : Math.max(0, totalItemsCount - invoicedItemsCount);
+                        const isFullyInvoiced = partner.is_fully_invoiced || (totalItemsCount > 0 && pendingItemsCount === 0);
                         const isSelected = selectedPartnerIds.includes(partner.partner_id);
 
                         return (
                             <div
                                 key={partner.partner_id}
+                                onClick={() => openPartnerItemsModal(partner)}
                                 className={cn(
-                                    "bg-transparent rounded-3xl border transition-all duration-200 overflow-hidden shadow-sm",
+                                    "rounded-2xl border transition-all duration-150 overflow-hidden shadow-2xs cursor-pointer select-none",
                                     isSelected
-                                        ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/5"
+                                        ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-500/10"
                                         : (isFullyInvoiced
-                                            ? "border-emerald-300 dark:border-emerald-500/40 hover:border-emerald-500"
-                                            : "border-rose-300 dark:border-rose-500/50 hover:border-rose-500")
+                                            ? "border-emerald-400/40 bg-emerald-50/25 dark:bg-emerald-950/20 dark:border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-50/40"
+                                            : "border-rose-400/40 bg-rose-50/20 dark:bg-rose-950/20 dark:border-rose-500/30 hover:border-rose-500 hover:bg-rose-50/30")
                                 )}
                             >
-                                {/* Partner Card Header */}
-                                <div className="p-4 md:p-5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3.5 flex-1 cursor-pointer min-w-0" onClick={() => openPartnerItemsModal(partner)}>
+                                {/* Partner Card Row - Theme Styled & No Accordion Dropdown */}
+                                <div className="p-3 md:py-2.5 md:px-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
                                         {/* Multi-select checkbox */}
                                         <button
                                             type="button"
@@ -822,64 +881,65 @@ export default function DailyInvoiceTracker() {
                                                 toggleSelectPartner(partner.partner_id);
                                             }}
                                             className={cn(
-                                                "w-7 h-7 rounded-xl border flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90 shadow-sm",
+                                                "w-6 h-6 rounded-lg border flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-90 shadow-2xs",
                                                 isSelected
                                                     ? "bg-emerald-600 border-emerald-600 text-white"
-                                                    : "border-slate-300 dark:border-slate-700 bg-transparent hover:border-emerald-500 text-transparent"
+                                                    : "border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 hover:border-emerald-500 text-transparent"
                                             )}
                                             title={isSelected ? "Bỏ chọn" : "Chọn khách này"}
                                         >
-                                            <Check size={14} className={isSelected ? "opacity-100 stroke-[3]" : "opacity-0"} />
+                                            <Check size={13} className={isSelected ? "opacity-100 stroke-[3]" : "opacity-0"} />
                                         </button>
 
+                                        {/* Avatar in vào card theo theme */}
                                         <div className={cn(
-                                            "w-11 h-11 rounded-2xl flex items-center justify-center font-black text-lg border shrink-0 shadow-inner",
+                                            "w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 border shadow-2xs",
                                             isFullyInvoiced
-                                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/40"
-                                                : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400 border-rose-300 dark:border-rose-500/40"
+                                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30"
+                                                : "bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-500/30"
                                         )}>
-                                            {partner.partner_name.charAt(0).toUpperCase()}
+                                            {(partner.partner_name || 'Khách Lẻ').charAt(0).toUpperCase()}
                                         </div>
 
                                         <div className="min-w-0">
-                                            <div className="flex items-center gap-2.5 flex-wrap">
-                                                <h3 className="text-base md:text-lg font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5 truncate">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="text-sm md:text-base font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1 truncate">
                                                     <span>{partner.partner_name}</span>
-                                                    <ArrowUpRight size={15} className="text-slate-400 shrink-0" />
+                                                    <ArrowUpRight size={14} className="text-slate-400 shrink-0" />
                                                 </h3>
                                                 
-                                                {/* Status Badge */}
+                                                {/* Status Badge theo theme */}
                                                 {isFullyInvoiced ? (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40">
-                                                        <Check size={11} className="stroke-[3]" /> ĐÃ XUẤT ĐỦ (XONG) - {totalItemsCount} MÓN
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/25">
+                                                        <Check size={11} className="stroke-[3]" /> ĐÃ XUẤT ĐỦ ({totalItemsCount} món)
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40 animate-pulse">
-                                                        <AlertCircle size={11} /> CHƯA ĐỦ - CẦN XUẤT {pendingItemsCount}/{totalItemsCount} MÓN
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/25">
+                                                        <AlertCircle size={11} /> CẦN XUẤT {pendingItemsCount}/{totalItemsCount} MÓN
                                                     </span>
                                                 )}
 
                                                 {partner.invoice_numbers && partner.invoice_numbers.length > 0 && (
-                                                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
+                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                                                         Số HĐ: {partner.invoice_numbers.join(', ')}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-1 flex-wrap font-semibold">
+                                            <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex-wrap font-medium">
                                                 {partner.partner_phone && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Phone size={12} className="text-slate-400" /> {partner.partner_phone}
+                                                    <span className="flex items-center gap-1 text-[11px]">
+                                                        <Phone size={11} className="text-slate-400" /> {partner.partner_phone}
                                                     </span>
                                                 )}
                                                 {partner.partner_address && (
-                                                    <span className="flex items-center gap-1 truncate max-w-xs">
-                                                        <MapPin size={12} className="text-slate-400" /> {partner.partner_address}
+                                                    <span className="flex items-center gap-1 truncate max-w-xs text-[11px]">
+                                                        <MapPin size={11} className="text-slate-400" /> {partner.partner_address}
                                                     </span>
                                                 )}
-                                                {partner.partner_debt !== 0 && (
-                                                    <span className="text-amber-800 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-500/30">
-                                                        Nợ: {partner.partner_debt.toLocaleString()}đ
+                                                {typeof partner.partner_debt === 'number' && partner.partner_debt !== 0 && (
+                                                    <span className="text-amber-800 dark:text-amber-300 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 text-[11px]">
+                                                        Nợ: {(partner.partner_debt || 0).toLocaleString()}đ
                                                     </span>
                                                 )}
                                             </div>
@@ -887,200 +947,140 @@ export default function DailyInvoiceTracker() {
                                     </div>
 
                                     {/* Partner Totals & Quick Actions */}
-                                    <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-200 dark:border-slate-800">
+                                    <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-800">
                                         <div className="text-right">
-                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tổng Mua ({partner.total_orders_count} đơn)</p>
-                                            <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
-                                                {partner.total_amount.toLocaleString()}đ
+                                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng Mua ({partner.total_orders_count || partner.orders?.length || 0} đơn)</p>
+                                            <p className="text-base md:text-lg font-black text-slate-900 dark:text-white tabular-nums">
+                                                {(partner.total_amount || 0).toLocaleString()}đ
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                             {/* Button to open Item-level Tracker */}
-                                            <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
+                                            <button
+                                                type="button"
                                                 onClick={() => openPartnerItemsModal(partner)}
-                                                className="px-4 py-2.5 rounded-2xl text-xs font-black bg-cyan-100 hover:bg-cyan-200 text-cyan-900 dark:bg-cyan-500/15 dark:hover:bg-cyan-500/25 dark:text-cyan-300 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap border border-cyan-300 dark:border-cyan-500/30"
+                                                className="px-3.5 py-2 rounded-xl text-xs font-black bg-cyan-100/70 hover:bg-cyan-200/80 text-cyan-900 dark:bg-cyan-500/15 dark:hover:bg-cyan-500/25 dark:text-cyan-300 border border-cyan-400/40 dark:border-cyan-500/30 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-2xs active:scale-95"
                                             >
-                                                <Package size={14} />
-                                                <span>Xem Món Cần Xuất ({partner.items?.length || 0})</span>
-                                            </motion.button>
+                                                <Package size={13} />
+                                                <span>Xem Món ({totalItemsCount})</span>
+                                            </button>
 
                                             {/* Batch toggle button */}
                                             {isFullyInvoiced ? (
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleBatchPartnerInvoice(partner.partner_id, false)}
-                                                    className="px-3.5 py-2.5 rounded-2xl text-xs font-black bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-800 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-300 dark:hover:text-rose-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer whitespace-nowrap"
+                                                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200/70 hover:bg-rose-100 text-slate-700 hover:text-rose-800 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-300 dark:hover:text-rose-300 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer whitespace-nowrap"
                                                 >
                                                     Bỏ đánh dấu
                                                 </button>
                                             ) : (
-                                                <motion.button
-                                                    whileHover={{ scale: 1.02 }}
-                                                    whileTap={{ scale: 0.98 }}
+                                                <button
+                                                    type="button"
                                                     onClick={() => handleBatchPartnerInvoice(partner.partner_id, true)}
-                                                    className="px-4 py-2.5 rounded-2xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-400/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                                                    className="px-3.5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95"
                                                 >
-                                                    <Check size={14} />
+                                                    <Check size={13} strokeWidth={3} />
                                                     <span>Xuất Đủ (Xong)</span>
-                                                </motion.button>
+                                                </button>
                                             )}
-
-                                            <button
-                                                onClick={() => toggleExpand(partner.partner_id)}
-                                                className="p-2.5 rounded-2xl text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all cursor-pointer border border-slate-300 dark:border-slate-700"
-                                            >
-                                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Order details table under partner */}
-                                <AnimatePresence>
-                                    {isExpanded && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 md:p-6"
-                                        >
-                                            <div className="flex items-center justify-between mb-3">
-                                                <p className="text-[11px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-widest">
-                                                    Danh Sách Các Món Hàng Cần Xuất Hóa Đơn ({partner.items?.length || 0} món):
-                                                </p>
-                                                <button
-                                                    onClick={() => openPartnerItemsModal(partner)}
-                                                    className="text-xs font-black text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer"
-                                                >
-                                                    <span>Mở bảng chỉnh sửa & track chi tiết</span>
-                                                    <ArrowRight size={12} />
-                                                </button>
-                                            </div>
-
-                                            <div className="overflow-x-auto rounded-2xl border border-slate-300 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 shadow-sm">
-                                                <table className="w-full text-left text-xs border-collapse">
-                                                    <thead>
-                                                        <tr className="bg-slate-100/90 dark:bg-slate-950/90 text-slate-800 dark:text-slate-300 font-black border-b border-slate-300 dark:border-slate-800">
-                                                            <th className="py-3 px-3.5 w-12 text-center">Xuất HĐ</th>
-                                                            <th className="py-3 px-3.5 w-10 text-center">STT</th>
-                                                            <th className="py-3 px-3.5">Mã đơn</th>
-                                                            <th className="py-3 px-3.5">Tên món / Sản phẩm</th>
-                                                            <th className="py-3 px-3.5 text-center">ĐVT</th>
-                                                            <th className="py-3 px-3.5 text-center">SL Mua</th>
-                                                            <th className="py-3 px-3.5 text-center">SL Đã Xuất HĐ</th>
-                                                            <th className="py-3 px-3.5 text-right">Đơn giá</th>
-                                                            <th className="py-3 px-3.5 text-right">Thành tiền</th>
-                                                            <th className="py-3 px-3.5 text-center">Trạng thái HĐ</th>
-                                                            <th className="py-3 px-3.5 text-center">Thao tác</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
-                                                        {(partner.items || []).map((item, idx) => {
-                                                            const isItemInvoiced = item.is_invoiced || item.invoiced_quantity >= item.quantity;
-
-                                                            return (
-                                                                <tr
-                                                                    key={item.id || idx}
-                                                                    className={cn(
-                                                                        "transition-colors",
-                                                                        isItemInvoiced
-                                                                            ? "hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
-                                                                            : "bg-rose-50/40 hover:bg-rose-50/70 dark:bg-rose-950/15 dark:hover:bg-rose-950/25"
-                                                                    )}
-                                                                >
-                                                                    <td className="py-3 px-3.5 text-center">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                handleQuickToggleItem(item, !isItemInvoiced);
-                                                                            }}
-                                                                            className={cn(
-                                                                                "w-7 h-7 mx-auto rounded-xl flex items-center justify-center transition-all duration-150 cursor-pointer border shadow-sm",
-                                                                                isItemInvoiced
-                                                                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/25 active:scale-90"
-                                                                                    : "bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-transparent border-slate-300 dark:border-slate-600 hover:border-emerald-500 active:scale-90"
-                                                                            )}
-                                                                            title={isItemInvoiced ? "Đã xuất HĐ (Bấm để bỏ chọn)" : "Chưa xuất HĐ (Bấm để chọn)"}
-                                                                        >
-                                                                            <Check size={16} strokeWidth={3.5} className={cn("transition-transform duration-150", isItemInvoiced ? "scale-100 text-white" : "scale-0")} />
-                                                                        </button>
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center text-slate-500 font-mono font-bold">
-                                                                        {idx + 1}
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 font-bold text-slate-700 dark:text-slate-300 font-mono">
-                                                                        {item.order_display_id}
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
-                                                                        <span>{item.product_name}</span>
-                                                                        {item.product_code && (
-                                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2 font-mono">({item.product_code})</span>
-                                                                        )}
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center text-slate-600 dark:text-slate-400 font-semibold">
-                                                                        {item.unit || 'ĐV'}
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center font-black text-slate-900 dark:text-white">
-                                                                        {item.quantity}
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center font-black">
-                                                                        <span className={cn(
-                                                                            "px-2.5 py-0.5 rounded-lg text-[11px] font-mono",
-                                                                            isItemInvoiced ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30" : "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30"
-                                                                        )}>
-                                                                            {item.invoiced_quantity || (item.is_invoiced ? item.quantity : 0)} / {item.quantity}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-right text-slate-700 dark:text-slate-300 tabular-nums font-mono font-bold">
-                                                                        {item.price?.toLocaleString()}đ
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums font-mono">
-                                                                        {item.total_price?.toLocaleString()}đ
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleQuickToggleItem(item, !isItemInvoiced)}
-                                                                            className="cursor-pointer"
-                                                                        >
-                                                                            {isItemInvoiced ? (
-                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 hover:scale-105 transition-transform">
-                                                                                    <Check size={10} /> ĐÃ XUẤT ĐỦ
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 hover:scale-105 transition-transform">
-                                                                                    <AlertCircle size={10} /> CẦN XUẤT
-                                                                                </span>
-                                                                            )}
-                                                                        </button>
-                                                                    </td>
-                                                                    <td className="py-3 px-3.5 text-center">
-                                                                        <button
-                                                                            onClick={() => openPartnerItemsModal(partner)}
-                                                                            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl text-cyan-700 dark:text-cyan-400 font-bold transition-all cursor-pointer inline-flex items-center gap-1 text-[11px] border border-slate-300 dark:border-slate-700"
-                                                                            title="Mở bảng chi tiết"
-                                                                        >
-                                                                            <Edit3 size={13} />
-                                                                            <span>Sửa</span>
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </div>
                         );
                     })}
                 </div>
-            )}
+
+                {/* Phân Trang Đối Tác (Pagination Bar) */}
+                {partners.length > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 px-1 border-t border-slate-300/50 dark:border-slate-800 text-xs">
+                        {/* Thông tin số lượng */}
+                        <div className="text-slate-600 dark:text-slate-400 font-bold">
+                            Hiển thị <span className="text-slate-900 dark:text-white font-black">{partners.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + pageSize, partners.length)}</span> trên tổng số <span className="text-slate-900 dark:text-white font-black">{partners.length}</span> đối tác
+                        </div>
+
+                        {/* Bộ chuyển trang */}
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(1)}
+                                disabled={safeCurrentPage <= 1}
+                                className="p-1.5 rounded-lg border border-slate-300/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                title="Trang đầu"
+                            >
+                                <ChevronsLeft size={16} />
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={safeCurrentPage <= 1}
+                                className="p-1.5 rounded-lg border border-slate-300/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                title="Trang trước"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+
+                            {/* Danh sách các số trang */}
+                            <div className="flex items-center gap-1 px-1">
+                                {getPageNumbers(safeCurrentPage, totalPages).map((p, idx) => (
+                                    p === '...' ? (
+                                        <span key={`dots-${idx}`} className="px-1 text-slate-400 font-bold">...</span>
+                                    ) : (
+                                        <button
+                                            key={p}
+                                            onClick={() => setCurrentPage(p)}
+                                            className={cn(
+                                                "min-w-8 h-8 px-2 rounded-lg font-black text-xs transition-all cursor-pointer",
+                                                safeCurrentPage === p
+                                                    ? "bg-emerald-600 text-white shadow-xs"
+                                                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 border border-slate-300/50 dark:border-slate-700/50"
+                                            )}
+                                        >
+                                            {p}
+                                        </button>
+                                    )
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={safeCurrentPage >= totalPages}
+                                className="p-1.5 rounded-lg border border-slate-300/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                title="Trang tiếp theo"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(totalPages)}
+                                disabled={safeCurrentPage >= totalPages}
+                                className="p-1.5 rounded-lg border border-slate-300/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                title="Trang cuối"
+                            >
+                                <ChevronsRight size={16} />
+                            </button>
+                        </div>
+
+                        {/* Chọn số dòng / trang */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-500 font-medium">Hiển thị:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                    setPageSize(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
+                                className="bg-transparent border border-slate-300/60 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-200 font-bold outline-none cursor-pointer text-xs"
+                            >
+                                <option value={10} className="dark:bg-slate-900">10 đối tác / trang</option>
+                                <option value={20} className="dark:bg-slate-900">20 đối tác / trang</option>
+                                <option value={50} className="dark:bg-slate-900">50 đối tác / trang</option>
+                                <option value={100} className="dark:bg-slate-900">100 đối tác / trang</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
+            </>
+        )}
 
 {/* MODAL 1: CHI TIẾT MÓN THEO TỪNG ĐỐI TÁC (LIGHT MODE DEFAULT) */}
 {mounted && typeof document !== 'undefined' && createPortal(
@@ -1200,7 +1200,7 @@ export default function DailyInvoiceTracker() {
                                         </button>
                                     </td>
                                     <td className="py-3 px-3.5 font-bold font-mono text-slate-600 dark:text-slate-400">
-                                        {item.order_display_id}
+                                        {item.order_display_id || item.display_id || (item.order_id ? `#${item.order_id}` : '---')}
                                     </td>
                                     <td className="py-3 px-3.5 font-black text-slate-900 dark:text-white">
                                         <span>{item.product_name}</span>
@@ -1243,10 +1243,10 @@ export default function DailyInvoiceTracker() {
                                         </div>
                                     </td>
                                     <td className="py-3 px-3.5 text-right text-slate-700 dark:text-slate-300 tabular-nums font-mono font-bold">
-                                        {item.price?.toLocaleString()}đ
+                                        {(item.price || 0).toLocaleString()}đ
                                     </td>
                                     <td className="py-3 px-3.5 text-right font-black text-slate-900 dark:text-white tabular-nums font-mono">
-                                        {item.total_price?.toLocaleString()}đ
+                                        {((item.total_price != null ? item.total_price : item.total) || 0).toLocaleString()}đ
                                     </td>
                                     <td className="py-3 px-3.5 text-center">
                                         <button

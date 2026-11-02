@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import { 
-    Tv, Monitor, User, ShoppingBag, Clock, RefreshCw, X, Radio, 
-    ChevronRight, Eye, ShieldCheck, TrendingUp, DollarSign, Layers, 
+import {
+    Tv, Monitor, User, ShoppingBag, Clock, RefreshCw, X, Radio,
+    ChevronRight, Eye, ShieldCheck, TrendingUp, DollarSign, Layers,
     Smartphone, Server, FileText, CheckCircle2, AlertCircle, Tag,
     Search, Trash2, WifiOff, Lock, Pin, Copy, Download, Grid,
     List, Zap, Sparkles, Send, Laptop, Activity, ArrowRightLeft,
     Check
 } from 'lucide-react';
 import { formatNumber, cn } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 import Portal from '../widgets/Portal';
 
 export default function PosMirrorModal({ isOpen, onClose }) {
@@ -24,6 +25,14 @@ export default function PosMirrorModal({ isOpen, onClose }) {
     const [isDeleting, setIsDeleting] = useState(null);
     const [toastMsg, setToastMsg] = useState(null);
     const [cartSearch, setCartSearch] = useState('');
+    const isAdmin = useMemo(() => {
+        try {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            return checkIsAdmin(u?.role);
+        } catch (e) {
+            return false;
+        }
+    }, []);
 
     // Ref to hold the pinned/locked terminal ID selected by user
     const userPinnedIdRef = useRef(null);
@@ -46,7 +55,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
             setTerminals(list);
             setError(null);
             setLastSync(new Date());
-            
+
             // Keep selected terminal fixed & stable without jumping around
             if (list.length > 0) {
                 setSelectedTerminalId(prev => {
@@ -149,7 +158,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
     // Filtered workstations list based on search and status tabs
     const filteredTerminals = useMemo(() => {
         return sortedTerminals.filter(t => {
-            const matchesSearch = 
+            const matchesSearch =
                 (t.terminal_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (t.user_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (t.terminal_id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -221,7 +230,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
         if (!activeTerminal || !activeTerminal.cart) return [];
         if (!cartSearch.trim()) return activeTerminal.cart;
         const q = cartSearch.toLowerCase();
-        return activeTerminal.cart.filter(item => 
+        return activeTerminal.cart.filter(item =>
             (item.name || item.product_name || '').toLowerCase().includes(q) ||
             (item.code || item.product_code || item.sku || '').toLowerCase().includes(q)
         );
@@ -232,18 +241,18 @@ export default function PosMirrorModal({ isOpen, onClose }) {
     return (
         <Portal>
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xl transition-all">
-                <m.div 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    exit={{ opacity: 0 }} 
-                    className="absolute inset-0" 
-                    onClick={onClose} 
+                <m.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0"
+                    onClick={onClose}
                 />
 
                 {/* Toast Notification Floating Alert */}
                 <AnimatePresence>
                     {toastMsg && (
-                        <m.div 
+                        <m.div
                             initial={{ opacity: 0, y: -20, scale: 0.9 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -20, scale: 0.9 }}
@@ -260,16 +269,16 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                     )}
                 </AnimatePresence>
 
-                <m.div 
-                    initial={{ opacity: 0, scale: 0.96, y: 15 }} 
-                    animate={{ opacity: 1, scale: 1, y: 0 }} 
-                    exit={{ opacity: 0, scale: 0.96, y: 15 }} 
+                <m.div
+                    initial={{ opacity: 0, scale: 0.96, y: 15 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96, y: 15 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-[98vw] max-w-[1680px] h-[94vh] rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col relative z-20 overflow-hidden ring-1 ring-white/10"
                 >
                     {/* Top Futuristic Header & Live KPI Control Panel */}
                     <div className="p-4 px-6 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-r from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0 relative overflow-hidden">
-                        
+
                         {/* Glowing Background Accent */}
                         <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -390,8 +399,8 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                 >
                                     <RefreshCw size={16} className={cn(loading && "animate-spin text-emerald-500")} />
                                 </button>
-                                <button 
-                                    onClick={onClose} 
+                                <button
+                                    onClick={onClose}
                                     className="p-2.5 rounded-2xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-all border border-transparent hover:border-rose-200 dark:hover:border-rose-900/50"
                                 >
                                     <X size={22} />
@@ -407,7 +416,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                 <WifiOff size={16} className="animate-bounce shrink-0" />
                                 <span>{error}</span>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => fetchTerminals(true)}
                                 className="px-3 py-1 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all text-xs font-bold"
                             >
@@ -538,7 +547,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                             {/* Search inside Cart */}
                                             <div className="relative min-w-[180px]">
                                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                                <input 
+                                                <input
                                                     type="text"
                                                     placeholder="Lọc món trong đơn..."
                                                     value={cartSearch}
@@ -588,10 +597,10 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                                         <th className="p-3.5 text-center w-12">STT</th>
                                                         <th className="p-3.5">Tên Sản Phẩm</th>
                                                         <th className="p-3.5 text-center">Đơn vị</th>
-                                                        <th className="p-3.5 text-right">Giá nhập (Vốn)</th>
+                                                        {isAdmin && <th className="p-3.5 text-right">Giá nhập (Vốn)</th>}
                                                         <th className="p-3.5 text-right">Giá bán</th>
                                                         <th className="p-3.5 text-center">Số lượng</th>
-                                                        <th className="p-3.5 text-right">Lãi gộp ước tính</th>
+                                                        {isAdmin && <th className="p-3.5 text-right">Lãi gộp ước tính</th>}
                                                         <th className="p-3.5 text-right">Thành tiền</th>
                                                     </tr>
                                                 </thead>
@@ -621,9 +630,11 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                                                         {item.unit || item.product_unit || 'Cái'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="p-3.5 text-right font-semibold text-slate-500 text-xs font-mono">
-                                                                    {formatNumber(costPrice)}đ
-                                                                </td>
+                                                                {isAdmin && (
+                                                                    <td className="p-3.5 text-right font-semibold text-slate-500 text-xs font-mono">
+                                                                        {formatNumber(costPrice)}đ
+                                                                    </td>
+                                                                )}
                                                                 <td className="p-3.5 text-right font-extrabold text-slate-800 dark:text-slate-200 font-mono">
                                                                     {formatNumber(salePrice)}đ
                                                                 </td>
@@ -632,9 +643,11 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                                                         x{qty}
                                                                     </span>
                                                                 </td>
-                                                                <td className="p-3.5 text-right font-bold text-amber-600 dark:text-amber-400 text-xs font-mono">
-                                                                    +{formatNumber(itemProfit)}đ
-                                                                </td>
+                                                                {isAdmin && (
+                                                                    <td className="p-3.5 text-right font-bold text-amber-600 dark:text-amber-400 text-xs font-mono">
+                                                                        +{formatNumber(itemProfit)}đ
+                                                                    </td>
+                                                                )}
                                                                 <td className="p-3.5 text-right font-black text-slate-900 dark:text-white text-base font-mono">
                                                                     {formatNumber(subtotal)}đ
                                                                 </td>
@@ -647,7 +660,10 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                     </div>
 
                                     {/* Bottom Financial Analytics & Total Bar */}
-                                    <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl shrink-0 shadow-inner border border-slate-200 dark:border-slate-800">
+                                    <div className={cn(
+                                        "pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 grid gap-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl shrink-0 shadow-inner border border-slate-200 dark:border-slate-800",
+                                        isAdmin ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
+                                    )}>
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 shrink-0 border border-slate-200 dark:border-slate-700">
                                                 <Layers size={20} />
@@ -660,17 +676,19 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                                            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/20">
-                                                <TrendingUp size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">LÃI GỘP ƯỚC TÍNH</div>
-                                                <div className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
-                                                    +{formatNumber(activeTerminalMetrics.profit)}đ ({activeTerminalMetrics.marginPct}%)
+                                        {isAdmin && (
+                                            <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                                                <div className="w-10 h-10 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0 border border-amber-500/20">
+                                                    <TrendingUp size={20} />
+                                                </div>
+                                                <div>
+                                                    <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">LÃI GỘP ƯỚC TÍNH</div>
+                                                    <div className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                                                        +{formatNumber(activeTerminalMetrics.profit)}đ ({activeTerminalMetrics.marginPct}%)
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                         <div className="flex items-center justify-between border-t sm:border-t-0 sm:border-l border-slate-200 dark:border-slate-800 pt-3 sm:pt-0 sm:pl-4">
                                             <div>
@@ -704,7 +722,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Tìm theo máy trạm..."
                                         value={searchQuery}
@@ -726,7 +744,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                         const isMobile = (term.terminal_id || '').includes('Mobile') || (term.current_page || '').includes('Mobile');
 
                                         return (
-                                            <div 
+                                            <div
                                                 key={term.terminal_id}
                                                 className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between hover:shadow-xl hover:border-emerald-500 transition-all group"
                                             >
@@ -746,7 +764,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
 
                                                         <span className={cn(
                                                             "px-2 py-0.5 rounded-lg text-[10px] font-black uppercase shrink-0 border",
-                                                            itemCount > 0 
+                                                            itemCount > 0
                                                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
                                                                 : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                                                         )}>
@@ -822,7 +840,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                 <div className="space-y-2 mb-3 shrink-0">
                                     <div className="relative">
                                         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input 
+                                        <input
                                             type="text"
                                             placeholder="Tìm theo máy, thu ngân, IP..."
                                             value={searchQuery}
@@ -830,7 +848,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                             className="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
                                         />
                                         {searchQuery && (
-                                            <button 
+                                            <button
                                                 onClick={() => setSearchQuery('')}
                                                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                             >
@@ -842,7 +860,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                     {/* Filter Pills */}
                                     <div className="flex items-center justify-between gap-1 text-[10px] font-extrabold">
                                         <div className="flex items-center gap-1">
-                                            <button 
+                                            <button
                                                 onClick={() => setStatusFilter('all')}
                                                 className={cn(
                                                     "px-2.5 py-1 rounded-xl transition-all border",
@@ -853,7 +871,7 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                             >
                                                 Tất cả ({terminals.length})
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setStatusFilter('active')}
                                                 className={cn(
                                                     "px-2.5 py-1 rounded-xl transition-all border",
@@ -909,8 +927,8 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             <div className={cn(
                                                                 "w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border",
-                                                                isSelected 
-                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" 
+                                                                isSelected
+                                                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
                                                                     : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                                                             )}>
                                                                 {isMobile ? <Smartphone size={15} /> : <Monitor size={15} />}
@@ -925,11 +943,11 @@ export default function PosMirrorModal({ isOpen, onClose }) {
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="flex items-center gap-1.5 shrink-0">
                                                             <span className={cn(
                                                                 "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border",
-                                                                itemCount > 0 
+                                                                itemCount > 0
                                                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                                                                     : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                                                             )}>

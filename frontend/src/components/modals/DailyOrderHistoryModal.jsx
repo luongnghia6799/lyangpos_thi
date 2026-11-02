@@ -11,6 +11,7 @@ import Portal from '../widgets/Portal';
 import CustomDatePicker from '../forms/CustomDatePicker';
 import CustomSelect from '../forms/CustomSelect';
 import { formatCurrency, formatNumber, formatDate, getLocalDateString, cn, removeAccents } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 
 // Custom sleek tooltip component replacing native browser titles
 const ActionTooltip = ({ text, children, position = "top", className = "" }) => (
@@ -68,6 +69,14 @@ export default function DailyOrderHistoryModal({
     const [pageSize, setPageSize] = useState(10);
     const [selectedDetailOrder, setSelectedDetailOrder] = useState(null);
     const [showDetailProfit, setShowDetailProfit] = useState(true);
+    const isAdmin = useMemo(() => {
+        try {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            return checkIsAdmin(u?.role);
+        } catch (e) {
+            return false;
+        }
+    }, []);
 
     // Reset selectedDate to current local date and auto-focus/select search input whenever modal opens
     useEffect(() => {
@@ -222,7 +231,7 @@ export default function DailyOrderHistoryModal({
                             const tot = Math.round(amount);
                             const absTot = Math.abs(tot);
                             return tot === targetAmount || absTot === targetAmount ||
-                                   String(tot).startsWith(targetStr) || String(absTot).startsWith(targetStr);
+                                String(tot).startsWith(targetStr) || String(absTot).startsWith(targetStr);
                         };
                     }
                 } else {
@@ -265,10 +274,10 @@ export default function DailyOrderHistoryModal({
             const defaultPartnerName = type === 'Purchase' ? 'ncc vãng lai' : 'khách lẻ';
             const currentPartnerName = order.partner_name || order.partner?.name || defaultPartnerName;
             const partnerMatch = currentPartnerName.toLowerCase().includes(termLower) ||
-                                 removeAccents(currentPartnerName.toLowerCase()).includes(termNoAccent);
+                removeAccents(currentPartnerName.toLowerCase()).includes(termNoAccent);
             const phoneMatch = (order.partner_phone || order.partner?.phone || '').includes(termLower);
             const noteMatch = (order.note || '').toLowerCase().includes(termLower) ||
-                              removeAccents((order.note || '').toLowerCase()).includes(termNoAccent);
+                removeAccents((order.note || '').toLowerCase()).includes(termNoAccent);
             const productMatch = order.details && order.details.some(d => {
                 const pName = (d.product_name || '').toLowerCase();
                 return pName.includes(termLower) || removeAccents(pName).includes(termNoAccent);
@@ -431,450 +440,450 @@ export default function DailyOrderHistoryModal({
                                 </div>
                             </div>
 
-                    {/* Executive Financial HUD Strip - Seamless & Card-Free */}
-                    <div className="p-3.5 px-5 bg-gradient-to-r from-[#8b6f47]/[0.05] via-emerald-500/[0.03] to-teal-500/[0.05] dark:from-white/[0.03] dark:via-emerald-500/[0.04] dark:to-teal-500/[0.04] border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0 relative overflow-hidden">
-                        {/* Ambient decorative glow */}
-                        <div className="absolute -top-10 -left-10 w-28 h-28 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
-                        <div className="absolute -bottom-10 right-1/4 w-32 h-32 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+                            {/* Executive Financial HUD Strip - Seamless & Card-Free */}
+                            <div className="p-3.5 px-5 bg-gradient-to-r from-[#8b6f47]/[0.05] via-emerald-500/[0.03] to-teal-500/[0.05] dark:from-white/[0.03] dark:via-emerald-500/[0.04] dark:to-teal-500/[0.04] border-b border-[#8b6f47]/15 dark:border-white/10 shrink-0 relative overflow-hidden">
+                                {/* Ambient decorative glow */}
+                                <div className="absolute -top-10 -left-10 w-28 h-28 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+                                <div className="absolute -bottom-10 right-1/4 w-32 h-32 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
 
-                        <div className="relative z-1 flex items-stretch divide-x divide-[#8b6f47]/15 dark:divide-white/10 overflow-x-auto no-scrollbar py-0.5">
-                            {/* Metric 1: Revenue / Total */}
-                            <div className="flex-1 min-w-[130px] sm:min-w-[150px] pr-4 first:pl-0 flex flex-col justify-between">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <div className="w-5 h-5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574]">
-                                        <Coins size={12} strokeWidth={2.5} />
-                                    </div>
-                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-[#8b6f47]/80 dark:text-[#d4a574]/80 truncate">
-                                        {type === 'Purchase' ? "Tổng tiền nhập" : "Doanh thu"}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums tracking-tight">
-                                        {formatCurrency(stats.totalAmount)}
-                                    </span>
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-500/80 dark:text-slate-400 mt-0.5">
-                                    {stats.count} đơn hàng
-                                </div>
-                            </div>
-
-                            {/* Metric 2: Profit (Only for Sale) */}
-                            {type === 'Sale' && (
-                                <div className="flex-1 min-w-[140px] sm:min-w-[160px] px-4 flex flex-col justify-between relative group">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <div className="w-5 h-5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
-                                            <TrendingUp size={12} strokeWidth={2.5} />
+                                <div className="relative z-1 flex items-stretch divide-x divide-[#8b6f47]/15 dark:divide-white/10 overflow-x-auto no-scrollbar py-0.5">
+                                    {/* Metric 1: Revenue / Total */}
+                                    <div className="flex-1 min-w-[130px] sm:min-w-[150px] pr-4 first:pl-0 flex flex-col justify-between">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <div className="w-5 h-5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574]">
+                                                <Coins size={12} strokeWidth={2.5} />
+                                            </div>
+                                            <span className="text-[9.5px] font-black uppercase tracking-wider text-[#8b6f47]/80 dark:text-[#d4a574]/80 truncate">
+                                                {type === 'Purchase' ? "Tổng tiền nhập" : "Doanh thu"}
+                                            </span>
                                         </div>
-                                        <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
-                                            Lợi nhuận ước tính
-                                        </span>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 tabular-nums tracking-tight">
+                                                {formatCurrency(stats.totalAmount)}
+                                            </span>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-slate-500/80 dark:text-slate-400 mt-0.5">
+                                            {stats.count} đơn hàng
+                                        </div>
                                     </div>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
-                                            {formatCurrency(stats.totalProfit)}
-                                        </span>
-                                    </div>
-                                    <div className="mt-0.5">
-                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 tabular-nums">
-                                            Tỷ suất {stats.profitMargin.toFixed(1)}%
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Metric 3: Cash */}
-                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <div className="w-5 h-5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                                        <Banknote size={12} strokeWidth={2.5} />
-                                    </div>
-                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-teal-700/80 dark:text-teal-300/80 truncate">
-                                        {type === 'Purchase' ? "Đã trả tiền mặt" : "Tiền mặt"}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-base sm:text-lg font-black text-teal-700 dark:text-teal-300 tabular-nums tracking-tight">
-                                        {formatCurrency(stats.cashAmount)}
-                                    </span>
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
-                                    {stats.totalAmount > 0 ? Math.round((stats.cashAmount / stats.totalAmount) * 100) : 0}% tổng
-                                </div>
-                            </div>
-
-                            {/* Metric 4: Transfer */}
-                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <div className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                                        <CreditCard size={12} strokeWidth={2.5} />
-                                    </div>
-                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80 truncate">
-                                        Chuyển khoản
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight">
-                                        {formatCurrency(stats.transferAmount)}
-                                    </span>
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
-                                    {stats.totalAmount > 0 ? Math.round((stats.transferAmount / stats.totalAmount) * 100) : 0}% tổng
-                                </div>
-                            </div>
-
-                            {/* Metric 5: Debt */}
-                            <div className="flex-1 min-w-[120px] sm:min-w-[140px] pl-4 flex flex-col justify-between">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                    <div className="w-5 h-5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                                        <AlertCircle size={12} strokeWidth={2.5} />
-                                    </div>
-                                    <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-700/80 dark:text-rose-300/80 truncate">
-                                        {type === 'Purchase' ? "Nợ NCC phát sinh" : "Nợ phát sinh"}
-                                    </span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
-                                        {formatCurrency(stats.debtAmount)}
-                                    </span>
-                                </div>
-                                <div className="mt-0.5">
-                                    {stats.debtAmount > 0 ? (
-                                        <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 px-1.5 py-0.5 rounded border border-rose-500/25">
-                                            Chưa thu đủ
-                                        </span>
-                                    ) : (
-                                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                                            0 đ đọng
-                                        </span>
+                                    {/* Metric 2: Profit (Only for Sale) */}
+                                    {type === 'Sale' && isAdmin && (
+                                        <div className="flex-1 min-w-[140px] sm:min-w-[160px] px-4 flex flex-col justify-between relative group">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-5 h-5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
+                                                    <TrendingUp size={12} strokeWidth={2.5} />
+                                                </div>
+                                                <span className="text-[9.5px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
+                                                    Lợi nhuận ước tính
+                                                </span>
+                                            </div>
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+                                                    {formatCurrency(stats.totalProfit)}
+                                                </span>
+                                            </div>
+                                            <div className="mt-0.5">
+                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 tabular-nums">
+                                                    Tỷ suất {stats.profitMargin.toFixed(1)}%
+                                                </span>
+                                            </div>
+                                        </div>
                                     )}
+
+                                    {/* Metric 3: Cash */}
+                                    <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <div className="w-5 h-5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                                                <Banknote size={12} strokeWidth={2.5} />
+                                            </div>
+                                            <span className="text-[9.5px] font-black uppercase tracking-wider text-teal-700/80 dark:text-teal-300/80 truncate">
+                                                {type === 'Purchase' ? "Đã trả tiền mặt" : "Tiền mặt"}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-base sm:text-lg font-black text-teal-700 dark:text-teal-300 tabular-nums tracking-tight">
+                                                {formatCurrency(stats.cashAmount)}
+                                            </span>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
+                                            {stats.totalAmount > 0 ? Math.round((stats.cashAmount / stats.totalAmount) * 100) : 0}% tổng
+                                        </div>
+                                    </div>
+
+                                    {/* Metric 4: Transfer */}
+                                    <div className="flex-1 min-w-[120px] sm:min-w-[140px] px-4 flex flex-col justify-between">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <div className="w-5 h-5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                                <CreditCard size={12} strokeWidth={2.5} />
+                                            </div>
+                                            <span className="text-[9.5px] font-black uppercase tracking-wider text-blue-700/80 dark:text-blue-300/80 truncate">
+                                                Chuyển khoản
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight">
+                                                {formatCurrency(stats.transferAmount)}
+                                            </span>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">
+                                            {stats.totalAmount > 0 ? Math.round((stats.transferAmount / stats.totalAmount) * 100) : 0}% tổng
+                                        </div>
+                                    </div>
+
+                                    {/* Metric 5: Debt */}
+                                    <div className="flex-1 min-w-[120px] sm:min-w-[140px] pl-4 flex flex-col justify-between">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <div className="w-5 h-5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                                                <AlertCircle size={12} strokeWidth={2.5} />
+                                            </div>
+                                            <span className="text-[9.5px] font-black uppercase tracking-wider text-rose-700/80 dark:text-rose-300/80 truncate">
+                                                {type === 'Purchase' ? "Nợ NCC phát sinh" : "Nợ phát sinh"}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
+                                                {formatCurrency(stats.debtAmount)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-0.5">
+                                            {stats.debtAmount > 0 ? (
+                                                <span className="text-[9px] font-black text-rose-600 dark:text-rose-400 bg-rose-500/15 dark:bg-rose-500/20 px-1.5 py-0.5 rounded border border-rose-500/25">
+                                                    Chưa thu đủ
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                                    0 đ đọng
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Filters & Search */}
-                    <div className="p-4 px-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-transparent shrink-0">
-                        {/* Payment Filter Pills */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
-                            {[
-                                { key: 'ALL', label: 'Tất cả' },
-                                { key: 'Cash', label: 'Tiền mặt' },
-                                { key: 'Debt', label: type === 'Purchase' ? 'Nợ NCC' : 'Ghi nợ' },
-                                { key: 'Transfer', label: 'Chuyển khoản' }
-                            ].map(filter => (
-                                <button
-                                    key={filter.key}
-                                    onClick={() => setSelectedPaymentMethod(filter.key)}
-                                    className={cn(
-                                        "px-3 py-1 rounded-xl text-xs font-black transition-all shrink-0 tracking-wider",
-                                        selectedPaymentMethod === filter.key
-                                            ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm"
-                                            : "bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10"
-                                    )}
-                                >
-                                    {filter.label}
-                                </button>
-                            ))}
-                        </div>
+                            {/* Filters & Search */}
+                            <div className="p-4 px-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-transparent shrink-0">
+                                {/* Payment Filter Pills */}
+                                <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 no-scrollbar">
+                                    {[
+                                        { key: 'ALL', label: 'Tất cả' },
+                                        { key: 'Cash', label: 'Tiền mặt' },
+                                        { key: 'Debt', label: type === 'Purchase' ? 'Nợ NCC' : 'Ghi nợ' },
+                                        { key: 'Transfer', label: 'Chuyển khoản' }
+                                    ].map(filter => (
+                                        <button
+                                            key={filter.key}
+                                            onClick={() => setSelectedPaymentMethod(filter.key)}
+                                            className={cn(
+                                                "px-3 py-1 rounded-xl text-xs font-black transition-all shrink-0 tracking-wider",
+                                                selectedPaymentMethod === filter.key
+                                                    ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm"
+                                                    : "bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/20 dark:border-white/10"
+                                            )}
+                                        >
+                                            {filter.label}
+                                        </button>
+                                    ))}
+                                </div>
 
-                        {/* Search Input & Page Size */}
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:w-72">
-                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    placeholder={type === 'Purchase' ? "Tìm NCC, mã đơn, tiền, SP..." : "Tìm khách, mã đơn, tiền, SP..."}
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    onFocus={(e) => e.target.select()}
-                                    className="w-full pl-8 pr-7 py-1.5 bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/25 dark:border-white/10 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 text-foreground placeholder:text-slate-400 shadow-xs"
-                                />
-                                {searchTerm && (
-                                    <button
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                    >
-                                        <X size={12} />
-                                    </button>
+                                {/* Search Input & Page Size */}
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <div className="relative flex-1 sm:w-72">
+                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                        <input
+                                            ref={searchInputRef}
+                                            type="text"
+                                            placeholder={type === 'Purchase' ? "Tìm NCC, mã đơn, tiền, SP..." : "Tìm khách, mã đơn, tiền, SP..."}
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full pl-8 pr-7 py-1.5 bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/25 dark:border-white/10 rounded-xl text-xs font-semibold focus:outline-none focus:border-emerald-500 text-foreground placeholder:text-slate-400 shadow-xs"
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={() => setSearchTerm('')}
+                                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-black uppercase text-[#8b6f47]/80 dark:text-[#d4a574]/80 whitespace-nowrap">Hiển thị:</span>
+                                        <CustomSelect
+                                            value={pageSize}
+                                            onChange={(val) => {
+                                                setPageSize(Number(val));
+                                                setCurrentPage(1);
+                                            }}
+                                            options={[
+                                                { value: 10, label: '10' },
+                                                { value: 20, label: '20' },
+                                                { value: 50, label: '50' },
+                                                { value: 100, label: '100' }
+                                            ]}
+                                            className="h-8 min-w-[76px] bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/25 dark:border-white/10 rounded-xl px-2.5 text-xs font-black text-[#8b6f47] dark:text-[#d4a574]"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Orders List Content */}
+                            <div className="flex-1 overflow-y-auto p-4 px-5 space-y-2.5 bg-transparent">
+                                {loading ? (
+                                    <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                                        <RefreshCcw size={28} className="animate-spin text-primary" />
+                                        <p className="text-xs font-bold uppercase tracking-wider">{type === 'Purchase' ? "Đang tải danh sách đơn nhập..." : "Đang tải danh sách hóa đơn..."}</p>
+                                    </div>
+                                ) : filteredOrders.length === 0 ? (
+                                    <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground/60">
+                                        <ShoppingBag size={44} strokeWidth={1.5} />
+                                        <p className="text-xs font-bold uppercase tracking-widest">{type === 'Purchase' ? "Không có đơn nhập nào phù hợp" : "Không có hóa đơn nào phù hợp"}</p>
+                                    </div>
+                                ) : (
+                                    paginatedOrders.map((order) => {
+                                        const orderTime = order.date
+                                            ? new Date(order.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                            : '--:--';
+                                        const defaultPartnerName = type === 'Purchase' ? 'NCC vãng lai' : 'Khách bán lẻ';
+                                        const partnerName = order.partner_name || order.partner?.name || defaultPartnerName;
+                                        const partnerPhone = order.partner_phone || order.partner?.phone;
+
+                                        return (
+                                            <div
+                                                key={order.id}
+                                                className="p-3.5 px-4 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-[#8b6f47]/5 dark:hover:bg-white/[0.06] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs group"
+                                            >
+                                                {/* Left: Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-mono font-black text-xs text-[#8b6f47] dark:text-[#d4a574] bg-[#8b6f47]/10 px-2 py-0.5 rounded-lg border border-[#8b6f47]/20">
+                                                            #{order.display_id || order.id}
+                                                        </span>
+                                                        <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                                                            <Clock size={12} /> {orderTime}
+                                                        </span>
+                                                        <span className={cn(
+                                                            "text-[9px] font-bold uppercase px-2 py-0.5 rounded-md border",
+                                                            (order.total_amount || 0) < 0
+                                                                ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+                                                                : order.payment_method === 'Debt'
+                                                                    ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                                                                    : order.payment_method === 'Transfer'
+                                                                        ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
+                                                                        : "bg-primary/10 text-primary border-primary/20"
+                                                        )}>
+                                                            {(order.total_amount || 0) < 0 ? (type === 'Purchase' ? 'Trả NCC' : 'Trả hàng') : (order.payment_method === 'Debt' ? 'Ghi nợ' : (order.payment_method === 'Transfer' ? 'Chuyển khoản' : 'Tiền mặt'))}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 py-0.5">
+                                                        <span className="font-black text-xs uppercase tracking-tight text-slate-900 dark:text-slate-100 truncate max-w-[260px] inline-block py-0.5 leading-normal">
+                                                            {partnerName}
+                                                        </span>
+                                                        {partnerPhone && (
+                                                            <span className="text-[11px] font-medium text-muted-foreground">
+                                                                - {partnerPhone}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Products Preview */}
+                                                    {order.details && order.details.length > 0 && (
+                                                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                                                            {order.details.slice(0, 3).map((d, i) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="text-[10px] font-bold bg-black/[0.03] dark:bg-white/[0.05] border border-[#8b6f47]/15 dark:border-white/10 px-2 py-0.5 rounded-lg text-slate-700 dark:text-slate-300 truncate max-w-[170px]"
+                                                                >
+                                                                    {d.product_name} <span className="font-bold text-primary">x{d.quantity}</span>
+                                                                </span>
+                                                            ))}
+                                                            {order.details.length > 3 && (
+                                                                <span className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574]">
+                                                                    +{order.details.length - 3} món khác
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {order.note && (
+                                                        <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mt-1 italic truncate">
+                                                            Ghi chú: {order.note}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Right: Total & Action Buttons */}
+                                                <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/30">
+                                                    <div className="text-right">
+                                                        <span className="text-[9px] font-black uppercase text-[#8b6f47]/70 dark:text-[#d4a574]/70 block leading-none">Tổng tiền</span>
+                                                        <span className="text-base font-black text-[#2d5016] dark:text-emerald-400 tabular-nums leading-tight">
+                                                            {formatCurrency(order.total_amount)}
+                                                        </span>
+                                                        {type === 'Sale' && isAdmin && (
+                                                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center justify-end gap-1 mt-0.5">
+                                                                <span className="text-[8.5px] uppercase font-black tracking-wider text-emerald-700/70 dark:text-emerald-300/70">Lãi</span>
+                                                                <span>+{formatCurrency(calculateOrderProfit(order))}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex items-center gap-1.5">
+                                                        {/* View Details Button */}
+                                                        {/* View Detail Button */}
+                                                        <ActionTooltip text="Xem chi tiết đơn hàng">
+                                                            <button
+                                                                onClick={() => setSelectedDetailOrder(order)}
+                                                                className="w-8 h-8 bg-blue-500/10 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl border border-blue-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
+                                                            >
+                                                                <Eye size={15} />
+                                                            </button>
+                                                        </ActionTooltip>
+
+                                                        {/* Print Invoice Button */}
+                                                        {onPrintOrder && (
+                                                            <ActionTooltip text={type === 'Purchase' ? "In Phiếu Nhập Hàng" : "In Hóa Đơn Bán Hàng"}>
+                                                                <button
+                                                                    onClick={() => onPrintOrder(order, type === 'Purchase' ? 'Purchase' : 'Sale')}
+                                                                    className="w-8 h-8 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+                                                                >
+                                                                    <Printer size={15} />
+                                                                </button>
+                                                            </ActionTooltip>
+                                                        )}
+
+                                                        {/* Print Delivery Slip Button */}
+                                                        {onPrintOrder && type === 'Sale' && (
+                                                            <ActionTooltip text="In Phiếu Xuất Kho">
+                                                                <button
+                                                                    onClick={() => onPrintOrder(order, 'Delivery')}
+                                                                    className="w-8 h-8 bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white rounded-xl border border-amber-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
+                                                                >
+                                                                    <Package size={15} />
+                                                                </button>
+                                                            </ActionTooltip>
+                                                        )}
+
+                                                        {/* Primary Edit / Load Order Button */}
+                                                        <ActionTooltip text="Sửa / Nạp ra giỏ">
+                                                            <button
+                                                                onClick={() => {
+                                                                    const enrichedOrder = {
+                                                                        ...order,
+                                                                        partner: order.partner || (order.partner_id ? {
+                                                                            id: order.partner_id,
+                                                                            name: order.partner_name,
+                                                                            phone: order.partner_phone,
+                                                                            address: order.partner_address
+                                                                        } : null)
+                                                                    };
+                                                                    onEditOrder(enrichedOrder);
+                                                                    onClose();
+                                                                }}
+                                                                className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center transition-all active:scale-95 shrink-0"
+                                                            >
+                                                                <SquarePen size={15} strokeWidth={2.5} />
+                                                            </button>
+                                                        </ActionTooltip>
+
+                                                        {/* Delete Button */}
+                                                        {onDeleteOrder && (
+                                                            <ActionTooltip text="Hủy đơn hàng">
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            await onDeleteOrder(order);
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                        }
+                                                                    }}
+                                                                    className="w-8 h-8 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
+                                                                >
+                                                                    <Trash2 size={15} />
+                                                                </button>
+                                                            </ActionTooltip>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-black uppercase text-[#8b6f47]/80 dark:text-[#d4a574]/80 whitespace-nowrap">Hiển thị:</span>
-                                <CustomSelect
-                                    value={pageSize}
-                                    onChange={(val) => {
-                                        setPageSize(Number(val));
-                                        setCurrentPage(1);
-                                    }}
-                                    options={[
-                                        { value: 10, label: '10' },
-                                        { value: 20, label: '20' },
-                                        { value: 50, label: '50' },
-                                        { value: 100, label: '100' }
-                                    ]}
-                                    className="h-8 min-w-[76px] bg-black/[0.03] dark:bg-white/[0.04] border border-[#8b6f47]/25 dark:border-white/10 rounded-xl px-2.5 text-xs font-black text-[#8b6f47] dark:text-[#d4a574]"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                            {/* Pagination Bar & Footer */}
+                            <div className="p-3.5 px-5 bg-transparent border-t border-[#8b6f47]/15 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-[#8b6f47]/80 dark:text-[#d4a574]/80 shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <span>
+                                        Hiển thị <strong className="text-foreground">{filteredOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</strong> - <strong className="text-foreground">{Math.min(currentPage * pageSize, filteredOrders.length)}</strong> trên tổng <strong className="text-primary font-bold">{filteredOrders.length}</strong> đơn
+                                    </span>
+                                </div>
 
-                    {/* Orders List Content */}
-                    <div className="flex-1 overflow-y-auto p-4 px-5 space-y-2.5 bg-transparent">
-                        {loading ? (
-                            <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                                <RefreshCcw size={28} className="animate-spin text-primary" />
-                                <p className="text-xs font-bold uppercase tracking-wider">{type === 'Purchase' ? "Đang tải danh sách đơn nhập..." : "Đang tải danh sách hóa đơn..."}</p>
-                            </div>
-                        ) : filteredOrders.length === 0 ? (
-                            <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground/60">
-                                <ShoppingBag size={44} strokeWidth={1.5} />
-                                <p className="text-xs font-bold uppercase tracking-widest">{type === 'Purchase' ? "Không có đơn nhập nào phù hợp" : "Không có hóa đơn nào phù hợp"}</p>
-                            </div>
-                        ) : (
-                            paginatedOrders.map((order) => {
-                                const orderTime = order.date
-                                    ? new Date(order.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-                                    : '--:--';
-                                const defaultPartnerName = type === 'Purchase' ? 'NCC vãng lai' : 'Khách bán lẻ';
-                                const partnerName = order.partner_name || order.partner?.name || defaultPartnerName;
-                                const partnerPhone = order.partner_phone || order.partner?.phone;
+                                {/* Pagination Navigation Buttons */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
+                                            title="Trang đầu"
+                                        >
+                                            <ChevronsLeft size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                            disabled={currentPage === 1}
+                                            className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
+                                            title="Trang trước"
+                                        >
+                                            <ChevronLeft size={14} />
+                                        </button>
 
-                                return (
-                                    <div
-                                        key={order.id}
-                                        className="p-3.5 px-4 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-[#8b6f47]/5 dark:hover:bg-white/[0.06] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs group"
-                                    >
-                                        {/* Left: Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-mono font-black text-xs text-[#8b6f47] dark:text-[#d4a574] bg-[#8b6f47]/10 px-2 py-0.5 rounded-lg border border-[#8b6f47]/20">
-                                                    #{order.display_id || order.id}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                                                    <Clock size={12} /> {orderTime}
-                                                </span>
-                                                <span className={cn(
-                                                    "text-[9px] font-bold uppercase px-2 py-0.5 rounded-md border",
-                                                    (order.total_amount || 0) < 0
-                                                        ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-                                                        : order.payment_method === 'Debt'
-                                                            ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
-                                                            : order.payment_method === 'Transfer'
-                                                                ? "bg-indigo-500/10 text-indigo-500 border-indigo-500/20"
-                                                                : "bg-primary/10 text-primary border-primary/20"
-                                                )}>
-                                                    {(order.total_amount || 0) < 0 ? (type === 'Purchase' ? 'Trả NCC' : 'Trả hàng') : (order.payment_method === 'Debt' ? 'Ghi nợ' : (order.payment_method === 'Transfer' ? 'Chuyển khoản' : 'Tiền mặt'))}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 py-0.5">
-                                                <span className="font-black text-xs uppercase tracking-tight text-slate-900 dark:text-slate-100 truncate max-w-[260px] inline-block py-0.5 leading-normal">
-                                                    {partnerName}
-                                                </span>
-                                                {partnerPhone && (
-                                                    <span className="text-[11px] font-medium text-muted-foreground">
-                                                        - {partnerPhone}
-                                                    </span>
+                                        {pageNumbers.map(page => (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={cn(
+                                                    "min-w-[28px] h-7 px-2 rounded-lg text-xs font-black transition-all",
+                                                    currentPage === page
+                                                        ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm"
+                                                        : "bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
                                                 )}
-                                            </div>
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
 
-                                            {/* Products Preview */}
-                                            {order.details && order.details.length > 0 && (
-                                                <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                                                    {order.details.slice(0, 3).map((d, i) => (
-                                                        <span
-                                                            key={i}
-                                                            className="text-[10px] font-bold bg-black/[0.03] dark:bg-white/[0.05] border border-[#8b6f47]/15 dark:border-white/10 px-2 py-0.5 rounded-lg text-slate-700 dark:text-slate-300 truncate max-w-[170px]"
-                                                        >
-                                                            {d.product_name} <span className="font-bold text-primary">x{d.quantity}</span>
-                                                        </span>
-                                                    ))}
-                                                    {order.details.length > 3 && (
-                                                        <span className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574]">
-                                                            +{order.details.length - 3} món khác
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {order.note && (
-                                                <div className="text-[10px] font-medium text-amber-600 dark:text-amber-400 mt-1 italic truncate">
-                                                    Ghi chú: {order.note}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Right: Total & Action Buttons */}
-                                        <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/30">
-                                            <div className="text-right">
-                                                <span className="text-[9px] font-black uppercase text-[#8b6f47]/70 dark:text-[#d4a574]/70 block leading-none">Tổng tiền</span>
-                                                <span className="text-base font-black text-[#2d5016] dark:text-emerald-400 tabular-nums leading-tight">
-                                                    {formatCurrency(order.total_amount)}
-                                                </span>
-                                                {type === 'Sale' && (
-                                                    <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums flex items-center justify-end gap-1 mt-0.5">
-                                                        <span className="text-[8.5px] uppercase font-black tracking-wider text-emerald-700/70 dark:text-emerald-300/70">Lãi</span>
-                                                        <span>+{formatCurrency(calculateOrderProfit(order))}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex items-center gap-1.5">
-                                                {/* View Details Button */}
-                                                {/* View Detail Button */}
-                                                <ActionTooltip text="Xem chi tiết đơn hàng">
-                                                    <button
-                                                        onClick={() => setSelectedDetailOrder(order)}
-                                                        className="w-8 h-8 bg-blue-500/10 hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl border border-blue-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
-                                                    >
-                                                        <Eye size={15} />
-                                                    </button>
-                                                </ActionTooltip>
-
-                                                {/* Print Invoice Button */}
-                                                {onPrintOrder && (
-                                                    <ActionTooltip text={type === 'Purchase' ? "In Phiếu Nhập Hàng" : "In Hóa Đơn Bán Hàng"}>
-                                                        <button
-                                                            onClick={() => onPrintOrder(order, type === 'Purchase' ? 'Purchase' : 'Sale')}
-                                                            className="w-8 h-8 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl border border-emerald-500/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
-                                                        >
-                                                            <Printer size={15} />
-                                                        </button>
-                                                    </ActionTooltip>
-                                                )}
-
-                                                {/* Print Delivery Slip Button */}
-                                                {onPrintOrder && type === 'Sale' && (
-                                                    <ActionTooltip text="In Phiếu Xuất Kho">
-                                                        <button
-                                                            onClick={() => onPrintOrder(order, 'Delivery')}
-                                                            className="w-8 h-8 bg-amber-500/10 hover:bg-amber-500 text-amber-600 hover:text-white rounded-xl border border-amber-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
-                                                        >
-                                                            <Package size={15} />
-                                                        </button>
-                                                    </ActionTooltip>
-                                                )}
-
-                                                {/* Primary Edit / Load Order Button */}
-                                                <ActionTooltip text="Sửa / Nạp ra giỏ">
-                                                    <button
-                                                        onClick={() => {
-                                                            const enrichedOrder = {
-                                                                ...order,
-                                                                partner: order.partner || (order.partner_id ? {
-                                                                    id: order.partner_id,
-                                                                    name: order.partner_name,
-                                                                    phone: order.partner_phone,
-                                                                    address: order.partner_address
-                                                                } : null)
-                                                            };
-                                                            onEditOrder(enrichedOrder);
-                                                            onClose();
-                                                        }}
-                                                        className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center transition-all active:scale-95 shrink-0"
-                                                    >
-                                                        <SquarePen size={15} strokeWidth={2.5} />
-                                                    </button>
-                                                </ActionTooltip>
-
-                                                {/* Delete Button */}
-                                                {onDeleteOrder && (
-                                                    <ActionTooltip text="Hủy đơn hàng">
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await onDeleteOrder(order);
-                                                                } catch (err) {
-                                                                    console.error(err);
-                                                                }
-                                                            }}
-                                                            className="w-8 h-8 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl border border-rose-500/20 transition-all active:scale-95 flex items-center justify-center shrink-0"
-                                                        >
-                                                            <Trash2 size={15} />
-                                                        </button>
-                                                    </ActionTooltip>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
+                                            title="Trang sau"
+                                        >
+                                            <ChevronRight size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
+                                            title="Trang cuối"
+                                        >
+                                            <ChevronsRight size={14} />
+                                        </button>
                                     </div>
-                                );
-                            })
-                        )}
-                    </div>
-
-                    {/* Pagination Bar & Footer */}
-                    <div className="p-3.5 px-5 bg-transparent border-t border-[#8b6f47]/15 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-[#8b6f47]/80 dark:text-[#d4a574]/80 shrink-0">
-                        <div className="flex items-center gap-2">
-                            <span>
-                                Hiển thị <strong className="text-foreground">{filteredOrders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</strong> - <strong className="text-foreground">{Math.min(currentPage * pageSize, filteredOrders.length)}</strong> trên tổng <strong className="text-primary font-bold">{filteredOrders.length}</strong> đơn
-                            </span>
-                        </div>
-
-                        {/* Pagination Navigation Buttons */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setCurrentPage(1)}
-                                    disabled={currentPage === 1}
-                                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
-                                    title="Trang đầu"
-                                >
-                                    <ChevronsLeft size={14} />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
-                                    title="Trang trước"
-                                >
-                                    <ChevronLeft size={14} />
-                                </button>
-
-                                {pageNumbers.map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={cn(
-                                            "min-w-[28px] h-7 px-2 rounded-lg text-xs font-black transition-all",
-                                            currentPage === page
-                                                ? "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm"
-                                                : "bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
-                                        )}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
+                                )}
 
                                 <button
-                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
-                                    title="Trang sau"
+                                    onClick={onClose}
+                                    className="px-4 py-1.5 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-[#8b6f47]/15 rounded-xl border border-[#8b6f47]/25 dark:border-white/10 font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-all active:scale-95"
                                 >
-                                    <ChevronRight size={14} />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(totalPages)}
-                                    disabled={currentPage === totalPages}
-                                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.04] hover:bg-[#8b6f47]/15 border border-[#8b6f47]/20 dark:border-white/10 disabled:opacity-30 disabled:pointer-events-none text-[#8b6f47] dark:text-[#d4a574] transition-all"
-                                    title="Trang cuối"
-                                >
-                                    <ChevronsRight size={14} />
+                                    Đóng
                                 </button>
                             </div>
-                        )}
-
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-1.5 bg-black/[0.04] dark:bg-white/[0.06] hover:bg-[#8b6f47]/15 rounded-xl border border-[#8b6f47]/25 dark:border-white/10 font-black text-xs uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574] transition-all active:scale-95"
-                        >
-                            Đóng
-                        </button>
+                        </m.div>
                     </div>
-                </m.div>
-            </div>
                 )}
             </AnimatePresence>
 
@@ -1107,7 +1116,7 @@ export default function DailyOrderHistoryModal({
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
-                                    {type === 'Sale' && (() => {
+                                    {type === 'Sale' && isAdmin && (() => {
                                         const detailProfit = calculateOrderProfit(selectedDetailOrder);
                                         const margin = selectedDetailOrder.total_amount > 0 ? (detailProfit / selectedDetailOrder.total_amount) * 100 : 0;
                                         return (

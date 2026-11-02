@@ -315,7 +315,7 @@ export function getMascotImageInfo(characterId) {
     return {
       type: 'image',
       url: '/assets/images/mascot_active_pill.png',
-      name: 'Bé Lyang Chibi (Sidebar)',
+      name: 'Lí An (Sidebar)',
       isSprite: false
     };
   }
@@ -334,7 +334,7 @@ export function getMascotImageInfo(characterId) {
   return {
     type: 'image',
     url: '/assets/images/mascot_active_pill.png',
-    name: 'Bé Lyang Chibi (Sidebar)',
+    name: 'Lí An (Sidebar)',
     isSprite: false
   };
 }

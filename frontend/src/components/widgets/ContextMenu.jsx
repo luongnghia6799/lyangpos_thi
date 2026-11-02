@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion as m, AnimatePresence } from 'framer-motion';
-import { 
-    ArrowLeft, 
-    ArrowRight, 
-    RotateCcw, 
-    Moon, 
-    Sun, 
-    LogOut, 
-    LayoutDashboard, 
-    ShoppingCart, 
-    History, 
-    Maximize, 
-    Minimize, 
-    PackagePlus, 
-    TrendingUp, 
-    ChevronRight 
+import {
+    ArrowLeft,
+    ArrowRight,
+    RotateCcw,
+    Moon,
+    Sun,
+    LogOut,
+    LayoutDashboard,
+    ShoppingCart,
+    History,
+    Maximize,
+    Minimize,
+    PackagePlus,
+    TrendingUp,
+    ChevronRight
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 import { MASCOT_LIST, DEFAULT_MASCOT_CONFIG } from '../../lib/mascots';
 import ButtonMascotPromptModal from './ButtonMascotPromptModal';
 import { getInteractiveTarget, getButtonSignature, getButtonLabel, getStoredButtonMascots } from '../../lib/buttonMascots';
@@ -34,7 +35,7 @@ const ContextMenu = () => {
         try {
             const saved = localStorage.getItem('lyang_mascot_config');
             if (saved) return { ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) };
-        } catch (e) {}
+        } catch (e) { }
         return DEFAULT_MASCOT_CONFIG;
     });
 
@@ -48,13 +49,22 @@ const ContextMenu = () => {
     const isDashboard = location.pathname === '/';
     const isHistory = location.pathname === '/history';
 
+    const currentUser = React.useMemo(() => {
+        try {
+            return JSON.parse(sessionStorage.getItem('user') || '{}');
+        } catch (e) {
+            return {};
+        }
+    }, []);
+    const isAdmin = checkIsAdmin(currentUser?.role);
+
     // Synchronize current mascot
     useEffect(() => {
         const handleMascotUpdate = () => {
             try {
                 const saved = localStorage.getItem('lyang_mascot_config');
                 if (saved) setMascotConfig({ ...DEFAULT_MASCOT_CONFIG, ...JSON.parse(saved) });
-            } catch (e) {}
+            } catch (e) { }
         };
         window.addEventListener('storage', handleMascotUpdate);
         window.addEventListener('lyang_mascot_config_changed', handleMascotUpdate);
@@ -123,7 +133,7 @@ const ContextMenu = () => {
         }
 
         e.preventDefault();
-        
+
         // Calculate position to prevent overflow
         let x = e.clientX;
         let y = e.clientY;
@@ -145,7 +155,7 @@ const ContextMenu = () => {
         window.addEventListener('contextmenu', handleContextMenu);
         window.addEventListener('click', handleClick);
         window.addEventListener('scroll', handleClick, true);
-        
+
         const handleKeyDown = (e) => {
             if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
                 if (window.__TAURI__) {
@@ -187,7 +197,7 @@ const ContextMenu = () => {
             case 'back': window.history.back(); break;
             case 'forward': window.history.forward(); break;
             case 'reload': window.location.reload(); break;
-            case 'theme': 
+            case 'theme':
                 const isDark = document.documentElement.classList.toggle('dark');
                 setIsDarkMode(isDark);
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -227,18 +237,18 @@ const ContextMenu = () => {
     };
 
     const containerVariants = {
-        hidden: { 
-            opacity: 0, 
-            scale: 0.94, 
+        hidden: {
+            opacity: 0,
+            scale: 0.94,
             y: -8,
             transition: {
                 duration: 0.15,
                 ease: "easeInOut"
             }
         },
-        visible: { 
-            opacity: 1, 
-            scale: 1, 
+        visible: {
+            opacity: 1,
+            scale: 1,
             y: 0,
             transition: {
                 duration: 0.22,
@@ -247,9 +257,9 @@ const ContextMenu = () => {
                 delayChildren: 0.015
             }
         },
-        exit: { 
-            opacity: 0, 
-            scale: 0.95, 
+        exit: {
+            opacity: 0,
+            scale: 0.95,
             y: -4,
             transition: {
                 duration: 0.2,
@@ -261,27 +271,27 @@ const ContextMenu = () => {
     };
 
     const itemVariants = {
-        hidden: { 
-            opacity: 0, 
-            x: -12, 
+        hidden: {
+            opacity: 0,
+            x: -12,
             y: -2,
-            filter: "blur(4px)" 
+            filter: "blur(4px)"
         },
-        visible: { 
-            opacity: 1, 
-            x: 0, 
+        visible: {
+            opacity: 1,
+            x: 0,
             y: 0,
             filter: "blur(0px)",
-            transition: { 
-                type: "spring", 
-                stiffness: 450, 
+            transition: {
+                type: "spring",
+                stiffness: 450,
                 damping: 25,
                 mass: 0.6
-            } 
+            }
         },
-        exit: { 
-            opacity: 0, 
-            x: -10, 
+        exit: {
+            opacity: 0,
+            x: -10,
             filter: "blur(3px)",
             transition: {
                 duration: 0.12,
@@ -301,9 +311,9 @@ const ContextMenu = () => {
                             initial="hidden"
                             animate="visible"
                             exit="exit"
-                            style={{ 
-                                position: 'fixed', 
-                                top: position.y, 
+                            style={{
+                                position: 'fixed',
+                                top: position.y,
                                 left: position.x,
                                 zIndex: 999999,
                                 backgroundColor: 'color-mix(in srgb, var(--bg-color, #faf8f3) 93%, transparent)',
@@ -313,7 +323,7 @@ const ContextMenu = () => {
                             className="relative w-64 text-slate-800 dark:text-slate-100 rounded-2xl border border-black/10 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.7)] p-2 overflow-hidden select-none ring-1 ring-black/5 dark:ring-white/5"
                         >
                             {/* In chìm Mascot (Watermark Background) */}
-                            <div 
+                            <div
                                 className="absolute -right-5 -bottom-5 w-36 h-36 pointer-events-none select-none z-0 opacity-[0.14] dark:opacity-[0.18] transition-all duration-300"
                                 style={{
                                     backgroundImage: `url("${mascotImageUrl}")`,
@@ -332,72 +342,76 @@ const ContextMenu = () => {
                                     <MenuIconButton icon={ArrowRight} onClick={() => handleAction('forward')} title="Tiến tới" />
                                     <MenuIconButton icon={RotateCcw} onClick={() => handleAction('reload')} title="Tải lại trang" />
                                     <div className="w-px h-4 bg-slate-300/80 dark:bg-white/10 mx-1" />
-                                    <MenuIconButton 
-                                        icon={isDarkMode ? Sun : Moon} 
-                                        onClick={() => handleAction('theme')} 
-                                        title={isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"} 
+                                    <MenuIconButton
+                                        icon={isDarkMode ? Sun : Moon}
+                                        onClick={() => handleAction('theme')}
+                                        title={isDarkMode ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"}
                                         className="text-amber-500 dark:text-amber-400 hover:bg-amber-500/15"
                                     />
                                 </m.div>
 
                                 {/* Main Actions */}
                                 <div className="space-y-0.5">
-                                    <MenuItem 
+                                    {isAdmin && (
+                                        <MenuItem
+                                            variants={itemVariants}
+                                            icon={LayoutDashboard}
+                                            label="Tổng quan"
+                                            active={isDashboard}
+                                            onClick={() => handleAction('dashboard')}
+                                        />
+                                    )}
+                                    <MenuItem
                                         variants={itemVariants}
-                                        icon={LayoutDashboard} 
-                                        label="Tổng quan" 
-                                        active={isDashboard}
-                                        onClick={() => handleAction('dashboard')} 
-                                    />
-                                    <MenuItem 
-                                        variants={itemVariants}
-                                        icon={ShoppingCart} 
-                                        label="Bán hàng (POS)" 
+                                        icon={ShoppingCart}
+                                        label="Bán hàng (POS)"
                                         active={isPOS}
-                                        onClick={() => handleAction('pos')} 
+                                        onClick={() => handleAction('pos')}
                                     />
-                                    <MenuItem 
+                                    <MenuItem
                                         variants={itemVariants}
-                                        icon={PackagePlus} 
-                                        label="Nhập hàng" 
+                                        icon={PackagePlus}
+                                        label="Nhập hàng"
                                         active={isPurchase}
-                                        onClick={() => handleAction('purchase')} 
+                                        onClick={() => handleAction('purchase')}
                                     />
-                                    <MenuItem 
+                                    {isAdmin && (
+                                        <MenuItem
+                                            variants={itemVariants}
+                                            icon={TrendingUp}
+                                            label="Tổng hợp"
+                                            active={isAnalysis}
+                                            onClick={() => handleAction('analysis')}
+                                        />
+                                    )}
+                                    <MenuItem
                                         variants={itemVariants}
-                                        icon={TrendingUp} 
-                                        label="Tổng hợp" 
-                                        active={isAnalysis}
-                                        onClick={() => handleAction('analysis')} 
-                                    />
-                                    <MenuItem 
-                                        variants={itemVariants}
-                                        icon={History} 
-                                        label="Lịch sử đơn" 
+                                        icon={History}
+                                        label="Lịch sử đơn"
                                         active={isHistory}
-                                        onClick={() => handleAction('history')} 
+                                        onClick={() => handleAction('history')}
                                     />
                                 </div>
 
                                 <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
 
                                 <div className="space-y-0.5">
-                                    <MenuItem 
+                                    <MenuItem
                                         variants={itemVariants}
-                                        icon={isFullscreen ? Minimize : Maximize} 
-                                        label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"} 
-                                        onClick={() => handleAction('fullscreen')} 
+                                        icon={isFullscreen ? Minimize : Maximize}
+                                        label={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}
+                                        onClick={() => handleAction('fullscreen')}
                                     />
                                 </div>
 
                                 <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
 
-                                <MenuItem 
+                                <MenuItem
                                     variants={itemVariants}
-                                    icon={LogOut} 
-                                    label="Đăng xuất" 
+                                    icon={LogOut}
+                                    label="Đăng xuất"
                                     danger
-                                    onClick={() => handleAction('logout')} 
+                                    onClick={() => handleAction('logout')}
                                 />
 
                                 {/* Logo/Branding footer */}
@@ -440,8 +454,8 @@ const MenuItem = ({ icon: Icon, label, onClick, active, danger, variants }) => (
         onClick={onClick}
         className={cn(
             "w-full group flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer",
-            active 
-                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20" 
+            active
+                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20"
                 : danger
                     ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
                     : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
@@ -449,7 +463,7 @@ const MenuItem = ({ icon: Icon, label, onClick, active, danger, variants }) => (
     >
         <div className="flex items-center gap-2.5">
             <Icon size={16} className={cn(
-                "shrink-0 transition-transform duration-200", 
+                "shrink-0 transition-transform duration-200",
                 active ? "text-emerald-600 dark:text-emerald-400 scale-105" : (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400")
             )} />
             <span className="text-xs font-bold tracking-tight">{label}</span>

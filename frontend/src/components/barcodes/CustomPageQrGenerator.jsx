@@ -16,12 +16,12 @@ const APP_PAGE_PRESETS = [
     {
         id: 'bacsisauquy',
         path: '/#/bacsisauquy',
-        label: 'Bác Sĩ Cây Trồng Sáu Quý',
+        label: 'Bác Sĩ Cây Trồng Lí An',
         badge: 'Công khai • Đề xuất',
         badgeColor: 'bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30',
         icon: Stethoscope,
         category: 'Tư vấn AI',
-        defaultTitle: 'BÁC SĨ CÂY TRỒNG SÁU QUÝ',
+        defaultTitle: 'BÁC SĨ CÂY TRỒNG LÍ AN',
         defaultSubtitle: 'Quét mã để hỏi bệnh lá/trái & kê đơn hoạt chất từ kho thuốc',
         defaultCta: 'QUÉT MÃ ĐỂ TƯ VẤN THUỐC BỆNH CÂY TRỒNG',
         defaultColor: '#163d18',
@@ -220,7 +220,7 @@ export default function CustomPageQrGenerator() {
             const saved = localStorage.getItem('lyang_store_name');
             if (saved) return saved;
         } catch (e) {}
-        return 'CỬA HÀNG BVTV SÁU QUÝ';
+        return 'CỬA HÀNG BVTV LÍ AN';
     });
 
     // Auto-detect local IP from backend on mount

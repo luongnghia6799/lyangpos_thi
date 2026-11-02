@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate, cn } from '../../lib/utils';
 import { useLiteThemeSync } from "../../hooks/useLiteThemeSync";
+import { checkIsAdmin } from '../../lib/auth';
 import { Link } from 'react-router-dom';
 
 export default function SummaryLite() {
@@ -35,6 +36,16 @@ export default function SummaryLite() {
       end: today.toISOString().split('T')[0]
     };
   });
+
+  const currentUser = useMemo(() => {
+    try {
+      const saved = sessionStorage.getItem('user');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  }, []);
+  const isAdmin = checkIsAdmin(currentUser?.role);
 
   const [salesKPI, setSalesKPI] = useState({
     total_revenue: 0,
@@ -53,7 +64,7 @@ export default function SummaryLite() {
     customer_debt_list: [],
     supplier_debt_list: []
   });
-  
+
   const [hoveredPoint, setHoveredPoint] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -63,7 +74,7 @@ export default function SummaryLite() {
   const getRangeDates = (type) => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     if (type === 'today') {
       return { start: todayStr, end: todayStr };
     }
@@ -162,7 +173,7 @@ export default function SummaryLite() {
         map[d.date] = { date: d.date, revenue: 0, profit: 0, spending: d.spending || 0 };
       }
     });
-    
+
     // Sort by date ascending
     return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
   }, [salesChart, purchaseChart]);
@@ -175,60 +186,60 @@ export default function SummaryLite() {
   // SVG Chart Coordinates calculation
   const svgChart = useMemo(() => {
     if (!combinedChartData || combinedChartData.length === 0) return null;
-    
+
     const width = 600;
     const height = 160;
     const padding = { top: 20, right: 15, bottom: 25, left: 15 };
-    
+
     const maxVal = Math.max(
       ...combinedChartData.map(d => Math.max(d.revenue || 0, d.spending || 0)),
       100000
     );
-    
+
     const points = combinedChartData.map((d, index) => {
       const x = padding.left + (index / (combinedChartData.length - 1)) * (width - padding.left - padding.right);
       const yRevenue = height - padding.bottom - ((d.revenue || 0) / maxVal) * (height - padding.top - padding.bottom);
       const ySpending = height - padding.bottom - ((d.spending || 0) / maxVal) * (height - padding.top - padding.bottom);
       return { x, yRevenue, ySpending, data: d };
     });
-    
+
     // Sales Line path
     let salesLinePath = "";
     if (points.length > 0) {
       salesLinePath = `M ${points[0].x} ${points[0].yRevenue}`;
       for (let i = 1; i < points.length; i++) {
-        const cpX1 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
-        const cpY1 = points[i-1].yRevenue;
-        const cpX2 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
+        const cpX1 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
+        const cpY1 = points[i - 1].yRevenue;
+        const cpX2 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
         const cpY2 = points[i].yRevenue;
         salesLinePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${points[i].x} ${points[i].yRevenue}`;
       }
     }
-    
+
     // Purchase Line path
     let purchaseLinePath = "";
     if (points.length > 0) {
       purchaseLinePath = `M ${points[0].x} ${points[0].ySpending}`;
       for (let i = 1; i < points.length; i++) {
-        const cpX1 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
-        const cpY1 = points[i-1].ySpending;
-        const cpX2 = points[i-1].x + (points[i].x - points[i-1].x) / 2;
+        const cpX1 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
+        const cpY1 = points[i - 1].ySpending;
+        const cpX2 = points[i - 1].x + (points[i].x - points[i - 1].x) / 2;
         const cpY2 = points[i].ySpending;
         purchaseLinePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${points[i].x} ${points[i].ySpending}`;
       }
     }
-    
+
     // Area paths
     let salesAreaPath = "";
     if (points.length > 0) {
       salesAreaPath = `${salesLinePath} L ${points[points.length - 1].x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`;
     }
-    
+
     let purchaseAreaPath = "";
     if (points.length > 0) {
       purchaseAreaPath = `${purchaseLinePath} L ${points[points.length - 1].x} ${height - padding.bottom} L ${points[0].x} ${height - padding.bottom} Z`;
     }
-    
+
     return { width, height, points, salesLinePath, purchaseLinePath, salesAreaPath, purchaseAreaPath, padding };
   }, [combinedChartData]);
 
@@ -649,31 +660,31 @@ export default function SummaryLite() {
         <div>
           <span className="lite-sum-label">Chọn kỳ báo cáo</span>
           <div className="lite-sum-capsules">
-            <button 
+            <button
               className={cn("lite-sum-capsule-btn", filterType === 'today' && "active")}
               onClick={() => setFilterType('today')}
             >
               Hôm nay
             </button>
-            <button 
+            <button
               className={cn("lite-sum-capsule-btn", filterType === 'yesterday' && "active")}
               onClick={() => setFilterType('yesterday')}
             >
               Hôm qua
             </button>
-            <button 
+            <button
               className={cn("lite-sum-capsule-btn", filterType === '7days' && "active")}
               onClick={() => setFilterType('7days')}
             >
               7 ngày qua
             </button>
-            <button 
+            <button
               className={cn("lite-sum-capsule-btn", filterType === 'month' && "active")}
               onClick={() => setFilterType('month')}
             >
               Tháng này
             </button>
-            <button 
+            <button
               className={cn("lite-sum-capsule-btn", filterType === 'custom' && "active")}
               onClick={() => setFilterType('custom')}
             >
@@ -686,8 +697,8 @@ export default function SummaryLite() {
           <div className="lite-sum-custom-dates">
             <div>
               <label className="lite-sum-label">Từ ngày</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
                 className="lite-sum-input"
@@ -695,8 +706,8 @@ export default function SummaryLite() {
             </div>
             <div>
               <label className="lite-sum-label">Đến ngày</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                 className="lite-sum-input"
@@ -736,23 +747,25 @@ export default function SummaryLite() {
           </div>
         </div>
 
-        <div className="lite-sum-card">
-          <div className="lite-sum-card-icon" style={{ color: salesKPI.total_profit >= 0 ? "#10b981" : "#ef4444" }}>
-            <TrendingUp size={20} />
+        {isAdmin && (
+          <div className="lite-sum-card">
+            <div className="lite-sum-card-icon" style={{ color: salesKPI.total_profit >= 0 ? "#10b981" : "#ef4444" }}>
+              <TrendingUp size={20} />
+            </div>
+            <div className="lite-sum-card-title">Lợi Nhuận Gộp</div>
+            <div className="lite-sum-card-value" style={{ color: salesKPI.total_profit >= 0 ? "#10b981" : "#ef4444" }}>
+              {formatNumber(salesKPI.total_profit)}
+            </div>
+            <div className="lite-sum-card-sub">
+              <span>Tỷ suất LN gộp:</span>
+              <span>
+                {salesKPI.total_revenue > 0
+                  ? `${Math.round((salesKPI.total_profit / salesKPI.total_revenue) * 100)}%`
+                  : "0%"}
+              </span>
+            </div>
           </div>
-          <div className="lite-sum-card-title">Lợi Nhuận Gộp</div>
-          <div className="lite-sum-card-value" style={{ color: salesKPI.total_profit >= 0 ? "#10b981" : "#ef4444" }}>
-            {formatNumber(salesKPI.total_profit)}
-          </div>
-          <div className="lite-sum-card-sub">
-            <span>Tỷ suất LN gộp:</span>
-            <span>
-              {salesKPI.total_revenue > 0 
-                ? `${Math.round((salesKPI.total_profit / salesKPI.total_revenue) * 100)}%` 
-                : "0%"}
-            </span>
-          </div>
-        </div>
+        )}
 
         <div className="lite-sum-card">
           <div className="lite-sum-card-icon" style={{ color: "#3b82f6" }}>
@@ -760,8 +773,8 @@ export default function SummaryLite() {
           </div>
           <div className="lite-sum-card-title">Chỉ số giao dịch</div>
           <div className="lite-sum-card-value" style={{ color: "#3b82f6" }}>
-            {salesKPI.order_count > 0 
-              ? formatNumber(Math.round(salesKPI.total_revenue / salesKPI.order_count)) 
+            {salesKPI.order_count > 0
+              ? formatNumber(Math.round(salesKPI.total_revenue / salesKPI.order_count))
               : "0"}
           </div>
           <div className="lite-sum-card-sub">
@@ -796,8 +809,8 @@ export default function SummaryLite() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', opacity: 0.5, fontStyle: 'italic' }}>Không có dữ liệu biểu diễn cho khoảng thời gian này.</div>
           ) : (
             <>
-              <svg 
-                viewBox={`0 0 ${svgChart.width} ${svgChart.height}`} 
+              <svg
+                viewBox={`0 0 ${svgChart.width} ${svgChart.height}`}
                 className="lite-chart-svg"
               >
                 <defs>
@@ -810,12 +823,12 @@ export default function SummaryLite() {
                     <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
                   </linearGradient>
                 </defs>
-                
+
                 {/* Horizontal Grid lines */}
                 {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
                   const y = svgChart.padding.top + ratio * (svgChart.height - svgChart.padding.top - svgChart.padding.bottom);
                   return (
-                    <line 
+                    <line
                       key={idx}
                       x1={svgChart.padding.left}
                       y1={y}
@@ -906,11 +919,11 @@ export default function SummaryLite() {
 
               {/* Chart Tooltip */}
               {hoveredPoint && (
-                <div 
+                <div
                   className="lite-chart-tooltip"
-                  style={{ 
-                    left: hoveredPoint.x, 
-                    top: hoveredPoint.y 
+                  style={{
+                    left: hoveredPoint.x,
+                    top: hoveredPoint.y
                   }}
                 >
                   <div style={{ opacity: 0.6, fontSize: '8px', marginBottom: '4px', textTransform: 'uppercase' }}>{hoveredPoint.date}</div>
@@ -956,7 +969,7 @@ export default function SummaryLite() {
                     </div>
                   </div>
                   <div className="lite-sum-progress-bar-container">
-                    <div 
+                    <div
                       className="lite-sum-progress-bar-fill"
                       style={{ width: `${(p.qty / maxProductQty) * 100}%` }}
                     ></div>
@@ -985,7 +998,7 @@ export default function SummaryLite() {
                 {formatNumber(debtStats.customer_debt)}
               </div>
             </div>
-            
+
             <div className="lite-sum-debt-widget">
               <div style={{ fontSize: '0.62rem', fontWeight: 900, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
                 Phải trả nhà cung cấp

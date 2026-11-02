@@ -67,6 +67,14 @@ pub struct BulkBatchInvoiceDto {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct BatchInvoicePartnerDto {
+    pub date: Option<String>,
+    pub is_invoiced: Option<bool>,
+    pub invoice_no: Option<String>,
+    pub invoice_note: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct UpdateItemInvoiceEntryDto {
     pub detail_id: i64,
     pub is_invoiced: Option<bool>,

@@ -1655,6 +1655,7 @@ export default function ProductManager() {
                 product={editingProduct}
                 onClose={() => setIsModalOpen(false)}
                 onSave={fetchProducts}
+                existingProducts={allProductsForEdit.length > 0 ? allProductsForEdit : products}
             />
 
             <AnimatePresence>

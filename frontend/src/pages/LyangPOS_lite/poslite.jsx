@@ -1814,7 +1814,7 @@ const POSLite = () => {
               className="px-2.5 py-1 rounded border text-[10px] font-black uppercase flex items-center gap-1 hover:bg-[var(--lite-active-bg)] transition-all bg-[var(--lite-surface)] border-[var(--lite-border)] text-emerald-500 hover:text-emerald-400 shrink-0 mr-1"
               title="Đọc tên / Alias sản phẩm bằng giọng nói (Voice STT)"
             >
-              <Mic size={12} className="animate-pulse" /> ĐỌC ALIAS
+              <Mic size={12} /> ĐỌC ALIAS
             </button>
 
             <button

@@ -74,19 +74,33 @@ export default function SearchableSelect({
                 const phoneA = (typeof a === 'object' && a.phone) ? String(a.phone).toLowerCase() : '';
                 const phoneB = (typeof b === 'object' && b.phone) ? String(b.phone).toLowerCase() : '';
 
+                const spaceTerm = ' ' + term;
+                const spaceTermNoAccent = ' ' + termNoAccent;
                 const getScore = (labelStr, labelNorm, codeStr, codeNorm, phoneStr) => {
-                    if (labelStr.startsWith(term)) return 0;
-                    if (labelNorm.startsWith(termNoAccent)) return 1;
-                    if (labelStr.includes(term) || labelNorm.includes(termNoAccent)) return 2;
+                    // Accented matches
+                    if (labelStr === term) return -40;
+                    if (labelStr.startsWith(term)) return -30;
+                    if (labelStr.includes(spaceTerm)) return -20;
+                    if (labelStr.includes(term)) return -10;
 
-                    if (codeStr.startsWith(term)) return 3;
-                    if (codeNorm.startsWith(termNoAccent)) return 4;
-                    if (codeStr.includes(term) || codeNorm.includes(termNoAccent)) return 5;
+                    if (codeStr === term) return -8;
+                    if (codeStr.startsWith(term)) return -7;
+                    if (codeStr.includes(term)) return -6;
 
-                    if (phoneStr.startsWith(term)) return 6;
-                    if (phoneStr.includes(term)) return 7;
+                    // Unaccented matches
+                    if (labelNorm === termNoAccent) return 10;
+                    if (labelNorm.startsWith(termNoAccent)) return 15;
+                    if (labelNorm.includes(spaceTermNoAccent)) return 20;
+                    if (labelNorm.includes(termNoAccent)) return 25;
 
-                    return 8;
+                    if (codeNorm === termNoAccent) return 30;
+                    if (codeNorm.startsWith(termNoAccent)) return 32;
+                    if (codeNorm.includes(termNoAccent)) return 34;
+
+                    if (phoneStr.startsWith(term)) return 40;
+                    if (phoneStr.includes(term)) return 45;
+
+                    return 99;
                 };
 
                 const scoreA = getScore(labelA, labelANorm, codeA, codeANorm, phoneA);
@@ -95,7 +109,11 @@ export default function SearchableSelect({
                 if (scoreA !== scoreB) {
                     return scoreA - scoreB;
                 }
-                return labelA.localeCompare(labelB, "vi", { sensitivity: "base" });
+                const aExactAcc = labelA.includes(term);
+                const bExactAcc = labelB.includes(term);
+                if (aExactAcc !== bExactAcc) return aExactAcc ? -1 : 1;
+                if (labelA.length !== labelB.length) return labelA.length - labelB.length;
+                return labelA.localeCompare(labelB, "vi");
             });
         }
         

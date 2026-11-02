@@ -10,4 +10,3 @@ export { default as OrderSwitchOverlay } from './OrderSwitchOverlay';
 export { default as POSFloatingBubbles } from './POSFloatingBubbles';
 export { default as POSPartnerDropdown } from './POSPartnerDropdown';
 export { default as POSProductDropdown } from './POSProductDropdown';
-export { default as POSVoiceSearchHUD } from './POSVoiceSearchHUD';

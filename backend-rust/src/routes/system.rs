@@ -391,18 +391,33 @@ pub async fn save_and_open_tauri(Json(data): Json<serde_json::Value>) -> impl In
     let filename = data.get("filename").and_then(|v| v.as_str()).unwrap_or("export.xlsx");
     let base64_data = data.get("base64_data").and_then(|v| v.as_str()).unwrap_or("");
 
-    if let Ok(bytes) = BASE64_STANDARD.decode(base64_data) {
-        let downloads_dir = std::env::var("USERPROFILE")
-            .or_else(|_| std::env::var("HOME"))
-            .map(|p| std::path::PathBuf::from(p).join("Downloads"))
-            .unwrap_or_else(|_| std::path::PathBuf::from("."));
-        let file_path = downloads_dir.join(filename);
-        let _ = tokio::fs::write(&file_path, bytes).await;
-        let _ = open::that(&file_path);
-        return Json(json!({"success": true, "path": file_path.to_string_lossy()})).into_response();
-    }
+    let bytes = match BASE64_STANDARD.decode(base64_data) {
+        Ok(b) => b,
+        Err(_) => return Json(json!({"success": false, "error": "Invalid base64 data"})).into_response(),
+    };
 
-    Json(json!({"success": false, "error": "Invalid base64 data"})).into_response()
+    let mut dialog = rfd::AsyncFileDialog::new().set_file_name(filename);
+    if filename.ends_with(".xlsx") || filename.ends_with(".xls") {
+        dialog = dialog.add_filter("Excel Spreadsheet (*.xlsx, *.xls)", &["xlsx", "xls"]);
+    } else if filename.ends_with(".pdf") {
+        dialog = dialog.add_filter("PDF Document (*.pdf)", &["pdf"]);
+    } else if filename.ends_with(".png") || filename.ends_with(".jpg") || filename.ends_with(".jpeg") {
+        dialog = dialog.add_filter("Image (*.png; *.jpg)", &["png", "jpg", "jpeg"]);
+    }
+    dialog = dialog.add_filter("All Files (*.*)", &["*"]);
+
+    let file_handle = dialog.save_file().await;
+    if let Some(handle) = file_handle {
+        let path = handle.path();
+        if let Err(e) = tokio::fs::write(path, &bytes).await {
+            return Json(json!({"success": false, "error": e.to_string()})).into_response();
+        }
+        let _ = open::that(path);
+        Json(json!({"success": true, "path": path.to_string_lossy()})).into_response()
+    } else {
+        // User cancelled the file save dialog
+        Json(json!({"success": false, "cancelled": true})).into_response()
+    }
 }
 
 
@@ -416,22 +431,29 @@ pub async fn scan_purchase_invoice(
     State(pool): State<SqlitePool>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    let mut api_key = data.get("api_key").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-
-    if api_key.is_empty() {
-        if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_api_key'")
+    let mut api_keys: Vec<String> = Vec::new();
+    let client_key = data.get("api_key").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+    if !client_key.is_empty() {
+        api_keys.push(client_key);
+    }
+    for s_key in ["gemini_api_key", "gemini_api_key_2", "gemini_api_key_3"] {
+        if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = ?")
+            .bind(s_key)
             .fetch_optional(&pool)
             .await
         {
             if let Some(r) = row {
                 if let Ok(val) = r.try_get::<String, _>("setting_value") {
-                    api_key = val.trim_matches('"').trim().to_string();
+                    let cleaned = val.trim_matches('"').trim();
+                    if !cleaned.is_empty() && !api_keys.contains(&cleaned.to_string()) {
+                        api_keys.push(cleaned.to_string());
+                    }
                 }
             }
         }
     }
 
-    if api_key.is_empty() {
+    if api_keys.is_empty() {
         return Ok(Json(json!([])));
     }
 
@@ -500,40 +522,61 @@ Nếu ảnh không có dòng sản phẩm nào hoặc không đọc được, tr
     });
 
     let client = reqwest::Client::new();
-    let models = ["gemini-3.5-flash-lite"];
+    let mut models: Vec<String> = Vec::new();
+    if let Ok(row) = sqlx::query("SELECT setting_value FROM app_setting WHERE setting_key = 'gemini_selected_model'")
+        .fetch_optional(&pool)
+        .await
+    {
+        if let Some(r) = row {
+            if let Ok(val) = r.try_get::<String, _>("setting_value") {
+                let m = val.trim_matches('"').trim();
+                if !m.is_empty() && !models.contains(&m.to_string()) {
+                    models.push(m.to_string());
+                }
+            }
+        }
+    }
+    for fallback in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.5-flash-lite"] {
+        if !models.contains(&fallback.to_string()) {
+            models.push(fallback.to_string());
+        }
+    }
+
     let mut response_text = String::new();
 
-    for model in models {
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
-            model, api_key
-        );
+    'outer_scan: for api_key in &api_keys {
+        for model in &models {
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+                model, api_key
+            );
 
-        let res = client
-            .post(&url)
-            .header("Content-Type", "application/json")
-            .json(&request_body)
-            .send()
-            .await;
+            let res = client
+                .post(&url)
+                .header("Content-Type", "application/json")
+                .json(&request_body)
+                .send()
+                .await;
 
-        if let Ok(resp) = res {
-            if resp.status().is_success() {
-                if let Ok(gemini_res) = resp.json::<serde_json::Value>().await {
-                    if let Some(text) = gemini_res
-                        .get("candidates")
-                        .and_then(|c| c.get(0))
-                        .and_then(|c0| c0.get("content"))
-                        .and_then(|cnt| cnt.get("parts"))
-                        .and_then(|p| p.get(0))
-                        .and_then(|p0| p0.get("text"))
-                        .and_then(|t| t.as_str())
-                    {
-                        response_text = text.trim().to_string();
-                        break;
+            if let Ok(resp) = res {
+                if resp.status().is_success() {
+                    if let Ok(gemini_res) = resp.json::<serde_json::Value>().await {
+                        if let Some(text) = gemini_res
+                            .get("candidates")
+                            .and_then(|c| c.get(0))
+                            .and_then(|c0| c0.get("content"))
+                            .and_then(|cnt| cnt.get("parts"))
+                            .and_then(|p| p.get(0))
+                            .and_then(|p0| p0.get("text"))
+                            .and_then(|t| t.as_str())
+                        {
+                            response_text = text.trim().to_string();
+                            break 'outer_scan;
+                        }
                     }
+                } else {
+                    tracing::warn!("Gemini API error with model {}: status {}", model, resp.status());
                 }
-            } else {
-                tracing::warn!("Gemini API error with model {}: status {}", model, resp.status());
             }
         }
     }

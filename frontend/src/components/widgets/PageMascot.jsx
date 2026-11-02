@@ -352,6 +352,36 @@ const PageMascot = ({ onOpenSettings, onPosChange, onOpenAiConsultant }) => {
     }
   };
 
+  // Lắng nghe sự kiện cảm xúc từ Lí An AI Chatbot
+  useEffect(() => {
+    const handleReactEvent = (e) => {
+      const reaction = e.detail?.reaction || 'sparkle';
+      if (!spriteRef.current || !currentChar?.reactions) return;
+      isReactingRef.current = true;
+      spriteRef.current.style.backgroundImage = `url("${currentChar.reactions}")`;
+      const rIdx = REACTIONS.indexOf(reaction);
+      spriteRef.current.style.backgroundPosition = getCellPos(rIdx >= 0 ? rIdx : 0);
+
+      if (e.detail?.quote) {
+        setQuote(e.detail.quote);
+        setShowQuote(true);
+        if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current);
+        quoteTimerRef.current = setTimeout(() => setShowQuote(false), 3500);
+      }
+
+      window.setTimeout(() => {
+        isReactingRef.current = false;
+        if (spriteRef.current) {
+          spriteRef.current.style.backgroundImage = `url("${currentChar.directions}")`;
+          spriteRef.current.style.backgroundPosition = currentBgPosRef.current || '50% 50%';
+        }
+      }, e.detail?.duration || 1400);
+    };
+
+    window.addEventListener('lyang_mascot_react', handleReactEvent);
+    return () => window.removeEventListener('lyang_mascot_react', handleReactEvent);
+  }, [currentChar]);
+
   // Scroll wheel để phóng to / thu nhỏ Mascot
   useEffect(() => {
     const el = containerRef.current;

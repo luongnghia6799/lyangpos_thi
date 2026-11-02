@@ -108,6 +108,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/purchase/scan-invoice", post(routes::system::scan_purchase_invoice))
         .route("/api/ai/consult", post(routes::ai::consult_ai))
         .route("/api/ai/transcribe-voice", post(routes::ai::transcribe_voice))
+        .route("/api/ai/models", get(routes::ai::get_gemini_models).post(routes::ai::post_fetch_gemini_models))
         // Active Ingredients Pharmacological Research Knowledge & Sync
         .route("/api/active-ingredients/researched", get(routes::active_ingredient::get_researched_ingredients))
         .route("/api/active-ingredients/researched/sync", post(routes::active_ingredient::sync_and_research_warehouse))
@@ -167,6 +168,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/accounting/partners/bulk-batch-invoice",
             post(routes::accounting::bulk_batch_invoice_partners),
+        )
+        .route(
+            "/api/accounting/partners/:id/batch-invoice",
+            post(routes::accounting::batch_invoice_partner),
         )
         .route(
             "/api/accounting/partners/:id/update-items-invoice",
@@ -267,6 +272,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/products/bulk-delete",
             post(routes::product::bulk_delete_products),
+        )
+        .route(
+            "/api/products/bulk-accounting-update",
+            post(routes::product::bulk_accounting_update),
         )
         .route("/api/products/brands", get(routes::product::get_brands))
         .route("/api/products/summary", get(routes::product::get_product_summary))

@@ -4,7 +4,8 @@ import {
     Palette, X, RotateCcw, Check, Sparkles, Sliders, Eye, SunMedium, 
     Layers, Zap, Square, ShoppingCart, Clock, Bell, Image as ImageIcon,
     SlidersHorizontal, Compass, Move, Maximize2, ShieldAlert, Paintbrush, Droplet,
-    Bookmark, Plus, Trash2, ChevronDown, ChevronUp, FolderHeart, Upload, RefreshCw
+    Bookmark, Plus, Trash2, ChevronDown, ChevronUp, FolderHeart, Upload, RefreshCw,
+    Layout as LayoutIcon, Monitor, CheckCircle2, BookmarkCheck, ChevronRight
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import Portal from '../widgets/Portal';
@@ -12,6 +13,19 @@ import BubbleCustomizerTab, { getBubbleComputedStyle, getButtonComputedStyle, ge
 import BadgeCustomizerTab, { getBadgeComputedStyle, BADGE_PRESETS } from './BadgeCustomizerTab';
 
 export { getBubbleComputedStyle, getButtonComputedStyle, getBubbleBadgeStyle, adjustColor, BUBBLE_PRESETS, getBadgeComputedStyle, BADGE_PRESETS };
+
+export const PAGE_BG_SWATCHES = [
+    { name: 'Mặc định (Lyang)', color: 'default', preview: '#faf8f3' },
+    { name: 'Trắng Tinh Khôi', color: '#ffffff', preview: '#ffffff' },
+    { name: 'Xanh Thảo Mộc', color: '#e2eed5', preview: '#e2eed5' },
+    { name: 'Xanh Bạc Hà', color: '#ecfdf5', preview: '#ecfdf5' },
+    { name: 'Vàng Kem Ấm', color: '#fefce8', preview: '#fefce8' },
+    { name: 'Xanh Lam Dịu', color: '#f0f9ff', preview: '#f0f9ff' },
+    { name: 'Hồng Phấn Nhạt', color: '#fff1f2', preview: '#fff1f2' },
+    { name: 'Xám Tối Giản', color: '#f8fafc', preview: '#f8fafc' },
+    { name: 'Nâu Be Mộc', color: '#f7f3ee', preview: '#f7f3ee' },
+    { name: 'Tím Oải Hương', color: '#f5f3ff', preview: '#f5f3ff' },
+];
 
 /**
  * Safely compresses and scales down user uploaded watermark images on client-side
@@ -207,6 +221,7 @@ export const CART_COLOR_PRESETS = [
 ];
 
 export const DEFAULT_CART_COLOR_CONFIG = {
+    pageBgColor: 'default',
     headerBg: 'default',
     headerText: 'default',
     borderColor: 'default',
@@ -221,6 +236,8 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     enableGlow: true,
     enableShadow: true,
     // Bubble & Button customizations
+    bubbleLayoutStyle: 'modern',
+    cartRowAnimation: 'waterfall',
     bubbleCustomMode: 'all',
     bubbleBg: 'default',
     bubbleTextColor: 'default',
@@ -268,23 +285,20 @@ export const DEFAULT_CART_COLOR_CONFIG = {
     btnSavePrintShadowY: 10,
     btnSavePrintEnableGlow: true,
     btnSavePrintGlowColor: '#10b981',
-    // Text Pills customization
+    enableSearchTypingAnimation: true,
     enableTextPills: false,
-    textPillStyle: 'glass', // 'glass' | 'neon' | 'theme'
+    textPillStyle: 'glass',
     pillBgColor: 'default',
     pillBorderColor: 'default',
     pillBlur: 12,
     pillOpacity: 25,
-    pillRadius: 16, // px (0 to 99)
+    pillRadius: 16,
     pillGlow: true,
-    // Text Glow & Text Shadow customization
-    textShadowMode: 'none', // 'none' | 'glow' | 'shadow' | 'both'
+    textShadowMode: 'none',
     textGlowColor: 'default',
     textShadowColor: 'default',
     textShadowBlur: 6,
-    // Layout & Viewport customization
     constrainCartAboveBubbles: true,
-    // Badge & Nhãn Dòng customization
     badgeCustomMode: 'all',
     badgeBorderWidth: '2',
     badgeEnableBorder: true,
@@ -354,7 +368,6 @@ export const getCartTextPillStyle = (config, type = 'default') => {
     const accent = (config?.accentColor && config.accentColor !== 'default') ? config.accentColor : '#2d5016';
     const borderCol = (config?.borderColor && config.borderColor !== 'default') ? config.borderColor : accent;
 
-    // Custom overrides if set
     const customBg = (config?.pillBgColor && config.pillBgColor !== 'default') ? config.pillBgColor : null;
     const customBorder = (config?.pillBorderColor && config.pillBorderColor !== 'default') ? config.pillBorderColor : null;
     const customBlur = (config?.pillBlur !== undefined && config?.pillBlur !== null && config?.pillBlur !== '') ? Number(config.pillBlur) : null;
@@ -396,7 +409,6 @@ export const getCartTextPillStyle = (config, type = 'default') => {
         };
     }
 
-    // Default: 'glass'
     const bgAlpha = customOpacity !== null ? customOpacity : 0.22;
     const blurVal = customBlur !== null ? customBlur : 12;
     const finalBg = customBg 
@@ -516,6 +528,37 @@ export const applyCartThemeToDom = (config) => {
     } else {
         root.style.removeProperty('--cart-values-color');
     }
+
+    // Màu nền toàn bộ trang trong POS (Áp dụng cho Light Mode, giữ nguyên Dark Mode)
+    const isDark = root.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+    if (cfg && cfg.pageBgColor && cfg.pageBgColor !== 'default') {
+        const bg = cfg.pageBgColor;
+        root.style.setProperty('--custom-page-bg', bg);
+        if (!isDark) {
+            root.style.setProperty('--bg-color', bg);
+            root.style.setProperty('--color-app-bg', bg);
+            root.style.setProperty('--color-background', bg);
+            root.style.setProperty('--main-gradient', bg);
+        } else {
+            root.style.setProperty('--bg-color', '#000000');
+            root.style.setProperty('--color-app-bg', '#000000');
+            root.style.setProperty('--color-background', '#000000');
+            root.style.setProperty('--main-gradient', 'linear-gradient(180deg, #000000 0%, #080605 100%)');
+        }
+    } else {
+        root.style.removeProperty('--custom-page-bg');
+        if (!isDark) {
+            root.style.removeProperty('--bg-color');
+            root.style.removeProperty('--color-app-bg');
+            root.style.removeProperty('--color-background');
+            root.style.removeProperty('--main-gradient');
+        } else {
+            root.style.setProperty('--bg-color', '#000000');
+            root.style.setProperty('--color-app-bg', '#000000');
+            root.style.setProperty('--color-background', '#000000');
+            root.style.setProperty('--main-gradient', 'linear-gradient(180deg, #000000 0%, #080605 100%)');
+        }
+    }
 };
 
 export const getCartBoxShadow = (config) => {
@@ -543,9 +586,21 @@ export default function CartColorCustomizerModal({
     onClose, 
     config, 
     onChangeConfig,
-    activeTab: initialTab = 'colors'
+    activeTab: initialTab = 'themes'
 }) {
-    const [activeTab, setActiveTab] = useState(initialTab);
+    const getNormalizedTab = (tab) => {
+        if (!tab) return 'themes';
+        if (tab === 'colors' || tab === 'themes') return 'themes';
+        if (tab === 'table_colors' || tab === 'cart') return 'cart';
+        if (tab === 'displays' || tab === 'effects') return 'effects';
+        if (tab === 'mascot') return 'mascot';
+        if (tab === 'bubbles' || tab === 'badges') return 'bubbles';
+        return 'themes';
+    };
+
+    const [activeTab, setActiveTab] = useState(() => getNormalizedTab(initialTab));
+    const [bubblesSubTab, setBubblesSubTab] = useState(() => (initialTab === 'badges' ? 'badges' : 'bubbles'));
+    const [showTab1Preview, setShowTab1Preview] = useState(false);
 
     // Additional display settings stored in localStorage
     const [transparentCartTable, setTransparentCartTable] = useState(() => localStorage.getItem("pos_transparent_cart_table") === "true");
@@ -600,7 +655,10 @@ export default function CartColorCustomizerModal({
                 const saved = localStorage.getItem("pos_cart_custom_presets");
                 if (saved) setCustomPresets(JSON.parse(saved));
             } catch (e) {}
-            if (initialTab) setActiveTab(initialTab);
+            if (initialTab) {
+                setActiveTab(getNormalizedTab(initialTab));
+                if (initialTab === 'badges') setBubblesSubTab('badges');
+            }
         }
     }, [isOpen, initialTab]);
 
@@ -615,7 +673,16 @@ export default function CartColorCustomizerModal({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    const currentConfig = { ...DEFAULT_CART_COLOR_CONFIG, ...config };
+    const currentConfig = { 
+        ...DEFAULT_CART_COLOR_CONFIG, 
+        orderSwitchAnimation: localStorage.getItem('pos_order_switch_animation') || 'ring',
+        enableSearchTypingAnimation: config?.enableSearchTypingAnimation !== undefined 
+            ? Boolean(config.enableSearchTypingAnimation) 
+            : (localStorage.getItem("pos_search_typing_animation") !== "false"),
+        ...config 
+    };
+
+    const activeAccentColor = currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016';
 
     const broadcastSetting = (key, value) => {
         try {
@@ -644,6 +711,7 @@ export default function CartColorCustomizerModal({
             accentColor: currentConfig.accentColor || 'default',
             productTextColor: currentConfig.productTextColor || 'default',
             cartValuesColor: currentConfig.cartValuesColor || 'default',
+            pageBgColor: currentConfig.pageBgColor || 'default',
             previewHeaderBg: currentConfig.headerBg !== 'default' ? currentConfig.headerBg : '#8b6f47',
             previewBorder: currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f47',
             previewAccent: currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016',
@@ -728,7 +796,8 @@ export default function CartColorCustomizerModal({
                 borderWidth: preset.borderWidth,
                 accentColor: preset.accentColor || 'default',
                 productTextColor: preset.productTextColor || 'default',
-                cartValuesColor: preset.cartValuesColor || currentConfig.cartValuesColor || 'default'
+                cartValuesColor: preset.cartValuesColor || currentConfig.cartValuesColor || 'default',
+                pageBgColor: preset.pageBgColor || currentConfig.pageBgColor || 'default'
             };
             onChangeConfig(newCfg);
             applyCartThemeToDom(newCfg);
@@ -764,15 +833,323 @@ export default function CartColorCustomizerModal({
         localStorage.setItem("pos_mascot_watermark_pos", "bottom-right");
     };
 
-    const colorSwatches = [
-        '#2d5016', '#10b981', '#064e3b', '#8b6f47', '#543b24',
-        '#2563eb', '#1d4ed8', '#7c3aed', '#db2777', '#e11d48',
-        '#d97706', '#0f172a', '#334155', '#475569', '#ffffff', '#000000'
+    const TABS = [
+        { id: 'themes', label: '1. Giao Diện & Nền', icon: Palette, desc: 'Presets & Màu trang' },
+        { id: 'cart', label: '2. Bảng Giỏ Hàng', icon: ShoppingCart, desc: 'Tiêu đề, chữ & giá' },
+        { id: 'effects', label: '3. Kính & Viền', icon: SlidersHorizontal, desc: 'Độ mờ, Neon & 3D' },
+        { id: 'mascot', label: '4. Mascot Chìm', icon: ImageIcon, desc: 'Linh vật trong giỏ' },
+        { id: 'bubbles', label: '5. Nút & Nhãn', icon: Sparkles, desc: 'Bubbles & Badges' },
     ];
 
     if (typeof document === 'undefined') return null;
 
-    const activeAccentColor = currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016';
+    /**
+     * Reusable Live Preview Table for Cart
+     */
+    const renderLivePreview = (compact = false) => {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                        <Eye size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        Xem trước giỏ hàng thực tế (Live Preview)
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                        Cập nhật tức thì
+                    </span>
+                </div>
+
+                <div 
+                    className={cn(
+                        "w-full rounded-2xl overflow-hidden transition-all duration-300 relative select-none",
+                        transparentCartTable && (!currentConfig.overlayColor || currentConfig.overlayColor === 'default') 
+                            ? "bg-card/40" 
+                            : (!transparentCartTable ? "bg-white/80 dark:bg-slate-900/70" : "")
+                    )}
+                    style={{
+                        ...getCartOverlayStyle(currentConfig, transparentCartTable),
+                        border: currentConfig.enableBorder !== false ? `${currentConfig.borderWidth || '1'}px solid ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f4740'}` : 'none',
+                        boxShadow: getCartBoxShadow(currentConfig)
+                    }}
+                >
+                    {/* Watermark in Preview if enabled */}
+                    {mascotWatermarkVisible && (
+                        <div 
+                            className={cn(
+                                "absolute pointer-events-none select-none z-0 overflow-hidden flex transition-all duration-200",
+                                mascotWatermarkPos === "bottom-right" ? "right-2 bottom-2 items-end justify-end" :
+                                mascotWatermarkPos === "bottom-left" ? "left-2 bottom-2 items-end justify-start" :
+                                mascotWatermarkPos === "top-right" ? "right-2 top-2 items-start justify-end" :
+                                mascotWatermarkPos === "top-left" ? "left-2 top-2 items-start justify-start" :
+                                "inset-0 items-center justify-center"
+                            )}
+                            style={{ opacity: (mascotWatermarkOpacity || 15) / 100 }}
+                        >
+                            <img
+                                src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"}
+                                alt="Watermark Preview"
+                                className="object-contain"
+                                style={{
+                                    width: `${(mascotWatermarkScale || 100) * 0.7}px`,
+                                    height: `${(mascotWatermarkScale || 100) * 0.7}px`,
+                                    transform: `translate(${mascotWatermarkOffsetX * 0.4}px, ${mascotWatermarkOffsetY * 0.4}px) rotate(${mascotWatermarkRotate}deg)`
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    <table className="w-full text-left border-collapse table-fixed text-xs relative z-10">
+                        <thead>
+                            <tr 
+                                style={{
+                                    backgroundColor: currentConfig.headerBg !== 'default' ? currentConfig.headerBg : 'transparent',
+                                    color: currentConfig.headerText !== 'default' ? currentConfig.headerText : '#8b6f47'
+                                }}
+                                className="transition-colors duration-200 border-b border-black/10 dark:border-white/10"
+                            >
+                                <th className="py-2.5 px-3 font-black uppercase text-[10px] w-12 text-center" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Stt</th>
+                                <th className="py-2.5 px-3 font-black uppercase text-[10px]" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>
+                                    <div className="flex items-center gap-2">
+                                        <span>Tên sản phẩm</span>
+                                        <span 
+                                            className="px-2 py-0.5 rounded-full text-[9px] font-black text-white shadow-xs"
+                                            style={{ backgroundColor: activeAccentColor }}
+                                        >
+                                            1 món
+                                        </span>
+                                    </div>
+                                </th>
+                                <th className="py-2.5 px-3 font-black uppercase text-[10px] text-center w-20" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Số lượng</th>
+                                <th className="py-2.5 px-3 font-black uppercase text-[10px] text-right w-24" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Đơn giá</th>
+                                <th className="py-2.5 px-3 font-black uppercase text-[10px] text-right w-28" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr 
+                                className="border-b border-black/5 dark:border-white/5 transition-colors"
+                                style={{
+                                    borderColor: currentConfig.borderColor !== 'default' ? `${currentConfig.borderColor}30` : undefined
+                                }}
+                            >
+                                <td className="py-2.5 px-3 text-center font-bold text-slate-400">
+                                    {currentConfig.enableTextPills ? (
+                                        <span 
+                                            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full border text-xs font-black shadow-xs"
+                                            style={getCartTextPillStyle(currentConfig, 'index')}
+                                        >
+                                            1
+                                        </span>
+                                    ) : (
+                                        <span>1</span>
+                                    )}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div 
+                                            className={cn(
+                                                "font-black text-slate-800 dark:text-slate-100 uppercase",
+                                                currentConfig.enableTextPills && "px-2.5 py-1 rounded-xl border shadow-xs inline-flex items-center"
+                                            )}
+                                            style={{
+                                                color: (currentConfig.productTextColor && currentConfig.productTextColor !== 'default')
+                                                    ? currentConfig.productTextColor
+                                                    : undefined,
+                                                ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'name') : {}),
+                                                ...getCartTextShadowStyle(currentConfig, currentConfig.productTextColor)
+                                            }}
+                                        >
+                                            Phân bón NPK 20-20-15 Cao Cấp
+                                        </div>
+                                    </div>
+                                    {showLastPurchaseBadge && (
+                                        <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                            <Clock size={10} /> Mua gần nhất: 2 ngày trước
+                                        </div>
+                                    )}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-black">
+                                    <span 
+                                        className={cn(
+                                            "inline-flex items-center justify-center min-w-[28px]",
+                                            currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
+                                        )}
+                                        style={{
+                                            color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
+                                            ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'qty') : {}),
+                                            ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
+                                        }}
+                                    >
+                                        2 bao
+                                    </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-black">
+                                    <span 
+                                        className={cn(
+                                            "inline-flex items-center justify-end",
+                                            currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
+                                        )}
+                                        style={{
+                                            color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : undefined,
+                                            ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'price') : {}),
+                                            ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
+                                        }}
+                                    >
+                                        450.000
+                                    </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-black">
+                                    <span 
+                                        className={cn(
+                                            "inline-flex items-center justify-end",
+                                            currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
+                                        )}
+                                        style={{
+                                            color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
+                                            ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'amount') : {}),
+                                            ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor || activeAccentColor)
+                                        }}
+                                    >
+                                        900.000đ
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {/* Sample active bar preview */}
+                    <div className="p-2.5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3 text-[11px] relative z-10">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-400">Nút Active:</span>
+                            <div 
+                                className="px-3 py-1 rounded-xl text-white font-black text-[10px] shadow-sm flex items-center gap-1.5"
+                                style={{
+                                    background: `linear-gradient(90deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor})`
+                                }}
+                            >
+                                <Check size={12} strokeWidth={3} />
+                                TIỀN MẶT
+                            </div>
+                        </div>
+                        <div 
+                            className="px-3.5 py-1.5 rounded-xl text-white font-black text-xs shadow-md flex items-center gap-2"
+                            style={{
+                                background: `linear-gradient(135deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor}dd)`
+                            }}
+                        >
+                            <span className="text-[9px] uppercase tracking-wider opacity-85">TỔNG CỘNG:</span>
+                            <span>900.000đ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    /**
+     * Reusable Color Field Card
+     */
+    const renderColorField = ({
+        id,
+        label,
+        desc,
+        value,
+        defaultValue = 'default',
+        defaultLabel = 'Mặc định (Theme)',
+        swatches = [],
+        onChange
+    }) => {
+        const isCustom = value && value !== defaultValue;
+        return (
+            <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-3 shadow-xs transition-all hover:border-[#8b6f47]/30 dark:hover:border-white/20">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                        <div className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                            <span>{label}</span>
+                        </div>
+                        {desc && (
+                            <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                {desc}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] px-2 py-0.5 rounded-lg bg-black/5 dark:bg-white/10 text-slate-700 dark:text-slate-300 font-bold">
+                            {isCustom ? value : defaultLabel}
+                        </span>
+                        {isCustom && (
+                            <button
+                                type="button"
+                                onClick={() => onChange(defaultValue)}
+                                className="px-2 py-0.5 text-[10px] font-bold text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                title="Khôi phục mặc định"
+                            >
+                                Đặt lại
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Swatches Grid */}
+                {swatches.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        {swatches.map((color) => {
+                            const isSelected = value === color;
+                            return (
+                                <button
+                                    key={color}
+                                    type="button"
+                                    onClick={() => onChange(color)}
+                                    className={cn(
+                                        "w-6 h-6 rounded-lg transition-all flex items-center justify-center cursor-pointer shadow-xs",
+                                        isSelected ? "scale-115 ring-2 ring-emerald-500 ring-offset-1 dark:ring-offset-slate-900 z-10" : "hover:scale-110 opacity-85 hover:opacity-100"
+                                    )}
+                                    style={{ 
+                                        backgroundColor: color,
+                                        border: color === '#ffffff' ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(0,0,0,0.1)'
+                                    }}
+                                    title={color}
+                                >
+                                    {isSelected && (
+                                        <Check 
+                                            size={12} 
+                                            strokeWidth={3} 
+                                            className={['#ffffff', '#fefce8', '#f8fafc', '#fff1f2', '#e2eed5', '#ecfdf5', '#fde68a'].includes(color) ? "text-slate-900" : "text-white"} 
+                                        />
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Hex input & native color picker */}
+                <div className="flex items-center gap-2 pt-1 border-t border-black/5 dark:border-white/5">
+                    <label className="relative w-8 h-8 rounded-xl overflow-hidden cursor-pointer border border-black/15 dark:border-white/20 shrink-0 shadow-xs hover:scale-105 transition-transform" title="Bấm để chọn màu tùy biến">
+                        <input
+                            type="color"
+                            value={isCustom ? value : '#8b6f47'}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0"
+                        />
+                        <div 
+                            className="w-full h-full" 
+                            style={{ backgroundColor: isCustom ? value : '#8b6f47' }} 
+                        />
+                    </label>
+
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            value={isCustom ? value : ''}
+                            onChange={(e) => onChange(e.target.value)}
+                            placeholder={defaultLabel}
+                            className="w-full px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <Portal>
@@ -783,552 +1160,79 @@ export default function CartColorCustomizerModal({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.18 }}
                         className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 select-none"
                     >
                         <m.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
+                            transition={{ duration: 0.18 }}
                             onClick={onClose}
                             className="fixed inset-0 bg-black/60 backdrop-blur-sm transform-gpu will-change-transform"
                         />
 
                         <m.div
-                            initial={{ opacity: 0, scale: 0.94, y: 15 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 12 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.94, y: 15 }}
-                            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                            className="relative w-full max-w-4xl bg-[#faf8f3] dark:bg-[#071510] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
+                            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                            className="relative w-full max-w-4xl bg-[#faf8f3] dark:bg-[#07130c] border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-[2rem] shadow-[0_25px_80px_rgba(0,0,0,0.55)] overflow-hidden z-10 flex flex-col max-h-[92vh] transform-gpu will-change-transform"
                         >
-                {/* Header with Navigation Tabs */}
-                <div className="px-6 pt-5 pb-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div 
-                                className="w-11 h-11 rounded-2xl text-white flex items-center justify-center shadow-md transition-all"
-                                style={{ 
-                                    backgroundColor: activeAccentColor,
-                                    boxShadow: `0 8px 20px ${activeAccentColor}40`
-                                }}
-                            >
-                                <Palette size={22} strokeWidth={2.5} />
-                            </div>
-                            <div>
-                                <h3 className="font-black text-base uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                    <span>Tùy Chỉnh Giỏ Hàng & Giao Diện Bảng</span>
-                                    <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                        Live Preview
-                                    </span>
-                                </h3>
-                                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                    Tông màu, viền neon, lớp kính mờ, các badge hiển thị và linh vật chìm
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="w-9 h-9 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        >
-                            <X size={20} strokeWidth={2.5} />
-                        </button>
-                    </div>
-
-                    {/* Segmented Control / Tabs */}
-                    <div className="overflow-x-auto custom-scrollbar pb-0.5">
-                        <div className="grid grid-cols-5 min-w-[620px] p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10">
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('colors')}
-                                className={cn(
-                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-                                    activeTab === 'colors'
-                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
-                                )}
-                            >
-                                <Palette size={14} strokeWidth={2.5} className="shrink-0" />
-                                <span className="truncate">1. Màu Giỏ Hàng</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('displays')}
-                                className={cn(
-                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-                                    activeTab === 'displays'
-                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
-                                )}
-                            >
-                                <SlidersHorizontal size={14} strokeWidth={2.5} className="shrink-0" />
-                                <span className="truncate">2. Mờ Kính & Viền</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('mascot')}
-                                className={cn(
-                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-                                    activeTab === 'mascot'
-                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
-                                )}
-                            >
-                                <ImageIcon size={14} strokeWidth={2.5} className="shrink-0" />
-                                <span className="truncate">3. Mascot Chìm</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('bubbles')}
-                                className={cn(
-                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-                                    activeTab === 'bubbles'
-                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
-                                )}
-                            >
-                                <Sparkles size={14} strokeWidth={2.5} className="text-amber-500 shrink-0" />
-                                <span className="truncate">4. Bubbles & Nút</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('badges')}
-                                className={cn(
-                                    "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-                                    activeTab === 'badges'
-                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
-                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
-                                )}
-                            >
-                                <Bookmark size={14} strokeWidth={2.5} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                                <span className="truncate">5. Badges & Nhãn</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Content Area */}
-                <div className="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
-                    {/* Live Preview Box (Always pinned at top of modal) */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                            <span className="flex items-center gap-1.5">
-                                <Eye size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                Xem trước giỏ hàng thực tế (Live Preview)
-                            </span>
-                            <span className="text-[10px] text-slate-400 lowercase font-medium">
-                                thay đổi có hiệu lực ngay
-                            </span>
-                        </div>
-
-                        <div 
-                            className={cn(
-                                "w-full rounded-2xl overflow-hidden transition-all duration-300 relative",
-                                transparentCartTable && (!currentConfig.overlayColor || currentConfig.overlayColor === 'default') ? "bg-card/40" : (!transparentCartTable ? "bg-white/70 dark:bg-slate-900/60" : "")
-                            )}
-                            style={{
-                                ...getCartOverlayStyle(currentConfig, transparentCartTable),
-                                border: currentConfig.enableBorder !== false ? `${currentConfig.borderWidth || '1'}px solid ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f4740'}` : 'none',
-                                boxShadow: getCartBoxShadow(currentConfig)
-                            }}
-                        >
-                            {/* Watermark in Preview if enabled */}
-                            {mascotWatermarkVisible && (
-                                <div 
-                                    className={cn(
-                                        "absolute pointer-events-none select-none z-0 overflow-hidden flex transition-all duration-200",
-                                        mascotWatermarkPos === "bottom-right" ? "right-2 bottom-2 items-end justify-end" :
-                                        mascotWatermarkPos === "bottom-left" ? "left-2 bottom-2 items-end justify-start" :
-                                        mascotWatermarkPos === "top-right" ? "right-2 top-2 items-start justify-end" :
-                                        mascotWatermarkPos === "top-left" ? "left-2 top-2 items-start justify-start" :
-                                        "inset-0 items-center justify-center"
-                                    )}
-                                    style={{ opacity: (mascotWatermarkOpacity || 15) / 100 }}
-                                >
-                                    <img
-                                        src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"}
-                                        alt="Watermark Preview"
-                                        className="object-contain"
-                                        style={{
-                                            width: `${(mascotWatermarkScale || 100) * 0.7}px`,
-                                            height: `${(mascotWatermarkScale || 100) * 0.7}px`,
-                                            transform: `translate(${mascotWatermarkOffsetX * 0.4}px, ${mascotWatermarkOffsetY * 0.4}px) rotate(${mascotWatermarkRotate}deg)`
-                                        }}
-                                    />
-                                </div>
-                            )}
-
-                            <table className="w-full text-left border-collapse table-fixed text-xs relative z-10">
-                                <thead>
-                                    <tr 
-                                        style={{
-                                            backgroundColor: currentConfig.headerBg !== 'default' ? currentConfig.headerBg : 'transparent',
-                                            color: currentConfig.headerText !== 'default' ? currentConfig.headerText : '#8b6f47'
-                                        }}
-                                        className="transition-colors duration-200 border-b border-black/10 dark:border-white/10"
-                                    >
-                                        <th className="py-2 px-3 font-black uppercase text-[10px] w-12 text-center" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Stt</th>
-                                        <th className="py-2 px-3 font-black uppercase text-[10px]" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>
-                                            <div className="flex items-center gap-2">
-                                                <span>Tên sản phẩm</span>
-                                                <span 
-                                                    className="px-2 py-0.5 rounded-full text-[9px] font-black text-white shadow-xs"
-                                                    style={{ backgroundColor: activeAccentColor }}
-                                                >
-                                                    1 món
-                                                </span>
-                                            </div>
-                                        </th>
-                                        <th className="py-2 px-3 font-black uppercase text-[10px] text-center w-20" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Số lượng</th>
-                                        <th className="py-2 px-3 font-black uppercase text-[10px] text-right w-24" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Đơn giá</th>
-                                        <th className="py-2 px-3 font-black uppercase text-[10px] text-right w-28" style={{ color: currentConfig.headerText !== 'default' ? currentConfig.headerText : undefined }}>Thành tiền</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr 
-                                        className="border-b border-black/5 dark:border-white/5 transition-colors"
-                                        style={{
-                                            borderColor: currentConfig.borderColor !== 'default' ? `${currentConfig.borderColor}30` : undefined
-                                        }}
-                                    >
-                                        <td className="py-2.5 px-3 text-center font-bold text-slate-400">
-                                            {currentConfig.enableTextPills ? (
-                                                <span 
-                                                    className="inline-flex items-center justify-center px-2 py-0.5 rounded-full border text-xs font-black shadow-xs"
-                                                    style={getCartTextPillStyle(currentConfig, 'index')}
-                                                >
-                                                    1
-                                                </span>
-                                            ) : (
-                                                <span>1</span>
-                                            )}
-                                        </td>
-                                        <td className="py-2.5 px-3">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <div 
-                                                    className={cn(
-                                                        "font-black text-slate-800 dark:text-slate-100 uppercase",
-                                                        currentConfig.enableTextPills && "px-2.5 py-1 rounded-xl border shadow-xs inline-flex items-center"
-                                                    )}
-                                                    style={{
-                                                        color: (currentConfig.productTextColor && currentConfig.productTextColor !== 'default')
-                                                            ? currentConfig.productTextColor
-                                                            : undefined,
-                                                        ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'name') : {}),
-                                                        ...getCartTextShadowStyle(currentConfig, currentConfig.productTextColor)
-                                                    }}
-                                                >
-                                                    Sản phẩm mẫu VIP
-                                                </div>
-                                            </div>
-                                            {showLastPurchaseBadge && (
-                                                <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                                                    <Clock size={10} /> Mua gần nhất: 2 ngày trước
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="py-2.5 px-3 text-center font-black">
-                                            <span 
-                                                className={cn(
-                                                    "inline-flex items-center justify-center min-w-[28px]",
-                                                    currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
-                                                )}
-                                                style={{
-                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
-                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'qty') : {}),
-                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
-                                                }}
-                                            >
-                                                2
-                                            </span>
-                                        </td>
-                                        <td className="py-2.5 px-3 text-right font-black">
-                                            <span 
-                                                className={cn(
-                                                    "inline-flex items-center justify-end",
-                                                    currentConfig.enableTextPills && "px-2 py-1 rounded-xl border shadow-xs"
-                                                )}
-                                                style={{
-                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : undefined,
-                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'price') : {}),
-                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor)
-                                                }}
-                                            >
-                                                150.000
-                                            </span>
-                                        </td>
-                                        <td className="py-2.5 px-3 text-right font-black">
-                                            <span 
-                                                className={cn(
-                                                    "inline-flex items-center justify-end",
-                                                    currentConfig.enableTextPills && "px-2.5 py-1 rounded-xl border shadow-xs"
-                                                )}
-                                                style={{
-                                                    color: (currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : activeAccentColor,
-                                                    ...(currentConfig.enableTextPills ? getCartTextPillStyle(currentConfig, 'amount') : {}),
-                                                    ...getCartTextShadowStyle(currentConfig, currentConfig.cartValuesColor || activeAccentColor)
-                                                }}
-                                            >
-                                                300.000đ
-                                            </span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            {/* Sample active bar preview */}
-                            <div className="p-2.5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-3 text-[11px] relative z-10">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-slate-400">Nút Active:</span>
-                                    <div 
-                                        className="px-3 py-1 rounded-xl text-white font-black text-[10px] shadow-sm flex items-center gap-1.5"
-                                        style={{
-                                            background: `linear-gradient(90deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor})`
-                                        }}
-                                    >
-                                        <Check size={12} strokeWidth={3} />
-                                        TIỀN MẶT
-                                    </div>
-                                </div>
-                                <div 
-                                    className="px-3.5 py-1.5 rounded-xl text-white font-black text-xs shadow-md flex items-center gap-2"
-                                    style={{
-                                        background: `linear-gradient(135deg, ${activeAccentColor}, ${currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor}dd)`
-                                    }}
-                                >
-                                    <span className="text-[9px] uppercase tracking-wider opacity-85">TỔNG CỘNG:</span>
-                                    <span>300.000đ</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* TAB 1: COLORS & BORDERS */}
-                    {activeTab === 'colors' && (
-                        <div className="space-y-6">
-                            {/* Presets Grid */}
-                            <div className="space-y-3.5">
-                                <div className="flex items-center justify-between flex-wrap gap-2">
-                                    <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                        <Sparkles size={14} className="text-amber-500" />
-                                        Bộ sưu tập Theme mẫu (Presets)
-                                    </h4>
-                                    <div className="flex items-center gap-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setPresetNameInput(`Theme #${customPresets.length + 1}`);
-                                                setIsSavingPreset(prev => !prev);
+                            {/* Modal Header */}
+                            <div className="px-6 pt-5 pb-3 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl shrink-0">
+                                <div className="flex items-center justify-between mb-3.5">
+                                    <div className="flex items-center gap-3">
+                                        <div 
+                                            className="w-11 h-11 rounded-2xl text-white flex items-center justify-center shadow-md transition-all shrink-0"
+                                            style={{ 
+                                                backgroundColor: activeAccentColor,
+                                                boxShadow: `0 8px 20px ${activeAccentColor}40`
                                             }}
-                                            className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-                                            title="Lưu bảng màu đang phối thành một Preset cá nhân"
                                         >
-                                            <Plus size={12} strokeWidth={3} />
-                                            <span>Lưu Theme Hiện Tại</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleResetColors}
-                                            className="flex items-center gap-1 px-2 py-1 text-[10.5px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                                            title="Khôi phục màu mặc định ban đầu"
-                                        >
-                                            <RotateCcw size={11} />
-                                            <span>Mặc định</span>
-                                        </button>
+                                            <Palette size={22} strokeWidth={2.5} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-base uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                                <span>Tùy Chỉnh Giỏ Hàng & Giao Diện POS</span>
+                                                <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                                    Theo Theme
+                                                </span>
+                                            </h3>
+                                            <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                                Cá nhân hóa màu sắc giỏ hàng, màu nền trang, hiệu ứng kính mờ và linh vật chìm
+                                            </p>
+                                        </div>
                                     </div>
+                                    <button
+                                        onClick={onClose}
+                                        className="w-9 h-9 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                        title="Đóng (Esc)"
+                                    >
+                                        <X size={20} strokeWidth={2.5} />
+                                    </button>
                                 </div>
 
-                                {/* Form lưu theme hiện tại */}
-                                <AnimatePresence>
-                                    {isSavingPreset && (
-                                        <m.div
-                                            initial={{ opacity: 0, height: 0, y: -6 }}
-                                            animate={{ opacity: 1, height: 'auto', y: 0 }}
-                                            exit={{ opacity: 0, height: 0, y: -6 }}
-                                            transition={{ duration: 0.18 }}
-                                            className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs"
-                                        >
-                                            <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1">
-                                                <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                                                    <Bookmark size={15} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="text-[10.5px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
-                                                        Tên Theme Preset Mới:
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        value={presetNameInput}
-                                                        onChange={(e) => setPresetNameInput(e.target.value)}
-                                                        placeholder="VD: Xanh Neon, Theme Tết, Nâu Cổ Điển..."
-                                                        className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/30 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                                        autoFocus
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') handleSaveCustomPreset();
-                                                            if (e.key === 'Escape') setIsSavingPreset(false);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsSavingPreset(false)}
-                                                    className="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs font-bold cursor-pointer transition-colors"
-                                                >
-                                                    Hủy
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveCustomPreset}
-                                                    className="px-4 py-1.5 rounded-xl bg-[#2d5016] hover:bg-[#3d6b20] dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
-                                                >
-                                                    <Check size={13} strokeWidth={3} />
-                                                    <span>Lưu Mẫu</span>
-                                                </button>
-                                            </div>
-                                        </m.div>
-                                    )}
-                                </AnimatePresence>
-
-                                {/* Danh sách Presets Tự Lưu (Custom Presets) */}
-                                {customPresets.length > 0 && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                                            <span className="flex items-center gap-1">
-                                                <FolderHeart size={12} />
-                                                Theme Tự Thiết Kế Của Bạn ({customPresets.length})
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                            {customPresets.map((preset) => {
-                                                const isSelected = isPresetSelected(preset);
-                                                return (
-                                                    <div
-                                                        key={preset.id}
-                                                        onClick={() => handleApplyPreset(preset)}
-                                                        className={cn(
-                                                            "group relative flex flex-col p-2.5 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98",
-                                                            isSelected
-                                                                ? "border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-950/40 ring-2 ring-amber-500/30"
-                                                                : "border-amber-500/20 dark:border-amber-500/20 bg-amber-500/5 dark:bg-amber-950/20 hover:border-amber-500/40"
-                                                        )}
-                                                    >
-                                                        <div className="flex items-center justify-between w-full mb-1.5">
-                                                            <div className="flex items-center gap-1.5 min-w-0">
-                                                                <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
-                                                                    {preset.name}
-                                                                </span>
-                                                                <span className="px-1.5 py-0.2 rounded-full text-[8.5px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
-                                                                    Tự tạo
-                                                                </span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                                {isSelected && (
-                                                                    <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                                                        <Check size={10} strokeWidth={3} />
-                                                                    </div>
-                                                                )}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => handleDeleteCustomPreset(preset.id, e)}
-                                                                    className="w-5 h-5 rounded-lg opacity-60 hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-500 text-slate-400 flex items-center justify-center transition-all cursor-pointer"
-                                                                    title="Xóa preset này"
-                                                                >
-                                                                    <Trash2 size={11} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div 
-                                                                className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
-                                                                style={{ backgroundColor: preset.previewHeaderBg }}
-                                                                title="Màu nền Header"
-                                                            />
-                                                            <div 
-                                                                className="w-4 h-4 rounded-md border-2 shrink-0" 
-                                                                style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
-                                                                title="Màu viền"
-                                                            />
-                                                            <div 
-                                                                className="w-4 h-4 rounded-md shadow-xs shrink-0" 
-                                                                style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
-                                                                title="Màu nút & Active"
-                                                            />
-                                                            <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
-                                                                {preset.desc || 'Tự thiết kế'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Built-in Presets: Chỉ hiện 3 cái đầu tiên theo yêu cầu, có nút mở rộng nếu cần */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                        <span>Theme Mẫu Hệ Thống (3 Mẫu Chuẩn)</span>
-                                        {CART_COLOR_PRESETS.length > 3 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAllBuiltinPresets(prev => !prev)}
-                                                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                                            >
-                                                <span>{showAllBuiltinPresets ? "Thu gọn 3 mẫu" : `Xem thêm ${CART_COLOR_PRESETS.length - 3} mẫu khác`}</span>
-                                                {showAllBuiltinPresets ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                        {(showAllBuiltinPresets ? CART_COLOR_PRESETS : CART_COLOR_PRESETS.slice(0, 3)).map((preset) => {
-                                            const isSelected = isPresetSelected(preset);
+                                {/* Modern Segmented Navigation Tabs */}
+                                <div className="overflow-x-auto custom-scrollbar pb-0.5">
+                                    <div className="grid grid-cols-5 min-w-[620px] p-1 bg-black/5 dark:bg-white/5 rounded-2xl gap-1 border border-black/5 dark:border-white/10">
+                                        {TABS.map((tab) => {
+                                            const isActive = activeTab === tab.id;
+                                            const IconComp = tab.icon;
                                             return (
                                                 <button
-                                                    key={preset.id}
+                                                    key={tab.id}
                                                     type="button"
-                                                    onClick={() => handleApplyPreset(preset)}
+                                                    onClick={() => setActiveTab(tab.id)}
                                                     className={cn(
-                                                        "relative flex flex-col p-2.5 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 group",
-                                                        isSelected
-                                                            ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
-                                                            : "border-black/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/40 hover:border-black/20 dark:hover:border-white/20"
+                                                        "w-full py-2 px-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                                                        isActive
+                                                            ? "bg-white dark:bg-[#0e271d] text-slate-900 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30 scale-[1.01]"
+                                                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
                                                     )}
                                                 >
-                                                    <div className="flex items-center justify-between w-full mb-1.5">
-                                                        <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
-                                                            {preset.name}
-                                                        </span>
-                                                        {isSelected && (
-                                                            <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                                                <Check size={10} strokeWidth={3} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div 
-                                                            className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" 
-                                                            style={{ backgroundColor: preset.previewHeaderBg }}
-                                                            title="Màu nền Header"
-                                                        />
-                                                        <div 
-                                                            className="w-4 h-4 rounded-md border-2 shrink-0" 
-                                                            style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }}
-                                                            title="Màu viền"
-                                                        />
-                                                        <div 
-                                                            className="w-4 h-4 rounded-md shadow-xs shrink-0" 
-                                                            style={{ backgroundColor: preset.previewAccent || preset.previewBorder }}
-                                                            title="Màu nút & Active"
-                                                        />
-                                                        <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
-                                                            {preset.desc}
-                                                        </span>
-                                                    </div>
+                                                    <IconComp size={14} strokeWidth={2.5} className={cn("shrink-0", isActive && "text-emerald-600 dark:text-emerald-400")} />
+                                                    <span className="truncate">{tab.label}</span>
                                                 </button>
                                             );
                                         })}
@@ -1336,1703 +1240,1138 @@ export default function CartColorCustomizerModal({
                                 </div>
                             </div>
 
-                            {/* Custom Controls */}
-                            <div className="space-y-4 pt-2 border-t border-[#8b6f47]/20 dark:border-white/10">
-                                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                    <Sliders size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                    Tùy Chỉnh Màu Sắc Từng Phần (Custom Palette)
-                                </h4>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {/* Accent Color / Active elements */}
-                                    <div className="space-y-2 sm:col-span-2 p-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
-                                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                                            <span className="flex items-center gap-1.5">
-                                                <Zap size={14} className="text-amber-500" />
-                                                Màu Tô Đậm / Điểm Nhấn (Nút, Active, Thẻ Tổng Tiền):
-                                            </span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.accentColor === 'default' ? 'Mặc định (Lyang Green)' : currentConfig.accentColor}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = { ...currentConfig, accentColor: 'default' };
-                                                    onChangeConfig(newCfg);
-                                                    applyCartThemeToDom(newCfg);
-                                                }}
-                                                className={cn(
-                                                    "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
-                                                    currentConfig.accentColor === 'default'
-                                                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={currentConfig.accentColor === 'default' ? '#2d5016' : currentConfig.accentColor}
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, accentColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={currentConfig.accentColor === 'default' ? '' : currentConfig.accentColor}
-                                                    placeholder="#HEX (vd: #059669)..."
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, accentColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Header Background */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                            <span>Màu nền Header bảng:</span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.headerBg === 'default' ? 'Mặc định' : currentConfig.headerBg}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => onChangeConfig({ ...currentConfig, headerBg: 'default' })}
-                                                className={cn(
-                                                    "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
-                                                    currentConfig.headerBg === 'default'
-                                                        ? "bg-emerald-600 text-white border-emerald-600"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={currentConfig.headerBg === 'default' ? '#8b6f47' : currentConfig.headerBg}
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, headerBg: e.target.value })}
-                                                    className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={currentConfig.headerBg === 'default' ? '' : currentConfig.headerBg}
-                                                    placeholder="#HEX..."
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, headerBg: e.target.value })}
-                                                    className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Header Text Color */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                            <span>Màu chữ Header:</span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.headerText === 'default' ? 'Mặc định' : currentConfig.headerText}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => onChangeConfig({ ...currentConfig, headerText: 'default' })}
-                                                className={cn(
-                                                    "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
-                                                    currentConfig.headerText === 'default'
-                                                        ? "bg-emerald-600 text-white border-emerald-600"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={currentConfig.headerText === 'default' ? '#ffffff' : currentConfig.headerText}
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, headerText: e.target.value })}
-                                                    className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={currentConfig.headerText === 'default' ? '' : currentConfig.headerText}
-                                                    placeholder="#HEX..."
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, headerText: e.target.value })}
-                                                    className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Product Name Text Color */}
-                                    <div className="space-y-2 sm:col-span-2 p-3 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20">
-                                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                                            <span className="flex items-center gap-1.5">
-                                                <Sparkles size={14} className="text-emerald-500" />
-                                                Màu chữ Tên Sản Phẩm & Toàn hệ thống:
-                                            </span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.productTextColor === 'default' || !currentConfig.productTextColor ? 'Mặc định (Theo theme)' : currentConfig.productTextColor}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = { ...currentConfig, productTextColor: 'default' };
-                                                    onChangeConfig(newCfg);
-                                                    applyCartThemeToDom(newCfg);
-                                                }}
-                                                className={cn(
-                                                    "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
-                                                    (currentConfig.productTextColor === 'default' || !currentConfig.productTextColor)
-                                                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={(currentConfig.productTextColor && currentConfig.productTextColor !== 'default') ? currentConfig.productTextColor : '#064e3b'}
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, productTextColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={(currentConfig.productTextColor && currentConfig.productTextColor !== 'default') ? currentConfig.productTextColor : ''}
-                                                    placeholder="#HEX (vd: #ffffff, #fde68a, #38bdf8)..."
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, productTextColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Cart Columns Values (Qty, Price, Amount) Color */}
-                                    <div className="space-y-2 sm:col-span-2 p-3 rounded-2xl bg-teal-500/5 dark:bg-teal-500/10 border border-teal-500/20">
-                                        <label className="text-xs font-black text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                                            <span className="flex items-center gap-1.5">
-                                                <SlidersHorizontal size={14} className="text-teal-500" />
-                                                Màu chữ Số lượng, Quy đổi, Đơn giá & Thành tiền (Giỏ hàng):
-                                            </span>
-                                            <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
-                                                {currentConfig.cartValuesColor === 'default' || !currentConfig.cartValuesColor ? 'Mặc định (Theo màu điểm nhấn/hệ thống)' : currentConfig.cartValuesColor}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = { ...currentConfig, cartValuesColor: 'default' };
-                                                    onChangeConfig(newCfg);
-                                                    applyCartThemeToDom(newCfg);
-                                                }}
-                                                className={cn(
-                                                    "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
-                                                    (currentConfig.cartValuesColor === 'default' || !currentConfig.cartValuesColor)
-                                                        ? "bg-teal-600 text-white border-teal-600 shadow-xs"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={(currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : (currentConfig.accentColor !== 'default' ? currentConfig.accentColor : '#2d5016')}
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, cartValuesColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={(currentConfig.cartValuesColor && currentConfig.cartValuesColor !== 'default') ? currentConfig.cartValuesColor : ''}
-                                                    placeholder="#HEX (vd: #10b981, #d4a574, #38bdf8)..."
-                                                    onChange={(e) => {
-                                                        const newCfg = { ...currentConfig, cartValuesColor: e.target.value };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Cart Border Color */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                            <span>Màu viền giỏ hàng:</span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.borderColor === 'default' ? 'Mặc định' : currentConfig.borderColor}
-                                            </span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => onChangeConfig({ ...currentConfig, borderColor: 'default' })}
-                                                className={cn(
-                                                    "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
-                                                    currentConfig.borderColor === 'default'
-                                                        ? "bg-emerald-600 text-white border-emerald-600"
-                                                        : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                )}
-                                            >
-                                                Mặc định
-                                            </button>
-                                            <div className="relative flex items-center gap-1.5 flex-1">
-                                                <input
-                                                    type="color"
-                                                    value={currentConfig.borderColor === 'default' ? '#8b6f47' : currentConfig.borderColor}
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, borderColor: e.target.value })}
-                                                    className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={currentConfig.borderColor === 'default' ? '' : currentConfig.borderColor}
-                                                    placeholder="#HEX..."
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, borderColor: e.target.value })}
-                                                    className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Cart Border Width */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                            <span>Độ dày viền giỏ hàng:</span>
-                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                {currentConfig.borderWidth || '1'}px
-                                            </span>
-                                        </label>
-                                        <div className="grid grid-cols-6 gap-1.5">
-                                            {['0.5', '1', '1.5', '2', '3', '4'].map((w) => (
-                                                <button
-                                                    key={w}
-                                                    type="button"
-                                                    onClick={() => onChangeConfig({ ...currentConfig, borderWidth: w })}
-                                                    className={cn(
-                                                        "py-1 text-xs font-black rounded-lg border transition-all cursor-pointer text-center",
-                                                        (currentConfig.borderWidth || '1') === w
-                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                                                            : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                    )}
-                                                >
-                                                    {w}px
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Quick Color Swatches */}
-                                <div className="pt-2 border-t border-black/5 dark:border-white/5">
-                                    <span className="text-[10px] font-bold text-slate-400 block mb-1.5">
-                                        Bảng màu chọn nhanh cho Điểm nhấn & Viền:
-                                    </span>
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        {colorSwatches.map((color) => (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = {
-                                                        ...currentConfig,
-                                                        borderColor: color,
-                                                        accentColor: color
-                                                    };
-                                                    onChangeConfig(newCfg);
-                                                    applyCartThemeToDom(newCfg);
-                                                }}
-                                                className="w-5 h-5 rounded-md border border-black/20 hover:scale-125 transition-transform shadow-xs cursor-pointer"
-                                                style={{ backgroundColor: color }}
-                                                title={color}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Border, Glow & Shadow Toggles */}
-                                <div className="pt-3 border-t border-[#8b6f47]/20 dark:border-white/10 space-y-2.5">
-                                    <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                        <SunMedium size={14} className="text-amber-500" />
-                                        Hiệu Ứng Viền Neon & Đổ Bóng (Glow & Shadow)
-                                    </h4>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        {/* Border Toggle */}
-                                        <div 
-                                            onClick={() => onChangeConfig({
-                                                ...currentConfig,
-                                                enableBorder: currentConfig.enableBorder === false ? true : false
-                                            })}
-                                            className={cn(
-                                                "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none group",
-                                                currentConfig.enableBorder !== false
-                                                    ? "bg-blue-500/10 border-blue-500/30 dark:bg-blue-500/15 dark:border-blue-400/30"
-                                                    : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={cn(
-                                                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
-                                                    currentConfig.enableBorder !== false
-                                                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                                                        : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                                )}>
-                                                    <Square size={16} strokeWidth={2.5} />
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                                {/* TAB 1: GIAO DIỆN & NỀN (THEMES & BACKGROUNDS) */}
+                                {activeTab === 'themes' && (
+                                    <div className="space-y-6">
+                                        {/* Status & Quick Preview Toggle */}
+                                        <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 flex items-center justify-between flex-wrap gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                                    <Sparkles size={20} />
                                                 </div>
                                                 <div>
-                                                    <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
-                                                        Đường viền
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                        Bật / tắt viền giỏ
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className={cn(
-                                                "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                                currentConfig.enableBorder !== false
-                                                    ? "bg-blue-600 border-blue-600 justify-end"
-                                                    : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </div>
-
-                                        {/* Glow Toggle */}
-                                        <div 
-                                            onClick={() => onChangeConfig({
-                                                ...currentConfig,
-                                                enableGlow: currentConfig.enableGlow === false ? true : false
-                                            })}
-                                            className={cn(
-                                                "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none group",
-                                                currentConfig.enableGlow !== false
-                                                    ? "bg-amber-500/10 border-amber-500/30 dark:bg-amber-500/15 dark:border-amber-400/30"
-                                                    : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={cn(
-                                                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
-                                                    currentConfig.enableGlow !== false
-                                                        ? "bg-amber-500 text-white shadow-md shadow-amber-500/30"
-                                                        : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                                )}>
-                                                    <SunMedium size={16} strokeWidth={2.5} />
-                                                </div>
-                                                <div>
-                                                    <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
-                                                        Phát sáng (Glow)
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                        Ánh neon viền
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className={cn(
-                                                "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                                currentConfig.enableGlow !== false
-                                                    ? "bg-amber-500 border-amber-500 justify-end"
-                                                    : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </div>
-
-                                        {/* Shadow Toggle */}
-                                        <div 
-                                            onClick={() => onChangeConfig({
-                                                ...currentConfig,
-                                                enableShadow: currentConfig.enableShadow === false ? true : false
-                                            })}
-                                            className={cn(
-                                                "flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer select-none group",
-                                                currentConfig.enableShadow !== false
-                                                    ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
-                                                    : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={cn(
-                                                    "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
-                                                    currentConfig.enableShadow !== false
-                                                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
-                                                        : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                                )}>
-                                                    <Layers size={16} strokeWidth={2.5} />
-                                                </div>
-                                                <div>
-                                                    <span className="font-black text-xs text-slate-800 dark:text-slate-100 block">
-                                                        Đổ bóng (Shadow)
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                        Độ sâu 3D sang trọng
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className={cn(
-                                                "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                                currentConfig.enableShadow !== false
-                                                    ? "bg-emerald-600 border-emerald-600 justify-end"
-                                                    : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Text Glow & Shadow Customization (Hiệu ứng phát sáng & Đổ bóng chữ) */}
-                                    <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-amber-500/25 dark:border-amber-500/20 shadow-xs space-y-3.5">
-                                        <div className="flex items-center justify-between pb-1 border-b border-black/5 dark:border-white/5">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                                                    <Sparkles size={16} strokeWidth={2.5} />
-                                                </div>
-                                                <div>
-                                                    <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                                        Phát Sáng & Đổ Bóng Chữ (Text Glow / Shadow)
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                                                        Làm nổi bật chữ trên mọi nền tối, sáng hoặc ảnh nền phức tạp
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = {
-                                                        ...currentConfig,
-                                                        textShadowMode: 'none',
-                                                        textGlowColor: 'default',
-                                                        textShadowColor: 'default',
-                                                        textShadowBlur: 6
-                                                    };
-                                                    onChangeConfig(newCfg);
-                                                    applyCartThemeToDom(newCfg);
-                                                }}
-                                                className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                                            >
-                                                <RotateCcw size={10} />
-                                                <span>Tắt hiệu ứng chữ</span>
-                                            </button>
-                                        </div>
-
-                                        {/* Mode selector */}
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {[
-                                                { id: 'none', label: 'Tắt', desc: 'Chữ phẳng' },
-                                                { id: 'glow', label: '✨ Phát sáng (Glow)', desc: 'Ánh hào quang rực rỡ' },
-                                                { id: 'shadow', label: '🌑 Đổ bóng (Shadow)', desc: 'Bóng đổ 3D sắc nét' },
-                                                { id: 'both', label: '🌟 Glow + Shadow', desc: 'Kết hợp tương phản tối đa' }
-                                            ].map((modeOpt) => (
-                                                <button
-                                                    key={modeOpt.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const newCfg = { ...currentConfig, textShadowMode: modeOpt.id };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className={cn(
-                                                        "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-0.5",
-                                                        (currentConfig.textShadowMode || 'none') === modeOpt.id
-                                                            ? "bg-amber-500/15 border-amber-600 dark:border-amber-400 shadow-xs ring-1 ring-amber-500/20"
-                                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                                                            {modeOpt.label}
-                                                        </span>
-                                                        {(currentConfig.textShadowMode || 'none') === modeOpt.id && (
-                                                            <Check size={12} strokeWidth={3} className="text-amber-600 dark:text-amber-400" />
-                                                        )}
+                                                    <div className="text-xs font-black uppercase text-slate-800 dark:text-slate-100">
+                                                        Phối Màu Giỏ Hàng Đang Áp Dụng
                                                     </div>
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                                        {modeOpt.desc}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {/* Color & Blur Controls when active */}
-                                        {currentConfig.textShadowMode && currentConfig.textShadowMode !== 'none' && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
-                                                {/* Glow Color (if glow or both) */}
-                                                {(currentConfig.textShadowMode === 'glow' || currentConfig.textShadowMode === 'both') && (
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                                            <span>Màu Glow chữ:</span>
-                                                            <span className="font-mono text-[9.5px] text-amber-700 dark:text-amber-400 font-bold">
-                                                                {currentConfig.textGlowColor === 'default' || !currentConfig.textGlowColor ? 'Tự động' : currentConfig.textGlowColor}
-                                                            </span>
-                                                        </label>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <input
-                                                                type="color"
-                                                                value={(currentConfig.textGlowColor && currentConfig.textGlowColor !== 'default') ? currentConfig.textGlowColor : activeAccentColor}
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, textGlowColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={(currentConfig.textGlowColor && currentConfig.textGlowColor !== 'default') ? currentConfig.textGlowColor : ''}
-                                                                placeholder="#HEX..."
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, textGlowColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 text-xs font-mono font-bold outline-none"
-                                                            />
-                                                        </div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Bảng màu:</span>
+                                                        <div className="w-4 h-4 rounded-md border border-black/10 shadow-xs" style={{ backgroundColor: currentConfig.headerBg !== 'default' ? currentConfig.headerBg : '#8b6f47' }} title="Header" />
+                                                        <div className="w-4 h-4 rounded-md border-2 shadow-xs" style={{ borderColor: currentConfig.borderColor !== 'default' ? currentConfig.borderColor : '#8b6f47', backgroundColor: 'transparent' }} title="Border" />
+                                                        <div className="w-4 h-4 rounded-md shadow-xs" style={{ backgroundColor: activeAccentColor }} title="Accent" />
                                                     </div>
-                                                )}
-
-                                                {/* Shadow Color (if shadow or both) */}
-                                                {(currentConfig.textShadowMode === 'shadow' || currentConfig.textShadowMode === 'both') && (
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                                            <span>Màu Shadow đổ bóng:</span>
-                                                            <span className="font-mono text-[9.5px] text-slate-700 dark:text-slate-400 font-bold">
-                                                                {currentConfig.textShadowColor === 'default' || !currentConfig.textShadowColor ? 'Đen 3D mờ' : currentConfig.textShadowColor}
-                                                            </span>
-                                                        </label>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <input
-                                                                type="color"
-                                                                value={(currentConfig.textShadowColor && currentConfig.textShadowColor !== 'default') ? currentConfig.textShadowColor : '#000000'}
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, textShadowColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={(currentConfig.textShadowColor && currentConfig.textShadowColor !== 'default') ? currentConfig.textShadowColor : ''}
-                                                                placeholder="#HEX..."
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, textShadowColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="flex-1 h-8 px-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 text-xs font-mono font-bold outline-none"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Blur Intensity Slider */}
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                                                        <span>Cường độ mờ / tỏa sáng:</span>
-                                                        <span className="font-mono text-[9.5px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded">
-                                                            {currentConfig.textShadowBlur !== undefined ? currentConfig.textShadowBlur : 6}px
-                                                        </span>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="2"
-                                                        max="20"
-                                                        step="1"
-                                                        value={currentConfig.textShadowBlur !== undefined ? currentConfig.textShadowBlur : 6}
-                                                        onChange={(e) => {
-                                                            const newCfg = { ...currentConfig, textShadowBlur: Number(e.target.value) };
-                                                            onChangeConfig(newCfg);
-                                                            applyCartThemeToDom(newCfg);
-                                                        }}
-                                                        className="w-full accent-amber-500 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none mt-2"
-                                                    />
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* TAB 2: DISPLAYS & VISUALS (Consolidated Switches) */}
-                    {activeTab === 'displays' && (
-                        <div className="space-y-4">
-                            <div className="p-3.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 rounded-2xl flex items-center gap-3">
-                                <SlidersHorizontal size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                <div className="text-xs text-slate-700 dark:text-slate-200">
-                                    <p className="font-bold">Các tùy chọn hiển thị giỏ hàng & bảng dữ liệu</p>
-                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Tất cả thay đổi được đồng bộ tự động realtime trên toàn hệ thống POS.</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3">
-                                {/* Constrain Cart Above Bubbles Toggle (Sidebar Mode) */}
-                                <div 
-                                    onClick={() => onChangeConfig({
-                                        ...currentConfig,
-                                        constrainCartAboveBubbles: currentConfig.constrainCartAboveBubbles === false ? true : false
-                                    })}
-                                    className={cn(
-                                        "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
-                                        currentConfig.constrainCartAboveBubbles !== false
-                                            ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
-                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3.5">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                            currentConfig.constrainCartAboveBubbles !== false
-                                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
-                                                : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                        )}>
-                                            <SlidersHorizontal size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                                Giới Hạn Vùng Hiển Thị Giỏ Hàng Trên Bubble
-                                            </span>
-                                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                {currentConfig.constrainCartAboveBubbles !== false
-                                                    ? "Bật: Danh sách món tự động co giãn và dừng ngay trên Bubble (không bị che khuất)"
-                                                    : "Tắt: Cho phép danh sách món cuộn tràn xuống dưới các thanh Bubble nổi"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={cn(
-                                        "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                        currentConfig.constrainCartAboveBubbles !== false
-                                            ? "bg-emerald-600 border-emerald-600 justify-end"
-                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                    )}>
-                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                    </div>
-                                </div>
-
-                                {/* Transparent Cart Table */}
-                                <div 
-                                    onClick={handleToggleTransparent}
-                                    className={cn(
-                                        "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
-                                        transparentCartTable
-                                            ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
-                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3.5">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                            transparentCartTable
-                                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
-                                                : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                        )}>
-                                            <Eye size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                                Lớp Phủ Mờ Giỏ Hàng (Glassmorphism Blur)
-                                            </span>
-                                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                {transparentCartTable ? "Bật: Nền kính mờ nổi bật, sang trọng và hiện đại" : "Tắt: Trong suốt trùng hoàn toàn màu nền hệ thống"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={cn(
-                                        "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                        transparentCartTable
-                                            ? "bg-emerald-600 border-emerald-600 justify-end"
-                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                    )}>
-                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                    </div>
-                                </div>
-
-                                {/* Custom Overlay Color & Blur Controls when transparentCartTable is active */}
-                                {transparentCartTable && (
-                                    <m.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/25 dark:border-emerald-500/20 shadow-xs space-y-4"
-                                    >
-                                        <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
-                                            <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                                <Paintbrush size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                                Tùy Chỉnh Màu Phủ & Độ Nhòe Kính (Glass Blur & Tint)
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newCfg = {
-                                                        ...currentConfig,
-                                                        overlayColor: 'default',
-                                                        overlayOpacity: 30,
-                                                        overlayBlur: 12
-                                                    };
-                                                    onChangeConfig(newCfg);
-                                                }}
-                                                className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                                            >
-                                                <RotateCcw size={11} />
-                                                <span>Mặc định lớp phủ</span>
-                                            </button>
-                                        </div>
-
-                                        {/* 1. Overlay Color */}
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Droplet size={13} className="text-emerald-500" />
-                                                    Màu sắc lớp phủ (Glass Tint):
-                                                </span>
-                                                <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
-                                                    {currentConfig.overlayColor === 'default' || !currentConfig.overlayColor ? 'Mặc định (Theo theme)' : currentConfig.overlayColor}
-                                                </span>
-                                            </label>
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => onChangeConfig({ ...currentConfig, overlayColor: 'default' })}
-                                                    className={cn(
-                                                        "px-3 py-1.5 text-xs font-black rounded-xl border transition-all cursor-pointer",
-                                                        (currentConfig.overlayColor === 'default' || !currentConfig.overlayColor)
-                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                                                            : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                    )}
+                                                    onClick={() => setShowTab1Preview(prev => !prev)}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
                                                 >
-                                                    Mặc định
+                                                    <Eye size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                                    <span>{showTab1Preview ? "Thu gọn xem trước" : "Xem trước bảng giỏ"}</span>
+                                                    {showTab1Preview ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                                                 </button>
-                                                <div className="relative flex items-center gap-1.5 flex-1">
-                                                    <input
-                                                        type="color"
-                                                        value={(currentConfig.overlayColor && currentConfig.overlayColor !== 'default') ? currentConfig.overlayColor : '#ffffff'}
-                                                        onChange={(e) => onChangeConfig({ ...currentConfig, overlayColor: e.target.value })}
-                                                        className="w-9 h-9 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                    />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleResetColors}
+                                                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                                    title="Khôi phục toàn bộ về mặc định ban đầu"
+                                                >
+                                                    <RotateCcw size={12} />
+                                                    <span>Mặc định</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Optional Live Preview if toggled */}
+                                        <AnimatePresence>
+                                            {showTab1Preview && (
+                                                <m.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                >
+                                                    {renderLivePreview()}
+                                                </m.div>
+                                            )}
+                                        </AnimatePresence>
+
+                                        {/* Section: Màu Nền Tất Cả Trang Trong POS */}
+                                        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border border-emerald-500/25 shadow-xs space-y-4">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/25">
+                                                        <LayoutIcon size={18} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                                            <span>Màu Nền Tất Cả Trang Trong POS</span>
+                                                            <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-emerald-600/15 text-emerald-800 dark:text-emerald-300 font-extrabold border border-emerald-600/20">
+                                                                All Pages Background
+                                                            </span>
+                                                        </h4>
+                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                                                            Áp dụng đồng bộ cho tất cả các trang: Bán hàng, Nhập hàng, Báo cáo, Lịch sử, Khách hàng...
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <span className="font-mono text-xs px-2.5 py-1 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-bold shadow-2xs">
+                                                    {(!currentConfig.pageBgColor || currentConfig.pageBgColor === 'default') ? 'Mặc định (#faf8f3)' : currentConfig.pageBgColor}
+                                                </span>
+                                            </div>
+
+                                            {/* Note about Dark Mode protection */}
+                                            <div className="p-3 rounded-xl bg-white/70 dark:bg-slate-900/60 border border-emerald-500/20 flex items-start gap-2.5 text-[11px] text-slate-600 dark:text-slate-300">
+                                                <Monitor size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <strong className="text-emerald-700 dark:text-emerald-400">Cơ chế Dark Mode tự động:</strong> Khi bạn chuyển sang Chế độ Tối (Dark Mode), hệ thống sẽ tự động giữ nguyên màu đen chuẩn sang trọng (<code className="font-mono text-[10px] bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded">#000000</code> / Obsidian Dark) để bảo vệ mắt và giữ độ tương phản cao nhất.
+                                                </div>
+                                            </div>
+
+                                            {/* Swatches Grid */}
+                                            <div>
+                                                <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                                                    Bảng Màu Tuyển Chọn (1 Chạm Để Đổi):
+                                                </div>
+                                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                                    {PAGE_BG_SWATCHES.map((swatch) => {
+                                                        const isSelected = (!currentConfig.pageBgColor || currentConfig.pageBgColor === 'default')
+                                                            ? swatch.color === 'default'
+                                                            : currentConfig.pageBgColor === swatch.color;
+                                                        return (
+                                                            <button
+                                                                key={swatch.name}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newCfg = { ...currentConfig, pageBgColor: swatch.color };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className={cn(
+                                                                    "flex items-center gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-98",
+                                                                    isSelected
+                                                                        ? "bg-white dark:bg-slate-900 border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-500/30"
+                                                                        : "bg-white/60 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20"
+                                                                )}
+                                                            >
+                                                                <div 
+                                                                    className="w-5 h-5 rounded-lg border border-black/15 shadow-2xs shrink-0 flex items-center justify-center"
+                                                                    style={{ backgroundColor: swatch.preview }}
+                                                                >
+                                                                    {isSelected && <Check size={11} strokeWidth={3} className="text-slate-800" />}
+                                                                </div>
+                                                                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                                                                    {swatch.name}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Custom HEX & Native Color Picker */}
+                                            <div className="flex items-center gap-3 pt-1">
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <label className="relative w-8 h-8 rounded-xl overflow-hidden cursor-pointer border border-emerald-500/40 shrink-0 shadow-xs hover:scale-105 transition-transform" title="Chọn màu tự do">
+                                                        <input
+                                                            type="color"
+                                                            value={(!currentConfig.pageBgColor || currentConfig.pageBgColor === 'default') ? '#faf8f3' : currentConfig.pageBgColor}
+                                                            onChange={(e) => {
+                                                                const newCfg = { ...currentConfig, pageBgColor: e.target.value };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }}
+                                                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer opacity-0"
+                                                        />
+                                                        <div 
+                                                            className="w-full h-full"
+                                                            style={{ backgroundColor: (!currentConfig.pageBgColor || currentConfig.pageBgColor === 'default') ? '#faf8f3' : currentConfig.pageBgColor }} 
+                                                        />
+                                                    </label>
                                                     <input
                                                         type="text"
-                                                        value={(currentConfig.overlayColor && currentConfig.overlayColor !== 'default') ? currentConfig.overlayColor : ''}
-                                                        placeholder="#HEX (vd: #ffffff, #064e3b, #1e293b, #000000)..."
-                                                        onChange={(e) => onChangeConfig({ ...currentConfig, overlayColor: e.target.value })}
-                                                        className="flex-1 h-9 px-3 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Quick swatches for overlay */}
-                                            <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                                                <span className="text-[10px] font-bold text-slate-400 mr-1">Màu gợi ý:</span>
-                                                {[
-                                                    { color: '#ffffff', label: 'Trắng Sáng' },
-                                                    { color: '#000000', label: 'Đen Khói' },
-                                                    { color: '#064e3b', label: 'Xanh Emerald' },
-                                                    { color: '#1e3a10', label: 'Rêu Forest' },
-                                                    { color: '#543b24', label: 'Nâu Gỗ' },
-                                                    { color: '#172554', label: 'Xanh Navy' },
-                                                    { color: '#3b0764', label: 'Tím Huyền' },
-                                                    { color: '#1e293b', label: 'Xám Slate' },
-                                                    { color: '#451a03', label: 'Hổ Phách' }
-                                                ].map((swatch) => (
-                                                    <button
-                                                        key={swatch.color}
-                                                        type="button"
-                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayColor: swatch.color })}
-                                                        className={cn(
-                                                            "w-6 h-6 rounded-lg border shadow-xs transition-transform hover:scale-125 cursor-pointer relative",
-                                                            currentConfig.overlayColor === swatch.color ? "ring-2 ring-emerald-500 scale-110" : "border-black/20 dark:border-white/20"
-                                                        )}
-                                                        style={{ backgroundColor: swatch.color }}
-                                                        title={swatch.label}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* 2. Overlay Opacity Slider */}
-                                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Layers size={13} className="text-emerald-500" />
-                                                    Độ đục / Độ đậm lớp phủ (Opacity):
-                                                </span>
-                                                <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-md">
-                                                    {currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}%
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="range"
-                                                    min="5"
-                                                    max="95"
-                                                    step="5"
-                                                    value={currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, overlayOpacity: Number(e.target.value) })}
-                                                    className="flex-1 accent-emerald-600 cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-5 gap-1.5 pt-0.5">
-                                                {[
-                                                    { val: 10, label: '10% (Siêu mỏng)' },
-                                                    { val: 25, label: '25% (Nhẹ)' },
-                                                    { val: 40, label: '40% (Vừa)' },
-                                                    { val: 60, label: '60% (Rõ)' },
-                                                    { val: 80, label: '80% (Đậm)' }
-                                                ].map((item) => (
-                                                    <button
-                                                        key={item.val}
-                                                        type="button"
-                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayOpacity: item.val })}
-                                                        className={cn(
-                                                            "py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer text-center truncate px-1",
-                                                            Number(currentConfig.overlayOpacity ?? 30) === item.val
-                                                                ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10 hover:border-black/20"
-                                                        )}
-                                                    >
-                                                        {item.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* 3. Overlay Blur Strength Slider */}
-                                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Sparkles size={13} className="text-amber-500" />
-                                                    Độ nhòe kính mờ (Backdrop Blur):
-                                                </span>
-                                                <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 dark:bg-amber-500/20 px-2 py-0.5 rounded-md">
-                                                    {currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}px
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="32"
-                                                    step="2"
-                                                    value={currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}
-                                                    onChange={(e) => onChangeConfig({ ...currentConfig, overlayBlur: Number(e.target.value) })}
-                                                    className="flex-1 accent-amber-500 cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-5 gap-1.5 pt-0.5">
-                                                {[
-                                                    { val: 0, label: '0px (Tắt)' },
-                                                    { val: 6, label: '6px (Nhẹ)' },
-                                                    { val: 12, label: '12px (Chuẩn)' },
-                                                    { val: 20, label: '20px (Mạnh)' },
-                                                    { val: 32, label: '32px (Ảo diệu)' }
-                                                ].map((item) => (
-                                                    <button
-                                                        key={item.val}
-                                                        type="button"
-                                                        onClick={() => onChangeConfig({ ...currentConfig, overlayBlur: item.val })}
-                                                        className={cn(
-                                                            "py-1 text-[10px] font-bold rounded-lg border transition-all cursor-pointer text-center truncate px-1",
-                                                            Number(currentConfig.overlayBlur ?? 12) === item.val
-                                                                ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10 hover:border-black/20"
-                                                        )}
-                                                    >
-                                                        {item.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </m.div>
-                                )}
-
-                                {/* Last Purchase Badge */}
-                                <div 
-                                    onClick={handleToggleLastPurchaseBadge}
-                                    className={cn(
-                                        "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
-                                        showLastPurchaseBadge
-                                            ? "bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-500/15 dark:border-indigo-400/30"
-                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3.5">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                            showLastPurchaseBadge
-                                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                                                : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                        )}>
-                                            <Clock size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                                Badge Ngày Mua Gần Nhất Của Khách Hàng
-                                            </span>
-                                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                {showLastPurchaseBadge ? "Bật: Hiển thị nhãn ngày khách mua sản phẩm này gần nhất dưới tên món" : "Tắt: Ẩn nhãn ngày mua gần nhất để bảng gọn hơn"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className={cn(
-                                        "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                        showLastPurchaseBadge
-                                            ? "bg-indigo-600 border-indigo-600 justify-end"
-                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                    )}>
-                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                    </div>
-                                </div>
-
-                                {/* Text Pills Highlighter Toggle & Style Options */}
-                                <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-teal-500/25 dark:border-teal-500/20 shadow-xs space-y-3">
-                                    <div 
-                                        onClick={() => {
-                                            const newCfg = {
-                                                ...currentConfig,
-                                                enableTextPills: !currentConfig.enableTextPills
-                                            };
-                                            onChangeConfig(newCfg);
-                                            applyCartThemeToDom(newCfg);
-                                        }}
-                                        className="flex items-center justify-between cursor-pointer select-none group"
-                                    >
-                                        <div className="flex items-center gap-3.5">
-                                            <div className={cn(
-                                                "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                                currentConfig.enableTextPills
-                                                    ? "bg-teal-600 text-white shadow-md shadow-teal-600/30"
-                                                    : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                            )}>
-                                                <Sparkles size={20} strokeWidth={2.5} />
-                                            </div>
-                                            <div>
-                                                <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                                    <span>Badge / Pill Nền Mờ Nổi Bật Chữ Trong Giỏ</span>
-                                                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/20">
-                                                        HOT
-                                                    </span>
-                                                </span>
-                                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                                    {currentConfig.enableTextPills 
-                                                        ? "Bật: Bọc viền & nền mờ pill sang trọng cho Tên sản phẩm, Đơn vị, Quy đổi, SL, Giá & Thành tiền" 
-                                                        : "Tắt: Chữ hiển thị phẳng tự nhiên theo nền giỏ hàng"}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className={cn(
-                                            "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                            currentConfig.enableTextPills
-                                                ? "bg-teal-600 border-teal-600 justify-end"
-                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                        )}>
-                                            <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                        </div>
-                                    </div>
-
-                                    {/* Pill Style Selector (Glass vs Neon vs Theme) */}
-                                    {currentConfig.enableTextPills && (
-                                        <m.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            className="pt-3 border-t border-black/5 dark:border-white/5 space-y-2"
-                                        >
-                                            <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Paintbrush size={13} className="text-teal-500" />
-                                                    Kiểu dáng Pill nổi bật:
-                                                </span>
-                                                <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold uppercase">
-                                                    {currentConfig.textPillStyle === 'neon' ? 'Viền Neon Sắc Nét' : currentConfig.textPillStyle === 'theme' ? 'Nền Màu Theme POS' : 'Kính Mờ Tinh Tế (Glass)'}
-                                                </span>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {[
-                                                    {
-                                                        id: 'glass',
-                                                        label: 'Kính Mờ Glass',
-                                                        desc: 'Bóng bẩy, mờ ảo cao cấp'
-                                                    },
-                                                    {
-                                                        id: 'neon',
-                                                        label: 'Viền Neon Sắc',
-                                                        desc: 'Viền phát sáng nhẹ theo theme'
-                                                    },
-                                                    {
-                                                        id: 'theme',
-                                                        label: 'Nền Mờ Theme',
-                                                        desc: 'Hòa quyện với màu chủ đạo'
-                                                    }
-                                                ].map(pillOpt => (
-                                                    <button
-                                                        key={pillOpt.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newCfg = {
-                                                                ...currentConfig,
-                                                                textPillStyle: pillOpt.id
-                                                            };
+                                                        value={(!currentConfig.pageBgColor || currentConfig.pageBgColor === 'default') ? '' : currentConfig.pageBgColor}
+                                                        placeholder="Hoặc nhập mã HEX tùy ý (vd: #f5f0eb)..."
+                                                        onChange={(e) => {
+                                                            const newCfg = { ...currentConfig, pageBgColor: e.target.value };
                                                             onChangeConfig(newCfg);
                                                             applyCartThemeToDom(newCfg);
                                                         }}
-                                                        className={cn(
-                                                            "p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-0.5",
-                                                            (currentConfig.textPillStyle || 'glass') === pillOpt.id
-                                                                ? "bg-teal-500/15 border-teal-600 dark:border-teal-400 shadow-xs ring-1 ring-teal-500/20"
-                                                                : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20"
-                                                        )}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-                                                                {pillOpt.label}
-                                                            </span>
-                                                            {(currentConfig.textPillStyle || 'glass') === pillOpt.id && (
-                                                                <Check size={12} strokeWidth={3} className="text-teal-600 dark:text-teal-400" />
-                                                            )}
-                                                        </div>
-                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                                            {pillOpt.desc}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
+                                                        className="w-full px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-500/30 text-xs font-mono font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                    />
+                                                </div>
 
-                                            {/* Advanced Pill Customization Controls: Border Color, Background Color, Blur, Opacity, Glow */}
-                                            <div className="pt-3 border-t border-black/5 dark:border-white/5 space-y-3.5">
-                                                <div className="flex items-center justify-between pb-1">
-                                                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                                                        <Sliders size={13} className="text-teal-600 dark:text-teal-400" />
-                                                        Chi tiết màu sắc & độ mờ Pill
-                                                    </span>
+                                                {currentConfig.pageBgColor && currentConfig.pageBgColor !== 'default' && (
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            const newCfg = {
-                                                                ...currentConfig,
-                                                                pillBgColor: 'default',
-                                                                pillBorderColor: 'default',
-                                                                pillBlur: 12,
-                                                                pillOpacity: 25,
-                                                                pillRadius: 16,
-                                                                pillGlow: true
-                                                            };
+                                                            const newCfg = { ...currentConfig, pageBgColor: 'default' };
                                                             onChangeConfig(newCfg);
                                                             applyCartThemeToDom(newCfg);
                                                         }}
-                                                        className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                                                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer shrink-0"
                                                     >
-                                                        <RotateCcw size={10} />
-                                                        <span>Đặt lại Pill</span>
+                                                        Về mặc định
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Section: Presets Themes Mẫu */}
+                                        <div className="space-y-3.5">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                    <BookmarkCheck size={14} className="text-amber-500" />
+                                                    Bộ Sưu Tập Theme Mẫu Sẵn Có (Presets)
+                                                </h4>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setPresetNameInput(`Theme #${customPresets.length + 1}`);
+                                                            setIsSavingPreset(prev => !prev);
+                                                        }}
+                                                        className="flex items-center gap-1 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                                    >
+                                                        <Plus size={12} strokeWidth={3} />
+                                                        <span>Lưu Phối Màu Hiện Tại</span>
                                                     </button>
                                                 </div>
+                                            </div>
 
-                                                {/* 1. Pill Background Color */}
-                                                <div className="space-y-1.5">
-                                                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Droplet size={12} className="text-teal-500" />
-                                                            Màu nền Pill:
-                                                        </span>
-                                                        <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
-                                                            {currentConfig.pillBgColor === 'default' || !currentConfig.pillBgColor ? 'Mặc định theo chế độ' : currentConfig.pillBgColor}
-                                                        </span>
-                                                    </label>
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const newCfg = { ...currentConfig, pillBgColor: 'default' };
-                                                                onChangeConfig(newCfg);
-                                                                applyCartThemeToDom(newCfg);
-                                                            }}
-                                                            className={cn(
-                                                                "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
-                                                                (currentConfig.pillBgColor === 'default' || !currentConfig.pillBgColor)
-                                                                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
-                                                                    : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                            )}
-                                                        >
-                                                            Mặc định
-                                                        </button>
-                                                        <div className="relative flex items-center gap-1.5 flex-1">
-                                                            <input
-                                                                type="color"
-                                                                value={(currentConfig.pillBgColor && currentConfig.pillBgColor !== 'default') ? currentConfig.pillBgColor : (currentConfig.textPillStyle === 'glass' ? '#ffffff' : activeAccentColor)}
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, pillBgColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={(currentConfig.pillBgColor && currentConfig.pillBgColor !== 'default') ? currentConfig.pillBgColor : ''}
-                                                                placeholder="#HEX (vd: #ffffff, #10b981, #d4a574)..."
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, pillBgColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="flex-1 h-8 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* 2. Pill Border Color */}
-                                                <div className="space-y-1.5">
-                                                    <label className="text-xs font-black text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                                                        <span className="flex items-center gap-1.5">
-                                                            <Square size={12} className="text-teal-500" />
-                                                            Màu viền Pill:
-                                                        </span>
-                                                        <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold">
-                                                            {currentConfig.pillBorderColor === 'default' || !currentConfig.pillBorderColor ? 'Mặc định theo chế độ' : currentConfig.pillBorderColor}
-                                                        </span>
-                                                    </label>
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const newCfg = { ...currentConfig, pillBorderColor: 'default' };
-                                                                onChangeConfig(newCfg);
-                                                                applyCartThemeToDom(newCfg);
-                                                            }}
-                                                            className={cn(
-                                                                "px-2.5 py-1 text-[10px] font-black rounded-lg border transition-all cursor-pointer",
-                                                                (currentConfig.pillBorderColor === 'default' || !currentConfig.pillBorderColor)
-                                                                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
-                                                                    : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-black/10 dark:border-white/10"
-                                                            )}
-                                                        >
-                                                            Mặc định
-                                                        </button>
-                                                        <div className="relative flex items-center gap-1.5 flex-1">
-                                                            <input
-                                                                type="color"
-                                                                value={(currentConfig.pillBorderColor && currentConfig.pillBorderColor !== 'default') ? currentConfig.pillBorderColor : (currentConfig.borderColor !== 'default' ? currentConfig.borderColor : activeAccentColor)}
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, pillBorderColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="w-8 h-8 rounded-xl cursor-pointer border border-black/10 p-0.5 bg-transparent shadow-xs"
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                value={(currentConfig.pillBorderColor && currentConfig.pillBorderColor !== 'default') ? currentConfig.pillBorderColor : ''}
-                                                                placeholder="#HEX viền (vd: #10b981, #ffffff, #38bdf8)..."
-                                                                onChange={(e) => {
-                                                                    const newCfg = { ...currentConfig, pillBorderColor: e.target.value };
-                                                                    onChangeConfig(newCfg);
-                                                                    applyCartThemeToDom(newCfg);
-                                                                }}
-                                                                className="flex-1 h-8 px-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-xs font-mono font-bold outline-none"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* 3. Pill Opacity, Blur & Border Radius Sliders */}
-                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                                                    {/* Border Radius */}
-                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                            <span className="flex items-center gap-1 text-[11px]">
-                                                                <Square size={12} className="text-emerald-500" />
-                                                                Độ bo góc (Radius):
-                                                            </span>
-                                                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.2 rounded">
-                                                                {currentConfig.pillRadius !== undefined ? currentConfig.pillRadius : 16}px
-                                                            </span>
-                                                        </div>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max="40"
-                                                            step="2"
-                                                            value={currentConfig.pillRadius !== undefined ? currentConfig.pillRadius : 16}
-                                                            onChange={(e) => {
-                                                                const newCfg = { ...currentConfig, pillRadius: Number(e.target.value) };
-                                                                onChangeConfig(newCfg);
-                                                                applyCartThemeToDom(newCfg);
-                                                            }}
-                                                            className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                                                        />
-                                                        <div className="flex items-center justify-between gap-1 pt-1">
-                                                            {[
-                                                                { r: 4, l: 'Vuông' },
-                                                                { r: 10, l: 'Bo nhẹ' },
-                                                                { r: 16, l: 'Vừa' },
-                                                                { r: 24, l: 'Tròn' },
-                                                                { r: 99, l: 'Pill max' }
-                                                            ].map(opt => (
-                                                                <button
-                                                                    key={opt.r}
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const newCfg = { ...currentConfig, pillRadius: opt.r };
-                                                                        onChangeConfig(newCfg);
-                                                                        applyCartThemeToDom(newCfg);
+                                            {/* Form lưu theme hiện tại */}
+                                            <AnimatePresence>
+                                                {isSavingPreset && (
+                                                    <m.div
+                                                        initial={{ opacity: 0, height: 0, y: -6 }}
+                                                        animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                        exit={{ opacity: 0, height: 0, y: -6 }}
+                                                        transition={{ duration: 0.18 }}
+                                                        className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs"
+                                                    >
+                                                        <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1">
+                                                            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                                <Bookmark size={15} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="text-[10.5px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                                                                    Tên Theme Preset Mới:
+                                                                </div>
+                                                                <input
+                                                                    type="text"
+                                                                    value={presetNameInput}
+                                                                    onChange={(e) => setPresetNameInput(e.target.value)}
+                                                                    placeholder="VD: Xanh Neon, Theme Tết, Nâu Cổ Điển..."
+                                                                    className="w-full mt-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-500/30 text-xs font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                                                    autoFocus
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') handleSaveCustomPreset();
+                                                                        if (e.key === 'Escape') setIsSavingPreset(false);
                                                                     }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setIsSavingPreset(false)}
+                                                                className="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs font-bold cursor-pointer transition-colors"
+                                                            >
+                                                                Hủy
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSaveCustomPreset}
+                                                                className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider shadow-xs flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                                                            >
+                                                                <Check size={13} strokeWidth={3} />
+                                                                <span>Lưu Mẫu</span>
+                                                            </button>
+                                                        </div>
+                                                    </m.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                            {/* Danh sách Theme Tự Lưu (Custom Presets) */}
+                                            {customPresets.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                                        <span className="flex items-center gap-1">
+                                                            <FolderHeart size={12} />
+                                                            Theme Của Bạn ({customPresets.length})
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                        {customPresets.map((preset) => {
+                                                            const isSelected = isPresetSelected(preset);
+                                                            return (
+                                                                <div
+                                                                    key={preset.id}
+                                                                    onClick={() => handleApplyPreset(preset)}
                                                                     className={cn(
-                                                                        "flex-1 py-0.5 text-[9px] font-bold rounded border transition-all text-center",
-                                                                        (Number(currentConfig.pillRadius ?? 16) === opt.r)
-                                                                            ? "bg-emerald-600 text-white border-emerald-600"
-                                                                            : "bg-black/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-black/10 dark:border-white/10"
+                                                                        "group relative flex flex-col p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98",
+                                                                        isSelected
+                                                                            ? "border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-950/40 ring-2 ring-amber-500/30"
+                                                                            : "border-amber-500/20 dark:border-amber-500/20 bg-amber-500/5 dark:bg-amber-950/20 hover:border-amber-500/40"
                                                                     )}
                                                                 >
-                                                                    {opt.l}
+                                                                    <div className="flex items-center justify-between w-full mb-1.5">
+                                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                                            <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
+                                                                                {preset.name}
+                                                                            </span>
+                                                                            <span className="px-1.5 py-0.2 rounded-full text-[8.5px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                                                                                Tự tạo
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                                            {isSelected && (
+                                                                                <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                                                                    <Check size={10} strokeWidth={3} />
+                                                                                </div>
+                                                                            )}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => handleDeleteCustomPreset(preset.id, e)}
+                                                                                className="w-5 h-5 rounded-lg opacity-60 hover:opacity-100 hover:bg-rose-500/15 hover:text-rose-500 text-slate-400 flex items-center justify-center transition-all cursor-pointer"
+                                                                                title="Xóa theme này"
+                                                                            >
+                                                                                <Trash2 size={11} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <div className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" style={{ backgroundColor: preset.previewHeaderBg }} title="Màu nền Header" />
+                                                                        <div className="w-4 h-4 rounded-md border-2 shrink-0" style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }} title="Màu viền" />
+                                                                        <div className="w-4 h-4 rounded-md shadow-xs shrink-0" style={{ backgroundColor: preset.previewAccent || preset.previewBorder }} title="Màu nút & Active" />
+                                                                        <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
+                                                                            {preset.desc || 'Tự thiết kế'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Built-in Presets */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                                    <span>Theme Mẫu Hệ Thống Chuẩn</span>
+                                                    {CART_COLOR_PRESETS.length > 3 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowAllBuiltinPresets(prev => !prev)}
+                                                            className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                                                        >
+                                                            <span>{showAllBuiltinPresets ? "Thu gọn 3 mẫu" : `Xem thêm ${CART_COLOR_PRESETS.length - 3} mẫu khác`}</span>
+                                                            {showAllBuiltinPresets ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                    {(showAllBuiltinPresets ? CART_COLOR_PRESETS : CART_COLOR_PRESETS.slice(0, 3)).map((preset) => {
+                                                        const isSelected = isPresetSelected(preset);
+                                                        return (
+                                                            <button
+                                                                key={preset.id}
+                                                                type="button"
+                                                                onClick={() => handleApplyPreset(preset)}
+                                                                className={cn(
+                                                                    "relative flex flex-col p-3 rounded-2xl border text-left transition-all cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 group",
+                                                                    isSelected
+                                                                        ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
+                                                                        : "border-black/10 dark:border-white/10 bg-white/60 dark:bg-slate-900/40 hover:border-black/20 dark:hover:border-white/20"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center justify-between w-full mb-1.5">
+                                                                    <span className="font-black text-xs text-slate-800 dark:text-slate-100 truncate">
+                                                                        {preset.name}
+                                                                    </span>
+                                                                    {isSelected && (
+                                                                        <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                                                            <Check size={10} strokeWidth={3} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <div className="w-4 h-4 rounded-md border border-black/10 shadow-inner shrink-0" style={{ backgroundColor: preset.previewHeaderBg }} title="Màu nền Header" />
+                                                                    <div className="w-4 h-4 rounded-md border-2 shrink-0" style={{ borderColor: preset.previewBorder, backgroundColor: 'transparent' }} title="Màu viền" />
+                                                                    <div className="w-4 h-4 rounded-md shadow-xs shrink-0" style={{ backgroundColor: preset.previewAccent || preset.previewBorder }} title="Màu nút & Active" />
+                                                                    <span className="text-[9px] font-bold text-slate-400 truncate flex-1 min-w-0">
+                                                                        {preset.desc}
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 2: BẢNG GIỎ HÀNG (CART TABLE COLORS) */}
+                                {activeTab === 'cart' && (
+                                    <div className="space-y-6">
+                                        {/* Live Preview Table pinned at top of Cart tab */}
+                                        {renderLivePreview()}
+
+                                        <div className="pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                                    <Palette size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                                    <span>Chi Tiết Màu Sắc Bảng Giỏ Hàng</span>
+                                                </h4>
+                                                <span className="text-[10px] text-slate-400">
+                                                    Tự do phối màu từng phần
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {/* 1. Header Background */}
+                                                {renderColorField({
+                                                    id: 'headerBg',
+                                                    label: '1. Màu Nền Thanh Tiêu Đề',
+                                                    desc: 'Nền của hàng tiêu đề (Stt, Tên SP, SL, Đơn giá...)',
+                                                    value: currentConfig.headerBg,
+                                                    defaultLabel: 'Mặc định (Trong suốt)',
+                                                    swatches: ['#8b6f47', '#2d5016', '#1e3a0f', '#064e3b', '#172554', '#1e1b4b', '#311042', '#543b24', '#1c1917', '#0f172a', '#ffffff'],
+                                                    onChange: (val) => {
+                                                        const newCfg = { ...currentConfig, headerBg: val };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }
+                                                })}
+
+                                                {/* 2. Header Text */}
+                                                {renderColorField({
+                                                    id: 'headerText',
+                                                    label: '2. Màu Chữ Tiêu Đề',
+                                                    desc: 'Màu chữ hiển thị trên thanh tiêu đề giỏ hàng',
+                                                    value: currentConfig.headerText,
+                                                    defaultLabel: 'Mặc định (#8b6f47)',
+                                                    swatches: ['#ffffff', '#8b6f47', '#2d5016', '#6ee7b7', '#d9f99d', '#fde68a', '#93c5fd', '#c4b5fd', '#fbcfe8', '#cbd5e1'],
+                                                    onChange: (val) => {
+                                                        const newCfg = { ...currentConfig, headerText: val };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }
+                                                })}
+
+                                                {/* 3. Accent Color */}
+                                                {renderColorField({
+                                                    id: 'accentColor',
+                                                    label: '3. Màu Điểm Nhấn (Accent)',
+                                                    desc: 'Màu huy hiệu đếm số món, nút active, tổng thanh toán',
+                                                    value: currentConfig.accentColor,
+                                                    defaultLabel: 'Mặc định (#2d5016)',
+                                                    swatches: ['#2d5016', '#8b6f47', '#10b981', '#059669', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#eab308', '#0d9488'],
+                                                    onChange: (val) => {
+                                                        const newCfg = { ...currentConfig, accentColor: val };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }
+                                                })}
+
+                                                {/* 4. Product Text Color */}
+                                                {renderColorField({
+                                                    id: 'productTextColor',
+                                                    label: '4. Màu Chữ Tên Sản Phẩm',
+                                                    desc: 'Màu tên sản phẩm hiển thị trong từng dòng giỏ hàng',
+                                                    value: currentConfig.productTextColor,
+                                                    defaultLabel: 'Mặc định (Theme)',
+                                                    swatches: ['#2d5016', '#1e293b', '#0f172a', '#334155', '#15803d', '#1d4ed8', '#6d28d9', '#be185d', '#b45309', '#047857'],
+                                                    onChange: (val) => {
+                                                        const newCfg = { ...currentConfig, productTextColor: val };
+                                                        onChangeConfig(newCfg);
+                                                        applyCartThemeToDom(newCfg);
+                                                    }
+                                                })}
+
+                                                {/* 5. Cart Values Color */}
+                                                <div className="sm:col-span-2">
+                                                    {renderColorField({
+                                                        id: 'cartValuesColor',
+                                                        label: '5. Màu Giá Trị Số (Số Lượng & Tiền)',
+                                                        desc: 'Màu sắc hiển thị cho các cột Số lượng, Đơn giá và Thành tiền',
+                                                        value: currentConfig.cartValuesColor,
+                                                        defaultLabel: 'Mặc định (Theo Accent)',
+                                                        swatches: ['#2d5016', '#8b6f47', '#10b981', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#059669', '#0284c7', '#16a34a'],
+                                                        onChange: (val) => {
+                                                            const newCfg = { ...currentConfig, cartValuesColor: val };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 3: KÍNH & VIỀN (GLASS, BORDER & EFFECTS) */}
+                                {activeTab === 'effects' && (
+                                    <div className="space-y-6">
+                                        {/* Compact preview */}
+                                        {renderLivePreview(true)}
+
+                                        <div className="pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-5">
+                                            {/* Card 1: Khung Viền & Chiều Dày */}
+                                            <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-4 shadow-xs">
+                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                                            <Square size={16} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                                                                Đường Viền Giỏ Hàng
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                                Độ dày và màu sắc viền bao quanh bảng giỏ hàng
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div 
+                                                        onClick={() => {
+                                                            const newCfg = { ...currentConfig, enableBorder: currentConfig.enableBorder === false ? true : false };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className={cn(
+                                                            "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border cursor-pointer",
+                                                            currentConfig.enableBorder !== false
+                                                                ? "bg-blue-600 border-blue-600 justify-end"
+                                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}
+                                                    >
+                                                        <div className="w-5 h-5 rounded-full bg-white shadow-xs" />
+                                                    </div>
+                                                </div>
+
+                                                {currentConfig.enableBorder !== false && (
+                                                    <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Độ dày viền:</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                {['1', '2', '3', '4'].map((w) => (
+                                                                    <button
+                                                                        key={w}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const newCfg = { ...currentConfig, borderWidth: w };
+                                                                            onChangeConfig(newCfg);
+                                                                            applyCartThemeToDom(newCfg);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "w-8 h-7 rounded-lg text-xs font-black transition-all cursor-pointer",
+                                                                            (currentConfig.borderWidth || '1') === w
+                                                                                ? "bg-blue-600 text-white shadow-xs"
+                                                                                : "bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-black/10"
+                                                                        )}
+                                                                    >
+                                                                        {w}px
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {renderColorField({
+                                                            id: 'borderColor',
+                                                            label: 'Màu Đường Viền',
+                                                            desc: 'Màu viền giỏ hàng và các đường kẻ phân cách',
+                                                            value: currentConfig.borderColor,
+                                                            defaultLabel: 'Mặc định (#8b6f47)',
+                                                            swatches: ['#8b6f47', '#2d5016', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#14b8a6', '#ffffff'],
+                                                            onChange: (val) => {
+                                                                const newCfg = { ...currentConfig, borderColor: val };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card 2: Hiệu Ứng Ánh Sáng Glow & Đổ Bóng 3D */}
+                                            <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-4 shadow-xs">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                                        <SunMedium size={16} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                                                            Hiệu Ứng Phát Sáng & Chiều Sâu 3D
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                            Ánh sáng neon viền và đổ bóng nhiều lớp cao cấp
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                                    {/* Glow Toggle */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            const newCfg = { ...currentConfig, enableGlow: currentConfig.enableGlow === false ? true : false };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none",
+                                                            currentConfig.enableGlow !== false
+                                                                ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300"
+                                                                : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
+                                                        )}
+                                                    >
+                                                        <div>
+                                                            <div className="font-black text-xs">Ánh Sáng Neon (Glow)</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Tạo vầng hào quang viền</div>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                            currentConfig.enableGlow !== false
+                                                                ? "bg-amber-500 border-amber-500 justify-end"
+                                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}>
+                                                            <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Shadow Toggle */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            const newCfg = { ...currentConfig, enableShadow: currentConfig.enableShadow === false ? true : false };
+                                                            onChangeConfig(newCfg);
+                                                            applyCartThemeToDom(newCfg);
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none",
+                                                            currentConfig.enableShadow !== false
+                                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-300"
+                                                                : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 opacity-70"
+                                                        )}
+                                                    >
+                                                        <div>
+                                                            <div className="font-black text-xs">Đổ Bóng Nổi 3D (Shadow)</div>
+                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">Tạo chiều sâu tách lớp</div>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                            currentConfig.enableShadow !== false
+                                                                ? "bg-emerald-600 border-emerald-600 justify-end"
+                                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}>
+                                                            <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Card 3: Lớp Kính Mờ (Glass Overlay) */}
+                                            <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-4 shadow-xs">
+                                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                                                            <Layers size={16} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div>
+                                                            <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                                                                Lớp Kính Mờ & Bảng Trong Suốt
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                                                Tạo cảm giác mờ ảo hiện đại nhìn xuyên thấu nền
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div 
+                                                        onClick={handleToggleTransparent}
+                                                        className={cn(
+                                                            "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border cursor-pointer",
+                                                            transparentCartTable
+                                                                ? "bg-teal-600 border-teal-600 justify-end"
+                                                                : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}
+                                                    >
+                                                        <div className="w-5 h-5 rounded-full bg-white shadow-xs" />
+                                                    </div>
+                                                </div>
+
+                                                {transparentCartTable && (
+                                                    <div className="space-y-3.5 pt-2 border-t border-black/5 dark:border-white/5">
+                                                        {/* Opacity slider */}
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                <span>Độ mờ kính (Opacity):</span>
+                                                                <span className="font-mono text-teal-700 dark:text-teal-400 font-black">{currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}%</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="100"
+                                                                step="5"
+                                                                value={currentConfig.overlayOpacity !== undefined ? currentConfig.overlayOpacity : 30}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, overlayOpacity: Number(e.target.value) };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-full accent-teal-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                            />
+                                                        </div>
+
+                                                        {/* Blur slider */}
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                <span>Độ nhòe kính (Blur):</span>
+                                                                <span className="font-mono text-teal-700 dark:text-teal-400 font-black">{currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}px</span>
+                                                            </div>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="30"
+                                                                step="2"
+                                                                value={currentConfig.overlayBlur !== undefined ? currentConfig.overlayBlur : 12}
+                                                                onChange={(e) => {
+                                                                    const newCfg = { ...currentConfig, overlayBlur: Number(e.target.value) };
+                                                                    onChangeConfig(newCfg);
+                                                                    applyCartThemeToDom(newCfg);
+                                                                }}
+                                                                className="w-full accent-teal-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                            />
+                                                        </div>
+
+                                                        {renderColorField({
+                                                            id: 'overlayColor',
+                                                            label: 'Màu Phủ Kính Mờ',
+                                                            desc: 'Tông màu của lớp kính mờ bao phủ',
+                                                            value: currentConfig.overlayColor,
+                                                            defaultLabel: 'Mặc định (Theo Card)',
+                                                            swatches: ['#ffffff', '#faf8f3', '#0f172a', '#000000', '#2d5016', '#8b6f47', '#1e1b4b'],
+                                                            onChange: (val) => {
+                                                                const newCfg = { ...currentConfig, overlayColor: val };
+                                                                onChangeConfig(newCfg);
+                                                                applyCartThemeToDom(newCfg);
+                                                            }
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Card 4: Tùy Chọn Hiển Thị Tiện Ích */}
+                                            <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-3 shadow-xs">
+                                                <div className="text-xs font-black uppercase text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                                    <Sliders size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                                    <span>Tùy Chọn Hiển Thị Khác</span>
+                                                </div>
+
+                                                <div className="space-y-2 pt-1">
+                                                    {/* Nhãn mua gần nhất */}
+                                                    <div 
+                                                        onClick={handleToggleLastPurchaseBadge}
+                                                        className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 cursor-pointer select-none"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock size={15} className="text-indigo-500" />
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Huy hiệu lịch sử mua gần nhất</div>
+                                                                <div className="text-[10px] text-slate-400">Hiển thị nhãn thời gian khách mua gần nhất dưới tên sản phẩm</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                            showLastPurchaseBadge ? "bg-indigo-600 border-indigo-600 justify-end" : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}>
+                                                            <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Hiệu ứng gõ phím tìm kiếm */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            const newCfg = { ...currentConfig, enableSearchTypingAnimation: !currentConfig.enableSearchTypingAnimation };
+                                                            onChangeConfig(newCfg);
+                                                            localStorage.setItem("pos_search_typing_animation", String(newCfg.enableSearchTypingAnimation));
+                                                        }}
+                                                        className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 cursor-pointer select-none"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <Sparkles size={15} className="text-amber-500" />
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Hiệu ứng nhảy chữ khi gõ tìm kiếm</div>
+                                                                <div className="text-[10px] text-slate-400">Animation chữ nhảy vui mắt theo phong cách Lí An AI</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={cn(
+                                                            "w-10 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                            currentConfig.enableSearchTypingAnimation ? "bg-amber-500 border-amber-500 justify-end" : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                        )}>
+                                                            <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* TAB 4: MASCOT CHÌM (MASCOT WATERMARK) */}
+                                {activeTab === 'mascot' && (
+                                    <div className="space-y-6">
+                                        {/* Live Preview with Mascot */}
+                                        {renderLivePreview()}
+
+                                        <div className="pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-4">
+                                            {/* Mascot Master Toggle */}
+                                            <div 
+                                                onClick={handleToggleMascotVisible}
+                                                className={cn(
+                                                    "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none",
+                                                    mascotWatermarkVisible
+                                                        ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
+                                                        : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3.5">
+                                                    <div className={cn(
+                                                        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
+                                                        mascotWatermarkVisible
+                                                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                                                            : "bg-black/10 dark:bg-white/10 text-slate-400"
+                                                    )}>
+                                                        <ImageIcon size={20} strokeWidth={2.5} />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
+                                                            Hiển Thị Mascot Khắc Chìm Dưới Bảng
+                                                        </span>
+                                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                                            {mascotWatermarkVisible ? "Đang bật: Khắc hình linh vật mờ nghệ thuật chìm dưới danh sách món" : "Đang tắt: Ẩn hoàn toàn hình chìm"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className={cn(
+                                                    "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
+                                                    mascotWatermarkVisible
+                                                        ? "bg-emerald-600 border-emerald-600 justify-end"
+                                                        : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                )}>
+                                                    <div className="w-5 h-5 rounded-full bg-white shadow-xs" />
+                                                </div>
+                                            </div>
+
+                                            {mascotWatermarkVisible && (
+                                                <div className="space-y-4">
+                                                    {/* Card: Nguồn Ảnh Linh Vật */}
+                                                    <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-3 shadow-xs">
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                                <Upload size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                                                Nguồn Ảnh Linh Vật
+                                                            </label>
+                                                            {mascotWatermarkCustomImage ? (
+                                                                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                                                    Ảnh tự tải (Đã nén tối ưu)
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-slate-500 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">
+                                                                    Mascot Lyang mặc định
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden relative">
+                                                                <img 
+                                                                    src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"} 
+                                                                    alt="Current Mascot" 
+                                                                    className="w-full h-full object-contain filter grayscale contrast-150"
+                                                                />
+                                                                {isCompressingMascot && (
+                                                                    <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold text-center px-1">
+                                                                        Đang nén...
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex-1 flex flex-col gap-1.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        ref={mascotFileInputRef}
+                                                                        type="file"
+                                                                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                                                        className="hidden"
+                                                                        onChange={handleMascotFileUpload}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={isCompressingMascot}
+                                                                        onClick={() => mascotFileInputRef.current?.click()}
+                                                                        className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                                                    >
+                                                                        <Upload size={14} />
+                                                                        <span>{mascotWatermarkCustomImage ? "Đổi ảnh khác từ máy tính" : "Tải ảnh từ máy tính"}</span>
+                                                                    </button>
+
+                                                                    {mascotWatermarkCustomImage && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={handleResetMascotToDefault}
+                                                                            className="py-2 px-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 text-slate-500 hover:text-rose-500 text-xs font-bold transition-all cursor-pointer"
+                                                                            title="Quay lại linh vật mặc định"
+                                                                        >
+                                                                            <RotateCcw size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-400">
+                                                                    Hỗ trợ PNG trong suốt, JPG, WebP. Hệ thống tự động nén nhẹ không lo lag.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Card: Vị Trí & Tinh Chỉnh */}
+                                                    <div className="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-[#8b6f47]/15 dark:border-white/10 space-y-4 shadow-xs">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-xs font-black uppercase text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                                                                <Compass size={15} className="text-emerald-600 dark:text-emerald-400" />
+                                                                <span>Vị Trí & Tinh Chỉnh Hiển Thị</span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleResetMascot}
+                                                                className="text-[10.5px] font-bold text-slate-400 hover:text-rose-500 cursor-pointer"
+                                                            >
+                                                                Đặt lại mặc định
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Position buttons */}
+                                                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                                            {[
+                                                                { id: 'bottom-right', label: 'Dưới phải (Chuẩn)' },
+                                                                { id: 'bottom-left', label: 'Dưới trái' },
+                                                                { id: 'top-right', label: 'Trên phải' },
+                                                                { id: 'top-left', label: 'Trên trái' },
+                                                                { id: 'center', label: 'Chính giữa' }
+                                                            ].map(pos => (
+                                                                <button
+                                                                    key={pos.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setMascotWatermarkPos(pos.id);
+                                                                        localStorage.setItem("pos_mascot_watermark_pos", pos.id);
+                                                                        broadcastSetting("pos_mascot_watermark_pos", pos.id);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center",
+                                                                        mascotWatermarkPos === pos.id
+                                                                            ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                                                                            : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-black/10"
+                                                                    )}
+                                                                >
+                                                                    {pos.label}
                                                                 </button>
                                                             ))}
                                                         </div>
-                                                    </div>
 
-                                                    {/* Opacity */}
-                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                            <span className="flex items-center gap-1 text-[11px]">
-                                                                <Layers size={12} className="text-teal-500" />
-                                                                Độ đậm nền pill:
-                                                            </span>
-                                                            <span className="font-mono text-[10px] text-teal-700 dark:text-teal-400 font-bold bg-teal-500/10 dark:bg-teal-500/20 px-1.5 py-0.2 rounded">
-                                                                {currentConfig.pillOpacity !== undefined ? currentConfig.pillOpacity : (currentConfig.textPillStyle === 'glass' ? 22 : 18)}%
-                                                            </span>
-                                                        </div>
-                                                        <input
-                                                            type="range"
-                                                            min="5"
-                                                            max="85"
-                                                            step="5"
-                                                            value={currentConfig.pillOpacity !== undefined ? currentConfig.pillOpacity : (currentConfig.textPillStyle === 'glass' ? 22 : 18)}
-                                                            onChange={(e) => {
-                                                                const newCfg = { ...currentConfig, pillOpacity: Number(e.target.value) };
-                                                                onChangeConfig(newCfg);
-                                                                applyCartThemeToDom(newCfg);
-                                                            }}
-                                                            className="w-full accent-teal-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                                                        />
-                                                    </div>
+                                                        {/* Sliders Grid */}
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                                            {/* Opacity */}
+                                                            <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                    <span>Độ mờ nghệ thuật:</span>
+                                                                    <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{mascotWatermarkOpacity}%</span>
+                                                                </div>
+                                                                <input
+                                                                    type="range"
+                                                                    min="5"
+                                                                    max="60"
+                                                                    step="1"
+                                                                    value={mascotWatermarkOpacity}
+                                                                    onChange={e => {
+                                                                        const val = parseFloat(e.target.value);
+                                                                        setMascotWatermarkOpacity(val);
+                                                                        localStorage.setItem("pos_mascot_watermark_opacity", String(val));
+                                                                        broadcastSetting("pos_mascot_watermark_opacity", String(val));
+                                                                    }}
+                                                                    className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                                />
+                                                            </div>
 
-                                                    {/* Blur (Độ Glass) */}
-                                                    <div className="space-y-1.5 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                                                        <div className="flex items-center justify-between text-xs font-black text-slate-700 dark:text-slate-300">
-                                                            <span className="flex items-center gap-1 text-[11px]">
-                                                                <Sparkles size={12} className="text-amber-500" />
-                                                                Độ nhòe kính (Glass blur):
-                                                            </span>
-                                                            <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-500/10 dark:bg-amber-500/20 px-1.5 py-0.2 rounded">
-                                                                {currentConfig.pillBlur !== undefined ? currentConfig.pillBlur : (currentConfig.textPillStyle === 'glass' ? 12 : 8)}px
-                                                            </span>
+                                                            {/* Scale */}
+                                                            <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                    <span>Kích thước linh vật:</span>
+                                                                    <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{mascotWatermarkScale}px</span>
+                                                                </div>
+                                                                <input
+                                                                    type="range"
+                                                                    min="40"
+                                                                    max="220"
+                                                                    step="5"
+                                                                    value={mascotWatermarkScale}
+                                                                    onChange={e => {
+                                                                        const val = parseFloat(e.target.value);
+                                                                        setMascotWatermarkScale(val);
+                                                                        localStorage.setItem("pos_mascot_watermark_scale", String(val));
+                                                                        broadcastSetting("pos_mascot_watermark_scale", String(val));
+                                                                    }}
+                                                                    className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                                />
+                                                            </div>
+
+                                                            {/* Rotate */}
+                                                            <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                    <span>Góc xoay nghiêng:</span>
+                                                                    <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{mascotWatermarkRotate}°</span>
+                                                                </div>
+                                                                <input
+                                                                    type="range"
+                                                                    min="-45"
+                                                                    max="45"
+                                                                    step="1"
+                                                                    value={mascotWatermarkRotate}
+                                                                    onChange={e => {
+                                                                        const val = parseFloat(e.target.value);
+                                                                        setMascotWatermarkRotate(val);
+                                                                        localStorage.setItem("pos_mascot_watermark_rotate", String(val));
+                                                                        broadcastSetting("pos_mascot_watermark_rotate", String(val));
+                                                                    }}
+                                                                    className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                                />
+                                                            </div>
+
+                                                            {/* Offset X & Y */}
+                                                            <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                                                                <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                                    <span>Tọa độ lệch (X / Y):</span>
+                                                                    <span className="font-mono text-emerald-700 dark:text-emerald-400 font-black">{mascotWatermarkOffsetX} / {mascotWatermarkOffsetY}px</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="range"
+                                                                        min="-100"
+                                                                        max="100"
+                                                                        step="2"
+                                                                        value={mascotWatermarkOffsetX}
+                                                                        onChange={e => {
+                                                                            const val = parseFloat(e.target.value);
+                                                                            setMascotWatermarkOffsetX(val);
+                                                                            localStorage.setItem("pos_mascot_watermark_offset_x", String(val));
+                                                                            broadcastSetting("pos_mascot_watermark_offset_x", String(val));
+                                                                        }}
+                                                                        className="w-1/2 accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                                        title="Lệch ngang X"
+                                                                    />
+                                                                    <input
+                                                                        type="range"
+                                                                        min="-100"
+                                                                        max="100"
+                                                                        step="2"
+                                                                        value={mascotWatermarkOffsetY}
+                                                                        onChange={e => {
+                                                                            const val = parseFloat(e.target.value);
+                                                                            setMascotWatermarkOffsetY(val);
+                                                                            localStorage.setItem("pos_mascot_watermark_offset_y", String(val));
+                                                                            broadcastSetting("pos_mascot_watermark_offset_y", String(val));
+                                                                        }}
+                                                                        className="w-1/2 accent-emerald-600 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                                                                        title="Lệch dọc Y"
+                                                                    />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max="30"
-                                                            step="2"
-                                                            value={currentConfig.pillBlur !== undefined ? currentConfig.pillBlur : (currentConfig.textPillStyle === 'glass' ? 12 : 8)}
-                                                            onChange={(e) => {
-                                                                const newCfg = { ...currentConfig, pillBlur: Number(e.target.value) };
-                                                                onChangeConfig(newCfg);
-                                                                applyCartThemeToDom(newCfg);
-                                                            }}
-                                                            className="w-full accent-amber-500 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                                                        />
                                                     </div>
                                                 </div>
-
-                                                {/* 4. Glow toggle for Pill */}
-                                                <div 
-                                                    onClick={() => {
-                                                        const newCfg = {
-                                                            ...currentConfig,
-                                                            pillGlow: currentConfig.pillGlow === false ? true : false
-                                                        };
-                                                        onChangeConfig(newCfg);
-                                                        applyCartThemeToDom(newCfg);
-                                                    }}
-                                                    className="flex items-center justify-between p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 cursor-pointer select-none group"
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <SunMedium size={14} className={currentConfig.pillGlow !== false ? "text-amber-500" : "text-slate-400"} />
-                                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                                            Hiệu ứng viền phát sáng & đổ bóng nhẹ (Pill Glow & Depth)
-                                                        </span>
-                                                    </div>
-                                                    <div className={cn(
-                                                        "w-9 h-5 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                                        currentConfig.pillGlow !== false
-                                                            ? "bg-teal-600 border-teal-600 justify-end"
-                                                            : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                                    )}>
-                                                        <div className="w-3.5 h-3.5 rounded-full bg-white shadow-xs" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </m.div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB 3: MASCOT WATERMARK (Integrated Customizer) */}
-                    {activeTab === 'mascot' && (
-                        <div className="space-y-5">
-                            {/* Mascot Toggle */}
-                            <div 
-                                onClick={handleToggleMascotVisible}
-                                className={cn(
-                                    "flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none group",
-                                    mascotWatermarkVisible
-                                        ? "bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-500/15 dark:border-emerald-400/30"
-                                        : "bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10"
-                                )}
-                            >
-                                <div className="flex items-center gap-3.5">
-                                    <div className={cn(
-                                        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all",
-                                        mascotWatermarkVisible
-                                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
-                                            : "bg-black/10 dark:bg-white/10 text-slate-400"
-                                    )}>
-                                        <ImageIcon size={20} strokeWidth={2.5} />
-                                    </div>
-                                    <div>
-                                        <span className="font-black text-xs uppercase tracking-tight text-slate-800 dark:text-slate-100 block">
-                                            Hiển Thị Mascot Khắc Chìm Dưới Bảng
-                                        </span>
-                                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                                            {mascotWatermarkVisible ? "Bật: Khắc hình linh vật mờ nghệ thuật chìm dưới danh sách món" : "Tắt: Ẩn hoàn toàn hình chìm"}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className={cn(
-                                    "w-11 h-6 rounded-full p-0.5 transition-colors duration-300 flex items-center shrink-0 border",
-                                    mascotWatermarkVisible
-                                        ? "bg-emerald-600 border-emerald-600 justify-end"
-                                        : "bg-slate-300 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                    )}>
-                                        <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
-                                </div>
-                            </div>
-
-                            {mascotWatermarkVisible && (
-                                <div className="space-y-4 pt-2 border-t border-[#8b6f47]/20 dark:border-white/10">
-                                    {/* Chọn nguồn ảnh Mascot: Mặc định hoặc Tải lên từ PC */}
-                                    <div className="space-y-3 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                <Upload size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                                Nguồn Ảnh Mascot Chìm
-                                            </label>
-                                            {mascotWatermarkCustomImage ? (
-                                                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                                    Đang dùng ảnh tự tải (Đã nén tối ưu)
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] font-bold text-slate-500 bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">
-                                                    Mascot Lyang mặc định
-                                                </span>
                                             )}
                                         </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 p-1 flex items-center justify-center shrink-0 shadow-inner overflow-hidden relative group">
-                                                <img 
-                                                    src={mascotWatermarkCustomImage || "/assets/images/user_mascot.png"} 
-                                                    alt="Current Mascot" 
-                                                    className="w-full h-full object-contain filter grayscale contrast-150"
-                                                />
-                                                {isCompressingMascot && (
-                                                    <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold text-center px-1">
-                                                        Đang nén...
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex-1 flex flex-col gap-1.5">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        ref={mascotFileInputRef}
-                                                        type="file"
-                                                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                                        className="hidden"
-                                                        onChange={handleMascotFileUpload}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled={isCompressingMascot}
-                                                        onClick={() => mascotFileInputRef.current?.click()}
-                                                        className="flex-1 py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-black text-xs uppercase tracking-tight flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                                                    >
-                                                        <Upload size={14} />
-                                                        <span>{mascotWatermarkCustomImage ? "Đổi ảnh từ PC" : "Upload ảnh từ PC"}</span>
-                                                    </button>
-
-                                                    {mascotWatermarkCustomImage && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleResetMascotToDefault}
-                                                            className="py-2 px-3 bg-black/10 dark:bg-white/10 hover:bg-rose-500/15 hover:text-rose-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
-                                                            title="Về hình Mascot mặc định"
-                                                        >
-                                                            <Trash2 size={13} />
-                                                            <span>Về mặc định</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                                                    Hỗ trợ PNG trong suốt, JPG, WebP, SVG. Ảnh được tự động scale & nén tối ưu (nhẹ &lt; 80KB) chống tràn bộ nhớ.
-                                                </p>
-                                            </div>
-                                        </div>
                                     </div>
+                                )}
 
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                            <Compass size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                            Vị Trí Góc Neo & Tọa Độ Dịch Chuyển
-                                        </h4>
-                                        <button
-                                            type="button"
-                                            onClick={handleResetMascot}
-                                            className="flex items-center gap-1 text-[10px] font-bold text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                                        >
-                                            <RotateCcw size={11} />
-                                            <span>Mặc định góc</span>
-                                        </button>
-                                    </div>
-
-                                    {/* Anchor Positions */}
-                                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 text-xs font-bold">
-                                        {[
-                                            { id: "bottom-right", label: "Dưới Phải" },
-                                            { id: "bottom-left", label: "Dưới Trái" },
-                                            { id: "center", label: "Chính Giữa" },
-                                            { id: "top-right", label: "Trên Phải" },
-                                            { id: "top-left", label: "Trên Trái" },
-                                        ].map(item => (
+                                {/* TAB 5: NÚT & NHÃN (BUBBLES & BADGES) */}
+                                {activeTab === 'bubbles' && (
+                                    <div className="space-y-5">
+                                        {/* Sub-tabs selector for Bubbles vs Badges */}
+                                        <div className="p-1 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center gap-1 border border-black/5 dark:border-white/10 max-w-lg mx-auto flex-nowrap">
                                             <button
-                                                key={item.id}
                                                 type="button"
-                                                onClick={() => {
-                                                    setMascotWatermarkPos(item.id);
-                                                    localStorage.setItem("pos_mascot_watermark_pos", item.id);
-                                                    broadcastSetting("pos_mascot_watermark_pos", item.id);
-                                                }}
+                                                onClick={() => setBubblesSubTab('bubbles')}
                                                 className={cn(
-                                                    "py-2 px-2.5 rounded-xl border text-center transition-all cursor-pointer text-xs font-black",
-                                                    mascotWatermarkPos === item.id
-                                                        ? "bg-emerald-600 text-white shadow-sm border-emerald-600"
-                                                        : "bg-white/60 dark:bg-slate-900/60 border-black/10 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-black/20"
+                                                    "flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
+                                                    bubblesSubTab === 'bubbles'
+                                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
                                                 )}
                                             >
-                                                {item.label}
+                                                <Sparkles size={14} className="text-amber-500 shrink-0" />
+                                                <span className="whitespace-nowrap">1. Nút Thao Tác</span>
                                             </button>
-                                        ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => setBubblesSubTab('badges')}
+                                                className={cn(
+                                                    "flex-1 py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap",
+                                                    bubblesSubTab === 'badges'
+                                                        ? "bg-white dark:bg-[#0e271d] text-slate-800 dark:text-emerald-400 shadow-sm border border-black/5 dark:border-emerald-500/30"
+                                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800"
+                                                )}
+                                            >
+                                                <Bookmark size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                                <span className="whitespace-nowrap">2. Nhãn & Badges</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Render selected subtab */}
+                                        {bubblesSubTab === 'bubbles' ? (
+                                            <BubbleCustomizerTab 
+                                                config={currentConfig} 
+                                                onChangeConfig={onChangeConfig} 
+                                            />
+                                        ) : (
+                                            <BadgeCustomizerTab 
+                                                config={currentConfig} 
+                                                onChangeConfig={onChangeConfig} 
+                                            />
+                                        )}
                                     </div>
+                                )}
+                            </div>
 
-                                    {/* Scale & Opacity Sliders */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="space-y-1.5 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                            <div className="flex justify-between items-center text-xs font-black text-slate-800 dark:text-slate-200">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Maximize2 size={13} className="text-emerald-600" />
-                                                    Kích cỡ hình ({mascotWatermarkScale}%)
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="40"
-                                                max="200"
-                                                step="5"
-                                                value={mascotWatermarkScale}
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setMascotWatermarkScale(val);
-                                                    localStorage.setItem("pos_mascot_watermark_scale", String(val));
-                                                    broadcastSetting("pos_mascot_watermark_scale", String(val));
-                                                }}
-                                                className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1.5 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                            <div className="flex justify-between items-center text-xs font-black text-slate-800 dark:text-slate-200">
-                                                <span className="flex items-center gap-1.5">
-                                                    <Eye size={13} className="text-emerald-600" />
-                                                    Độ đậm / Trong suốt ({mascotWatermarkOpacity}%)
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="5"
-                                                max="60"
-                                                step="1"
-                                                value={mascotWatermarkOpacity}
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setMascotWatermarkOpacity(val);
-                                                    localStorage.setItem("pos_mascot_watermark_opacity", String(val));
-                                                    broadcastSetting("pos_mascot_watermark_opacity", String(val));
-                                                }}
-                                                className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Offset X / Y & Rotate */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div className="space-y-1.5 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                            <div className="flex justify-between items-center text-[11px] font-black text-slate-700 dark:text-slate-300">
-                                                <span>Dịch ngang (X):</span>
-                                                <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{mascotWatermarkOffsetX > 0 ? `+${mascotWatermarkOffsetX}` : mascotWatermarkOffsetX}px</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-120"
-                                                max="120"
-                                                step="2"
-                                                value={mascotWatermarkOffsetX}
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setMascotWatermarkOffsetX(val);
-                                                    localStorage.setItem("pos_mascot_watermark_offset_x", String(val));
-                                                    broadcastSetting("pos_mascot_watermark_offset_x", String(val));
-                                                }}
-                                                className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1.5 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                            <div className="flex justify-between items-center text-[11px] font-black text-slate-700 dark:text-slate-300">
-                                                <span>Dịch dọc (Y):</span>
-                                                <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{mascotWatermarkOffsetY > 0 ? `+${mascotWatermarkOffsetY}` : mascotWatermarkOffsetY}px</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-120"
-                                                max="120"
-                                                step="2"
-                                                value={mascotWatermarkOffsetY}
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setMascotWatermarkOffsetY(val);
-                                                    localStorage.setItem("pos_mascot_watermark_offset_y", String(val));
-                                                    broadcastSetting("pos_mascot_watermark_offset_y", String(val));
-                                                }}
-                                                className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1.5 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                                            <div className="flex justify-between items-center text-[11px] font-black text-slate-700 dark:text-slate-300">
-                                                <span>Góc xoay nghiêng:</span>
-                                                <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{mascotWatermarkRotate}°</span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="-45"
-                                                max="45"
-                                                step="1"
-                                                value={mascotWatermarkRotate}
-                                                onChange={e => {
-                                                    const val = parseFloat(e.target.value);
-                                                    setMascotWatermarkRotate(val);
-                                                    localStorage.setItem("pos_mascot_watermark_rotate", String(val));
-                                                    broadcastSetting("pos_mascot_watermark_rotate", String(val));
-                                                }}
-                                                className="w-full accent-emerald-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* TAB 4: BUBBLES & BUTTONS CUSTOMIZATION */}
-                    {activeTab === 'bubbles' && (
-                        <BubbleCustomizerTab 
-                            config={currentConfig} 
-                            onChangeConfig={onChangeConfig} 
-                        />
-                    )}
-
-                    {/* TAB 5: BADGES & ROW TAGS CUSTOMIZATION */}
-                    {activeTab === 'badges' && (
-                        <BadgeCustomizerTab 
-                            config={currentConfig} 
-                            onChangeConfig={onChangeConfig} 
-                        />
-                    )}
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 px-6 border-t border-[#8b6f47]/15 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex items-center justify-between">
-                    <span className="text-[10.5px] font-bold text-slate-400 flex items-center gap-1.5">
-                        <Check size={13} className="text-emerald-500" />
-                        Tự động lưu và đồng bộ toàn hệ thống
-                    </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-950/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
-                        style={currentConfig.accentColor !== 'default' ? { backgroundColor: currentConfig.accentColor } : undefined}
-                    >
-                        Hoàn tất & Đóng
-                    </button>
-                </div>
-            </m.div>
+                            {/* Modal Footer */}
+                            <div className="p-4 px-6 border-t border-[#8b6f47]/15 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-xl flex items-center justify-between shrink-0">
+                                <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+                                    <CheckCircle2 size={14} className="text-emerald-500" />
+                                    Tự động lưu và đồng bộ toàn hệ thống
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-950/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+                                    style={currentConfig.accentColor !== 'default' ? { backgroundColor: currentConfig.accentColor } : undefined}
+                                >
+                                    Hoàn tất & Đóng
+                                </button>
+                            </div>
+                        </m.div>
                     </m.div>
                 )}
             </AnimatePresence>
         </Portal>
     );
 }
-

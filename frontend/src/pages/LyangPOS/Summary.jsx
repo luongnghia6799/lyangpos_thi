@@ -5,7 +5,7 @@ import {
     Droplets, Wheat, Coins, Leaf, Sprout, BarChart3, Tag, ShoppingBag,
     Calendar, FileText, Search, RefreshCw, Printer, AlertCircle, Package,
     ArrowUpRight, ArrowDownRight, Filter, Download, ChevronLeft, ChevronRight,
-    CreditCard, Users, X
+    CreditCard, Users, X, FileSpreadsheet
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -864,6 +864,34 @@ const InventoryJournal = ({ onEditOrder }) => {
         return true;
     });
 
+    const handleExportHistory = async () => {
+        if (!selectedProduct || filteredHistory.length === 0) return;
+        try {
+            const XLSX = await import('xlsx');
+            const rows = filteredHistory.map((item, idx) => ({
+                "STT": idx + 1,
+                "Thời gian": item.date ? new Date(item.date).toLocaleString('vi-VN') : '',
+                "Chứng từ": item.display_id || item.order_id || '',
+                "Phân loại": item.type || '',
+                "Đối tác": item.partner_name || 'Khách lẻ',
+                "Thay đổi": item.quantity_change || 0,
+                "Đơn giá": item.price || 0,
+                "Thành tiền": (item.price || 0) * Math.abs(item.quantity_change || 0)
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws['!cols'] = [{ wch: 6 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 18 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "NhatKyKho");
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+            const { saveOrOpenFile } = await import('../../utils/downloadHelper');
+            const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const safeName = (selectedProduct.name || selectedProduct.id).toString().replace(/[\\/:*?"<>|\s]+/g, '_');
+            await saveOrOpenFile(wbout, `nhat_ky_${safeName}_${todayStr}.xlsx`, true);
+        } catch (err) {
+            console.error("Export History Error:", err);
+        }
+    };
+
     return (
         <div className="h-full flex gap-4 overflow-hidden">
             {/* Left Product List */}
@@ -946,13 +974,23 @@ const InventoryJournal = ({ onEditOrder }) => {
                                     {selectedProduct.price > 0 && <span> • GIÁ BÁN: <span className="font-black">{Number(selectedProduct.price).toLocaleString()} ₫</span></span>}
                                 </p>
                             </div>
-                            <button
-                                onClick={() => selectProduct(selectedProduct)}
-                                className="p-2 hover:bg-white/10 rounded-xl text-white transition-colors border border-white/20"
-                                title="Tải lại dữ liệu"
-                            >
-                                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleExportHistory}
+                                    className="px-3 py-1.5 bg-white/15 hover:bg-white hover:text-primary rounded-xl text-white transition-all border border-white/20 flex items-center gap-1.5 text-xs font-bold"
+                                    title="Xuất Excel nhật ký kho"
+                                >
+                                    <FileSpreadsheet size={14} />
+                                    <span>Xuất Excel</span>
+                                </button>
+                                <button
+                                    onClick={() => selectProduct(selectedProduct)}
+                                    className="p-2 hover:bg-white/10 rounded-xl text-white transition-colors border border-white/20"
+                                    title="Tải lại dữ liệu"
+                                >
+                                    <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Filter Toolbar */}
@@ -1273,11 +1311,9 @@ const ProductMovementReport = ({ onEditOrder }) => {
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "BienDongHangHoa");
             
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
-            await saveOrOpenFile(blob, `bao_cao_bien_dong_${getTodayStr()}.xlsx`);
+            await saveOrOpenFile(wbout, `bao_cao_bien_dong_${getTodayStr()}.xlsx`, true);
         } catch (err) {
             console.error("Export Error:", err);
         }
@@ -1525,10 +1561,11 @@ const ProductMovementReport = ({ onEditOrder }) => {
                             <m.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={exportToExcel}
-                                className="p-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-xl transition-all border border-border"
-                                title="Xuất báo cáo"
+                                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-xl transition-all border border-emerald-500/20 font-bold text-xs"
+                                title="Xuất file Excel"
                             >
-                                <Printer className="w-4 h-4" />
+                                <FileSpreadsheet className="w-4 h-4" />
+                                <span>Xuất Excel</span>
                             </m.button>
                         </div>
                     </div>

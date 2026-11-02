@@ -1856,7 +1856,7 @@ const PurchaseLite = () => {
                     title="Ghi chú đơn hàng"
                   >
                     <FileText size={12} />
-                    {note && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />}
+                    {note && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full" />}
                   </button>
 
                   {showNotePopover && (

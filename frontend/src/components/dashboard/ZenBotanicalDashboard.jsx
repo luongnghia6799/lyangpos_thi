@@ -30,6 +30,7 @@ import {
     Sparkle
 } from 'lucide-react';
 import { formatCurrency, formatNumber, cn } from '../../lib/utils';
+import { checkIsAdmin } from '../../lib/auth';
 
 // -------------------------------------------------------------
 // 1. SCENIC BOTANICAL LANDSCAPE BANNER
@@ -138,7 +139,7 @@ const ZenLandscapeBanner = memo(({ weather, currentTime, shopName, onToggleZen }
 
                     {/* Terracotta / Golden Sun with Breathing Aura */}
                     <circle cx="1060" cy="118" r="48" fill={timeGreeting.sunColor} className="opacity-95" />
-                    <circle cx="1060" cy="118" r="70" fill="url(#zenSunGlowMaster)" className="opacity-40 animate-pulse" />
+                    <circle cx="1060" cy="118" r="70" fill="url(#zenSunGlowMaster)" className="opacity-40" />
 
                     {/* Soft Organic Watercolor Clouds */}
                     <path
@@ -307,7 +308,7 @@ const ZenBentoMetricsGrid = memo(({ stats, filters, navigate }) => {
     }, [stats?.revenue, stats?.cash_revenue]);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        <div className={cn("grid gap-4 w-full", isAdmin ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-3")}>
             {/* Card 1: Doanh Thu Hôm Nay */}
             <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
                 <div className="space-y-3">
@@ -362,6 +363,7 @@ const ZenBentoMetricsGrid = memo(({ stats, filters, navigate }) => {
             </div>
 
             {/* Card 2: Lợi Nhuận Thuần */}
+            {isAdmin && (
             <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -400,6 +402,8 @@ const ZenBentoMetricsGrid = memo(({ stats, filters, navigate }) => {
                     </span>
                 </div>
             </div>
+
+                        )}
 
             {/* Card 3: Công Nợ Khách Hàng */}
             <div className="bg-[#FFFDF9] dark:bg-[#1C2219] rounded-[24px] border border-[#E8DFC8] dark:border-[#2E382A] p-5 shadow-[0_4px_24px_rgba(125,139,110,0.05)] hover:border-[#7D8B6E]/60 transition-all flex flex-col justify-between group relative overflow-hidden">
@@ -570,7 +574,7 @@ const ZenAnalyticsChart = memo(({ stats }) => {
             order: 2
         });
     }
-    if (chartMode === 'profit' || chartMode === 'both') {
+    if (isAdmin && (chartMode === 'profit' || chartMode === 'both')) {
         datasets.push({
             type: 'line',
             label: 'Lợi nhuận',
@@ -653,15 +657,17 @@ const ZenAnalyticsChart = memo(({ stats }) => {
             </div>
 
             {/* Quick summary stat pills */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className={cn("grid gap-2.5 pt-1", isAdmin ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2")}>
                 <div className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
                     <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Tổng chu kỳ</span>
                     <span className="font-bold text-[#32291F] dark:text-[#EDE6DB] text-sm">{formatCurrency(totalRevenue)}</span>
                 </div>
+                {isAdmin && (
                 <div className="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
                     <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Lợi nhuận chu kỳ</span>
                     <span className="font-bold text-[#4D653E] dark:text-[#B2C5A2] text-sm">{formatCurrency(totalProfit)}</span>
                 </div>
+                )}
                 <div className="col-span-2 sm:col-span-1 px-3.5 py-2 rounded-xl bg-white/70 dark:bg-black/25 border border-[#ECE3D4] dark:border-[#303B2C] text-xs">
                     <span className="text-[#8C806F] dark:text-[#A09689] block text-[10px] font-bold uppercase tracking-wider">Ngày cao điểm</span>
                     <span className="font-bold text-[#C8733E] text-sm">{formatCurrency(maxDay)}</span>
@@ -930,6 +936,15 @@ const ZenTopDebtorsCard = memo(({ stats, navigate }) => {
 // 6. MAIN ZEN BOTANICAL DASHBOARD COMPONENT
 // -------------------------------------------------------------
 export default function ZenBotanicalDashboard({
+    const isAdmin = useMemo(() => {
+        try {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            return checkIsAdmin(u?.role);
+        } catch (e) {
+            return false;
+        }
+    }, []);
+
     stats,
     filters,
     setFilters,

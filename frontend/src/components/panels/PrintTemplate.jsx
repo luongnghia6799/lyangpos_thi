@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useMemo } from 'react';
 import { formatNumber, formatDate, normalizeUOM } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { loadGoogleFont, ensureFontLoaded } from '../../lib/googleFonts';

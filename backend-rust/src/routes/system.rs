@@ -208,19 +208,154 @@ pub struct WeatherQuery {
     pub city: Option<String>,
 }
 
-pub async fn get_weather(Query(q): Query<WeatherQuery>) -> impl IntoResponse {
-    let lat = q.latitude.unwrap_or(21.0285);
-    let lon = q.longitude.unwrap_or(105.8542);
-    let city = q.city.unwrap_or_else(|| "Vị trí của tôi".into());
+fn map_weather_code_to_desc(code: i64, is_day: i64) -> &'static str {
+    match code {
+        0 => if is_day == 1 { "Trời quang, nắng" } else { "Đêm quang đãng" },
+        1 => "Ít mây, nắng dịu",
+        2 => "Mây rải rác",
+        3 => "Nhiều mây",
+        45 | 48 => "Có sương mù",
+        51 | 53 | 55 => "Mưa phùn nhẹ",
+        56 | 57 => "Mưa phùn lạnh",
+        61 => "Mưa nhỏ",
+        63 => "Mưa vừa",
+        65 => "Mưa to",
+        66 | 67 => "Mưa rào lạnh",
+        71 | 73 | 75 | 77 => "Mưa tuyết / lạnh",
+        80 => "Mưa rào nhẹ",
+        81 => "Mưa rào vừa",
+        82 => "Mưa rào rất to",
+        95 => "Có dông sét",
+        96 | 99 => "Dông kèm mưa đá",
+        _ => "Nắng nhẹ",
+    }
+}
 
+pub async fn get_weather(Query(q): Query<WeatherQuery>) -> impl IntoResponse {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(4))
+        .build()
+        .unwrap_or_default();
+
+    let mut lat = q.latitude;
+    let mut lon = q.longitude;
+    let mut resolved_city = q.city.clone();
+
+    // 1. Nếu có city và chưa có tọa độ: geocode city từ Open-Meteo Geocoding
+    if (lat.is_none() || lon.is_none()) && resolved_city.as_ref().map(|c| !c.trim().is_empty() && c != "Vị trí của tôi" && c != "Vụ mùa").unwrap_or(false) {
+        if let Some(ref city_name) = resolved_city {
+            let geocode_url = format!(
+                "https://geocoding-api.open-meteo.com/v1/search?name={}&count=1&language=vi&format=json",
+                city_name.trim().replace(' ', "+")
+            );
+            if let Ok(resp) = client.get(&geocode_url).send().await 
+            {
+                if let Ok(geo_json) = resp.json::<serde_json::Value>().await {
+                    if let Some(first_res) = geo_json.get("results").and_then(|r| r.get(0)) {
+                        lat = first_res.get("latitude").and_then(|v| v.as_f64());
+                        lon = first_res.get("longitude").and_then(|v| v.as_f64());
+                        if let Some(matched_name) = first_res.get("name").and_then(|v| v.as_str()) {
+                            resolved_city = Some(matched_name.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Nếu vẫn chưa có tọa độ: fallback sang định vị qua IP
+    if lat.is_none() || lon.is_none() {
+        let ip_url = "http://ip-api.com/json/?fields=lat,lon,city,regionName,status";
+        if let Ok(resp) = client.get(ip_url).send().await {
+            if let Ok(ip_json) = resp.json::<serde_json::Value>().await {
+                if ip_json.get("status").and_then(|s| s.as_str()) == Some("success") {
+                    lat = ip_json.get("lat").and_then(|v| v.as_f64());
+                    lon = ip_json.get("lon").and_then(|v| v.as_f64());
+                    if resolved_city.is_none() || resolved_city.as_deref() == Some("Vị trí của tôi") {
+                        if let Some(r_name) = ip_json.get("regionName").and_then(|v| v.as_str()) {
+                            resolved_city = Some(r_name.to_string());
+                        } else if let Some(c_name) = ip_json.get("city").and_then(|v| v.as_str()) {
+                            resolved_city = Some(c_name.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Tọa độ mặc định (Việt Nam) nếu hoàn toàn không có mạng
+    let final_lat = lat.unwrap_or(10.3667); // Miền Tây / Tiền Giang
+    let final_lon = lon.unwrap_or(106.3667);
+
+    // 3. Nếu city vẫn chưa có hoặc là "Vị trí của tôi": Reverse geocode để lấy tên địa phương thật
+    if resolved_city.is_none() || resolved_city.as_deref() == Some("Vị trí của tôi") || resolved_city.as_deref() == Some("Vụ mùa") {
+        let rev_url = format!(
+            "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={}&longitude={}&localityLanguage=vi",
+            final_lat, final_lon
+        );
+        if let Ok(resp) = client.get(&rev_url).send().await 
+        {
+            if let Ok(rev_json) = resp.json::<serde_json::Value>().await {
+                let locality = rev_json.get("locality").and_then(|v| v.as_str()).filter(|s| !s.is_empty());
+                let city_val = rev_json.get("city").and_then(|v| v.as_str()).filter(|s| !s.is_empty());
+                let sub_div = rev_json.get("principalSubdivision").and_then(|v| v.as_str()).filter(|s| !s.is_empty());
+
+                let best_name = locality.or(city_val).or(sub_div);
+                if let Some(name) = best_name {
+                    let clean_name = name
+                        .replace("Tỉnh ", "")
+                        .replace("Thành phố ", "")
+                        .replace("TP. ", "")
+                        .trim()
+                        .to_string();
+                    if !clean_name.is_empty() {
+                        resolved_city = Some(clean_name);
+                    }
+                }
+            }
+        }
+    }
+
+    let display_city = resolved_city.unwrap_or_else(|| "Việt Nam".to_string());
+
+    // 4. Lấy thời tiết thực tế từ Open-Meteo API
+    let weather_url = format!(
+        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&current_weather=true&timezone=auto",
+        final_lat, final_lon
+    );
+    if let Ok(resp) = client.get(&weather_url).send().await 
+    {
+        if let Ok(w_json) = resp.json::<serde_json::Value>().await {
+            if let Some(cw) = w_json.get("current_weather") {
+                let temp = cw.get("temperature").and_then(|v| v.as_f64()).unwrap_or(28.0).round() as i64;
+                let wcode = cw.get("weathercode").and_then(|v| v.as_i64()).unwrap_or(0);
+                let is_day = cw.get("is_day").and_then(|v| v.as_i64()).unwrap_or(1);
+                let desc = map_weather_code_to_desc(wcode, is_day);
+
+                return Json(json!({
+                    "status": "success",
+                    "latitude": final_lat,
+                    "longitude": final_lon,
+                    "city": display_city,
+                    "temp": temp,
+                    "desc": desc,
+                    "weathercode": wcode,
+                    "is_day": is_day
+                }));
+            }
+        }
+    }
+
+    // Fallback an toàn
     Json(json!({
         "status": "success",
-        "latitude": lat,
-        "longitude": lon,
-        "city": city,
+        "latitude": final_lat,
+        "longitude": final_lon,
+        "city": display_city,
         "temp": 28,
         "desc": "Trời quang",
-        "weathercode": 0
+        "weathercode": 0,
+        "is_day": 1
     }))
 }
 

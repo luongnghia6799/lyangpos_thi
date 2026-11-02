@@ -461,6 +461,42 @@ export default function Dashboard() {
         };
     }, []);
 
+    const getWeatherIconFromCode = (weathercode) => {
+        if (weathercode === 0) return Sun;
+        if (weathercode <= 3) return Cloud;
+        if (weathercode <= 48) return Wind;
+        if (weathercode <= 82) return CloudRain;
+        return CloudLightning;
+    };
+
+    const getWeatherDescFromCode = (weathercode, isDay = 1) => {
+        switch (weathercode) {
+            case 0: return isDay ? 'Trời quang, nắng' : 'Đêm quang đãng';
+            case 1: return 'Ít mây, nắng dịu';
+            case 2: return 'Mây rải rác';
+            case 3: return 'Nhiều mây';
+            case 45:
+            case 48: return 'Có sương mù';
+            case 51:
+            case 53:
+            case 55: return 'Mưa phùn nhẹ';
+            case 56:
+            case 57: return 'Mưa phùn lạnh';
+            case 61: return 'Mưa nhỏ';
+            case 63: return 'Mưa vừa';
+            case 65: return 'Mưa to';
+            case 66:
+            case 67: return 'Mưa rào lạnh';
+            case 80: return 'Mưa rào nhẹ';
+            case 81: return 'Mưa rào vừa';
+            case 82: return 'Mưa rào rất to';
+            case 95: return 'Có dông sét';
+            case 96:
+            case 99: return 'Dông kèm mưa đá';
+            default: return 'Nắng nhẹ';
+        }
+    };
+
     const fetchWeather = async (lat = null, lon = null, cityName = null) => {
         setIsWeatherLoading(true);
         try {
@@ -475,7 +511,7 @@ export default function Dashboard() {
                         const parsed = JSON.parse(savedLoc);
                         latitude = parsed.latitude;
                         longitude = parsed.longitude;
-                        city = parsed.city;
+                        if (!city) city = parsed.city;
                     } catch (err) {
                         console.error("Error parsing saved weather location", err);
                         localStorage.removeItem('weather_location');
@@ -483,44 +519,75 @@ export default function Dashboard() {
                 }
             }
 
-            const params = {};
-            if (latitude && longitude) {
-                params.latitude = latitude;
-                params.longitude = longitude;
+            let applied = false;
+
+            // 1. Thử gọi backend /api/weather
+            try {
+                const params = {};
+                if (latitude && longitude) {
+                    params.latitude = latitude;
+                    params.longitude = longitude;
+                }
+                if (city && city !== 'Vụ mùa' && city !== 'Vị trí của tôi') {
+                    params.city = city;
+                }
+
+                const res = await axios.get('/api/weather', { params, timeout: 5000 });
+                const data = res.data;
+                if (data && data.temp !== undefined) {
+                    const weathercode = data.weathercode || 0;
+                    const Icon = getWeatherIconFromCode(weathercode);
+
+                    setWeather({
+                        temp: data.temp,
+                        desc: data.desc || 'Nắng nhẹ',
+                        city: data.city || city || 'Vụ mùa',
+                        icon: Icon
+                    });
+
+                    if (data.latitude && data.longitude) {
+                        localStorage.setItem('weather_location', JSON.stringify({ 
+                            latitude: data.latitude, 
+                            longitude: data.longitude, 
+                            city: data.city || city || 'Vụ mùa'
+                        }));
+                    }
+                    applied = true;
+                }
+            } catch (backendErr) {
+                console.warn("Backend weather endpoint failed, fallback to client Open-Meteo", backendErr);
             }
-            if (city) {
-                params.city = city;
+
+            // 2. Client-side Open-Meteo fallback nếu backend không phản hồi hoặc offline
+            if (!applied) {
+                const finalLat = latitude || 10.3667;
+                const finalLon = longitude || 106.3667;
+                const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLon}&current_weather=true&timezone=auto`;
+                const omRes = await axios.get(omUrl, { timeout: 6000 });
+                const cw = omRes.data?.current_weather;
+                if (cw) {
+                    const temp = Math.round(cw.temperature);
+                    const wcode = cw.weathercode || 0;
+                    const isDay = cw.is_day !== undefined ? cw.is_day : 1;
+                    const desc = getWeatherDescFromCode(wcode, isDay);
+                    const Icon = getWeatherIconFromCode(wcode);
+
+                    setWeather({
+                        temp,
+                        desc,
+                        city: city || 'Vụ mùa',
+                        icon: Icon
+                    });
+
+                    localStorage.setItem('weather_location', JSON.stringify({ 
+                        latitude: finalLat, 
+                        longitude: finalLon, 
+                        city: city || 'Vụ mùa'
+                    }));
+                }
             }
-
-            const res = await axios.get('/api/weather', { params });
-            const data = res.data;
-
-            let Icon = Sun;
-            const weathercode = data.weathercode;
-            if (weathercode === 0) Icon = Sun;
-            else if (weathercode <= 3) Icon = Cloud;
-            else if (weathercode <= 48) Icon = Wind;
-            else if (weathercode <= 67) Icon = CloudRain;
-            else if (weathercode <= 82) Icon = CloudRain;
-            else if (weathercode <= 99) Icon = CloudLightning;
-
-            setWeather({
-                temp: data.temp,
-                desc: data.desc,
-                city: data.city || 'Vụ mùa',
-                icon: Icon
-            });
-
-            if (data.latitude && data.longitude) {
-                localStorage.setItem('weather_location', JSON.stringify({ 
-                    latitude: data.latitude, 
-                    longitude: data.longitude, 
-                    city: data.city 
-                }));
-            }
-
         } catch (e) {
-            console.error("Weather fetch failed", e);
+            console.error("All weather fetch failed", e);
         } finally {
             setIsWeatherLoading(false);
         }
@@ -528,22 +595,38 @@ export default function Dashboard() {
 
     const handleSyncGPS = () => {
         if (!navigator.geolocation) {
-            setToast({ message: 'Trình duyệt của bạn không hỗ trợ định vị.', type: 'error' });
+            setToast({ message: 'Trình duyệt của bạn không hỗ trợ định vị GPS.', type: 'error' });
             return;
         }
         setIsWeatherLoading(true);
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
-                await fetchWeather(latitude, longitude, "Vị trí của tôi");
-                setToast({ message: 'Đồng bộ vị trí GPS thành công!', type: 'success' });
+                let realCity = null;
+
+                // Client reverse geocoding để xác định tên Tỉnh / Thành phố Việt Nam
+                try {
+                    const revRes = await axios.get(
+                        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=vi`,
+                        { timeout: 4500 }
+                    );
+                    const locality = revRes.data?.locality || revRes.data?.city || revRes.data?.principalSubdivision;
+                    if (locality) {
+                        realCity = locality.replace(/^(Tỉnh|Thành phố|TP\.)\s+/i, '').trim();
+                    }
+                } catch (revErr) {
+                    console.warn("Client reverse geocode error:", revErr);
+                }
+
+                await fetchWeather(latitude, longitude, realCity || "Vị trí của tôi");
+                setToast({ message: `Đồng bộ thời tiết ${realCity || 'thực tế'} thành công!`, type: 'success' });
             },
             async (err) => {
                 console.warn("GPS synchronization failed, falling back to IP geolocation", err);
                 try {
-                    setToast({ message: 'Định vị GPS không thành công. Đang tự động định vị qua IP...', type: 'info' });
+                    setToast({ message: 'Không lấy được GPS. Đang tự động định vị qua địa chỉ IP...', type: 'info' });
                     await fetchWeather();
-                    setToast({ message: 'Định vị IP thành công! Bạn có thể click vào tên địa điểm để nhập thủ công.', type: 'success' });
+                    setToast({ message: 'Định vị IP hoàn tất! Bạn có thể bấm vào tên địa điểm để nhập thủ công.', type: 'success' });
                 } catch (ipErr) {
                     console.error("IP fallback failed", ipErr);
                     setToast({ message: "Không thể lấy vị trí. Click vào tên địa điểm để nhập thủ công.", type: 'error' });
@@ -551,14 +634,14 @@ export default function Dashboard() {
                     setIsWeatherLoading(false);
                 }
             },
-            { enableHighAccuracy: false, timeout: 5000, maximumAge: 10000 }
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
         );
-    }
+    };
 
     const handleEditLocation = async (e) => {
         if (e) e.stopPropagation();
         const currentCity = weather.city && weather.city !== 'Vụ mùa' && weather.city !== 'Vị trí của tôi' ? weather.city : '';
-        const newCity = prompt("Nhập tên Thành phố/Tỉnh của bạn (Ví dụ: Hải Phòng, Đà Nẵng, TP.HCM):", currentCity);
+        const newCity = prompt("Nhập tên Thành phố/Tỉnh của bạn (Ví dụ: Tiền Giang, Cần Thơ, Hải Phòng, TP.HCM):", currentCity);
         if (newCity === null) return; // User cancelled
         
         if (newCity.trim() === "") {
@@ -568,37 +651,26 @@ export default function Dashboard() {
 
         setIsWeatherLoading(true);
         try {
-            const res = await axios.get('/api/weather', { params: { city: newCity.trim() } });
-            const data = res.data;
-            if (data.status === 'success') {
-                let Icon = Sun;
-                const weathercode = data.weathercode;
-                if (weathercode === 0) Icon = Sun;
-                else if (weathercode <= 3) Icon = Cloud;
-                else if (weathercode <= 48) Icon = Wind;
-                else if (weathercode <= 67) Icon = CloudRain;
-                else if (weathercode <= 82) Icon = CloudRain;
-                else if (weathercode <= 99) Icon = CloudLightning;
-
-                setWeather({
-                    temp: data.temp,
-                    desc: data.desc,
-                    city: data.city || newCity.trim(),
-                    icon: Icon
-                });
-
-                localStorage.setItem('weather_location', JSON.stringify({ 
-                    latitude: data.latitude, 
-                    longitude: data.longitude, 
-                    city: data.city || newCity.trim()
-                }));
-                setToast({ message: `Cập nhật địa điểm thành ${data.city || newCity.trim()} thành công!`, type: 'success' });
+            // Geocode bằng Open-Meteo geocoding
+            const geoRes = await axios.get(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(newCity.trim())}&count=1&language=vi&format=json`, { timeout: 5000 });
+            const geoData = geoRes.data?.results?.[0];
+            if (geoData && geoData.latitude && geoData.longitude) {
+                const displayName = geoData.name || newCity.trim();
+                await fetchWeather(geoData.latitude, geoData.longitude, displayName);
+                setToast({ message: `Đã cập nhật thời tiết tại ${displayName}!`, type: 'success' });
             } else {
-                setToast({ message: 'Không tìm thấy vị trí yêu cầu.', type: 'error' });
+                // Fallback qua backend
+                await fetchWeather(null, null, newCity.trim());
+                setToast({ message: `Đã cập nhật địa điểm: ${newCity.trim()}!`, type: 'success' });
             }
         } catch (err) {
             console.error("Manual geocoding failed", err);
-            setToast({ message: "Không thể lấy vị trí. Vui lòng thử lại.", type: 'error' });
+            // Thử gọi backend
+            try {
+                await fetchWeather(null, null, newCity.trim());
+            } catch (fallbackErr) {
+                setToast({ message: "Không thể lấy thông tin vị trí này. Vui lòng thử lại.", type: 'error' });
+            }
         } finally {
             setIsWeatherLoading(false);
         }

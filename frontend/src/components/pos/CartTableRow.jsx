@@ -214,8 +214,8 @@ const CartTableRow = React.memo(function CartTableRow({
         }
       }}
       transition={{
-        duration: 0.22,
-        delay: Math.min(index * 0.016, 0.22),
+        duration: 0.27,
+        delay: Math.min(index * 0.02, 0.28),
         ease: [0.22, 1, 0.36, 1]
       }}
       id={`cart-row-${index}`}

@@ -1703,21 +1703,22 @@ export default function Purchase() {
     };
 
     const navigateHistory = async (direction) => {
-        setNavDirection(direction);
         let nextStep;
-        if (direction === 'prev') nextStep = historyStep + 1;
+        if (direction === 'current') nextStep = 0;
+        else if (direction === 'prev') nextStep = historyStep + 1;
         else nextStep = Math.max(0, historyStep - 1);
+        setNavDirection(nextStep === 0 ? "current" : direction);
         if (nextStep === 0) {
             setHistoryLoading(true);
             const switchStart = Date.now();
             if (cart && cart.length > 0) {
                 setCart([]);
-                await new Promise(res => setTimeout(res, 150));
+                await new Promise(res => setTimeout(res, 180));
             }
             playPopSound();
             if (!loadDraft()) resetForm();
             const elapsed = Date.now() - switchStart;
-            const delay = Math.max(0, 320 - elapsed);
+            const delay = Math.max(0, 400 - elapsed);
             setTimeout(() => {
                 setHistoryLoading(false);
             }, delay);

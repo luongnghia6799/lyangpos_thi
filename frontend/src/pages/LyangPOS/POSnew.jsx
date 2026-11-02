@@ -2261,13 +2261,40 @@ function POSPage({
           type: a || le?.type || "Sale",
           payment_method: I || le?.payment_method || "Cash",
           total_amount: le?.total_amount ?? le?.total ?? $,
-          details: (y && y.length > 0) ? y.map(o => ({
-            product_id: o.product_id,
-            product_name: o.product_name,
-            quantity: o.quantity,
-            price: o.price,
-            unit: o.unit || "Cái"
-          })) : (le?.details || []),
+          details: (y && y.length > 0) ? y.map(o => {
+            const prod = o.product || T.find(p => p.id === o.product_id);
+            const mult = Number(o.multiplier || prod?.multiplier) || 1;
+            const secUnit = o.secondary_unit || prod?.secondary_unit;
+            const secQty = (o.secondary_qty !== undefined && o.secondary_qty !== null && o.secondary_qty !== '')
+              ? Number(o.secondary_qty)
+              : (mult > 1 ? Number(o.quantity) / mult : undefined);
+            return {
+              ...o,
+              product_id: o.product_id,
+              product_name: o.product_name,
+              quantity: o.quantity,
+              price: o.price,
+              unit: o.unit || prod?.unit || "Cái",
+              secondary_unit: secUnit,
+              multiplier: mult,
+              secondary_qty: secQty,
+              product: prod || o.product
+            };
+          }) : (le?.details || []).map(dItem => {
+            const prod = dItem.product || T.find(p => p.id === dItem.product_id);
+            const mult = Number(dItem.multiplier || prod?.multiplier) || 1;
+            const secUnit = dItem.secondary_unit || prod?.secondary_unit;
+            const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+              ? Number(dItem.secondary_qty)
+              : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+            return {
+              ...dItem,
+              secondary_unit: secUnit,
+              multiplier: mult,
+              secondary_qty: secQty,
+              product: prod || dItem.product
+            };
+          }),
           old_debt: le?.old_debt !== undefined && le?.old_debt !== null ? le.old_debt : (p && p.debt_balance || 0),
           partner_id: p?.id || le?.partner_id,
           partner_name: p?.name || le?.partner_name,
@@ -2360,12 +2387,34 @@ function POSPage({
           const l = {
               ...n.data,
               total_amount: n.data?.total_amount ?? n.data?.total ?? $,
-              details: (n.data?.details && n.data.details.length > 0) ? n.data.details : r.map(o => ({
+              details: (n.data?.details && n.data.details.length > 0) ? n.data.details.map((dItem, idx) => {
+                const matchCart = r.find(c => c.product_id === dItem.product_id) || r[idx];
+                const prod = matchCart?.product || T.find(p => p.id === dItem.product_id);
+                const mult = Number(dItem.multiplier || matchCart?.multiplier || prod?.multiplier) || 1;
+                const secUnit = dItem.secondary_unit || matchCart?.secondary_unit || prod?.secondary_unit;
+                const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+                  ? Number(dItem.secondary_qty)
+                  : (matchCart?.secondary_qty !== undefined && matchCart?.secondary_qty !== null && matchCart?.secondary_qty !== '')
+                    ? Number(matchCart.secondary_qty)
+                    : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+                return {
+                  ...dItem,
+                  unit: dItem.unit || matchCart?.unit || prod?.unit || "Cái",
+                  secondary_unit: secUnit,
+                  multiplier: mult,
+                  secondary_qty: secQty,
+                  product: prod || matchCart?.product
+                };
+              }) : r.map(o => ({
                 product_id: o.product_id,
                 product_name: o.product_name,
                 quantity: o.quantity,
                 price: o.price,
-                unit: o.unit || "Cái"
+                unit: o.unit || "Cái",
+                secondary_unit: o.secondary_unit || o.product?.secondary_unit,
+                multiplier: o.multiplier || o.product?.multiplier || 1,
+                secondary_qty: o.secondary_qty !== undefined && o.secondary_qty !== null ? o.secondary_qty : (o.multiplier > 1 ? o.quantity / o.multiplier : undefined),
+                product: o.product
               })),
               old_debt: n.data?.old_debt !== void 0 && n.data?.old_debt !== null ? n.data.old_debt : p && p.debt_balance || 0,
               partner_id: p?.id || n.data.partner_id,
@@ -5603,6 +5652,7 @@ function POSPage({
               onConfirmPrint={(type) => { Sa(!1); Re(!0, type); }}
               onReadPacking={() => { if (Ta?.details) qn(Ta.details, T); }}
               onClose={() => Sa(!1)}
+              products={T}
             /><Comp_ad isVisible={Be && T.length === 0} message="Đang nạp dữ liệu POS..." /><Ee><Pd isOpen={tl} partner={p} onClose={() => kt(!1)} onViewOrder={t => {
               setEditingHistoryOrder(t);
             }} onEditOrder={async t => {
@@ -5679,12 +5729,28 @@ function POSPage({
               });
             }} onPrintOrder={(t, a = "Sale") => {
               pn(a || "Sale");
-              const r = Y.find(n => n.id === t.partner_id),
-                s = {
-                  ...t,
-                  old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
-                  partner: r || t.partner || null
+              const r = Y.find(n => n.id === t.partner_id);
+              const enrichedDetails = (t.details || []).map(dItem => {
+                const prod = dItem.product || T.find(p => p.id === dItem.product_id);
+                const mult = Number(dItem.multiplier || prod?.multiplier) || 1;
+                const secUnit = dItem.secondary_unit || prod?.secondary_unit;
+                const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+                  ? Number(dItem.secondary_qty)
+                  : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+                return {
+                  ...dItem,
+                  secondary_unit: secUnit,
+                  multiplier: mult,
+                  secondary_qty: secQty,
+                  product: prod || dItem.product
                 };
+              });
+              const s = {
+                ...t,
+                details: enrichedDetails,
+                old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
+                partner: r || t.partner || null
+              };
               Ur(s);
               setTimeout(async () => {
                 try {
@@ -5793,12 +5859,28 @@ function POSPage({
               }}
               onPrintOrder={(t, a = "Sale") => {
                 pn(a || "Sale");
-                const r = Y.find(n => n.id === t.partner_id),
-                  s = {
-                    ...t,
-                    old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
-                    partner: r || t.partner || null
+                const r = Y.find(n => n.id === t.partner_id);
+                const enrichedDetails = (t.details || []).map(dItem => {
+                  const prod = dItem.product || T.find(p => p.id === dItem.product_id);
+                  const mult = Number(dItem.multiplier || prod?.multiplier) || 1;
+                  const secUnit = dItem.secondary_unit || prod?.secondary_unit;
+                  const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+                    ? Number(dItem.secondary_qty)
+                    : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+                  return {
+                    ...dItem,
+                    secondary_unit: secUnit,
+                    multiplier: mult,
+                    secondary_qty: secQty,
+                    product: prod || dItem.product
                   };
+                });
+                const s = {
+                  ...t,
+                  details: enrichedDetails,
+                  old_debt: t.old_debt !== void 0 && t.old_debt !== null ? t.old_debt : r && r.debt_balance || 0,
+                  partner: r || t.partner || null
+                };
                 Ur(s);
                 setTimeout(async () => {
                   try {
@@ -5888,6 +5970,6 @@ function POSPage({
               onSelectRepeat={selectPackingRepeat}
             />
 
-            </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} /></div>}</></Comp_fd>;
+            </div></div>{(fa || ya) && (fa && fa.details && fa.details.length > 0 || ya && ya.details && ya.details.length > 0) && <div className="only-print"><PrintTemplate data={fa || ya} settings={J} type={Gi || "Sale"} isPreview={false} showOldDebt={Ke.showOldDebt} showPayment={Ke.showPayment} showRemaining={Ke.showRemaining} showCashGiven={Ke.showCashGiven} showChange={Ke.showChange} products={T} /></div>}</></Comp_fd>;
 }
 export default POSPage;

@@ -38,7 +38,8 @@ const POSPrintPreviewModal = React.memo(function POSPrintPreviewModal({
   onTogglePrintOption,
   onConfirmPrint,
   onReadPacking,
-  onClose
+  onClose,
+  products = []
 }) {
   const [zoomScale, setZoomScale] = useState(1);
 
@@ -296,6 +297,7 @@ const POSPrintPreviewModal = React.memo(function POSPrintPreviewModal({
               showRemaining={printOptions.showRemaining}
               showCashGiven={printOptions.showCashGiven}
               showChange={printOptions.showChange}
+              products={products}
             />
           </m.div>
           <p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">

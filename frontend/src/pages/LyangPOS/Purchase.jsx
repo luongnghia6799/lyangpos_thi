@@ -1602,6 +1602,35 @@ export default function Purchase() {
             const savedOrderId = res.data?.id;
             const enrichedOrder = {
                 ...res.data,
+                details: (res.data?.details && res.data.details.length > 0) ? res.data.details.map((dItem, idx) => {
+                    const matchCart = finalCart.find(c => c.product_id === dItem.product_id) || finalCart[idx];
+                    const prod = matchCart?.product || (products || []).find(p => p.id === dItem.product_id);
+                    const mult = Number(dItem.multiplier || matchCart?.multiplier || prod?.multiplier) || 1;
+                    const secUnit = dItem.secondary_unit || matchCart?.secondary_unit || prod?.secondary_unit;
+                    const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+                        ? Number(dItem.secondary_qty)
+                        : (matchCart?.secondary_qty !== undefined && matchCart?.secondary_qty !== null && matchCart?.secondary_qty !== '')
+                            ? Number(matchCart.secondary_qty)
+                            : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+                    return {
+                        ...dItem,
+                        unit: dItem.unit || matchCart?.unit || prod?.unit || "Cái",
+                        secondary_unit: secUnit,
+                        multiplier: mult,
+                        secondary_qty: secQty,
+                        product: prod || matchCart?.product
+                    };
+                }) : finalCart.map(o => ({
+                    product_id: o.product_id,
+                    product_name: o.product_name,
+                    quantity: o.quantity,
+                    price: o.price,
+                    unit: o.unit || "Cái",
+                    secondary_unit: o.secondary_unit || o.product?.secondary_unit,
+                    multiplier: o.multiplier || o.product?.multiplier || 1,
+                    secondary_qty: o.secondary_qty !== undefined && o.secondary_qty !== null ? o.secondary_qty : (o.multiplier > 1 ? o.quantity / o.multiplier : undefined),
+                    product: o.product
+                })),
                 old_debt: (res.data?.old_debt !== undefined && res.data?.old_debt !== null) ? res.data.old_debt : (selectedPartner ? (selectedPartner.debt_balance || 0) : 0),
                 partner_id: selectedPartner?.id || res.data.partner_id,
                 partner_name: selectedPartner?.name || res.data.partner_name,
@@ -5671,6 +5700,7 @@ export default function Purchase() {
                                             showRemaining={printOptions.showRemaining}
                                             showCashGiven={printOptions.showCashGiven}
                                             showChange={printOptions.showChange}
+                                            products={products}
                                         />
                                     </m.div>
                                     <p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">
@@ -5705,6 +5735,7 @@ export default function Purchase() {
                             data={lastOrder}
                             settings={settings}
                             type="Purchase"
+                            products={products}
                         />
                     </div>
                 )
@@ -5852,8 +5883,24 @@ export default function Purchase() {
                         const partner = partners.find(p => p.id === order.partner_id);
                         const hasStoredOldDebt = order.old_debt !== undefined && order.old_debt !== null;
                         const resolvedOldDebt = hasStoredOldDebt ? Number(order.old_debt) : (partner ? (partner.debt_balance || 0) : 0);
+                        const enrichedDetails = (order.details || []).map(dItem => {
+                            const prod = dItem.product || (products || []).find(p => p.id === dItem.product_id);
+                            const mult = Number(dItem.multiplier || prod?.multiplier) || 1;
+                            const secUnit = dItem.secondary_unit || prod?.secondary_unit;
+                            const secQty = (dItem.secondary_qty !== undefined && dItem.secondary_qty !== null && dItem.secondary_qty !== '')
+                                ? Number(dItem.secondary_qty)
+                                : (mult > 1 ? Number(dItem.quantity) / mult : undefined);
+                            return {
+                                ...dItem,
+                                secondary_unit: secUnit,
+                                multiplier: mult,
+                                secondary_qty: secQty,
+                                product: prod || dItem.product
+                            };
+                        });
                         const enriched = {
                             ...order,
+                            details: enrichedDetails,
                             old_debt: resolvedOldDebt,
                             partner: partner ? { ...partner, debt_balance: resolvedOldDebt } : (order.partner || null)
                         };

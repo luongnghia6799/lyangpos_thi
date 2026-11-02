@@ -438,9 +438,23 @@ const PrintTemplate = forwardRef(({
     showPayment = undefined,
     showRemaining = undefined,
     showCashGiven = undefined,
-    showChange = undefined
+    showChange = undefined,
+    products = []
 }, ref) => {
     const [activeKey, setActiveKey] = useState(null);
+
+    // Fast lookup map for products if provided
+    const productsMap = useMemo(() => {
+        if (!Array.isArray(products) || products.length === 0) return null;
+        const map = new Map();
+        for (const p of products) {
+            if (p && p.id != null) {
+                map.set(Number(p.id), p);
+                map.set(String(p.id), p);
+            }
+        }
+        return map;
+    }, [products]);
     const [watermarkHovered, setWatermarkHovered] = useState(false);
 
     // Merge settings with defaults safely
@@ -1183,15 +1197,29 @@ const PrintTemplate = forwardRef(({
     // Secondary qty totals grouped by unit
     const secondaryTotals = {};
     (data.details || []).forEach(item => {
-        if (item.multiplier && item.multiplier > 1 && item.secondary_unit) {
-            const whole = Math.floor(item.quantity / item.multiplier);
-            if (whole > 0) {
-                secondaryTotals[item.secondary_unit] = (secondaryTotals[item.secondary_unit] || 0) + whole;
+        const prod = item.product || (productsMap && (productsMap.get(item.product_id) || productsMap.get(Number(item.product_id))));
+        const mult = Number(item.multiplier || prod?.multiplier) || 1;
+        const secUnit = (item.secondary_unit || prod?.secondary_unit || '').trim();
+        if (secUnit) {
+            const rawSecQty = (item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== '')
+                ? Number(item.secondary_qty)
+                : null;
+            if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
+                secondaryTotals[secUnit] = (secondaryTotals[secUnit] || 0) + rawSecQty;
+            } else if (mult > 1) {
+                const qty = Number(item.quantity) || 0;
+                const calcSec = qty / mult;
+                if (calcSec !== 0) {
+                    secondaryTotals[secUnit] = (secondaryTotals[secUnit] || 0) + calcSec;
+                }
             }
         }
     });
     const formattedSecondaryQtyTotals = Object.entries(secondaryTotals)
-        .map(([unit, val]) => `${val} ${normalizeUOM(unit)}`)
+        .map(([unit, val]) => {
+            const rounded = Math.round((val + Number.EPSILON) * 1000) / 1000;
+            return `${rounded % 1 === 0 ? rounded : rounded.toFixed(2)} ${normalizeUOM(unit)}`;
+        })
         .join(' / ');
 
     const isFree = s.invoice_free_layout === 'true';
@@ -1685,23 +1713,58 @@ const PrintTemplate = forwardRef(({
                                                     {getShowColSetting('invoice_show_secondary_qty') === 'true' && (
                                                         <td style={{ ...getTdStyle(isFirst('sqty'), isLast('sqty')), textAlign: 'center' }}>
                                                             {(() => {
-                                                                const mult = Number(item.multiplier) || 1;
+                                                                const prod = item.product || (productsMap && (productsMap.get(item.product_id) || productsMap.get(Number(item.product_id))));
+                                                                const mult = Number(item.multiplier || prod?.multiplier) || 1;
+                                                                const secUnit = (item.secondary_unit || prod?.secondary_unit || '').trim();
                                                                 const qty = Number(item.quantity) || 0;
+                                                                const rawSecQty = (item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== '')
+                                                                    ? Number(item.secondary_qty)
+                                                                    : null;
+
+                                                                if (!secUnit && mult <= 1 && (rawSecQty === null || isNaN(rawSecQty))) {
+                                                                    return '-';
+                                                                }
+
+                                                                const unitChar = secUnit ? (secUnit.length <= 6 ? normalizeUOM(secUnit) : secUnit.charAt(0).toUpperCase()) : '';
+                                                                const absQty = Math.abs(qty);
+
                                                                 if (mult > 1) {
-                                                                    const absQty = Math.abs(qty);
                                                                     const whole = Math.floor(absQty / mult);
-                                                                    const rem = absQty % mult;
-                                                                    const unitChar = item.secondary_unit ? item.secondary_unit.trim().charAt(0).toUpperCase() : '';
+                                                                    const rem = Math.round((absQty % mult) * 1000) / 1000;
                                                                     if (whole > 0) {
                                                                         return (
                                                                             <span style={{ fontWeight: '500' }}>
-                                                                                {qty < 0 ? '-' : ''}{whole} {unitChar}{rem > 0 ? ` + ${rem}` : ''}
+                                                                                {qty < 0 ? '-' : ''}{whole} {unitChar}{rem > 0 ? ` + ${rem % 1 === 0 ? rem : rem.toFixed(2)}` : ''}
+                                                                            </span>
+                                                                        );
+                                                                    } else if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
+                                                                        const roundedSec = Math.round((rawSecQty + Number.EPSILON) * 1000) / 1000;
+                                                                        return (
+                                                                            <span style={{ fontWeight: '500' }}>
+                                                                                {roundedSec % 1 === 0 ? roundedSec : roundedSec.toFixed(2)} {unitChar}
+                                                                            </span>
+                                                                        );
+                                                                    } else if (rem > 0) {
+                                                                        const frac = Math.round(((rem / mult) + Number.EPSILON) * 100) / 100;
+                                                                        return (
+                                                                            <span style={{ fontWeight: '500' }}>
+                                                                                {qty < 0 ? '-' : ''}{frac} {unitChar}
                                                                             </span>
                                                                         );
                                                                     }
                                                                 }
+
+                                                                if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
+                                                                    const roundedSec = Math.round((rawSecQty + Number.EPSILON) * 1000) / 1000;
+                                                                    return (
+                                                                        <span style={{ fontWeight: '500' }}>
+                                                                            {roundedSec % 1 === 0 ? roundedSec : roundedSec.toFixed(2)} {unitChar}
+                                                                        </span>
+                                                                    );
+                                                                }
+
                                                                 return '-';
-                                                             })()}
+                                                            })()}
                                                         </td>
                                                     )}
                                                     {getShowColSetting('invoice_show_col_qty') === 'true' && <td style={{ ...getTdStyle(isFirst('qty'), isLast('qty')), textAlign: 'center' }}>{item.quantity}</td>}

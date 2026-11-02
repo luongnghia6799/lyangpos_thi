@@ -3995,23 +3995,6 @@ function POSPage({
                       >
                         <Dr size={16} strokeWidth={2.8} />
                       </x.button>
-                      {Ce > 0 && (
-                        <x.button 
-                          layout
-                          onClick={() => na("current")} 
-                          whileHover={{ scale: 1.08 }} 
-                          whileTap={{ scale: 0.92 }} 
-                          transition={{ 
-                            layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 },
-                            scale: { type: "spring", stiffness: 450, damping: 20 }
-                          }}
-                          className="h-8 px-2.5 flex items-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer font-black text-[9.5px] uppercase tracking-wider"
-                          title="Quay lại đơn hiện tại"
-                        >
-                          <jo size={13} strokeWidth={2.8} />
-                          <span className="hidden sm:inline">Hiện tại</span>
-                        </x.button>
-                      )}
                       </x.div>
                   )}</x.div><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]"><x.div layout transition={{ layout: { type: "spring", stiffness: 350, damping: 28, mass: 0.85 } }} className="relative shrink-0" onMouseEnter={() => { !Me && document.activeElement !== Et.current && W(!0); }} onMouseLeave={() => W(!1)} onBlur={t => { t.currentTarget.contains(t.relatedTarget) || setTimeout(() => { Ue(!1); }, 180); }}><div style={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { background: `linear-gradient(to right, ${cartColorConfig.accentColor}, ${cartColorConfig.accentColor}dd)`, borderColor: cartColorConfig.accentColor, boxShadow: `0 4px 14px ${cartColorConfig.accentColor}40` } : undefined} className={c("relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out", (g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "bg-gradient-to-r from-[#2d5016] to-[#3d6820] dark:from-[#1e3a10] dark:to-[#2d5016] border-[#2d5016] dark:border-[#34d399]/40 shadow-md shadow-[#2d5016]/20 text-white" : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#2d5016] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#2d5016]/10")}><x.div key={(g === "remote_inspect" ? ze || k?.partner_name && k.partner_name !== "Khách lẻ" && k.partner_name !== "Khách bán lẻ" : p) && !Me ? "selected-partner-icon" : "search-icon"} initial={{
                       scale: 0.75,
